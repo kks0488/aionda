@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Background & Foreground */
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+
+  /* Accent (Purple/Violet gradient-friendly) */
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+
+  /* Muted */
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+
+  /* Border */
+  --border: #e4e4e7;
+
+  /* Semantic colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #09090b;
+    --foreground: #fafafa;
+    --accent: #a78bfa;
+    --accent-foreground: #09090b;
+    --muted: #27272a;
+    --muted-foreground: #a1a1aa;
+    --border: #3f3f46;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode prose */
+.dark .prose {
+  --tw-prose-body: #d4d4d8;
+  --tw-prose-headings: #fafafa;
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: #fafafa;
+  --tw-prose-code: #fafafa;
+  --tw-prose-pre-bg: #18181b;
+  --tw-prose-quote-borders: var(--accent);
+}
+
+.dark code {
+  background-color: var(--muted) !important;
+}
+
+/* Verification badges */
+.verified {
+  color: var(--success);
+}
+
+.unverified {
+  color: var(--warning);
+}
+
+.rejected {
+  color: var(--error);
+}
+
+/* Callout styles */
+.callout {
+  @apply rounded-lg border p-4 my-6;
+}
+
+.callout-info {
+  @apply bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800;
+}
+
+.callout-warning {
+  @apply bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800;
+}
+
+.callout-tip {
+  @apply bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800;
+}
+
+.callout-error {
+  @apply bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800;
+}
+
+/* Reading progress bar */
+.reading-progress {
+  @apply fixed top-0 left-0 h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500 z-50 transition-all;
+}
+
+/* Gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection */
+::selection {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* Focus styles */
+:focus-visible {
+  @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-background;
+}

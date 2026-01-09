@@ -1,0 +1,61 @@
+{
+  "project": {
+    "name": "singularity-blog",
+    "description": "AI/tech blog that curates content from DC Inside singularity gallery"
+  },
+  "skills": {
+    "enabled": true,
+    "directory": ".claude/skills"
+  },
+  "subagents": {
+    "singularity-crawler": {
+      "description": "Specialized agent for crawling DC Inside thesingularity gallery",
+      "tools": ["WebFetch", "Bash", "Write", "Read", "Glob"],
+      "model": "haiku",
+      "instructions": "You are a web crawling specialist for DC Inside gallery. Target: https://gall.dcinside.com/mgallery/board/lists?id=thesingularity. Fetch post lists, parse HTML to extract posts, save as JSON to data/raw/. Respect rate limits (1 req/sec). Check existing files to avoid duplicates."
+    },
+    "singularity-verifier": {
+      "description": "Fact-checking specialist using AI and web search",
+      "tools": ["WebSearch", "WebFetch", "Read", "Write"],
+      "model": "sonnet",
+      "instructions": "You are a fact-checking specialist for AI/tech content. Read posts from data/selected/, extract factual claims, use WebSearch to find sources, compare with authoritative sources (company blogs, docs), calculate confidence scores. Generate verification reports in data/verified/."
+    },
+    "singularity-translator": {
+      "description": "Korean to English translation specialist for tech content",
+      "tools": ["Read", "Write", "Edit"],
+      "model": "sonnet",
+      "instructions": "You are a professional Korean-English translator for AI/tech content. Preserve code blocks, URLs, product names. Use standard technical terminology. Adapt informal Korean to professional English. Add context for Korea-specific references."
+    }
+  },
+  "mcpServers": {
+    "puppeteer": {
+      "command": "npx",
+      "args": ["@anthropics/mcp-server-puppeteer"],
+      "env": {
+        "PUPPETEER_HEADLESS": "true"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "@anthropics/mcp-server-filesystem",
+        "/home/kkaemo/projects/singularity-blog"
+      ]
+    }
+  },
+  "context": {
+    "alwaysInclude": [
+      ".claude/CLAUDE.md"
+    ],
+    "workingDirectory": "/home/kkaemo/projects/singularity-blog"
+  },
+  "preferences": {
+    "language": "ko",
+    "codeStyle": {
+      "typescript": true,
+      "semicolons": true,
+      "singleQuotes": true,
+      "tabWidth": 2
+    }
+  }
+}
