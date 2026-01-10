@@ -274,20 +274,17 @@ export default async function PostPage({
                   <span className="font-medium">
                     {locale === 'ko' ? '영감:' : 'Inspired by:'}
                   </span>
-                  {post.sourceId ? (
-                    <a
-                      href={`https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=${post.sourceId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
-                    </a>
-                  ) : (
-                    <span>
-                      {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
-                    </span>
-                  )}
+                  <a
+                    href={post.sourceId
+                      ? `https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=${post.sourceId}`
+                      : 'https://gall.dcinside.com/mgallery/board/lists/?id=thesingularity'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
+                  </a>
                 </div>
                 {post.sourceUrl && (
                   <div className="flex items-center gap-2">
