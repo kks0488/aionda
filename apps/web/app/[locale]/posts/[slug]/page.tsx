@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { getPostBySlug, getPosts } from '@/lib/posts';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
-import { TableOfContents } from '@/components/TableOfContents';
+import ShareButtons from '@/components/ShareButtons';
 import type { Locale } from '@/i18n';
 
 export async function generateStaticParams() {
@@ -100,6 +100,10 @@ function getTagIcon(tag: string): string {
     gpt: 'chat',
     llama: 'pets',
     ai: 'memory',
+    hardware: 'memory',
+    agi: 'psychology',
+    llm: 'chat',
+    robotics: 'precision_manufacturing',
     default: 'article',
   };
   return icons[tag.toLowerCase()] || icons.default;
@@ -114,15 +118,35 @@ export default async function PostPage({
 
   const post = getPostBySlug(slug, locale as Locale);
   const t = await getTranslations({ locale, namespace: 'post' });
+  const allPosts = getPosts(locale as Locale);
 
   if (!post) {
     notFound();
+  }
+
+  // Get related posts (same tag, excluding current)
+  const relatedPosts = allPosts
+    .filter((p) => p.slug !== post.slug && p.tags.some((tag) => post.tags.includes(tag)))
+    .slice(0, 3);
+
+  // If not enough related posts, fill with recent posts
+  if (relatedPosts.length < 3) {
+    const recentPosts = allPosts
+      .filter((p) => p.slug !== post.slug && !relatedPosts.includes(p))
+      .slice(0, 3 - relatedPosts.length);
+    relatedPosts.push(...recentPosts);
   }
 
   const readingTime = estimateReadingTime(post.content);
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
   const tagIcon = getTagIcon(primaryTag);
+
+  const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
   // JSON-LD structured data for SEO
   const jsonLd = {
@@ -164,134 +188,186 @@ export default async function PostPage({
       />
       <ReadingProgress />
 
-      <div className="bg-white dark:bg-[#101922] min-h-screen">
-        {/* Hero Image */}
-        <div className="w-full max-w-5xl mx-auto px-6 pt-8">
-          <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg">
-            {post.coverImage ? (
-              <Image
-                src={post.coverImage}
-                alt={post.title}
-                fill
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div className={`w-full h-full bg-gradient-to-br ${tagColor} flex items-center justify-center relative overflow-hidden`}>
-                {/* Pattern overlay */}
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute inset-0" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                  }} />
-                </div>
-                <span className="material-symbols-outlined text-white/80 text-8xl">
-                  {tagIcon}
-                </span>
-              </div>
-            )}
-            {post.tags[0] && (
-              <span className="absolute top-4 left-4 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
-                {post.tags[0]}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-center gap-8 px-6 py-12">
-          {/* Main content */}
-          <article className="max-w-3xl w-full">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12 lg:py-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+          {/* Article */}
+          <article className="lg:col-span-8 flex flex-col">
             {/* Header */}
-            <header className="mb-10">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 leading-tight text-slate-900 dark:text-white">
-                {post.title}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-6">
-                <time dateTime={post.date} className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">calendar_today</span>
-                  {new Date(post.date).toLocaleDateString(locale, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </time>
-
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-base">schedule</span>
-                  {readingTime} min read
-                </span>
-
+            <div className="mb-8 md:mb-12">
+              {/* Meta info */}
+              <div className="flex items-center gap-3 text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
+                {post.tags[0] && (
+                  <>
+                    <span className="text-primary hover:underline cursor-pointer">
+                      {post.tags[0]}
+                    </span>
+                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                  </>
+                )}
+                <span>{formattedDate}</span>
                 {post.verificationScore !== undefined && (
-                  <span className={`flex items-center gap-1 ${
-                    post.verificationScore >= 0.7
-                      ? 'text-emerald-600 dark:text-emerald-400'
-                      : 'text-amber-600 dark:text-amber-400'
-                  }`}>
-                    <span className="material-symbols-outlined text-base icon-filled">verified</span>
-                    {Math.round(post.verificationScore * 100)}% verified
-                  </span>
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span className="flex items-center gap-1 text-primary">
+                      <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
+                      {Math.round(post.verificationScore * 100)}% Verified
+                    </span>
+                  </>
                 )}
               </div>
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2 mb-6">
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+              {/* Title */}
+              <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 text-slate-900 dark:text-white">
+                {post.title}
+              </h1>
 
-              {/* Language Switch */}
-              {post.alternateLocale && (
-                <Link
-                  href={post.alternateLocale}
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  {locale === 'en' ? '🇰🇷 한국어로 읽기' : '🇺🇸 Read in English'}
-                </Link>
-              )}
-            </header>
+              {/* Description */}
+              <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 font-light mb-10 leading-relaxed">
+                {post.description}
+              </p>
+
+              {/* Hero Image */}
+              <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 mb-10">
+                {post.coverImage ? (
+                  <Image
+                    src={post.coverImage}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className={`w-full h-full bg-gradient-to-br ${tagColor} flex items-center justify-center relative overflow-hidden`}>
+                    {/* Pattern overlay */}
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute inset-0" style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                      }} />
+                    </div>
+                    <span className="material-symbols-outlined text-white/80 text-8xl">
+                      {tagIcon}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Content */}
-            <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-code:text-primary">
+            <div className="prose prose-lg dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white prose-a:text-primary prose-strong:text-slate-900 dark:prose-strong:text-white prose-code:text-primary">
               <MDXContent source={post.content} />
             </div>
 
-            {/* Footer */}
-            <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800">
-              {post.sourceUrl && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {t('originalSource')}:{' '}
-                  <a
-                    href={post.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    DC Inside
-                  </a>
-                </p>
-              )}
+            {/* Share buttons */}
+            <ShareButtons
+              url={`${BASE_URL}/${locale}/posts/${slug}`}
+              title={post.title}
+              locale={locale as Locale}
+            />
 
-              {/* Back to posts */}
-              <Link
-                href={`/${locale}/posts`}
-                className="inline-flex items-center gap-2 mt-6 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
-              >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
-                {locale === 'ko' ? '모든 글 보기' : 'Back to all posts'}
-              </Link>
-            </footer>
+            {/* Source */}
+            {post.sourceUrl && (
+              <div className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+                {t('originalSource')}:{' '}
+                <a
+                  href={post.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  DC Inside
+                </a>
+              </div>
+            )}
           </article>
 
-          {/* Table of Contents - sidebar */}
-          <TableOfContents content={post.content} />
+          {/* Sidebar */}
+          <aside className="lg:col-span-4 space-y-12">
+            {/* Related Articles */}
+            {relatedPosts.length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold mb-6 text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary icon-filled text-2xl">auto_stories</span>
+                  {locale === 'ko' ? '관련 글' : 'Related Articles'}
+                </h3>
+                <div className="space-y-6">
+                  {relatedPosts.map((relatedPost) => {
+                    const relatedTagColor = getTagColor(relatedPost.tags[0] || 'ai');
+                    const relatedTagIcon = getTagIcon(relatedPost.tags[0] || 'ai');
+                    const relatedDate = new Date(relatedPost.date).toLocaleDateString(
+                      locale === 'ko' ? 'ko-KR' : 'en-US',
+                      { month: 'short', day: 'numeric', year: 'numeric' }
+                    );
+
+                    return (
+                      <Link
+                        key={relatedPost.slug}
+                        href={`/${locale}/posts/${relatedPost.slug}`}
+                        className="group flex gap-4 items-start"
+                      >
+                        <div className="relative w-24 h-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                          {relatedPost.coverImage ? (
+                            <Image
+                              src={relatedPost.coverImage}
+                              alt={relatedPost.title}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className={`w-full h-full bg-gradient-to-br ${relatedTagColor} flex items-center justify-center`}>
+                              <span className="material-symbols-outlined text-white/80 text-2xl">
+                                {relatedTagIcon}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-snug text-base line-clamp-2">
+                            {relatedPost.title}
+                          </h4>
+                          <span className="text-xs text-slate-500 mt-1 block">
+                            {relatedDate}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Newsletter */}
+            <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
+                {locale === 'ko' ? '뉴스레터' : 'Daily Digest'}
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                {locale === 'ko'
+                  ? '매일 아침 AI 뉴스를 받아보세요.'
+                  : 'Get the top AI news every morning.'}
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className="w-full rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <button className="bg-primary text-white rounded-lg px-3 py-2 hover:bg-blue-600 transition-colors">
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Back to posts */}
+            <Link
+              href={`/${locale}/posts`}
+              className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
+            >
+              <span className="material-symbols-outlined text-xl">arrow_back</span>
+              {locale === 'ko' ? '모든 글 보기' : 'Back to all posts'}
+            </Link>
+          </aside>
         </div>
-      </div>
+      </main>
     </>
   );
 }
