@@ -59,7 +59,7 @@ export function TableOfContents({ content }: TableOfContentsProps) {
 
   return (
     <nav className="hidden xl:block sticky top-24 ml-8 w-64 max-h-[calc(100vh-8rem)] overflow-y-auto">
-      <h4 className="text-sm font-semibold text-foreground mb-4">
+      <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
         On this page
       </h4>
       <ul className="space-y-2 text-sm">
@@ -78,10 +78,10 @@ export function TableOfContents({ content }: TableOfContentsProps) {
                   history.pushState(null, '', `#${item.id}`);
                 }
               }}
-              className={`block py-1 transition-colors hover:text-foreground ${
+              className={`block py-1 transition-colors hover:text-slate-900 dark:hover:text-white ${
                 activeId === item.id
-                  ? 'text-accent font-medium border-l-2 border-accent -ml-2 pl-2'
-                  : 'text-muted-foreground'
+                  ? 'text-primary font-medium border-l-2 border-primary -ml-2 pl-2'
+                  : 'text-slate-500 dark:text-slate-400'
               }`}
             >
               {item.text}

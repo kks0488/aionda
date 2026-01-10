@@ -68,7 +68,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
               <span>{formattedDate}</span>
               {post.verificationScore !== undefined && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-slate-300" />
+                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                   <span className="flex items-center gap-1 text-primary">
                     <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
                     AI Verified
@@ -118,7 +118,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
               <span>{formattedDate}</span>
               {post.verificationScore !== undefined && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-slate-300" />
+                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                   <span className="flex items-center gap-1 text-primary">
                     <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
                     Verified

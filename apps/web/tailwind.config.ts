@@ -24,12 +24,12 @@ const config: Config = {
           dark: '#1a2332',
         },
         foreground: {
-          DEFAULT: '#0f172a', // slate-900
-          muted: '#64748b',   // slate-500
+          DEFAULT: '#0f172a', // slate-900 (light) - use dark:text-white for dark mode
+          muted: '#64748b',   // slate-500 (light) - use dark:text-slate-400 for dark mode
         },
         muted: {
-          DEFAULT: '#f1f5f9', // slate-100
-          foreground: '#64748b', // slate-500
+          DEFAULT: '#f1f5f9', // slate-100 (light) - use dark:bg-slate-800 for dark mode
+          foreground: '#64748b', // slate-500 (light) - use dark:text-slate-400 for dark mode
         },
         border: {
           DEFAULT: '#e2e8f0', // slate-200

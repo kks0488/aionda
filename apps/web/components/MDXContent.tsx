@@ -48,17 +48,17 @@ export function MDXContent({ source }: MDXContentProps) {
 
           // Paragraphs
           p: ({ children }) => (
-            <p className="mb-6 leading-relaxed text-foreground/90">{children}</p>
+            <p className="mb-6 leading-relaxed text-slate-700 dark:text-slate-300">{children}</p>
           ),
 
           // Lists
           ul: ({ children }) => (
-            <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-muted-foreground">
+            <ul className="list-disc pl-6 mb-6 space-y-2 marker:text-slate-400 dark:marker:text-slate-500">
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-muted-foreground">
+            <ol className="list-decimal pl-6 mb-6 space-y-2 marker:text-slate-400 dark:marker:text-slate-500">
               {children}
             </ol>
           ),
@@ -80,7 +80,7 @@ export function MDXContent({ source }: MDXContentProps) {
 
           // Blockquotes - styled as pull quotes
           blockquote: ({ children }) => (
-            <blockquote className="relative my-8 pl-6 border-l-4 border-accent italic text-lg text-muted-foreground">
+            <blockquote className="relative my-8 pl-6 border-l-4 border-primary italic text-lg text-slate-600 dark:text-slate-400">
               <span className="absolute -left-3 -top-2 text-5xl text-accent/20 font-serif">
                 &ldquo;
               </span>
@@ -95,7 +95,7 @@ export function MDXContent({ source }: MDXContentProps) {
 
             if (isInline) {
               return (
-                <code className="px-1.5 py-0.5 bg-muted rounded text-sm font-mono text-accent">
+                <code className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-sm font-mono text-primary">
                   {children}
                 </code>
               );
@@ -119,7 +119,7 @@ export function MDXContent({ source }: MDXContentProps) {
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-muted">{children}</thead>
+            <thead className="bg-slate-100 dark:bg-slate-800">{children}</thead>
           ),
           tbody: ({ children }) => (
             <tbody className="divide-y divide-border">{children}</tbody>
@@ -149,7 +149,7 @@ export function MDXContent({ source }: MDXContentProps) {
                 loading="lazy"
               />
               {alt && (
-                <figcaption className="mt-3 text-center text-sm text-muted-foreground">
+                <figcaption className="mt-3 text-center text-sm text-slate-500 dark:text-slate-400">
                   {alt}
                 </figcaption>
               )}
@@ -158,7 +158,7 @@ export function MDXContent({ source }: MDXContentProps) {
 
           // Strong and emphasis
           strong: ({ children }) => (
-            <strong className="font-semibold text-foreground">{children}</strong>
+            <strong className="font-semibold text-slate-900 dark:text-white">{children}</strong>
           ),
           em: ({ children }) => (
             <em className="italic">{children}</em>
@@ -166,7 +166,7 @@ export function MDXContent({ source }: MDXContentProps) {
 
           // Strikethrough
           del: ({ children }) => (
-            <del className="text-muted-foreground line-through">{children}</del>
+            <del className="text-slate-500 dark:text-slate-400 line-through">{children}</del>
           ),
         }}
       >

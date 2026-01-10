@@ -147,7 +147,7 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
       >
         {/* Search Input */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-          <span className="material-symbols-outlined text-slate-400" aria-hidden="true">search</span>
+          <span className="material-symbols-outlined text-slate-400 dark:text-slate-500" aria-hidden="true">search</span>
           <input
             ref={inputRef}
             type="text"
