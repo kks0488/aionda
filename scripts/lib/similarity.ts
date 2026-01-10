@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import matter from 'gray-matter';
 
@@ -12,7 +12,10 @@ interface PostMeta {
 }
 
 export function getAllPosts(): PostMeta[] {
-  if (!readdirSync(POSTS_DIR, { withFileTypes: true })) return [];
+  // 디렉토리 존재 여부 먼저 확인
+  if (!existsSync(POSTS_DIR)) {
+    return [];
+  }
 
   const files = readdirSync(POSTS_DIR).filter(f => f.endsWith('.mdx'));
   return files.map(file => {

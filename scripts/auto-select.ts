@@ -1,5 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { isAvailable, claimWork } from './lib/work-queue';
+import { checkDuplicate } from './lib/similarity';
 
 const RAW_DIR = './data/raw';
 const SELECTED_DIR = './data/selected';
@@ -128,6 +130,19 @@ async function main() {
 
   let selected = 0;
   for (const post of scoredPosts) {
+    // work-queue 체크: 다른 작업자가 이미 처리 중인지 확인
+    if (!isAvailable(post.id)) {
+      console.log(`⏭️ [Skip] ${post.id} - 이미 작업 중이거나 완료됨`);
+      continue;
+    }
+
+    // similarity 체크: 기존 포스트와 유사한지 확인
+    const duplicate = checkDuplicate(post.title, []);
+    if (duplicate) {
+      console.log(`⏭️ [Skip] ${post.id} - 유사 포스트 존재: ${duplicate.slug} (${(duplicate.similarity * 100).toFixed(0)}%)`);
+      continue;
+    }
+
     const srcPath = join(RAW_DIR, `${post.id}.json`);
     const destPath = join(SELECTED_DIR, `${post.id}.json`);
 
@@ -135,6 +150,9 @@ async function main() {
     content.selectedAt = new Date().toISOString();
     content.selectedBy = 'auto';
     content.qualityScore = post.qualityScore;
+
+    // work-queue에 등록
+    claimWork(post.id, 'crawler', 'auto-select');
 
     writeFileSync(destPath, JSON.stringify(content, null, 2));
     console.log(`✅ [Score: ${post.qualityScore}] ${post.id} - ${post.title.substring(0, 50)}`);
