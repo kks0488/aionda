@@ -11,7 +11,7 @@ interface PostCardProps {
   priority?: boolean;
 }
 
-export default function PostCard({ post, locale, variant = 'medium' }: PostCardProps) {
+export default function PostCard({ post, locale, variant = 'medium', priority = false }: PostCardProps) {
   const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
     month: 'short',
@@ -49,6 +49,8 @@ export default function PostCard({ post, locale, variant = 'medium' }: PostCardP
                 src={post.coverImage}
                 alt={post.title}
                 fill
+                sizes="(max-width: 1024px) 100vw, 66vw"
+                priority={priority}
                 className="object-cover transform group-hover:scale-105 transition-transform duration-700"
               />
             ) : (
@@ -98,6 +100,7 @@ export default function PostCard({ post, locale, variant = 'medium' }: PostCardP
                 src={post.coverImage}
                 alt={post.title}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="object-cover transform group-hover:scale-105 transition-transform duration-700"
               />
             ) : (
@@ -148,6 +151,7 @@ export default function PostCard({ post, locale, variant = 'medium' }: PostCardP
               src={post.coverImage}
               alt={post.title}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover transform group-hover:scale-105 transition-transform duration-500"
             />
           ) : (

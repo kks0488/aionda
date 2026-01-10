@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { Locale } from '@/i18n';
 import { useSearch } from './SearchProvider';
+import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
   locale: Locale;
@@ -53,6 +54,8 @@ export default function Header({ locale }: HeaderProps) {
               ⌘K
             </kbd>
           </button>
+
+          <ThemeToggle locale={locale} />
 
           <nav
             role="group"

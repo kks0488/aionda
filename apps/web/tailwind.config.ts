@@ -9,11 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['Space Grotesk', 'Noto Sans KR', 'sans-serif'],
-        body: ['Space Grotesk', 'Noto Sans KR', 'sans-serif'],
+        display: ['var(--font-space-grotesk)', 'var(--font-noto-sans-kr)', 'sans-serif'],
+        body: ['var(--font-space-grotesk)', 'var(--font-noto-sans-kr)', 'sans-serif'],
       },
       colors: {
         primary: '#0d7ff2',
+        accent: '#0d7ff2',
         background: {
           light: '#ffffff',
           dark: '#101922',
@@ -21,6 +22,18 @@ const config: Config = {
         surface: {
           light: '#f8f9fa',
           dark: '#1a2332',
+        },
+        foreground: {
+          DEFAULT: '#0f172a', // slate-900
+          muted: '#64748b',   // slate-500
+        },
+        muted: {
+          DEFAULT: '#f1f5f9', // slate-100
+          foreground: '#64748b', // slate-500
+        },
+        border: {
+          DEFAULT: '#e2e8f0', // slate-200
+          dark: '#334155',    // slate-700
         },
       },
       borderRadius: {

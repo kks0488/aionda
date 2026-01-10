@@ -2,6 +2,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales, type Locale } from '@/i18n';
+import { fontVariables } from '@/lib/fonts';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
@@ -40,21 +42,28 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className={fontVariables} suppressHydrationWarning>
       <head>
         <GoogleAnalytics />
         <GoogleAdSense />
       </head>
-      <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden">
-        <NextIntlClientProvider messages={messages}>
-          <SearchProvider>
-            <Header locale={locale as Locale} />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </SearchProvider>
-        </NextIntlClientProvider>
+      <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden font-body">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextIntlClientProvider messages={messages}>
+            <SearchProvider>
+              <Header locale={locale as Locale} />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </SearchProvider>
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
