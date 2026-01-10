@@ -6,6 +6,7 @@ import { getPostBySlug, getPosts } from '@/lib/posts';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
+import PostNavigation from '@/components/PostNavigation';
 import type { Locale } from '@/i18n';
 
 export async function generateStaticParams() {
@@ -136,6 +137,11 @@ export default async function PostPage({
       .slice(0, 3 - relatedPosts.length);
     relatedPosts.push(...recentPosts);
   }
+
+  // Get previous and next posts
+  const currentIndex = allPosts.findIndex((p) => p.slug === post.slug);
+  const prevPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
+  const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
 
   const readingTime = estimateReadingTime(post.content);
   const primaryTag = post.tags[0] || 'ai';
@@ -278,6 +284,13 @@ export default async function PostPage({
                 </a>
               </div>
             )}
+
+            {/* Previous / Next Navigation */}
+            <PostNavigation
+              prevPost={prevPost}
+              nextPost={nextPost}
+              locale={locale as Locale}
+            />
           </article>
 
           {/* Sidebar */}
