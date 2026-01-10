@@ -1,0 +1,113 @@
+name: Auto Update Blog
+
+on:
+  schedule:
+    # Run every 3 hours
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      min_quality_score:
+        description: 'Minimum quality score for auto-selection'
+        required: false
+        default: '30'
+      max_posts:
+        description: 'Maximum posts to select per run'
+        required: false
+        default: '5'
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  update-blog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Crawl new posts
+        run: pnpm crawl --pages=3
+        continue-on-error: true
+
+      - name: Auto-select quality posts
+        run: pnpm tsx scripts/auto-select.ts
+        env:
+          MIN_QUALITY_SCORE: ${{ github.event.inputs.min_quality_score || '30' }}
+          MAX_POSTS: ${{ github.event.inputs.max_posts || '5' }}
+
+      - name: Check for new selections
+        id: check_selections
+        run: |
+          if [ -d "data/selected" ] && [ "$(ls -A data/selected 2>/dev/null)" ]; then
+            echo "has_selections=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_selections=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify selected posts
+        if: steps.check_selections.outputs.has_selections == 'true'
+        run: pnpm verify
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        continue-on-error: true
+
+      - name: Translate verified posts
+        if: steps.check_selections.outputs.has_selections == 'true'
+        run: pnpm translate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        continue-on-error: true
+
+      - name: Generate MDX posts
+        if: steps.check_selections.outputs.has_selections == 'true'
+        run: pnpm generate-post
+        continue-on-error: true
+
+      - name: Generate cover images
+        if: steps.check_selections.outputs.has_selections == 'true'
+        run: pnpm generate-image
+        env:
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+        continue-on-error: true
+
+      - name: Build website
+        run: |
+          cd apps/web
+          pnpm build
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -m "chore: auto-update blog content $(date +'%Y-%m-%d %H:%M')"
+          git push
