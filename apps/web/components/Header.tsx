@@ -1,13 +1,29 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import type { Locale } from '@/i18n';
+import { useSearch } from './SearchProvider';
 
 interface HeaderProps {
   locale: Locale;
 }
 
 export default function Header({ locale }: HeaderProps) {
+  const { openSearch } = useSearch();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSearch();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [openSearch]);
+
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#101922]/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -17,8 +33,15 @@ export default function Header({ locale }: HeaderProps) {
         </Link>
 
         <div className="flex items-center gap-4">
-          <button className="p-2 text-slate-600 hover:text-primary transition-colors dark:text-slate-300">
-            <span className="material-symbols-outlined">search</span>
+          <button
+            onClick={openSearch}
+            className="flex items-center gap-2 px-3 py-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
+          >
+            <span className="material-symbols-outlined text-xl">search</span>
+            <span className="hidden sm:inline text-sm">Search</span>
+            <kbd className="hidden sm:inline ml-2 px-1.5 py-0.5 text-xs font-medium bg-white dark:bg-slate-700 rounded border border-gray-200 dark:border-gray-600">
+              ⌘K
+            </kbd>
           </button>
 
           <div className="flex bg-gray-100 dark:bg-slate-800 rounded-md p-1 border border-gray-200 dark:border-gray-700">

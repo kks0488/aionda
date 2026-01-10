@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import GoogleAdSense from '@/components/GoogleAdSense';
+import SearchProvider from '@/components/SearchProvider';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -46,11 +47,13 @@ export default async function LocaleLayout({
       </head>
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden">
         <NextIntlClientProvider messages={messages}>
-          <Header locale={locale as Locale} />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
+          <SearchProvider>
+            <Header locale={locale as Locale} />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </SearchProvider>
         </NextIntlClientProvider>
       </body>
     </html>

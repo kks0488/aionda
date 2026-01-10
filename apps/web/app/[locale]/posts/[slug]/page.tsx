@@ -74,6 +74,37 @@ function estimateReadingTime(content: string): number {
   return Math.ceil(words / wordsPerMinute);
 }
 
+// Generate a consistent color based on the first tag
+function getTagColor(tag: string): string {
+  const colors = [
+    'from-blue-500 to-cyan-400',
+    'from-purple-500 to-pink-400',
+    'from-green-500 to-emerald-400',
+    'from-orange-500 to-amber-400',
+    'from-red-500 to-rose-400',
+    'from-indigo-500 to-violet-400',
+  ];
+  const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return colors[hash % colors.length];
+}
+
+// Get icon for tag
+function getTagIcon(tag: string): string {
+  const icons: Record<string, string> = {
+    news: 'newspaper',
+    opinion: 'lightbulb',
+    openai: 'smart_toy',
+    anthropic: 'psychology',
+    grok: 'auto_awesome',
+    xai: 'rocket_launch',
+    gpt: 'chat',
+    llama: 'pets',
+    ai: 'memory',
+    default: 'article',
+  };
+  return icons[tag.toLowerCase()] || icons.default;
+}
+
 export default async function PostPage({
   params: { locale, slug },
 }: {
@@ -88,8 +119,10 @@ export default async function PostPage({
     notFound();
   }
 
-  const otherLocale = locale === 'en' ? 'ko' : 'en';
   const readingTime = estimateReadingTime(post.content);
+  const primaryTag = post.tags[0] || 'ai';
+  const tagColor = getTagColor(primaryTag);
+  const tagIcon = getTagIcon(primaryTag);
 
   // JSON-LD structured data for SEO
   const jsonLd = {
@@ -131,12 +164,11 @@ export default async function PostPage({
       />
       <ReadingProgress />
 
-      <div className="flex justify-center gap-8">
-        {/* Main content */}
-        <article className="max-w-3xl w-full">
-          {/* Cover Image */}
-          {post.coverImage && (
-            <div className="relative w-full aspect-video mb-8 rounded-xl overflow-hidden shadow-lg">
+      <div className="bg-white dark:bg-[#101922] min-h-screen">
+        {/* Hero Image */}
+        <div className="w-full max-w-5xl mx-auto px-6 pt-8">
+          <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg">
+            {post.coverImage ? (
               <Image
                 src={post.coverImage}
                 alt={post.title}
@@ -144,94 +176,121 @@ export default async function PostPage({
                 className="object-cover"
                 priority
               />
-            </div>
-          )}
-
-          {/* Header */}
-          <header className="mb-10">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 leading-tight">
-              {post.title}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-6">
-              <time dateTime={post.date} className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {new Date(post.date).toLocaleDateString(locale, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </time>
-
-              <span className="flex items-center gap-1">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {readingTime} min read
+            ) : (
+              <div className={`w-full h-full bg-gradient-to-br ${tagColor} flex items-center justify-center relative overflow-hidden`}>
+                {/* Pattern overlay */}
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute inset-0" style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                  }} />
+                </div>
+                <span className="material-symbols-outlined text-white/80 text-8xl">
+                  {tagIcon}
+                </span>
+              </div>
+            )}
+            {post.tags[0] && (
+              <span className="absolute top-4 left-4 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
+                {post.tags[0]}
               </span>
+            )}
+          </div>
+        </div>
 
-              {post.verificationScore !== undefined && (
-                <span className={`flex items-center gap-1 ${
-                  post.verificationScore >= 0.7
-                    ? 'text-emerald-600 dark:text-emerald-400'
-                    : 'text-amber-600 dark:text-amber-400'
-                }`}>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {Math.round(post.verificationScore * 100)}% verified
+        <div className="flex justify-center gap-8 px-6 py-12">
+          {/* Main content */}
+          <article className="max-w-3xl w-full">
+            {/* Header */}
+            <header className="mb-10">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-6 leading-tight text-slate-900 dark:text-white">
+                {post.title}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-6">
+                <time dateTime={post.date} className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-base">calendar_today</span>
+                  {new Date(post.date).toLocaleDateString(locale, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </time>
+
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-base">schedule</span>
+                  {readingTime} min read
                 </span>
+
+                {post.verificationScore !== undefined && (
+                  <span className={`flex items-center gap-1 ${
+                    post.verificationScore >= 0.7
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  }`}>
+                    <span className="material-symbols-outlined text-base icon-filled">verified</span>
+                    {Math.round(post.verificationScore * 100)}% verified
+                  </span>
+                )}
+              </div>
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {post.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* Language Switch */}
+              {post.alternateLocale && (
+                <Link
+                  href={post.alternateLocale}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  {locale === 'en' ? '🇰🇷 한국어로 읽기' : '🇺🇸 Read in English'}
+                </Link>
               )}
+            </header>
+
+            {/* Content */}
+            <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-code:text-primary">
+              <MDXContent source={post.content} />
             </div>
 
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-3 py-1 bg-accent/10 text-accent text-sm font-medium rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            {/* Footer */}
+            <footer className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-800">
+              {post.sourceUrl && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {t('originalSource')}:{' '}
+                  <a
+                    href={post.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    DC Inside
+                  </a>
+                </p>
+              )}
 
-            {/* Language Switch */}
-            {post.alternateLocale && (
+              {/* Back to posts */}
               <Link
-                href={post.alternateLocale}
-                className="inline-flex items-center gap-2 text-sm text-accent hover:underline"
+                href={`/${locale}/posts`}
+                className="inline-flex items-center gap-2 mt-6 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
               >
-                {locale === 'en' ? '🇰🇷 한국어로 읽기' : '🇺🇸 Read in English'}
+                <span className="material-symbols-outlined text-xl">arrow_back</span>
+                {locale === 'ko' ? '모든 글 보기' : 'Back to all posts'}
               </Link>
-            )}
-          </header>
+            </footer>
+          </article>
 
-          {/* Content */}
-          <MDXContent source={post.content} />
-
-          {/* Footer */}
-          <footer className="mt-16 pt-8 border-t border-border">
-            {post.sourceUrl && (
-              <p className="text-sm text-muted-foreground">
-                {t('originalSource')}:{' '}
-                <a
-                  href={post.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline"
-                >
-                  DC Inside
-                </a>
-              </p>
-            )}
-          </footer>
-        </article>
-
-        {/* Table of Contents - sidebar */}
-        <TableOfContents content={post.content} />
+          {/* Table of Contents - sidebar */}
+          <TableOfContents content={post.content} />
+        </div>
       </div>
     </>
   );
