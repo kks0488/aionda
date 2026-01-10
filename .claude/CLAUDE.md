@@ -14,8 +14,12 @@ AI 기술 블로그로, DC Inside "특이점이 온다" 갤러리의 콘텐츠�
 │   ├── public/images/posts/     # 커버 이미지
 │   ├── components/              # React 컴포넌트
 │   └── lib/                     # 유틸리티
+├── packages/crawler/            # 크롤링 모듈
+├── scripts/                     # CLI 도구 (crawl, verify, translate)
 ├── data/
 │   ├── raw/                     # 수집된 글 (JSON)
+│   ├── selected/                # 선별된 글
+│   ├── verified/                # 검증된 글
 │   └── work-queue.json          # 작업 큐
 ├── docs/                        # 문서
 └── .vibe/                       # 작업 로그
@@ -27,7 +31,74 @@ AI 기술 블로그로, DC Inside "특이점이 온다" 갤러리의 콘텐츠�
 - **Content**: MDX with next-mdx-remote
 - **i18n**: next-intl (ko primary, en secondary)
 - **Styling**: Tailwind CSS
+- **Crawling**: Cheerio (static) / Playwright (dynamic)
+- **AI**: Claude API
 - **Deployment**: Vercel
+
+---
+
+## Common Tasks
+
+### Crawling
+```bash
+pnpm crawl              # Crawl latest posts
+pnpm crawl --pages=5    # Crawl 5 pages
+```
+
+### Selection
+```bash
+pnpm select             # Interactive post selection
+```
+
+### Verification
+```bash
+pnpm verify             # Verify selected posts
+pnpm verify --id=123    # Verify specific post
+```
+
+### Translation
+```bash
+pnpm translate          # Translate verified posts
+```
+
+### Publishing
+```bash
+pnpm generate-post      # Generate MDX files
+pnpm dev                # Preview locally
+git push                # Deploy to Vercel
+```
+
+---
+
+## Data Schemas
+
+### Raw Post (`data/raw/*.json`)
+```json
+{
+  "id": "123456",
+  "title": "Post title",
+  "category": "정보/뉴스",
+  "author": "nickname",
+  "date": "2025.01.10",
+  "content": "<html>",
+  "contentText": "plain text",
+  "views": 1234,
+  "likes": 56,
+  "url": "https://..."
+}
+```
+
+### Verified Post (`data/verified/*.json`)
+```json
+{
+  "postId": "123456",
+  "claims": [...],
+  "overallScore": 0.85,
+  "recommendation": "publish",
+  "title_en": "English title",
+  "content_en": "Translated content"
+}
+```
 
 ---
 
@@ -102,7 +173,7 @@ author: "AI Onda"
 sourceUrl: "https://..."
 alternateLocale: "/en/posts/{slug}"
 verificationScore: 0.85
-# coverImage: "/images/posts/{slug}.jpeg"  # 이미지 있을 때만
+coverImage: "/images/posts/{slug}.jpeg"  # 가급적 포함
 ---
 ```
 
@@ -113,7 +184,7 @@ verificationScore: 0.85
 ```
 apps/web/content/posts/ko/{slug}.mdx  # 한국어
 apps/web/content/posts/en/{slug}.mdx  # 영어
-apps/web/public/images/posts/{slug}.jpeg  # 이미지 (선택)
+apps/web/public/images/posts/{slug}.jpeg  # 이미지
 ```
 
 ---
@@ -127,8 +198,22 @@ git add . && git commit -m "feat: 새 포스트" && git push
 
 ---
 
+## Important Notes
+
+1. **Rate Limiting**: 크롤링 시 요청 간 1초 딜레이 필수
+2. **Verification**: 공식 소스 우선 확인 (회사 블로그, 문서)
+3. **Translation**: 코드 블록, URL, 제품명 보존
+4. **Image**: 가급적 모든 포스트에 coverImage 포함
+
+---
+
 ## 참고 문서
 
 - [외부 AI 가이드](docs/EXTERNAL_AI.md)
 - [스킬 상세](~/.claude/skills/external-ai/SKILL.md)
 - [태그 유틸](apps/web/lib/tag-utils.ts)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Workflow](docs/WORKFLOW.md)
+- [Crawling](docs/CRAWLING.md)
+- [Verification](docs/VERIFICATION.md)
+- [Translation](docs/TRANSLATION.md)
