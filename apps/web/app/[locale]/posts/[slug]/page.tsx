@@ -7,6 +7,7 @@ import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
 import PostNavigation from '@/components/PostNavigation';
+import NewsletterForm from '@/components/NewsletterForm';
 import type { Locale } from '@/i18n';
 
 export async function generateStaticParams() {
@@ -270,20 +271,11 @@ export default async function PostPage({
               locale={locale as Locale}
             />
 
-            {/* Source */}
-            {post.sourceUrl && (
-              <div className="mt-6 text-sm text-slate-500 dark:text-slate-400">
-                {t('originalSource')}:{' '}
-                <a
-                  href={post.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  DC Inside
-                </a>
-              </div>
-            )}
+            {/* Inspiration Source */}
+            <div className="mt-6 text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span className="material-symbols-outlined text-base">lightbulb</span>
+              {locale === 'ko' ? '영감 출처: 한국 AI 커뮤니티' : 'Inspired by Korean AI communities'}
+            </div>
 
             {/* Previous / Next Navigation */}
             <PostNavigation
@@ -358,16 +350,7 @@ export default async function PostPage({
                   ? '매일 아침 AI 뉴스를 받아보세요.'
                   : 'Get the top AI news every morning.'}
               </p>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  className="w-full rounded-lg bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <button className="bg-primary text-white rounded-lg px-3 py-2 hover:bg-blue-600 transition-colors">
-                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                </button>
-              </div>
+              <NewsletterForm locale={locale as Locale} variant="inline" />
             </div>
 
             {/* Back to posts */}
