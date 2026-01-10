@@ -1,0 +1,44 @@
+---
+title: "OpenAI Structured Outputs: JSON의 악몽에서 해방되다"
+date: "2025-08-06"
+excerpt: "AI가 생성한 JSON이 깨져서 파싱 에러가 난 적이 있나요? OpenAI의 Structured Outputs는 100% 스키마 준수를 보장합니다. 개발자의 생산성을 높여줄 이 기능을 소개합니다."
+tags: ["OpenAI", "JSON", "Structured Outputs", "API", "Development"]
+coverImage: "/images/posts/openai-structured-outputs.jpeg"
+category: "Technology"
+author: "AI Onda"
+sourceUrl: "https://platform.openai.com/docs/changelog"
+alternateLocale: "/en/posts/openai-structured-outputs"
+---
+
+"JSON 파싱 실패". AI 개발자들을 가장 괴롭히는 에러 메시지 중 하나였습니다. (문제)
+OpenAI는 **Structured Outputs** 기능을 통해, 모델의 출력이 개발자가 정의한 JSON 스키마를 **100% 완벽하게 준수**하도록 강제하는 기술을 도입했습니다. (해결책)
+이제 더 이상 복잡한 정규표현식으로 깨진 괄호를 고치거나 재시도(Retry) 로직을 짤 필요가 없습니다. (근거)
+
+## 100% 신뢰성 (Reliability)
+
+### 기존 JSON Mode와의 차이
+기존 `response_format: { type: "json_object" }`는 단순히 JSON 형태를 흉내 낼 뿐, 특정 필드가 누락되거나 타입이 틀리는 것을 막지는 못했습니다.
+**Structured Outputs**는 LLM의 토큰 샘플링 단계에서 스키마에 맞지 않는 토큰의 생성 확률을 0%로 만들어버리는 **Constrained Sampling** 기법을 사용합니다. 따라서 스키마 위반은 이론적으로 불가능합니다.
+
+## 활용 방법
+
+### Pydantic/Zod와의 결합
+Python의 Pydantic이나 TypeScript의 Zod 라이브러리로 데이터 구조를 정의하고 API에 넘기기만 하면 됩니다.
+
+```python
+class UserProfile(BaseModel):
+    name: str
+    age: int
+    interests: list[str]
+
+completion = client.beta.chat.completions.parse(
+    model="gpt-5.1",
+    response_format=UserProfile,
+    messages=[...]
+)
+```
+
+## 도입 효과
+- **코드 간소화**: 방어적 코딩(Defensive Coding)이 대폭 줄어듭니다.
+- **안전성 향상**: AI가 이상한 포맷의 데이터를 뱉어서 시스템이 뻗는 일을 방지할 수 있습니다.
+- **RAG 품질 향상**: 검색 결과에서 정확한 필드만 추출하여 구조화된 데이터베이스를 구축하는 데 유용합니다.

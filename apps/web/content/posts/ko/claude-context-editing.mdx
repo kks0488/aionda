@@ -1,0 +1,30 @@
+---
+title: "Claude Context Editing: AI의 기억을 수술하다"
+date: "2025-10-28"
+excerpt: "대화가 길어질수록 AI가 느려지고 멍청해지나요? Claude의 Context Editing과 Thinking Block Clearing 기능은 불필요한 기억을 자동으로 삭제하여 성능을 유지합니다."
+tags: ["Anthropic", "Claude", "Context Management", "Optimization", "API"]
+coverImage: "/images/posts/claude-context-editing.jpeg"
+category: "Technology"
+author: "AI Onda"
+sourceUrl: "https://docs.anthropic.com/en/release-notes/api"
+alternateLocale: "/en/posts/claude-context-editing"
+---
+
+LLM을 이용한 긴 대화나 복잡한 에이전트 작업에서 '컨텍스트 윈도우 초과' 에러는 고질적인 문제였습니다. (문제)
+Anthropic은 **Context Editing**과 **Thinking Block Clearing** 기능을 통해 이 문제를 우아하게 해결했습니다. (해결책)
+이는 마치 인간이 잠을 자며 불필요한 단기 기억을 정리하듯, AI가 대화 중간중간에 완료된 생각(Thinking Process)이나 오래된 도구 사용 기록을 스스로 '망각'하게 만드는 기술입니다. (근거)
+
+## 핵심 기능: Thinking Block Clearing
+
+### 무엇인가요?
+Claude 모델(특히 Opus/Sonnet 4.5)이 복잡한 문제를 풀 때 생성하는 방대한 양의 '생각(Thinking Block)'은 일회성 소모품입니다. 문제가 해결된 후에도 이 생각 과정이 컨텍스트에 남아있으면 불필요한 토큰을 차지합니다.
+`clear_thinking_20251015` 옵션을 켜면, AI는 결론을 도출한 후 중간 사고 과정을 자동으로 컨텍스트에서 지워버립니다.
+
+## Context Editing 전략
+
+1. **오래된 도구 결과 삭제**: 수십 번의 웹 검색 결과가 쌓여있다면, 가장 최근의 결과만 남기고 이전 데이터는 요약하거나 삭제합니다.
+2. **클라이언트 사이드 압축**: SDK 레벨에서 대화가 길어지면 자동으로 요약본(Summary)으로 대체하여 전송합니다.
+
+## 이점
+- **비용 절감**: 입력 토큰 수가 줄어들어 API 비용이 감소합니다.
+- **성능 유지**: 컨텍스트가 깨끗하게 유지되므로, 대화 후반부에도 AI가 초기의 지시사항을 잘 기억하고 똑똑하게 반응합니다.

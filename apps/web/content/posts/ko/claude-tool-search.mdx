@@ -1,0 +1,29 @@
+---
+title: "Claude Tool Search: AI가 도구를 스스로 찾다"
+date: "2025-11-24"
+excerpt: "수천 개의 도구 중 필요한 것을 어떻게 고를까요? Claude의 'Tool Search' 기능은 AI가 대화 맥락에 맞는 도구를 동적으로 검색하고 로드하는 획기적인 기능입니다."
+tags: ["Anthropic", "Claude", "Tool Use", "AI Agents", "API"]
+coverImage: "/images/posts/claude-tool-search.jpeg"
+category: "Technology"
+author: "AI Onda"
+sourceUrl: "https://docs.anthropic.com/en/release-notes/api"
+alternateLocale: "/en/posts/claude-tool-search"
+---
+
+AI 에이전트에 수백 개의 기능을 연결하고 싶지만, 컨텍스트 윈도우 제한 때문에 불가능했나요? (문제)
+Anthropic이 공개한 **'Tool Search'** 도구는 이 문제를 근본적으로 해결합니다. 개발자가 모든 도구 정의를 프롬프트에 넣을 필요 없이, Claude가 **거대 도구 카탈로그에서 필요한 도구를 스스로 검색(Search)하고 로드(Load)**합니다. (해결책)
+이제 이론상 무한대에 가까운 도구를 AI에게 쥐여줄 수 있게 되었습니다. (근거)
+
+## Tool Search가 필요한 이유
+
+### 기존 방식의 한계 (Static Tool Definitions)
+기존에는 사용할 수 있는 모든 도구의 설명(JSON Schema)을 시스템 프롬프트에 포함해야 했습니다. 도구가 50개만 넘어가도 토큰 비용이 급증하고, 모델이 혼란스러워할 확률이 높아집니다.
+
+### 새로운 방식 (Dynamic Discovery)
+1. **도구 카탈로그 구축**: 개발자는 수천 개의 도구를 별도 저장소에 등록합니다.
+2. **검색 도구 제공**: Claude에게는 단 하나, `tool_search`라는 도구만 쥐여줍니다.
+3. **자율적 탐색**: 사용자가 "지난주 서버 로그 확인해줘"라고 하면, Claude는 `tool_search("server logs")`를 호출하여 관련 도구(`get_logs`, `analyze_traffic` 등)를 찾아냅니다.
+4. **동적 로드**: 찾아낸 도구의 사용법을 읽고, 즉시 해당 도구를 사용하여 문제를 해결합니다.
+
+## 변화될 미래
+이 기능은 **'App Store for AI'**의 기반이 될 기술입니다. AI는 이제 스마트폰처럼 필요한 앱(도구)을 그때그때 설치해서 사용하는 유연한 존재가 되었습니다. 대규모 엔터프라이즈 시스템 통합(ERP, CRM 연동)에서 특히 빛을 발할 것입니다.

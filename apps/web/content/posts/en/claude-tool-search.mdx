@@ -1,0 +1,29 @@
+---
+title: "Claude Tool Search: AI Finds Tools on Its Own"
+date: "2025-11-24"
+excerpt: "How do you pick the right tool out of thousands? Claude's 'Tool Search' is a groundbreaking feature where AI dynamically searches for and loads tools fitting the conversation context."
+tags: ["Anthropic", "Claude", "Tool Use", "AI Agents", "API"]
+coverImage: "/images/posts/claude-tool-search.jpeg"
+category: "Technology"
+author: "AI Onda"
+sourceUrl: "https://docs.anthropic.com/en/release-notes/api"
+alternateLocale: "/ko/posts/claude-tool-search"
+---
+
+Did you want to connect hundreds of features to an AI agent but couldn't due to context window limits? (Problem)
+The **'Tool Search'** tool released by Anthropic fundamentally solves this problem. Developers don't need to put all tool definitions in the prompt; Claude **searches for and loads the necessary tools from a massive tool catalog on its own**. (Solution)
+Now, theoretically, we can give AI close to infinite tools. (Evidence)
+
+## Why Tool Search is Needed
+
+### Limitations of Old Method (Static Tool Definitions)
+Previously, you had to include descriptions (JSON Schema) of all available tools in the system prompt. Even with just over 50 tools, token costs skyrocketed, and the probability of the model getting confused increased.
+
+### New Method (Dynamic Discovery)
+1. **Build Tool Catalog**: Developers register thousands of tools in a separate repository.
+2. **Provide Search Tool**: Give Claude just one tool, `tool_search`.
+3. **Autonomous Exploration**: When a user says "Check last week's server logs," Claude calls `tool_search("server logs")` to find relevant tools (e.g., `get_logs`, `analyze_traffic`).
+4. **Dynamic Load**: It reads the usage of the found tool and immediately uses it to solve the problem.
+
+## Future Changes
+This feature is the technology that will become the foundation of the **'App Store for AI'**. AI has now become a flexible entity that installs and uses necessary apps (tools) on the fly, like a smartphone. It will especially shine in large-scale enterprise system integration (ERP, CRM integration).
