@@ -44,8 +44,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Crawl new posts
+      - name: Crawl new posts (DC Inside)
         run: pnpm crawl --pages=3
+        continue-on-error: true
+
+      - name: Check official AI sources
+        run: pnpm crawl-official
         continue-on-error: true
 
       - name: Auto-select quality posts
