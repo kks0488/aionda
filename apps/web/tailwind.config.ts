@@ -9,21 +9,26 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        display: ['Space Grotesk', 'Noto Sans KR', 'sans-serif'],
+        body: ['Space Grotesk', 'Noto Sans KR', 'sans-serif'],
       },
       colors: {
-        background: 'var(--background)',
-        foreground: 'var(--foreground)',
-        accent: {
-          DEFAULT: 'var(--accent)',
-          foreground: 'var(--accent-foreground)',
+        primary: '#0d7ff2',
+        background: {
+          light: '#ffffff',
+          dark: '#101922',
         },
-        muted: {
-          DEFAULT: 'var(--muted)',
-          foreground: 'var(--muted-foreground)',
+        surface: {
+          light: '#f8f9fa',
+          dark: '#1a2332',
         },
-        border: 'var(--border)',
+      },
+      borderRadius: {
+        DEFAULT: '0.25rem',
+        md: '0.375rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+        '2xl': '1rem',
       },
       typography: {
         DEFAULT: {
@@ -43,16 +48,15 @@ const config: Config = {
               fontWeight: '600',
             },
             code: {
-              backgroundColor: 'var(--muted)',
+              backgroundColor: '#f1f5f9',
               padding: '0.2em 0.4em',
               borderRadius: '0.375rem',
               fontWeight: '400',
-              fontFamily: 'var(--font-geist-mono)',
             },
             'code::before': { content: '""' },
             'code::after': { content: '""' },
             a: {
-              color: 'var(--accent)',
+              color: '#0d7ff2',
               textDecoration: 'underline',
               textUnderlineOffset: '2px',
               '&:hover': {
@@ -60,7 +64,7 @@ const config: Config = {
               },
             },
             blockquote: {
-              borderLeftColor: 'var(--accent)',
+              borderLeftColor: '#0d7ff2',
               fontStyle: 'normal',
             },
           },

@@ -1,86 +1,161 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
 import type { Post } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 
 interface PostCardProps {
   post: Post;
   locale: Locale;
+  variant?: 'large' | 'medium' | 'small';
 }
 
-export default function PostCard({ post, locale }: PostCardProps) {
-  const t = useTranslations('post');
+export default function PostCard({ post, locale, variant = 'medium' }: PostCardProps) {
+  const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 
+  if (variant === 'large') {
+    return (
+      <article className="group flex flex-col gap-5 cursor-pointer">
+        <Link href={`/${locale}/posts/${post.slug}`}>
+          <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {post.coverImage ? (
+              <Image
+                src={post.coverImage}
+                alt={post.title}
+                fill
+                className="object-cover transform group-hover:scale-105 transition-transform duration-700"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-blue-400/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-6xl text-primary/50">article</span>
+              </div>
+            )}
+            {post.tags[0] && (
+              <span className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
+                {post.tags[0]}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span>{formattedDate}</span>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              {post.verificationScore !== undefined && (
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
+                  AI Verified
+                </span>
+              )}
+            </div>
+            <h2 className="text-3xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
+              {post.title}
+            </h2>
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base line-clamp-2">
+              {post.description}
+            </p>
+          </div>
+        </Link>
+      </article>
+    );
+  }
+
+  if (variant === 'small') {
+    return (
+      <article className="group flex flex-col gap-4 cursor-pointer">
+        <Link href={`/${locale}/posts/${post.slug}`}>
+          <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+            {post.coverImage ? (
+              <Image
+                src={post.coverImage}
+                alt={post.title}
+                fill
+                className="object-cover transform group-hover:scale-105 transition-transform duration-700"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-blue-400/20 flex items-center justify-center">
+                <span className="material-symbols-outlined text-4xl text-primary/50">article</span>
+              </div>
+            )}
+            {post.tags[0] && (
+              <span className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
+                {post.tags[0]}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span>{formattedDate}</span>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              {post.verificationScore !== undefined && (
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
+                  Verified
+                </span>
+              )}
+            </div>
+            <h3 className="text-xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
+              {post.title}
+            </h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+              {post.description}
+            </p>
+          </div>
+        </Link>
+      </article>
+    );
+  }
+
+  // Default medium variant
   return (
-    <article className="group relative bg-background border border-border rounded-xl overflow-hidden hover:border-accent/50 hover:shadow-xl hover:shadow-accent/5 transition-all duration-300">
-      <Link href={`/${locale}/posts/${post.slug}`} className="block">
-        {/* Cover Image */}
-        {post.coverImage && (
-          <div className="relative w-full aspect-[16/9] overflow-hidden">
+    <article className="group flex flex-col gap-4 cursor-pointer">
+      <Link href={`/${locale}/posts/${post.slug}`}>
+        <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+          {post.coverImage ? (
             <Image
               src={post.coverImage}
               alt={post.title}
               fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              className="object-cover transform group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-          </div>
-        )}
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-blue-400/20 flex items-center justify-center">
+              <span className="material-symbols-outlined text-5xl text-primary/50">article</span>
+            </div>
+          )}
+          {post.tags[0] && (
+            <span className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
+              {post.tags[0]}
+            </span>
+          )}
+        </div>
 
-        <div className="p-6">
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-3">
-            {post.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="px-2.5 py-0.5 bg-accent/10 text-accent text-xs font-medium rounded-full"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          {/* Title */}
-          <h3 className="text-xl font-semibold mb-3 leading-snug group-hover:text-accent transition-colors line-clamp-2">
-            {post.title}
-          </h3>
-
-          {/* Description */}
-          <p className="text-muted-foreground text-sm mb-4 line-clamp-2 leading-relaxed">
-            {post.description}
-          </p>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <time dateTime={post.date} className="text-xs text-muted-foreground">
-              {new Date(post.date).toLocaleDateString(locale, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })}
-            </time>
-
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span>{formattedDate}</span>
             {post.verificationScore !== undefined && (
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
-                  post.verificationScore >= 0.7
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                }`}
-              >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {Math.round(post.verificationScore * 100)}%
-              </span>
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="material-symbols-outlined text-[14px] icon-filled">verified</span>
+                  {Math.round(post.verificationScore * 100)}%
+                </span>
+              </>
             )}
           </div>
+          <h3 className="text-lg font-bold leading-snug group-hover:text-primary transition-colors text-slate-900 dark:text-white line-clamp-2">
+            {post.title}
+          </h3>
+          <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+            {post.description}
+          </p>
         </div>
       </Link>
-
-      {/* Hover accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
     </article>
   );
 }

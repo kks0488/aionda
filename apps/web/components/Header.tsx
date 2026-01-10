@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
 import type { Locale } from '@/i18n';
 
 interface HeaderProps {
@@ -9,45 +8,43 @@ interface HeaderProps {
 }
 
 export default function Header({ locale }: HeaderProps) {
-  const t = useTranslations('nav');
-  const otherLocale = locale === 'en' ? 'ko' : 'en';
-
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800">
-      <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href={`/${locale}`} className="text-xl font-bold text-accent">
-          AI온다
+    <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#101922]/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href={`/${locale}`} className="flex items-center gap-2 group cursor-pointer">
+          <span className="material-symbols-outlined text-primary text-3xl icon-filled">all_inclusive</span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Aionda</h1>
         </Link>
 
-        <div className="flex items-center gap-6">
-          <Link
-            href={`/${locale}`}
-            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            {t('home')}
-          </Link>
-          <Link
-            href={`/${locale}/posts`}
-            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            {t('posts')}
-          </Link>
-          <Link
-            href={`/${locale}/about`}
-            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          >
-            {t('about')}
-          </Link>
+        <div className="flex items-center gap-4">
+          <button className="p-2 text-slate-600 hover:text-primary transition-colors dark:text-slate-300">
+            <span className="material-symbols-outlined">search</span>
+          </button>
 
-          {/* Language Switcher */}
-          <Link
-            href={`/${otherLocale}`}
-            className="px-3 py-1 border border-gray-300 dark:border-gray-700 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            {locale === 'en' ? '한국어' : 'English'}
-          </Link>
+          <div className="flex bg-gray-100 dark:bg-slate-800 rounded-md p-1 border border-gray-200 dark:border-gray-700">
+            <Link
+              href="/en"
+              className={`px-3 py-1 text-xs font-bold rounded-sm transition-all ${
+                locale === 'en'
+                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              EN
+            </Link>
+            <Link
+              href="/ko"
+              className={`px-3 py-1 text-xs font-bold rounded-sm transition-all ${
+                locale === 'ko'
+                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              KR
+            </Link>
+          </div>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }

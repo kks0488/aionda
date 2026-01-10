@@ -1,8 +1,8 @@
-import { useTranslations } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { getPosts } from '@/lib/posts';
 import PostCard from '@/components/PostCard';
+import Sidebar from '@/components/Sidebar';
 import type { Locale } from '@/i18n';
 
 export async function generateMetadata({
@@ -24,98 +24,101 @@ export default function HomePage({
 }) {
   setRequestLocale(locale);
 
-  const t = useTranslations('home');
-  const posts = getPosts(locale as Locale).slice(0, 6);
+  const posts = getPosts(locale as Locale);
+  const featuredPosts = posts.slice(0, 2);
+  const gridPosts = posts.slice(2, 6);
+  const trendingPosts = [...posts].sort((a, b) =>
+    (b.verificationScore || 0) - (a.verificationScore || 0)
+  ).slice(0, 4);
 
   return (
-    <div className="space-y-16">
+    <div className="bg-white dark:bg-[#101922] text-slate-900 dark:text-white min-h-screen">
       {/* Hero Section */}
-      <section className="relative text-center py-20 -mt-8 -mx-4 px-4 overflow-hidden">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-fuchsia-500/10 to-pink-500/10 dark:from-violet-500/5 dark:via-fuchsia-500/5 dark:to-pink-500/5" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-500/20 via-transparent to-transparent dark:from-violet-500/10" />
-
-        {/* Decorative elements */}
-        <div className="absolute top-10 left-1/4 w-72 h-72 bg-violet-500/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-fuchsia-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight">
-            <span className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 bg-clip-text text-transparent">
-              {t('hero')}
+      <section className="relative w-full py-20 lg:py-32 px-6 flex flex-col items-center justify-center text-center">
+        <div className="max-w-3xl space-y-6">
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[1.1]">
+            Intelligence, <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
+              Accelerated.
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            {t('subtitle')}
+          <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 font-light max-w-xl mx-auto">
+            {locale === 'ko'
+              ? 'AGI 시대를 향한 AI 인사이트. 한국 테크 커뮤니티에서 검증된 정보.'
+              : 'Daily curated insights into the era of AGI. Tracking the asymptotic curve of human progress.'}
           </p>
-
-          {/* Stats or CTA */}
-          <div className="mt-10 flex justify-center gap-8">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">{posts.length}+</div>
-              <div className="text-sm text-muted-foreground">Articles</div>
-            </div>
-            <div className="w-px bg-border" />
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">24/7</div>
-              <div className="text-sm text-muted-foreground">Updates</div>
-            </div>
-            <div className="w-px bg-border" />
-            <div className="text-center">
-              <div className="text-3xl font-bold text-foreground">AI</div>
-              <div className="text-sm text-muted-foreground">Verified</div>
+          <div className="pt-6 w-full max-w-md mx-auto">
+            <div className="flex w-full items-center bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-shadow">
+              <input
+                type="email"
+                placeholder={locale === 'ko' ? '이메일을 입력하세요...' : 'Enter your email for updates...'}
+                className="flex-1 border-none bg-transparent px-4 py-3 text-sm focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:text-white"
+              />
+              <button className="px-6 py-3 bg-primary text-white text-sm font-bold hover:bg-blue-600 transition-colors">
+                {locale === 'ko' ? '구독' : 'Join'}
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Latest Posts */}
-      <section>
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">{t('latestPosts')}</h2>
-            <p className="text-muted-foreground mt-1">
-              Curated AI news, verified and translated
-            </p>
-          </div>
-          <Link
-            href={`/${locale}/posts`}
-            className="group inline-flex items-center gap-2 text-accent hover:underline font-medium"
-          >
-            {t('viewAll')}
-            <svg
-              className="w-4 h-4 transition-transform group-hover:translate-x-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
+      {/* Main Content Area */}
+      <main className="w-full max-w-7xl mx-auto px-6 pb-20">
+        {/* Category Chips */}
+        <div className="flex flex-wrap gap-2 mb-12 justify-center lg:justify-start">
+          <button className="px-4 py-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium transition-transform hover:scale-105">
+            {locale === 'ko' ? '최신' : 'Latest'}
+          </button>
+          <button className="px-4 py-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors">
+            AGI
+          </button>
+          <button className="px-4 py-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors">
+            LLM
+          </button>
+          <button className="px-4 py-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors">
+            Robotics
+          </button>
+          <button className="px-4 py-2 rounded-full bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 text-sm font-medium transition-colors">
+            Hardware
+          </button>
         </div>
 
-        {posts.length > 0 ? (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post) => (
-              <PostCard key={post.slug} post={post} locale={locale as Locale} />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          {/* Article Feed (Left 8 cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-16">
+            {/* Featured Articles */}
+            {featuredPosts.map((post) => (
+              <PostCard key={post.slug} post={post} locale={locale as Locale} variant="large" />
             ))}
+
+            {/* Grid of smaller articles */}
+            {gridPosts.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12">
+                {gridPosts.map((post) => (
+                  <PostCard key={post.slug} post={post} locale={locale as Locale} variant="small" />
+                ))}
+              </div>
+            )}
+
+            {/* Load More */}
+            {posts.length > 6 && (
+              <div className="flex justify-center pt-8">
+                <Link
+                  href={`/${locale}/posts`}
+                  className="px-8 py-3 border border-gray-200 dark:border-gray-700 text-slate-900 dark:text-white rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors font-bold text-sm"
+                >
+                  {locale === 'ko' ? '더 보기' : 'Load More Articles'}
+                </Link>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-16 bg-muted/50 rounded-2xl border border-border">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/10 flex items-center justify-center">
-              <svg className="w-8 h-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-              </svg>
-            </div>
-            <p className="text-muted-foreground mb-2">
-              No posts yet.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Run <code className="bg-muted px-2 py-1 rounded text-accent font-mono">/singularity-crawl</code> to get started!
-            </p>
+
+          {/* Sidebar (Right 4 cols) */}
+          <div className="lg:col-span-4">
+            <Sidebar locale={locale as Locale} trendingPosts={trendingPosts} />
           </div>
-        )}
-      </section>
+        </div>
+      </main>
     </div>
   );
 }

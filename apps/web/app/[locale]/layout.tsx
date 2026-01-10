@@ -1,8 +1,6 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
 import { locales, type Locale } from '@/i18n';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -41,15 +39,15 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <GoogleAnalytics />
         <GoogleAdSense />
       </head>
-      <body className="min-h-screen flex flex-col bg-background text-foreground font-sans">
+      <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden">
         <NextIntlClientProvider messages={messages}>
           <Header locale={locale as Locale} />
-          <main className="flex-1 container mx-auto px-4 py-8">
+          <main className="flex-1">
             {children}
           </main>
           <Footer />
