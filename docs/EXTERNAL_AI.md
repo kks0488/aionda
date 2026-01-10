@@ -1,70 +1,167 @@
-# 외부 AI 가이드라인: 수집부터 최종 발행까지
+# 외부 AI 작업 가이드
 
-이 문서는 외부 AI(ChatGPT, Claude, Perplexity 등)를 사용하여 **수집, 검증, 번역, MDX 생성** 과정을 한 번에 처리하고, 내부 API 비용을 아끼기 위한 가이드라인입니다. 외부 AI에게 아래 프롬프트를 제공하면 블로그 시스템에 즉시 투입 가능한 최종 결과물을 얻을 수 있습니다.
+이 문서는 외부 AI(Claude Code, ChatGPT 등)를 사용하여 블로그 콘텐츠를 생성하는 가이드입니다.
 
----
-
-## 🚀 외부 AI용 마스터 프롬프트 (복사하여 사용)
-
-> **[지시사항]**
-> 당신은 "Singularity Blog"의 전문 콘텐츠 에디터입니다. 아래 [대상 정보]를 바탕으로 사실 검증, 심층 분석, 다국어 번역을 거쳐 우리 블로그 시스템에 즉시 배포 가능한 **MDX 파일 2개(한국어, 영어)**를 생성하십시오.
->
-> ### 1. 작업 요구사항
-> - **사실 검증 (Verification)**: 웹 검색을 통해 수집된 정보의 사실 여부를 교차 검증하고 신뢰할 수 있는 수치와 근거를 확보하십시오.
-> - **본문 작성 (Content)**: 독자에게 실질적 가치를 주는 2,000자 이상의 심층 분석 글을 작성하십시오. (H2, H3 소제목 활용)
-> - **다국어 대응**: 한국어(KO)와 영어(EN) 두 버전을 모두 작성하며, 기술 용어의 일관성을 유지하십시오.
-> - **SEO 최적화**: 검색 엔진에 최적화된 제목, 메타 설명, FAQ(6개)를 포함하십시오.
->
-> ### 2. MDX 프론트매터(Frontmatter) 사양
-> 모든 파일 상단에는 반드시 아래 형식을 포함해야 합니다.
-> - `title`: 글 제목
-> - `date`: 현재 날짜 (YYYY-MM-DD)
-> - `excerpt`: 150자 내외의 매력적인 요약
-> - `tags`: 관련 키워드 배열 (예: ["AI", "LLM", "Future"])
-> - `coverImage`: \`/images/posts/{slug}.jpeg\` (슬러그와 동일하게 설정)
-> - `category`: 주제 분류 (Technology, Research, News 등)
-> - `author`: "AI Onda"
-> - `sourceUrl`: 정보의 원본 출처 URL
-> - `alternateLocale`: 상대 언어의 경로 (KO 파일에서는 \`/en/posts/{slug}\`, EN 파일에서는 \`/ko/posts/{slug}\`)
->
-> ### 3. 출력 형식
-> 반드시 아래 2개의 코드 블록으로 구분하여 최종 MDX 내용을 출력하십시오.
->
-> **[코드 블록 1: apps/web/content/posts/ko/{slug}.mdx]**
-> (한국어 MDX 내용)
->
-> **[코드 블록 2: apps/web/content/posts/en/{slug}.mdx]**
-> (영어 MDX 내용)
->
-> ---
-> **[대상 정보]**
-> (여기에 수집할 URL이나 텍스트를 입력하세요)
+> **참고**: 상세한 스킬 지침은 `~/.claude/skills/external-ai/SKILL.md`를 참조하세요.
 
 ---
 
-## 🛠️ 작업자 가이드 (결과물 처리 방법)
+## 빠른 시작
 
-외부 AI로부터 MDX 내용을 받았다면 아래 절차에 따라 파일을 배치하십시오.
+### 1. 작업 명령어
 
-### 1. 파일 경로 및 이름 설정
-- **슬러그(Slug) 생성**: 영어 제목을 바탕으로 URL에 적합한 슬러그를 만듭니다. (예: `gpt-5-rumors-and-facts`)
-- **한국어 파일**: `apps/web/content/posts/ko/{slug}.mdx` 에 저장
-- **영어 파일**: `apps/web/content/posts/en/{slug}.mdx` 에 저장
+```bash
+# 외부 AI 모드 활성화
+/external-ai
+```
 
-### 2. 이미지 처리
-- AI가 제안한 `coverImage` 경로에 맞게 썸네일 이미지를 준비합니다.
-- 경로: `apps/web/public/images/posts/{slug}.jpeg` (또는 `.png`)
-- 이미지가 없는 경우 `pnpm generate-images` 명령어를 실행하여 AI로 생성할 수 있습니다.
+### 2. 핵심 작업 흐름
 
-### 3. 일관성 체크리스트 (최종 확인)
-- [ ] 프론트매터의 `alternateLocale`이 서로 교차하여 올바르게 설정되었는가?
-- [ ] 두 파일의 `date`가 동일한가?
-- [ ] `coverImage` 경로가 실제 파일 위치와 일치하는가?
-- [ ] 본문에 사실 검증 결과와 FAQ 6개가 포함되었는가?
+```
+1. data/raw/*.json 확인 (수집된 글)
+2. 글 선택 (조회수 500+, 추천 20+)
+3. 웹 검색으로 사실 검증
+4. MDX 생성 (한국어/영어)
+5. 빌드 확인 & 푸시
+```
 
 ---
 
-## 💡 팁: 왜 이 방식인가요?
-1. **API 비용 절감**: Anthropic/OpenAI API 호출 없이 외부 AI 서비스의 무료/유료 구독 기능을 최대한 활용합니다.
-2. **복사+붙여넣기 끝**: 중간 검증(`verify.ts`)이나 번역(`translate.ts`) 스크립트를 거치지 않고 최종 단계로 바로 진입합니다.
-3. **완전한 통제**: 작업자가 AI의 결과물을 직접 확인하고 즉시 수정하여 배포할 수 있습니다.
+## 품질 기준 (2026년 1월 업데이트)
+
+### 필수 체크리스트
+
+| 항목 | 기준 | 미충족 시 |
+|------|------|----------|
+| **글자 수** | 2,000자 이상 | 내용 보강 |
+| **verificationScore** | 0.6 이상 | 미확인 정보 삭제 |
+| **FAQ** | 3개 이상 | FAQ 추가 |
+| **실패 케이스** | 1개 이상 | 섹션 추가 |
+| **출처** | 3개 이상 | 출처 추가 |
+| **금지 표현** | 0개 | 수치로 대체 |
+
+### 금지 표현
+
+다음 표현은 **구체적 수치로 대체**:
+
+| 금지 | 대체 예시 |
+|------|----------|
+| "쉽게", "간단하게" | "3단계로", "5분 내에" |
+| "효과적으로" | "처리 속도 40% 향상" |
+| "다양한", "여러" | "7개의", "15개 이상의" |
+| "일반적으로", "보통" | "McKinsey에 따르면 72%가" |
+| "대등한", "비슷한" | "MMLU 92.3% vs 91.8%" |
+
+---
+
+## 시간 검증 (CRITICAL)
+
+### 구식 정보 방지
+
+모든 "출시 예정" 표현에 대해 현재 상태 확인 필수:
+
+```bash
+# 예시: GPT-5 언급 시
+WebSearch: "GPT-5 release date OpenAI official 2026"
+→ 이미 출시됨 → "출시될 예정" 표현 사용 금지
+```
+
+### 체크리스트
+
+| 표현 | 확인 사항 | 조치 |
+|------|-----------|------|
+| "출시될 예정" | 이미 출시되었는지 | 출시됨 → "출시된" |
+| "o1과 비교" | o1이 최신인지 | o3 출시 → "당시 o1과" |
+| "GPT-5 기다림" | GPT-5 출시 여부 | 출시됨 → 맥락 수정 |
+
+---
+
+## 이미지 처리
+
+### 이미지 있는 경우
+
+```yaml
+coverImage: "/images/posts/{slug}.jpeg"
+```
+
+이미지 파일: `apps/web/public/images/posts/{slug}.jpeg`
+
+### 이미지 없는 경우
+
+**coverImage 필드를 생략**하면 자동으로 Placeholder 표시:
+- Gradient 배경 (태그별 색상)
+- Material Symbol 아이콘 (태그별 아이콘)
+
+```yaml
+# coverImage 생략 시 자동 Placeholder 적용
+tags: ["OpenAI", "GPT"]  # 첫 번째 태그로 아이콘 결정
+```
+
+### 태그별 아이콘 매핑
+
+| 태그 | 아이콘 | 색상 |
+|------|--------|------|
+| openai | smart_toy | blue-cyan |
+| anthropic | psychology | purple-pink |
+| news | newspaper | orange-amber |
+| ai | memory | green-emerald |
+| tutorial | school | indigo-violet |
+
+---
+
+## MDX 프론트매터
+
+### 필수 필드
+
+```yaml
+---
+title: "글 제목"
+date: "2025-06-10"  # 뉴스/이벤트 발생일
+excerpt: "150자 내외 요약"
+tags: ["AI", "OpenAI", "GPT"]
+category: "Technology"
+author: "AI Onda"
+sourceUrl: "https://..."
+alternateLocale: "/en/posts/{slug}"
+verificationScore: 0.85
+---
+```
+
+### 선택 필드
+
+```yaml
+coverImage: "/images/posts/{slug}.jpeg"  # 이미지 있을 때만
+sourceId: "123456"  # 갤러리 글 ID
+```
+
+---
+
+## 저장 경로
+
+```
+apps/web/content/posts/ko/{slug}.mdx  # 한국어
+apps/web/content/posts/en/{slug}.mdx  # 영어
+apps/web/public/images/posts/{slug}.jpeg  # 이미지
+```
+
+---
+
+## 작업 완료 후
+
+```bash
+# 빌드 확인
+cd apps/web && pnpm build
+
+# 커밋 & 푸시
+git add .
+git commit -m "feat: 새 포스트 - {제목 요약}"
+git push origin main
+```
+
+---
+
+## 참고 자료
+
+- **스킬 상세**: `~/.claude/skills/external-ai/SKILL.md`
+- **태그 유틸**: `apps/web/lib/tag-utils.ts`
+- **포스트 카드**: `apps/web/components/PostCard.tsx`
