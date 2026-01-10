@@ -13,8 +13,40 @@ export interface Post {
   locale: Locale;
   verificationScore?: number;
   sourceUrl?: string;
+  sourceId?: string;
   alternateLocale?: string;
   coverImage?: string;
+}
+
+/**
+ * Parse various date formats to ISO string
+ * Supports: 'YYYY.MM.DD HH:mm:ss', 'YYYY-MM-DD', ISO 8601, etc.
+ */
+function parseDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString();
+
+  // Handle 'YYYY.MM.DD HH:mm:ss' format
+  const dotFormat = dateStr.match(/^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (dotFormat) {
+    const [, year, month, day, hour, min, sec] = dotFormat;
+    return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}`).toISOString();
+  }
+
+  // Handle 'YYYY.MM.DD' format without time
+  const dotDateOnly = dateStr.match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
+  if (dotDateOnly) {
+    const [, year, month, day] = dotDateOnly;
+    return new Date(`${year}-${month}-${day}`).toISOString();
+  }
+
+  // Try standard Date parsing
+  const parsed = new Date(dateStr);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString();
+  }
+
+  // Fallback
+  return new Date().toISOString();
 }
 
 const postsDirectory = path.join(process.cwd(), 'content/posts');
@@ -40,12 +72,13 @@ export function getPosts(locale: Locale): Post[] {
         slug,
         title: data.title || slug,
         description: data.description || content.slice(0, 160),
-        date: data.date || new Date().toISOString(),
+        date: parseDate(data.date),
         tags: data.tags || [],
         content,
         locale,
         verificationScore: data.verificationScore,
         sourceUrl: data.sourceUrl,
+        sourceId: data.sourceId,
         alternateLocale: data.alternateLocale,
         coverImage: data.coverImage,
       } as Post;

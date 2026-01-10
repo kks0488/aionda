@@ -18,7 +18,7 @@ export default function ThemeToggle({ locale }: ThemeToggleProps) {
   if (!mounted) {
     return (
       <button
-        className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700"
+        className="h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         aria-label={locale === 'ko' ? '테마 로딩 중' : 'Loading theme'}
       >
         <span className="material-symbols-outlined text-lg text-slate-400" aria-hidden="true">
@@ -33,7 +33,7 @@ export default function ThemeToggle({ locale }: ThemeToggleProps) {
   return (
     <button
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+      className="h-9 w-9 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
       aria-label={
         isDark
           ? locale === 'ko' ? '라이트 모드로 전환' : 'Switch to light mode'

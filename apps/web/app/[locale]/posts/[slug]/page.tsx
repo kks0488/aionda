@@ -203,13 +203,13 @@ export default async function PostPage({
                     <span className="text-primary hover:underline cursor-pointer">
                       {post.tags[0]}
                     </span>
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                   </>
                 )}
                 <span>{formattedDate}</span>
                 {post.verificationScore !== undefined && (
                   <>
-                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                     <span className="flex items-center gap-1 text-primary">
                       <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
                       {Math.round(post.verificationScore * 100)}% Verified
@@ -274,9 +274,20 @@ export default async function PostPage({
                   <span className="font-medium">
                     {locale === 'ko' ? '영감:' : 'Inspired by:'}
                   </span>
-                  <span>
-                    {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
-                  </span>
+                  {post.sourceId ? (
+                    <a
+                      href={`https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=${post.sourceId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
+                    </a>
+                  ) : (
+                    <span>
+                      {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
+                    </span>
+                  )}
                 </div>
                 {post.sourceUrl && (
                   <div className="flex items-center gap-2">

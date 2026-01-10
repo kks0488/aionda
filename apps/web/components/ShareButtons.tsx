@@ -30,7 +30,7 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
       <div className="flex gap-3" role="group" aria-label={locale === 'ko' ? '공유 옵션' : 'Share options'}>
         <button
           onClick={handleCopyLink}
-          className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-50 dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors relative"
+          className="h-9 w-9 flex items-center justify-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           aria-label={
             copyState === 'copied'
               ? locale === 'ko' ? '복사됨!' : 'Copied!'
@@ -52,7 +52,7 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
           href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-50 dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+          className="h-9 w-9 flex items-center justify-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           aria-label={locale === 'ko' ? '트위터에 공유' : 'Share on Twitter'}
         >
           <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -61,7 +61,7 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
         </a>
         <a
           href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${title}\n\n${url}`)}`}
-          className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-50 dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+          className="h-9 w-9 flex items-center justify-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           aria-label={locale === 'ko' ? '이메일로 공유' : 'Share via Email'}
         >
           <span className="material-symbols-outlined text-lg" aria-hidden="true">email</span>

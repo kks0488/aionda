@@ -46,7 +46,7 @@ export default function Header({ locale }: HeaderProps) {
           <button
             onClick={openSearch}
             aria-label={locale === 'ko' ? '검색 열기 (⌘K)' : 'Open search (⌘K)'}
-            className="flex items-center gap-2 h-9 px-3 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
+            className="flex items-center gap-2 h-9 px-3 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           >
             <span className="material-symbols-outlined text-lg" aria-hidden="true">search</span>
             <span className="hidden sm:inline text-sm">Search</span>
