@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import type { Locale } from '@/i18n';
 import { useSearch } from './SearchProvider';
 
@@ -11,6 +12,10 @@ interface HeaderProps {
 
 export default function Header({ locale }: HeaderProps) {
   const { openSearch } = useSearch();
+  const pathname = usePathname();
+
+  // Get current path without locale prefix for language switching
+  const currentPath = pathname.replace(/^\/(en|ko)/, '') || '';
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -27,45 +32,56 @@ export default function Header({ locale }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-[#101922]/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href={`/${locale}`} className="flex items-center gap-2 group cursor-pointer">
-          <span className="material-symbols-outlined text-primary text-3xl icon-filled">all_inclusive</span>
+        <Link
+          href={`/${locale}`}
+          className="flex items-center gap-2 group cursor-pointer"
+          aria-label={locale === 'ko' ? 'AI온다 홈으로 가기' : 'Go to Aionda home'}
+        >
+          <span className="material-symbols-outlined text-primary text-3xl icon-filled" aria-hidden="true">all_inclusive</span>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Aionda</h1>
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={openSearch}
-            className="flex items-center gap-2 px-3 py-1.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
+            aria-label={locale === 'ko' ? '검색 열기 (⌘K)' : 'Open search (⌘K)'}
+            className="flex items-center gap-2 h-9 px-3 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors"
           >
-            <span className="material-symbols-outlined text-xl">search</span>
+            <span className="material-symbols-outlined text-lg" aria-hidden="true">search</span>
             <span className="hidden sm:inline text-sm">Search</span>
-            <kbd className="hidden sm:inline ml-2 px-1.5 py-0.5 text-xs font-medium bg-white dark:bg-slate-700 rounded border border-gray-200 dark:border-gray-600">
+            <kbd className="hidden sm:inline ml-1 px-1.5 py-0.5 text-xs font-medium bg-white dark:bg-slate-700 rounded border border-gray-200 dark:border-gray-600" aria-hidden="true">
               ⌘K
             </kbd>
           </button>
 
-          <div className="flex bg-gray-100 dark:bg-slate-800 rounded-md p-1 border border-gray-200 dark:border-gray-700">
+          <nav
+            role="group"
+            aria-label={locale === 'ko' ? '언어 선택' : 'Language selection'}
+            className="flex h-9 bg-gray-100 dark:bg-slate-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700"
+          >
             <Link
-              href="/en"
-              className={`px-3 py-1 text-xs font-bold rounded-sm transition-all ${
+              href={`/en${currentPath}`}
+              aria-current={locale === 'en' ? 'page' : undefined}
+              className={`flex items-center px-3 text-xs font-bold rounded-md transition-all ${
                 locale === 'en'
                   ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
               }`}
             >
               EN
             </Link>
             <Link
-              href="/ko"
-              className={`px-3 py-1 text-xs font-bold rounded-sm transition-all ${
+              href={`/ko${currentPath}`}
+              aria-current={locale === 'ko' ? 'page' : undefined}
+              className={`flex items-center px-3 text-xs font-bold rounded-md transition-all ${
                 locale === 'ko'
                   ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
               }`}
             >
-              KR
+              KO
             </Link>
-          </div>
+          </nav>
         </div>
       </div>
     </header>

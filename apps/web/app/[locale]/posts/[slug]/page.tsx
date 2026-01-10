@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPostBySlug, getPosts } from '@/lib/posts';
+import { getTagColor, getTagIcon } from '@/lib/tag-utils';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
@@ -74,41 +75,6 @@ function estimateReadingTime(content: string): number {
   const wordsPerMinute = 200;
   const words = content.trim().split(/\s+/).length;
   return Math.ceil(words / wordsPerMinute);
-}
-
-// Generate a consistent color based on the first tag
-function getTagColor(tag: string): string {
-  const colors = [
-    'from-blue-500 to-cyan-400',
-    'from-purple-500 to-pink-400',
-    'from-green-500 to-emerald-400',
-    'from-orange-500 to-amber-400',
-    'from-red-500 to-rose-400',
-    'from-indigo-500 to-violet-400',
-  ];
-  const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hash % colors.length];
-}
-
-// Get icon for tag
-function getTagIcon(tag: string): string {
-  const icons: Record<string, string> = {
-    news: 'newspaper',
-    opinion: 'lightbulb',
-    openai: 'smart_toy',
-    anthropic: 'psychology',
-    grok: 'auto_awesome',
-    xai: 'rocket_launch',
-    gpt: 'chat',
-    llama: 'pets',
-    ai: 'memory',
-    hardware: 'memory',
-    agi: 'psychology',
-    llm: 'chat',
-    robotics: 'precision_manufacturing',
-    default: 'article',
-  };
-  return icons[tag.toLowerCase()] || icons.default;
 }
 
 export default async function PostPage({
@@ -271,10 +237,35 @@ export default async function PostPage({
               locale={locale as Locale}
             />
 
-            {/* Inspiration Source */}
-            <div className="mt-6 text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1">
-              <span className="material-symbols-outlined text-base">lightbulb</span>
-              {locale === 'ko' ? '영감 출처: 한국 AI 커뮤니티' : 'Inspired by Korean AI communities'}
+            {/* Inspiration & Source */}
+            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-primary">lightbulb</span>
+                  <span className="font-medium">
+                    {locale === 'ko' ? '영감:' : 'Inspired by:'}
+                  </span>
+                  <span>
+                    {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
+                  </span>
+                </div>
+                {post.sourceUrl && (
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-primary">link</span>
+                    <span className="font-medium">
+                      {locale === 'ko' ? '출처:' : 'Source:'}
+                    </span>
+                    <a
+                      href={post.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline truncate max-w-[300px]"
+                    >
+                      {new URL(post.sourceUrl).hostname.replace('www.', '')}
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Previous / Next Navigation */}
