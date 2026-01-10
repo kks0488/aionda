@@ -1,4 +1,4 @@
-import { GoogleGenAI, Modality } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -7,13 +7,14 @@ import matter from 'gray-matter';
 config({ path: '.env.local' });
 
 const API_KEY = process.env.GEMINI_API_KEY || '';
+const IMAGE_MODEL = 'gemini-3-pro-image-preview';
 
 if (!API_KEY) {
   console.error('GEMINI_API_KEY not found');
   process.exit(1);
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const genAI = new GoogleGenerativeAI(API_KEY);
 
 interface PostMeta {
   slug: string;
@@ -93,32 +94,33 @@ async function generateImage(post: PostMeta): Promise<string | null> {
   console.log(`\n🎨 Generating image for: ${post.title}`);
 
   try {
+    const model = genAI.getGenerativeModel({ model: IMAGE_MODEL });
     const prompt = generatePromptForPost(post);
 
-    // Try Imagen 4 first
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: prompt,
-      config: {
-        numberOfImages: 1,
-        aspectRatio: '16:9',
-      },
-    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
 
-    // Get the first generated image
-    const image = response.generatedImages?.[0];
-    if (image && image.image?.imageBytes) {
-      const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+    // Check if response contains image data
+    const parts = response.candidates?.[0]?.content?.parts;
+    if (parts) {
+      for (const part of parts) {
+        if ('inlineData' in part && part.inlineData) {
+          const imageData = part.inlineData.data;
+          const mimeType = part.inlineData.mimeType;
+          const extension = mimeType?.split('/')[1] || 'png';
+
+          const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+          }
+
+          const outputPath = path.join(outputDir, `${post.slug}.${extension}`);
+          fs.writeFileSync(outputPath, Buffer.from(imageData, 'base64'));
+
+          console.log(`✅ Saved: ${outputPath}`);
+          return `/images/posts/${post.slug}.${extension}`;
+        }
       }
-
-      const outputPath = path.join(outputDir, `${post.slug}.png`);
-      const imageBuffer = Buffer.from(image.image.imageBytes, 'base64');
-      fs.writeFileSync(outputPath, imageBuffer);
-
-      console.log(`✅ Saved: ${outputPath}`);
-      return `/images/posts/${post.slug}.png`;
     }
 
     console.log(`❌ No image data in response for: ${post.title}`);
@@ -150,6 +152,7 @@ function updatePostFrontmatter(locale: string, slug: string, imagePath: string) 
 
 async function main() {
   console.log('🔍 Finding posts without images...\n');
+  console.log(`📷 Using model: ${IMAGE_MODEL}\n`);
 
   const posts = getPostsWithoutImages();
 

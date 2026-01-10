@@ -1,7 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { BASE_URL } from '@/lib/site';
 import type { Locale } from '@/i18n';
-
-const BASE_URL = 'https://aionda.blog';
 
 export async function generateMetadata({
   params: { locale },

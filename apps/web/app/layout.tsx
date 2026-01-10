@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
+import { BASE_URL } from '@/lib/site';
 import './globals.css';
-
-const BASE_URL = 'https://aionda.blog';
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

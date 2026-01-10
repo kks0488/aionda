@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next';
 import { getPosts } from '@/lib/posts';
 import { locales, type Locale } from '@/i18n';
-
-const BASE_URL = 'https://aionda.blog';
+import { BASE_URL } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];

@@ -1,6 +1,5 @@
 import { getPosts } from '@/lib/posts';
-
-const BASE_URL = 'https://aionda.blog';
+import { BASE_URL } from '@/lib/site';
 
 export async function GET() {
   const enPosts = getPosts('en');
@@ -17,7 +16,7 @@ export async function GET() {
     <title>AI온다 - AI가 온다</title>
     <link>${BASE_URL}</link>
     <description>AI 기술과 트렌드를 검증된 정보로 전달하는 블로그. Curated AI &amp; Technology insights from Korea.</description>
-    <language>ko</language>
+    <language>mul</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="${BASE_URL}/feed.xml" rel="self" type="application/rss+xml"/>
     <image>

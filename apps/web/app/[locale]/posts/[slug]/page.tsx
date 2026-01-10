@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getPostBySlug, getPosts } from '@/lib/posts';
 import { getTagColor, getTagIcon } from '@/lib/tag-utils';
+import { BASE_URL } from '@/lib/site';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
@@ -20,8 +21,6 @@ export async function generateStaticParams() {
     ...koPosts.map((post) => ({ locale: 'ko', slug: post.slug })),
   ];
 }
-
-const BASE_URL = 'https://aionda.blog';
 
 export async function generateMetadata({
   params: { locale, slug },
@@ -77,6 +76,15 @@ function estimateReadingTime(content: string): number {
   return Math.ceil(words / wordsPerMinute);
 }
 
+function getHostname(url?: string): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.replace('www.', '');
+  } catch {
+    return null;
+  }
+}
+
 export default async function PostPage({
   params: { locale, slug },
 }: {
@@ -114,6 +122,7 @@ export default async function PostPage({
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
   const tagIcon = getTagIcon(primaryTag);
+  const sourceHostname = getHostname(post.sourceUrl);
 
   const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
@@ -298,7 +307,7 @@ export default async function PostPage({
                       rel="noopener noreferrer"
                       className="text-primary hover:underline truncate max-w-[300px]"
                     >
-                      {new URL(post.sourceUrl).hostname.replace('www.', '')}
+                      {sourceHostname ?? post.sourceUrl}
                     </a>
                   </div>
                 )}
