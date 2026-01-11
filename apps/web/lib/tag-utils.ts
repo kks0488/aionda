@@ -19,6 +19,8 @@ const TAG_ICONS: Record<string, string> = {
   grok: 'auto_awesome',
   xai: 'rocket_launch',
   gpt: 'chat',
+  chatgpt: 'chat',
+  gemini: 'stars',
   llama: 'pets',
   ai: 'memory',
   hardware: 'memory',

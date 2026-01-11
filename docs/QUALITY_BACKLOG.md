@@ -26,6 +26,8 @@
 - auto-select 품질 게이트 강화(길이/노이즈/외부 URL/키워드/참여도 기준).
 - generate-post 품질 게이트 강화(검증 점수/문단 수/노이즈/의견 제한) 및 스킵 시 게시물 제거.
 - 커버 이미지 파일이 없으면 자동으로 placeholder를 사용하도록 처리.
+- ChatGPT/Gemini 표기 통일(제미나이/젬나이, 챗지피티 등 정규화) 및 태그 정규화.
+- 커버 이미지는 `ENABLE_COVER_IMAGES=true`일 때만 활성화(기본 비활성).
 
 ## Action Items
 ### P0

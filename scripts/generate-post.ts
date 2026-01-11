@@ -13,6 +13,7 @@ import type { ArticleType } from './prompts/structure';
 
 const VERIFIED_DIR = './data/verified';
 const POSTS_DIR = './apps/web/content/posts';
+const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES === 'true';
 
 // Quality validation constants
 const MIN_CONTENT_LENGTH = 650;
@@ -179,14 +180,45 @@ function selectSlug(
   return post.id ? String(post.id) : generatedSlug || 'post';
 }
 
+const BRAND_REPLACEMENTS: Array<{ regex: RegExp; value: string }> = [
+  { regex: /chat\s*gpt|chatgpt|챗gpt|챗지피티/gi, value: 'ChatGPT' },
+  { regex: /gemini|제미나이|젬나이/gi, value: 'Gemini' },
+];
+
+const PROTECTED_PATTERNS = [/```[\s\S]*?```/g, /`[^`]*`/g, /https?:\/\/\S+/g, /www\.\S+/g];
+
+function normalizeBrandTerms(text: string): string {
+  if (!text) return text;
+  const protectedSegments: string[] = [];
+  let normalized = text;
+
+  for (const pattern of PROTECTED_PATTERNS) {
+    normalized = normalized.replace(pattern, (match) => {
+      const index = protectedSegments.push(match) - 1;
+      return `__PROTECTED_${index}__`;
+    });
+  }
+
+  for (const { regex, value } of BRAND_REPLACEMENTS) {
+    normalized = normalized.replace(regex, value);
+  }
+
+  normalized = normalized.replace(/__PROTECTED_(\d+)__/g, (_, index) => {
+    return protectedSegments[Number(index)] || '';
+  });
+
+  return normalized;
+}
+
 function generateFrontmatter(
   post: VerifiedPost,
   locale: 'en' | 'ko',
   structured: NonNullable<VerifiedPost['structured']>
 ): string {
   const isEnglish = locale === 'en';
-  const title = isEnglish ? structured.title_en : structured.title_ko;
+  const rawTitle = isEnglish ? structured.title_en : structured.title_ko;
   const content = isEnglish ? structured.content_en : structured.content_ko;
+  const title = normalizeBrandTerms(rawTitle);
 
   const slug = selectSlug(post, structured);
 
@@ -198,7 +230,7 @@ function generateFrontmatter(
     .replace(/\n+/g, ' ')
     .trim()
     .substring(0, isEnglish ? 120 : 80);
-  const description = aiDescription || fallbackDescription;
+  const description = normalizeBrandTerms(aiDescription || fallbackDescription);
 
   const verificationScore = post.verification?.summary?.overallScore || MIN_VERIFICATION_SCORE;
 
@@ -209,7 +241,8 @@ function generateFrontmatter(
 
   // AI model tags
   const MODEL_TAG_RULES: Array<{ tag: string; regex: RegExp }> = [
-    { tag: 'gpt', regex: /gpt|chatgpt|챗gpt|챗지피티|지피티/i },
+    { tag: 'chatgpt', regex: /chat\s*gpt|chatgpt|챗gpt|챗지피티/i },
+    { tag: 'gpt', regex: /\bgpt\b|(?<!챗)(?<!챗\s)지피티/i },
     { tag: 'claude', regex: /claude|클로드/i },
     { tag: 'gemini', regex: /gemini|제미나이|젬나이/i },
     { tag: 'llama', regex: /llama|라마/i },
@@ -277,7 +310,8 @@ function generateFrontmatter(
   const tags = [...new Set([...rawTags, ...coreTags])];
 
   const otherLocale = isEnglish ? 'ko' : 'en';
-  const coverImage = `/images/posts/${slug}.jpeg`;
+  const coverImage = ENABLE_COVER_IMAGES ? `/images/posts/${slug}.jpeg` : '';
+  const coverImageLine = coverImage ? `coverImage: "${coverImage}"\n` : '';
 
   return `---
 title: "${title.replace(/"/g, '\\"')}"
@@ -291,8 +325,7 @@ sourceId: "${post.id}"
 sourceUrl: "${post.url}"
 verificationScore: ${verificationScore}
 alternateLocale: "/${otherLocale}/posts/${slug}"
-coverImage: "${coverImage}"
----
+${coverImageLine}---
 `;
 }
 
@@ -309,6 +342,7 @@ function generateMDX(
   content = content.replace(/\n---\n출처:.*$/s, '');
   content = content.replace(/\n---\nSource:.*$/s, '');
   content = content.replace(/\n+---\s*$/s, ''); // Remove trailing ---
+  content = normalizeBrandTerms(content);
 
   return `${frontmatter}
 ${content.trim()}

@@ -51,21 +51,46 @@ function parseDate(dateStr: string): string {
   return new Date().toISOString();
 }
 
+const TAG_ALIASES: Record<string, string> = {
+  'chat gpt': 'chatgpt',
+  'chat-gpt': 'chatgpt',
+  '챗gpt': 'chatgpt',
+  '챗지피티': 'chatgpt',
+  '젬나이': 'gemini',
+  '제미나이': 'gemini',
+};
+
+function normalizeTagValue(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  return TAG_ALIASES[normalized] || normalized;
+}
+
 function normalizeTags(rawTags: unknown): string[] {
   if (!rawTags) return [];
   const tags = Array.isArray(rawTags) ? rawTags : [rawTags];
-  return tags
-    .map((tag) => {
-      if (typeof tag === 'string') return tag.trim();
-      if (typeof tag === 'number') return String(tag);
-      return '';
-    })
-    .filter((tag) => tag.length > 0);
+  const normalizedTags: string[] = [];
+  const seen = new Set<string>();
+
+  for (const tag of tags) {
+    let value = '';
+    if (typeof tag === 'string') value = tag;
+    if (typeof tag === 'number') value = String(tag);
+    if (!value) continue;
+
+    const normalized = normalizeTagValue(value);
+    if (!normalized || seen.has(normalized)) continue;
+
+    seen.add(normalized);
+    normalizedTags.push(normalized);
+  }
+
+  return normalizedTags;
 }
 
 const postsDirectory = path.join(process.cwd(), 'content/posts');
 let cachedPostPaths: Set<string> | null = null;
 const publicDirectory = path.join(process.cwd(), 'public');
+const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES === 'true';
 
 function getExistingPostPaths(): Set<string> {
   if (process.env.NODE_ENV === 'production' && cachedPostPaths) {
@@ -111,6 +136,7 @@ function normalizeAlternateLocale(
 }
 
 function normalizeCoverImage(rawCoverImage: unknown): string | undefined {
+  if (!ENABLE_COVER_IMAGES) return undefined;
   if (!rawCoverImage || typeof rawCoverImage !== 'string') return undefined;
   const value = rawCoverImage.trim();
   if (!value) return undefined;
