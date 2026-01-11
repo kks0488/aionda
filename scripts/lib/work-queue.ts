@@ -2,9 +2,12 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 
 const QUEUE_FILE = './data/work-queue.json';
 
+// 24시간 이상 claimed 상태면 자동 해제
+const CLAIM_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+
 interface WorkQueue {
   claimed: Record<string, { by: 'crawler' | 'external-ai'; at: string; task?: string }>;
-  completed: Record<string, { by: string; at: string; postSlug?: string }>;
+  completed: Record<string, { by: string; at: string; postSlug?: string; slug?: string }>;
   lastUpdated: string;
 }
 
@@ -20,8 +23,43 @@ export function saveQueue(queue: WorkQueue): void {
   writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2), 'utf-8');
 }
 
+/**
+ * 타임아웃된 claimed 항목들 자동 해제
+ */
+export function cleanupStaleClaimsInternal(queue: WorkQueue): number {
+  const now = Date.now();
+  let cleaned = 0;
+
+  for (const [postId, claim] of Object.entries(queue.claimed)) {
+    const claimedAt = new Date(claim.at).getTime();
+    if (now - claimedAt > CLAIM_TIMEOUT_MS) {
+      delete queue.claimed[postId];
+      cleaned++;
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * 타임아웃된 claimed 항목들 정리하고 저장
+ */
+export function cleanupStaleClaims(): number {
+  const queue = loadQueue();
+  const cleaned = cleanupStaleClaimsInternal(queue);
+  if (cleaned > 0) {
+    saveQueue(queue);
+    console.log(`🧹 Cleaned up ${cleaned} stale claimed items (>24h)`);
+  }
+  return cleaned;
+}
+
 export function claimWork(postId: string, by: 'crawler' | 'external-ai', task?: string): boolean {
   const queue = loadQueue();
+
+  // 먼저 stale claims 정리
+  cleanupStaleClaimsInternal(queue);
+
   if (queue.claimed[postId] || queue.completed[postId]) {
     return false; // Already claimed or completed
   }
@@ -33,24 +71,59 @@ export function claimWork(postId: string, by: 'crawler' | 'external-ai', task?: 
 export function completeWork(postId: string, by: string, postSlug?: string): void {
   const queue = loadQueue();
   delete queue.claimed[postId];
-  queue.completed[postId] = { by, at: new Date().toISOString(), postSlug };
+  queue.completed[postId] = { by, at: new Date().toISOString(), postSlug, slug: postSlug };
   saveQueue(queue);
 }
 
 export function getAvailablePosts(allPostIds: string[]): string[] {
   const queue = loadQueue();
+  // 먼저 stale claims 정리
+  cleanupStaleClaimsInternal(queue);
   return allPostIds.filter(id => !queue.claimed[id] && !queue.completed[id]);
 }
 
 export function isAvailable(postId: string): boolean {
   const queue = loadQueue();
+  // 먼저 stale claims 정리
+  cleanupStaleClaimsInternal(queue);
+
+  // 타임아웃 체크
+  if (queue.claimed[postId]) {
+    const claimedAt = new Date(queue.claimed[postId].at).getTime();
+    if (Date.now() - claimedAt > CLAIM_TIMEOUT_MS) {
+      return true; // 타임아웃된 항목은 사용 가능
+    }
+  }
+
   return !queue.claimed[postId] && !queue.completed[postId];
 }
 
-export function getQueueStatus(): { claimed: number; completed: number; available?: number } {
+export function getQueueStatus(): { claimed: number; completed: number; stale: number } {
   const queue = loadQueue();
+  const now = Date.now();
+
+  let staleCount = 0;
+  for (const claim of Object.values(queue.claimed)) {
+    const claimedAt = new Date(claim.at).getTime();
+    if (now - claimedAt > CLAIM_TIMEOUT_MS) {
+      staleCount++;
+    }
+  }
+
   return {
     claimed: Object.keys(queue.claimed).length,
     completed: Object.keys(queue.completed).length,
+    stale: staleCount,
   };
+}
+
+/**
+ * 모든 claimed 항목 강제 해제 (긴급 복구용)
+ */
+export function forceReleaseAllClaims(): number {
+  const queue = loadQueue();
+  const count = Object.keys(queue.claimed).length;
+  queue.claimed = {};
+  saveQueue(queue);
+  return count;
 }

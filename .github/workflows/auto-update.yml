@@ -2,18 +2,26 @@ name: Auto Update Blog
 
 on:
   schedule:
-    # Run every 3 hours
-    - cron: '0 */3 * * *'
+    # 하루 4번 실행: 02:00, 08:00, 14:00, 20:00 KST (UTC+9)
+    # 각 실행에서 2-3개 글 생성 = 하루 8-12개
+    - cron: '0 17 * * *'  # 02:00 KST
+    - cron: '0 23 * * *'  # 08:00 KST
+    - cron: '0 5 * * *'   # 14:00 KST
+    - cron: '0 11 * * *'  # 20:00 KST
   workflow_dispatch:
     inputs:
       min_quality_score:
         description: 'Minimum quality score for auto-selection'
         required: false
-        default: '30'
+        default: '25'
       max_posts:
         description: 'Maximum posts to select per run'
         required: false
-        default: '5'
+        default: '3'
+      force_cleanup:
+        description: 'Force cleanup stale claims before running'
+        required: false
+        default: 'true'
 
 env:
   NODE_VERSION: '20'
@@ -22,7 +30,7 @@ env:
 jobs:
   update-blog:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -44,19 +52,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # Phase 1: Cleanup & Crawl
+      - name: Cleanup stale work-queue claims
+        run: |
+          echo "🧹 Cleaning up stale claims..."
+          pnpm tsx -e "
+            const { cleanupStaleClaims, getQueueStatus } = require('./scripts/lib/work-queue');
+            const cleaned = cleanupStaleClaims();
+            const status = getQueueStatus();
+            console.log('Queue status:', status);
+          "
+
       - name: Crawl new posts (DC Inside)
-        run: pnpm crawl --pages=3
+        run: pnpm crawl --pages=5
         continue-on-error: true
 
       - name: Check official AI sources
         run: pnpm crawl-official
         continue-on-error: true
 
+      # Phase 2: Select quality posts
       - name: Auto-select quality posts
-        run: pnpm tsx scripts/auto-select.ts
+        id: select
+        run: |
+          pnpm tsx scripts/auto-select.ts
+
+          # 선택된 글 수 확인
+          SELECTED_COUNT=$(ls -1 data/selected/*.json 2>/dev/null | wc -l)
+          echo "selected_count=$SELECTED_COUNT" >> $GITHUB_OUTPUT
         env:
-          MIN_QUALITY_SCORE: ${{ github.event.inputs.min_quality_score || '30' }}
-          MAX_POSTS: ${{ github.event.inputs.max_posts || '5' }}
+          MIN_QUALITY_SCORE: ${{ github.event.inputs.min_quality_score || '25' }}
+          MAX_POSTS: ${{ github.event.inputs.max_posts || '3' }}
 
       - name: Check for new selections
         id: check_selections
@@ -67,18 +93,53 @@ jobs:
             echo "has_selections=false" >> $GITHUB_OUTPUT
           fi
 
+      # Phase 3: Process posts (with retry logic)
       - name: Verify selected posts
         if: steps.check_selections.outputs.has_selections == 'true'
-        run: pnpm verify
+        id: verify
+        run: |
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if pnpm verify; then
+              echo "✅ Verification completed successfully"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "⚠️ Verification attempt $RETRY_COUNT failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ Verification failed after $MAX_RETRIES attempts"
+            exit 1
+          fi
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        continue-on-error: true
+          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
       - name: Translate verified posts
         if: steps.check_selections.outputs.has_selections == 'true'
-        run: pnpm translate
+        id: translate
+        run: |
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if pnpm translate; then
+              echo "✅ Translation completed successfully"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "⚠️ Translation attempt $RETRY_COUNT failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
         continue-on-error: true
 
       - name: Generate MDX posts
@@ -86,14 +147,36 @@ jobs:
         run: pnpm generate-post
         continue-on-error: true
 
+      # Phase 4: Generate images (REQUIRED - no continue-on-error)
       - name: Generate cover images
         if: steps.check_selections.outputs.has_selections == 'true'
-        run: pnpm generate-image
+        id: generate_images
+        run: |
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if pnpm generate-image; then
+              echo "✅ Image generation completed successfully"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "⚠️ Image generation attempt $RETRY_COUNT failed, retrying in 15s..."
+              sleep 15
+            fi
+          done
+
+          # 이미지 없는 포스트 확인
+          echo "📊 Checking for posts without images..."
+          POSTS_WITHOUT_IMAGES=$(find apps/web/content/posts/ko -name "*.mdx" -exec grep -L "coverImage:" {} \; 2>/dev/null | wc -l)
+          echo "Posts without coverImage: $POSTS_WITHOUT_IMAGES"
         env:
           GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-        continue-on-error: true
+          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
+      # Phase 5: Build & Deploy
       - name: Build website
+        id: build
         run: |
           cd apps/web
           pnpm build
@@ -106,6 +189,9 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
+            # 변경된 파일 수 출력
+            echo "📊 Changes summary:"
+            git diff --staged --stat | tail -5
           fi
 
       - name: Commit and push changes
@@ -113,5 +199,27 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "chore: auto-update blog content $(date +'%Y-%m-%d %H:%M')"
+
+          # 커밋 메시지에 통계 포함
+          NEW_POSTS=$(git diff --staged --name-only | grep "content/posts/ko" | grep ".mdx" | wc -l)
+          NEW_IMAGES=$(git diff --staged --name-only | grep "images/posts" | wc -l)
+
+          git commit -m "chore: auto-update blog (+$NEW_POSTS posts, +$NEW_IMAGES images) $(date +'%Y-%m-%d %H:%M')"
           git push
+
+      # Phase 6: Report status
+      - name: Report pipeline status
+        if: always()
+        run: |
+          echo "📊 Pipeline Summary"
+          echo "===================="
+          echo "Selections: ${{ steps.check_selections.outputs.has_selections }}"
+          echo "Changes: ${{ steps.check_changes.outputs.has_changes }}"
+          echo ""
+          echo "📁 Current stats:"
+          echo "- Raw posts: $(ls data/raw/*.json 2>/dev/null | wc -l)"
+          echo "- Selected: $(ls data/selected/*.json 2>/dev/null | wc -l)"
+          echo "- Verified: $(ls data/verified/*.json 2>/dev/null | wc -l)"
+          echo "- Published (ko): $(ls apps/web/content/posts/ko/*.mdx 2>/dev/null | wc -l)"
+          echo "- Published (en): $(ls apps/web/content/posts/en/*.mdx 2>/dev/null | wc -l)"
+          echo "- Images: $(ls apps/web/public/images/posts/*.{jpeg,jpg,png,webp} 2>/dev/null | wc -l)"

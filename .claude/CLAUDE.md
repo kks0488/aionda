@@ -1,8 +1,28 @@
-# AI Onda Blog - Claude Code Context
+# AI온다 (aionda) Blog - Claude Code Context
 
 ## Project Overview
 
-AI 기술 블로그로, DC Inside "특이점이 온다" 갤러리의 콘텐츠를 큐레이션하여 검증 후 글로벌 발행합니다.
+**완전 자동화된 AI 기술 블로그**입니다.
+
+DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 자동으로 수집, 검증, 번역하여 글로벌 발행합니다.
+
+**핵심 특징:**
+- GitHub Actions 기반 하루 4회 자동 실행
+- 하루 8-12개 글 자동 생성
+- Gemini AI로 커버 이미지 자동 생성
+- 에러 복구 및 재시도 로직 내장
+- 사람 개입 없이 24시간 운영
+
+## Automation Schedule
+
+| 시간 (KST) | UTC | 실행 내용 |
+|-----------|-----|----------|
+| 02:00 | 17:00 | 크롤링 → 선별 → 검증 → 번역 → 발행 |
+| 08:00 | 23:00 | 크롤링 → 선별 → 검증 → 번역 → 발행 |
+| 14:00 | 05:00 | 크롤링 → 선별 → 검증 → 번역 → 발행 |
+| 20:00 | 11:00 | 크롤링 → 선별 → 검증 → 번역 → 발행 |
+
+**각 실행: 최대 3개 글 생성 (하루 총 8-12개)**
 
 ## Key Directories
 
@@ -11,16 +31,26 @@ AI 기술 블로그로, DC Inside "특이점이 온다" 갤러리의 콘텐츠�
 ├── apps/web/                    # Next.js 14 블로그
 │   ├── content/posts/ko/        # 한국어 포스트 (MDX)
 │   ├── content/posts/en/        # 영어 포스트 (MDX)
-│   ├── public/images/posts/     # 커버 이미지
+│   ├── public/images/posts/     # 커버 이미지 (AI 생성)
 │   ├── components/              # React 컴포넌트
 │   └── lib/                     # 유틸리티
 ├── packages/crawler/            # 크롤링 모듈
-├── scripts/                     # CLI 도구 (crawl, verify, translate)
+├── scripts/                     # 자동화 스크립트
+│   ├── crawl.ts                 # DC Inside 크롤러
+│   ├── auto-select.ts           # 품질 점수 기반 자동 선별
+│   ├── verify.ts                # AI 사실 검증
+│   ├── translate.ts             # 한→영 번역
+│   ├── generate-post.ts         # MDX 생성
+│   ├── generate-image.ts        # 커버 이미지 생성
+│   └── lib/
+│       └── work-queue.ts        # 작업 큐 관리 (24시간 타임아웃)
 ├── data/
-│   ├── raw/                     # 수집된 글 (JSON)
+│   ├── raw/                     # 수집된 글 (440+)
 │   ├── selected/                # 선별된 글
 │   ├── verified/                # 검증된 글
-│   └── work-queue.json          # 작업 큐
+│   └── work-queue.json          # 작업 상태 관리
+├── .github/workflows/
+│   └── auto-update.yml          # 자동화 워크플로우
 ├── docs/                        # 문서
 └── .vibe/                       # 작업 로그
 ```
@@ -31,41 +61,94 @@ AI 기술 블로그로, DC Inside "특이점이 온다" 갤러리의 콘텐츠�
 - **Content**: MDX with next-mdx-remote
 - **i18n**: next-intl (ko primary, en secondary)
 - **Styling**: Tailwind CSS
-- **Crawling**: Cheerio (static) / Playwright (dynamic)
-- **AI**: Claude API
-- **Deployment**: Vercel
+- **Crawling**: Cheerio (axios, 1초 딜레이)
+- **AI**: Gemini API (검증, 번역, 이미지 생성)
+- **Image Gen**: gemini-3-pro-image-preview
+- **Automation**: GitHub Actions (하루 4회 cron)
+- **Deployment**: Vercel (자동 배포)
 
 ---
 
-## Common Tasks
+## Automated Pipeline
 
-### Crawling
-```bash
-pnpm crawl              # Crawl latest posts
-pnpm crawl --pages=5    # Crawl 5 pages
+```
+DC Inside Gallery
+      ↓ (5 pages, 1s delay)
+data/raw/*.json
+      ↓ (quality score ≥ 25, max 3/run)
+data/selected/*.json
+      ↓ (Gemini verification, 3 retries)
+data/verified/*.json
+      ↓ (Gemini translation)
+content/posts/ko/*.mdx + en/*.mdx
+      ↓ (Gemini image, 3 retries)
+public/images/posts/*
+      ↓ (Next.js build)
+      ↓ (git commit + push)
+Vercel Auto-Deploy
 ```
 
-### Selection
-```bash
-pnpm select             # Interactive post selection
+---
+
+## Quality Scoring (Auto-Select)
+
+```
+기본 점수:
+  + 조회수/50 (최대 20점)
+  + 좋아요×2 (최대 20점)
+
+보너스:
+  + AI 키워드 (ai, gpt, claude 등): +5점/개
+  + 정보/뉴스 카테고리: +10점
+  + 콘텐츠 200자 이상: +10점
+
+페널티:
+  - 스팸 키워드 (광고, 코인 등): -15점/개
+  - 제목 10자 미만: -20점
+
+선택 기준:
+  - MIN_QUALITY_SCORE: 25
+  - MAX_POSTS: 3/실행
 ```
 
-### Verification
-```bash
-pnpm verify             # Verify selected posts
-pnpm verify --id=123    # Verify specific post
-```
+---
 
-### Translation
-```bash
-pnpm translate          # Translate verified posts
-```
+## Work Queue Management
 
-### Publishing
+`scripts/lib/work-queue.ts`
+
+**자동 타임아웃:**
+- 24시간 이상 claimed 상태 → 자동 해제
+- 중복 작업 방지
+- 긴급 복구: `forceReleaseAllClaims()`
+
+---
+
+## Manual Commands
+
 ```bash
-pnpm generate-post      # Generate MDX files
-pnpm dev                # Preview locally
-git push                # Deploy to Vercel
+# 크롤링
+pnpm crawl              # 최신 글 수집
+pnpm crawl --pages=5    # 5페이지 수집
+
+# 자동 선별
+pnpm auto-select        # 품질 점수 기반 자동 선별
+
+# 검증
+pnpm verify             # 선별된 글 검증
+
+# 번역
+pnpm translate          # 검증된 글 번역
+
+# 포스트 생성
+pnpm generate-post      # MDX 파일 생성
+
+# 이미지 생성
+pnpm generate-image     # 커버 이미지 생성
+
+# 빌드 & 배포
+cd apps/web && pnpm build
+git push                # Vercel 자동 배포
 ```
 
 ---
@@ -75,11 +158,11 @@ git push                # Deploy to Vercel
 ### Raw Post (`data/raw/*.json`)
 ```json
 {
-  "id": "123456",
-  "title": "Post title",
+  "id": "930644",
+  "title": "OpenAI GPT-5 출시",
   "category": "정보/뉴스",
   "author": "nickname",
-  "date": "2025.01.10",
+  "date": "2026.01.10",
   "content": "<html>",
   "contentText": "plain text",
   "views": 1234,
@@ -91,129 +174,162 @@ git push                # Deploy to Vercel
 ### Verified Post (`data/verified/*.json`)
 ```json
 {
-  "postId": "123456",
+  "postId": "930644",
   "claims": [...],
   "overallScore": 0.85,
   "recommendation": "publish",
-  "title_en": "English title",
-  "content_en": "Translated content"
+  "translation": {
+    "title_en": "English title",
+    "content_en": "Translated content",
+    "slug": "openai-gpt-5-launch"
+  }
+}
+```
+
+### Work Queue (`data/work-queue.json`)
+```json
+{
+  "claimed": {
+    "930644": { "by": "crawler", "at": "2026-01-10T21:44:05Z", "task": "auto-select" }
+  },
+  "completed": {
+    "930037": { "by": "external-ai", "at": "2026-01-10T21:55:00Z", "slug": "ai-inference-scaling" }
+  },
+  "lastUpdated": "2026-01-10T21:45:11Z"
 }
 ```
 
 ---
 
-## 작업 명령어
+## Quality Standards (2026)
 
-### `/external-ai` - 콘텐츠 생성 모드
-
-```
-1. data/raw/*.json 확인 (수집된 글)
-2. 글 선택 (조회수 500+, 추천 20+)
-3. 웹 검색으로 사실 검증
-4. MDX 생성 (ko/en)
-5. 빌드 확인 & 푸시
-```
-
----
-
-## 품질 기준 (2026년 1월)
-
-### 필수 체크리스트
+### Required Checklist
 
 | 항목 | 기준 |
 |------|------|
 | 글자 수 | 2,000자 이상 |
 | verificationScore | 0.6 이상 |
 | FAQ | 3개 이상 |
-| 실패 케이스 | 1개 이상 |
 | 출처 | 3개 이상 |
 | 금지 표현 | 0개 |
+| 커버 이미지 | 필수 (자동 생성) |
 
-### 금지 표현
+### Banned Expressions
 
 "쉽게", "간단하게", "효과적으로", "다양한", "일반적으로", "대등한", "탁월한"
 → 구체적 수치로 대체
 
-### 시간 검증 (CRITICAL)
+### Time Verification (CRITICAL)
 
 모든 "출시 예정" 표현에 대해 현재 상태 확인:
 - GPT-5, GPT-5.2, o3, o3-pro: **이미 출시됨**
 - Claude Opus 4.5: **이미 출시됨**
+- Gemini 3: **이미 출시됨**
 
 ---
 
-## 이미지 처리
+## Image Handling
 
-### 이미지 있을 때
+### 자동 생성 (기본)
 ```yaml
 coverImage: "/images/posts/{slug}.jpeg"
 ```
 
-### 이미지 없을 때
-**coverImage 필드 생략** → 자동 Placeholder (Gradient + 태그 아이콘)
+- Gemini gemini-3-pro-image-preview 모델 사용
+- 제목/태그 기반 프롬프트 생성
+- 모던 테크 스타일, 다크 그라디언트
 
-태그별 아이콘:
-- openai → smart_toy
-- anthropic → psychology
-- news → newspaper
-- ai → memory
+### Placeholder (이미지 없을 때)
+태그 기반 그라디언트 + 아이콘 자동 표시:
+- openai → smart_toy (파란색 계열)
+- anthropic → psychology (보라색 계열)
+- news → newspaper (초록색 계열)
+- ai → memory (청록색 계열)
 
 ---
 
-## MDX 프론트매터
+## MDX Frontmatter
 
 ```yaml
 ---
 title: "글 제목"
-date: "2025-06-10"  # 뉴스 발생일
+date: "2026-01-10"  # 뉴스 발생일
 excerpt: "150자 요약"
 tags: ["AI", "OpenAI"]
 category: "Technology"
 author: "AI Onda"
 sourceUrl: "https://..."
+sourceId: "930644"
 alternateLocale: "/en/posts/{slug}"
 verificationScore: 0.85
-coverImage: "/images/posts/{slug}.jpeg"  # 가급적 포함
+coverImage: "/images/posts/{slug}.jpeg"
 ---
 ```
 
 ---
 
-## 파일 경로
+## Error Recovery
 
+### Retry Strategy
+
+| 단계 | 최대 재시도 | 대기 시간 |
+|------|------------|----------|
+| Verify | 3회 | 10초 |
+| Translate | 3회 | 10초 |
+| Image Gen | 3회 | 15초 |
+
+### Work Queue Timeout
+
+- 24시간 이상 claimed → 자동 해제
+- `cleanupStaleClaims()` 매 실행 시 호출
+- `forceReleaseAllClaims()` 긴급 복구용
+
+---
+
+## Environment Variables
+
+### GitHub Secrets (Required)
 ```
-apps/web/content/posts/ko/{slug}.mdx  # 한국어
-apps/web/content/posts/en/{slug}.mdx  # 영어
-apps/web/public/images/posts/{slug}.jpeg  # 이미지
+ANTHROPIC_API_KEY    # Claude API (검증, 번역용)
+GOOGLE_AI_API_KEY    # Gemini API (이미지 생성용)
+```
+
+### Local (.env.local)
+```
+GEMINI_API_KEY=AIza...
+MIN_QUALITY_SCORE=25
+MAX_POSTS=3
 ```
 
 ---
 
-## 빌드 & 배포
+## File Paths
 
-```bash
-cd apps/web && pnpm build  # 빌드 확인
-git add . && git commit -m "feat: 새 포스트" && git push
+```
+apps/web/content/posts/ko/{slug}.mdx     # 한국어 포스트
+apps/web/content/posts/en/{slug}.mdx     # 영어 포스트
+apps/web/public/images/posts/{slug}.*    # 커버 이미지
+data/raw/{id}.json                       # 원본 데이터
+data/selected/{id}.json                  # 선별된 데이터
+data/verified/{id}.json                  # 검증된 데이터
+data/work-queue.json                     # 작업 큐
+.github/workflows/auto-update.yml        # 자동화 워크플로우
 ```
 
 ---
 
 ## Important Notes
 
-1. **Rate Limiting**: 크롤링 시 요청 간 1초 딜레이 필수
-2. **Verification**: 공식 소스 우선 확인 (회사 블로그, 문서)
-3. **Translation**: 코드 블록, URL, 제품명 보존
-4. **Image**: 가급적 모든 포스트에 coverImage 포함
+1. **완전 자동화**: GitHub Actions가 하루 4회 자동 실행
+2. **품질 게이팅**: 품질 점수 25 이상만 선별
+3. **이미지 필수**: 모든 포스트에 커버 이미지 자동 생성
+4. **에러 복구**: 각 단계 3회 재시도, 타임아웃 자동 해제
+5. **Rate Limiting**: 크롤링 1초 딜레이 필수
 
 ---
 
-## 참고 문서
+## Reference Docs
 
-- [외부 AI 가이드](docs/EXTERNAL_AI.md)
-- [스킬 상세](~/.claude/skills/external-ai/SKILL.md)
-- [태그 유틸](apps/web/lib/tag-utils.ts)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Workflow](docs/WORKFLOW.md)
-- [Crawling](docs/CRAWLING.md)
-- [Verification](docs/VERIFICATION.md)
-- [Translation](docs/TRANSLATION.md)
+- [Architecture](docs/ARCHITECTURE.md) - 전체 아키텍처
+- [태그 유틸](apps/web/lib/tag-utils.ts) - 태그 색상/아이콘
+- [Work Queue](scripts/lib/work-queue.ts) - 작업 큐 관리
