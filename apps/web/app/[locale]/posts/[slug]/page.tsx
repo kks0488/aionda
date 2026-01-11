@@ -261,13 +261,14 @@ export default async function PostPage({
                   />
                 ) : (
                   <div className={`w-full h-full bg-gradient-to-br ${tagColor} flex items-center justify-center relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-black/25 dark:bg-black/10" />
                     {/* Pattern overlay */}
                     <div className="absolute inset-0 opacity-10">
                       <div className="absolute inset-0" style={{
                         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                       }} />
                     </div>
-                    <span className="material-symbols-outlined text-white/80 text-8xl">
+                    <span className="material-symbols-outlined text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] text-8xl">
                       {tagIcon}
                     </span>
                   </div>
@@ -367,8 +368,9 @@ export default async function PostPage({
                               className="object-cover"
                             />
                           ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${relatedTagColor} flex items-center justify-center`}>
-                              <span className="material-symbols-outlined text-white/80 text-2xl">
+                            <div className={`w-full h-full bg-gradient-to-br ${relatedTagColor} flex items-center justify-center relative overflow-hidden`}>
+                              <div className="absolute inset-0 bg-black/25 dark:bg-black/10" />
+                              <span className="material-symbols-outlined text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] text-2xl">
                                 {relatedTagIcon}
                               </span>
                             </div>
