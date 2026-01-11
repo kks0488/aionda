@@ -1,20 +1,18 @@
 name: Auto Update Blog
 
 on:
+  schedule:
+    # 하루 4회 실행 (KST 02:00, 08:00, 14:00, 20:00)
+    - cron: '0 17 * * *'  # KST 02:00
+    - cron: '0 23 * * *'  # KST 08:00
+    - cron: '0 5 * * *'   # KST 14:00
+    - cron: '0 11 * * *'  # KST 20:00
   workflow_dispatch:
     inputs:
-      min_quality_score:
-        description: 'Minimum quality score for auto-selection'
+      skip_crawl:
+        description: 'Skip crawling (use existing data)'
         required: false
-        default: '45'
-      max_posts:
-        description: 'Maximum posts to select per run'
-        required: false
-        default: '3'
-      force_cleanup:
-        description: 'Force cleanup stale claims before running'
-        required: false
-        default: 'true'
+        default: 'false'
 
 permissions:
   contents: write
@@ -49,113 +47,94 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # Phase 1: Cleanup & Crawl
-      - name: Cleanup stale work-queue claims
-        run: |
-          echo "🧹 Cleaning up stale claims..."
-          pnpm tsx -e "
-            const { cleanupStaleClaims, getQueueStatus } = require('./scripts/lib/work-queue');
-            const cleaned = cleanupStaleClaims();
-            const status = getQueueStatus();
-            console.log('Queue status:', status);
-          "
+      # ============================================
+      # NEW PIPELINE: Topic-based Content Generation
+      # crawl → extract-topics → research-topic → write-article → generate-image
+      # ============================================
 
+      # Phase 1: Crawl
       - name: Crawl new posts (DC Inside)
+        if: github.event.inputs.skip_crawl != 'true'
         run: pnpm crawl --pages=5
         continue-on-error: true
 
-      - name: Check official AI sources
-        run: pnpm crawl-official
-        continue-on-error: true
-
-      # Phase 2: Select quality posts
-      - name: Auto-select quality posts
-        id: select
+      # Phase 2: Extract Topics
+      - name: Extract discussable topics
+        id: extract
         run: |
-          pnpm tsx scripts/auto-select.ts
-
-          # 선택된 글 수 확인
-          SELECTED_COUNT=$(ls -1 data/selected/*.json 2>/dev/null | wc -l)
-          echo "selected_count=$SELECTED_COUNT" >> $GITHUB_OUTPUT
+          pnpm extract-topics
+          TOPIC_COUNT=$(ls -1 data/topics/*.json 2>/dev/null | wc -l)
+          echo "topic_count=$TOPIC_COUNT" >> $GITHUB_OUTPUT
+          echo "📋 Extracted $TOPIC_COUNT topic(s)"
         env:
-          MIN_QUALITY_SCORE: ${{ github.event.inputs.min_quality_score || '45' }}
-          MAX_POSTS: ${{ github.event.inputs.max_posts || '3' }}
+          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
-      - name: Check for new selections
-        id: check_selections
+      - name: Check for topics
+        id: check_topics
         run: |
-          if [ -d "data/selected" ] && [ "$(ls -A data/selected 2>/dev/null)" ]; then
-            echo "has_selections=true" >> $GITHUB_OUTPUT
+          if [ -d "data/topics" ] && [ "$(ls -A data/topics 2>/dev/null)" ]; then
+            echo "has_topics=true" >> $GITHUB_OUTPUT
           else
-            echo "has_selections=false" >> $GITHUB_OUTPUT
+            echo "has_topics=false" >> $GITHUB_OUTPUT
           fi
 
-      # Phase 3: Process posts (with retry logic)
-      - name: Verify selected posts
-        if: steps.check_selections.outputs.has_selections == 'true'
-        id: verify
+      # Phase 3: Research Topics (with retry)
+      - name: Research topics with SearchMode
+        if: steps.check_topics.outputs.has_topics == 'true'
+        id: research
         run: |
           MAX_RETRIES=3
           RETRY_COUNT=0
 
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if pnpm verify; then
-              echo "✅ Verification completed successfully"
+            if pnpm research-topic; then
+              echo "✅ Research completed successfully"
+              PUBLISHABLE=$(ls -1 data/researched/*.json 2>/dev/null | xargs -I {} sh -c 'grep -l "\"canPublish\": true" {}' 2>/dev/null | wc -l)
+              echo "publishable_count=$PUBLISHABLE" >> $GITHUB_OUTPUT
               break
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
-              echo "⚠️ Verification attempt $RETRY_COUNT failed, retrying in 10s..."
+              echo "⚠️ Research attempt $RETRY_COUNT failed, retrying in 10s..."
               sleep 10
             fi
           done
 
           if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-            echo "❌ Verification failed after $MAX_RETRIES attempts"
+            echo "❌ Research failed after $MAX_RETRIES attempts"
             exit 1
           fi
         env:
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
-      - name: Translate verified posts
-        if: steps.check_selections.outputs.has_selections == 'true'
-        id: translate
+      # Phase 4: Write Articles
+      - name: Write articles from research
+        if: steps.check_topics.outputs.has_topics == 'true'
+        id: write
         run: |
           MAX_RETRIES=3
           RETRY_COUNT=0
 
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if pnpm translate; then
-              echo "✅ Translation completed successfully"
+            if pnpm write-article; then
+              echo "✅ Article writing completed successfully"
               break
             else
               RETRY_COUNT=$((RETRY_COUNT + 1))
-              echo "⚠️ Translation attempt $RETRY_COUNT failed, retrying in 10s..."
+              echo "⚠️ Writing attempt $RETRY_COUNT failed, retrying in 10s..."
               sleep 10
             fi
           done
 
           if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-            echo "❌ Translation failed after $MAX_RETRIES attempts"
+            echo "❌ Article writing failed after $MAX_RETRIES attempts"
             exit 1
           fi
         env:
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-        # REMOVED: continue-on-error - translation failures should stop pipeline
 
-      - name: Generate MDX posts
-        if: steps.check_selections.outputs.has_selections == 'true'
-        run: |
-          if ! pnpm generate-post; then
-            echo "❌ MDX generation failed"
-            exit 1
-          fi
-        env:
-          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
-        # REMOVED: continue-on-error - MDX generation failures should stop pipeline
-
-      # Phase 4: Generate images (REQUIRED - no continue-on-error)
+      # Phase 5: Generate Images
       - name: Generate cover images
-        if: steps.check_selections.outputs.has_selections == 'true'
+        if: steps.check_topics.outputs.has_topics == 'true'
         id: generate_images
         run: |
           MAX_RETRIES=3
@@ -171,16 +150,12 @@ jobs:
               sleep 15
             fi
           done
-
-          # 이미지 없는 포스트 확인
-          echo "📊 Checking for posts without images..."
-          POSTS_WITHOUT_IMAGES=$(find apps/web/content/posts/ko -name "*.mdx" -exec grep -L "coverImage:" {} \; 2>/dev/null | wc -l)
-          echo "Posts without coverImage: $POSTS_WITHOUT_IMAGES"
         env:
           GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+          ENABLE_IMAGE_GENERATION: 'true'
 
-      # Phase 5: Build & Deploy
+      # Phase 6: Build & Deploy
       - name: Build website
         id: build
         run: |
@@ -195,7 +170,6 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            # 변경된 파일 수 출력
             echo "📊 Changes summary:"
             git diff --staged --stat | tail -5
           fi
@@ -217,25 +191,37 @@ jobs:
           commit-message: "chore: auto-update blog (+${{ steps.pr_meta.outputs.new_posts }} posts, +${{ steps.pr_meta.outputs.new_images }} images) ${{ steps.pr_meta.outputs.timestamp }}"
           title: "chore: auto-update blog (+${{ steps.pr_meta.outputs.new_posts }} posts, +${{ steps.pr_meta.outputs.new_images }} images)"
           body: |
-            - Generated by scheduled workflow.
-            - Requires manual approval before merge.
+            ## Auto-generated Content
+
+            - **New Posts**: ${{ steps.pr_meta.outputs.new_posts }}
+            - **New Images**: ${{ steps.pr_meta.outputs.new_images }}
+            - **Pipeline**: Topic-based (SearchMode verified)
+
+            ### Quality Checks
+            - All claims verified with sources
+            - Tier S/A sources required for publishing
+            - Professional tone (no gallery slang)
+
+            ---
+            Generated by scheduled workflow. Requires manual approval.
           branch: "auto/update-${{ github.run_id }}"
           delete-branch: true
           draft: true
 
-      # Phase 6: Report status
+      # Phase 7: Report status
       - name: Report pipeline status
         if: always()
         run: |
-          echo "📊 Pipeline Summary"
-          echo "===================="
-          echo "Selections: ${{ steps.check_selections.outputs.has_selections }}"
+          echo "📊 Pipeline Summary (New Topic-based Pipeline)"
+          echo "=============================================="
+          echo "Topics extracted: ${{ steps.extract.outputs.topic_count || '0' }}"
+          echo "Publishable: ${{ steps.research.outputs.publishable_count || '0' }}"
           echo "Changes: ${{ steps.check_changes.outputs.has_changes }}"
           echo ""
           echo "📁 Current stats:"
           echo "- Raw posts: $(ls data/raw/*.json 2>/dev/null | wc -l)"
-          echo "- Selected: $(ls data/selected/*.json 2>/dev/null | wc -l)"
-          echo "- Verified: $(ls data/verified/*.json 2>/dev/null | wc -l)"
-          echo "- Published (ko): $(ls apps/web/content/posts/ko/*.mdx 2>/dev/null | wc -l)"
-          echo "- Published (en): $(ls apps/web/content/posts/en/*.mdx 2>/dev/null | wc -l)"
-          echo "- Images: $(ls apps/web/public/images/posts/*.{jpeg,jpg,png,webp} 2>/dev/null | wc -l)"
+          echo "- Topics: $(ls data/topics/*.json 2>/dev/null | wc -l)"
+          echo "- Researched: $(ls data/researched/*.json 2>/dev/null | wc -l)"
+          echo "- Published: $(ls data/published/*.json 2>/dev/null | wc -l)"
+          echo "- Posts (ko): $(ls apps/web/content/posts/ko/*.mdx 2>/dev/null | wc -l)"
+          echo "- Posts (en): $(ls apps/web/content/posts/en/*.mdx 2>/dev/null | wc -l)"
