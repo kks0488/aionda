@@ -198,19 +198,14 @@ function generateMDX(
   const frontmatter = generateFrontmatter(post, locale, structured);
   let content = locale === 'en' ? structured.content_en : structured.content_ko;
 
-  // Remove any AI-generated source lines (출처: or Source:)
+  // Remove any AI-generated source lines (출처: or Source:) from content
+  // Source is displayed in the page footer via frontmatter sourceUrl
   content = content.replace(/\n---\n출처:.*$/s, '');
   content = content.replace(/\n---\nSource:.*$/s, '');
-
-  // Add source from verified post data
-  const sourceLabel = locale === 'en' ? 'Source' : '출처';
-  const sourceUrl = post.url;
+  content = content.replace(/\n+---\s*$/s, ''); // Remove trailing ---
 
   return `${frontmatter}
 ${content.trim()}
-
----
-${sourceLabel}: ${sourceUrl}
 `;
 }
 
