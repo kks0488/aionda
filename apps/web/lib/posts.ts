@@ -65,6 +65,7 @@ function normalizeTags(rawTags: unknown): string[] {
 
 const postsDirectory = path.join(process.cwd(), 'content/posts');
 let cachedPostPaths: Set<string> | null = null;
+const publicDirectory = path.join(process.cwd(), 'public');
 
 function getExistingPostPaths(): Set<string> {
   if (process.env.NODE_ENV === 'production' && cachedPostPaths) {
@@ -109,6 +110,22 @@ function normalizeAlternateLocale(
   return existing.has(normalized) ? normalized : undefined;
 }
 
+function normalizeCoverImage(rawCoverImage: unknown): string | undefined {
+  if (!rawCoverImage || typeof rawCoverImage !== 'string') return undefined;
+  const value = rawCoverImage.trim();
+  if (!value) return undefined;
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  const normalized = value.startsWith('/') ? value : `/${value}`;
+  const relativePath = normalized.startsWith('/') ? normalized.slice(1) : normalized;
+  const fullPath = path.join(publicDirectory, relativePath);
+
+  return fs.existsSync(fullPath) ? normalized : undefined;
+}
+
 function parsePostFile(
   fullPath: string,
   slug: string,
@@ -130,7 +147,7 @@ function parsePostFile(
     sourceUrl: data.sourceUrl,
     sourceId: data.sourceId,
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
-    coverImage: data.coverImage,
+    coverImage: normalizeCoverImage(data.coverImage),
   } as Post;
 }
 
