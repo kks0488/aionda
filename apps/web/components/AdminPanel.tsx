@@ -32,9 +32,14 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   const [tagsInput, setTagsInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [publishStatus, setPublishStatus] = useState('');
+  const [prTitle, setPrTitle] = useState('');
+  const [prBody, setPrBody] = useState('');
+  const [prUrl, setPrUrl] = useState('');
   const [loadingList, setLoadingList] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     const savedKey = window.localStorage.getItem(STORAGE_KEY);
@@ -55,8 +60,11 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   useEffect(() => {
     if (editor) {
       setTagsInput(editor.tags.join(', '));
+      setPrTitle(`Admin update: ${editor.slug} (${activeLocale})`);
+      setPrBody('Edited via Aionda admin panel.');
+      setPrUrl('');
     }
-  }, [editor?.slug]);
+  }, [editor?.slug, activeLocale]);
 
   const filteredPosts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -168,6 +176,55 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     }
   };
 
+  const handlePublish = async () => {
+    if (!editor) return;
+    setPublishing(true);
+    setPublishStatus('');
+    setPrUrl('');
+
+    try {
+      const nextTags = tagsInput
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+      const payload = {
+        slug: editor.slug,
+        locale: activeLocale,
+        title: editor.title,
+        description: editor.description,
+        date: editor.date,
+        coverImage: editor.coverImage || '',
+        tags: nextTags,
+        content: editor.content,
+        commitMessage: `Admin update: ${editor.slug} (${activeLocale})`,
+        prTitle: prTitle.trim() || `Admin update: ${editor.slug} (${activeLocale})`,
+        prBody: prBody.trim() || 'Edited via Aionda admin panel.',
+      };
+
+      const response = await fetch('/api/admin/publish', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        setPublishStatus(response.status === 401 ? 'Unauthorized' : 'Failed to create PR');
+        return;
+      }
+
+      const data = await response.json();
+      setPublishStatus('PR created');
+      if (data.prUrl) setPrUrl(data.prUrl);
+    } catch (error) {
+      setPublishStatus('Failed to create PR');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const handleEditorChange = (field: keyof PostDetail, value: string) => {
     if (!editor) return;
     setEditor({ ...editor, [field]: value });
@@ -242,6 +299,21 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                   {status}
                 </div>
               )}
+              {publishStatus && (
+                <div className="text-xs font-semibold text-amber-600 dark:text-amber-300">
+                  {publishStatus}
+                </div>
+              )}
+              {prUrl && (
+                <a
+                  href={prUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  View PR
+                </a>
+              )}
             </div>
 
             <div className="mt-4 space-y-2 max-h-[560px] overflow-y-auto pr-2">
@@ -301,6 +373,14 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                     >
                       {saving ? 'Saving...' : 'Save'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={handlePublish}
+                      className="rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
+                      disabled={publishing || !apiKey}
+                    >
+                      {publishing ? 'Creating PR...' : 'Create PR'}
+                    </button>
                   </div>
                 </div>
 
@@ -320,6 +400,27 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                       type="text"
                       value={editor.date}
                       onChange={(event) => handleEditorChange('date', event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-xs font-semibold uppercase text-slate-500">PR Title</label>
+                    <input
+                      type="text"
+                      value={prTitle}
+                      onChange={(event) => setPrTitle(event.target.value)}
+                      className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold uppercase text-slate-500">PR Body</label>
+                    <input
+                      type="text"
+                      value={prBody}
+                      onChange={(event) => setPrBody(event.target.value)}
                       className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
                     />
                   </div>
