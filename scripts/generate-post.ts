@@ -131,16 +131,43 @@ function generateFrontmatter(
 
   const verificationScore = post.verification?.summary?.overallScore || 0.5;
 
-  // Extract tags from content
-  const tagMatches =
-    content
-      .toLowerCase()
-      .match(/gpt|claude|gemini|llama|openai|anthropic|xai|grok|lmarena/gi) ||
-    [];
+  // Extract tags from content - AI models and category tags
+  const contentLower = content.toLowerCase();
+  const titleLower = title.toLowerCase();
+  const combinedText = contentLower + ' ' + titleLower;
+
+  // AI model tags
+  const modelMatches =
+    combinedText.match(/gpt|claude|gemini|llama|openai|anthropic|xai|grok|lmarena/gi) || [];
+
+  // Category tags based on content keywords
+  const categoryTags: string[] = [];
+
+  // AGI detection
+  if (/agi|artificial general intelligence|superintelligence|초지능|범용.*인공지능/i.test(combinedText)) {
+    categoryTags.push('agi');
+  }
+
+  // LLM detection
+  if (/llm|language model|언어.*모델|대형언어|transformer|트랜스포머/i.test(combinedText)) {
+    categoryTags.push('llm');
+  }
+
+  // Robotics detection
+  if (/robot|로봇|humanoid|휴머노이드|boston dynamics|figure|자율주행/i.test(combinedText)) {
+    categoryTags.push('robotics');
+  }
+
+  // Hardware detection
+  if (/hardware|하드웨어|gpu|tpu|nvidia|chip|반도체|칩|blackwell|h100|b200/i.test(combinedText)) {
+    categoryTags.push('hardware');
+  }
+
   const tags = [
     post.category?.toLowerCase(),
     structured.type,
-    ...new Set(tagMatches),
+    ...categoryTags,
+    ...new Set(modelMatches.map(m => m.toLowerCase())),
   ].filter(Boolean);
 
   const otherLocale = isEnglish ? 'ko' : 'en';
@@ -169,10 +196,21 @@ function generateMDX(
   structured: NonNullable<VerifiedPost['structured']>
 ): string {
   const frontmatter = generateFrontmatter(post, locale, structured);
-  const content = locale === 'en' ? structured.content_en : structured.content_ko;
+  let content = locale === 'en' ? structured.content_en : structured.content_ko;
+
+  // Remove any AI-generated source lines (출처: or Source:)
+  content = content.replace(/\n---\n출처:.*$/s, '');
+  content = content.replace(/\n---\nSource:.*$/s, '');
+
+  // Add source from verified post data
+  const sourceLabel = locale === 'en' ? 'Source' : '출처';
+  const sourceUrl = post.url;
 
   return `${frontmatter}
-${content}
+${content.trim()}
+
+---
+${sourceLabel}: ${sourceUrl}
 `;
 }
 

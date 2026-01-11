@@ -67,8 +67,11 @@ export const NEWS_STRUCTURE_PROMPT = `<role>MIT Technology Review 스타일의 �
 4. ## 배경: 이 사건의 맥락 (3-4문장)
 5. ## 앞으로 어떻게 되나: 예상 시나리오 (2-3문장)
 6. ## FAQ: 질문 3개
-7. --- 출처
 </structure>
+
+<important>
+출처는 생성하지 마세요. 시스템이 자동으로 추가합니다.
+</important>
 
 <example>
 입력: "미국 상원의원들이 Grok의 유해한 AI 이미지 생성 문제로 앱 삭제 요구..."
@@ -97,9 +100,6 @@ A: "표현의 자유를 싫어해서 그렇다"고 비판했다.
 
 **Q: 다른 AI 앱도 영향받나?**
 A: 그렇다. 같은 기준이 적용되면 Midjourney, DALL-E 앱도 심사 대상이다.
-
----
-출처: https://www.macrumors.com/2026/01/09/senators-apple-google-remove-grok/
 </example>
 
 <content>
@@ -125,8 +125,11 @@ export const ANALYSIS_STRUCTURE_PROMPT = `<role>TechCrunch 스타일의 기술 �
 4. ## 흔히 하는 실수: 잘못된 접근 1개
 5. ## FAQ: 질문 3개 (Q&A 형식)
 6. ## 전략: 구체적 행동 제안
-7. --- 출처: 참고 링크
 </structure>
+
+<important>
+출처는 생성하지 마세요. 시스템이 자동으로 추가합니다.
+</important>
 
 <example>
 입력: "최근 벤치마크에서 Claude가 GPT를 앞섰다..."
@@ -168,8 +171,11 @@ export const OPINION_STRUCTURE_PROMPT = `<role>Simon Willison 스타일의 기�
 3. ## 반론: 다른 관점 1개 인정
 4. ## FAQ: 질문 3개 (Q&A 형식)
 5. ## 결론: 요약 + 행동 촉구
-6. --- 출처: 참고 링크
 </structure>
+
+<important>
+출처는 생성하지 마세요. 시스템이 자동으로 추가합니다.
+</important>
 
 <example>
 입력: "AI 규제가 혁신을 막는다..."
