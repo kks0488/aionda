@@ -85,96 +85,129 @@ export async function POST(request: NextRequest) {
   const payload = await request.json().catch(() => ({}));
   const slug = String(payload.slug || '').trim();
   const locale = String(payload.locale || '').trim();
+  const action = String(payload.action || 'update').trim().toLowerCase();
 
   if (!slug || !locale) {
     return Response.json({ error: 'Missing slug or locale' }, { status: 400 });
   }
 
+  if (action !== 'update' && action !== 'delete') {
+    return Response.json({ error: 'Invalid action' }, { status: 400 });
+  }
+
   const { owner, repo, token, base } = githubEnv;
-  const fileInfo = await findPostPath(owner, repo, base, token, slug, locale);
-  if (!fileInfo) {
-    return Response.json({ error: 'Post file not found in repository' }, { status: 404 });
-  }
 
-  const decoded = Buffer.from(fileInfo.content, 'base64').toString('utf8');
-  const { data, content } = matter(decoded);
+  try {
+    const fileInfo = await findPostPath(owner, repo, base, token, slug, locale);
+    if (!fileInfo) {
+      return Response.json({ error: 'Post file not found in repository' }, { status: 404 });
+    }
 
-  const nextData = { ...data };
-  if (typeof payload.title === 'string') nextData.title = payload.title.trim();
-  if (typeof payload.description === 'string') nextData.description = payload.description.trim();
-  if (typeof payload.date === 'string') nextData.date = payload.date.trim();
+    const branchSuffix = sanitizeBranchName(`${slug}-${locale}-${Date.now()}`);
+    const branch = action === 'delete' ? `admin/delete-${branchSuffix}` : `admin/${branchSuffix}`;
 
-  if (payload.tags !== undefined) {
-    const tags = Array.isArray(payload.tags)
-      ? payload.tags.map((tag: unknown) => String(tag).trim()).filter(Boolean)
-      : String(payload.tags)
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean);
-    nextData.tags = tags;
-  }
+    const baseRef = await githubRequest<{ object: { sha: string } }>(
+      `/repos/${owner}/${repo}/git/ref/heads/${base}`,
+      token
+    );
 
-  if (typeof payload.coverImage === 'string') {
-    const value = payload.coverImage.trim();
-    if (value) {
-      nextData.coverImage = value;
+    await githubRequest(
+      `/repos/${owner}/${repo}/git/refs`,
+      token,
+      {
+        method: 'POST',
+        body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseRef.object.sha }),
+      }
+    );
+
+    if (action === 'delete') {
+      const commitMessage = String(payload.commitMessage || `Admin delete: ${slug} (${locale})`).trim();
+      await githubRequest(
+        `/repos/${owner}/${repo}/contents/${fileInfo.path}`,
+        token,
+        {
+          method: 'DELETE',
+          body: JSON.stringify({
+            message: commitMessage,
+            branch,
+            sha: fileInfo.sha,
+          }),
+        }
+      );
     } else {
-      delete nextData.coverImage;
+      const decoded = Buffer.from(fileInfo.content, 'base64').toString('utf8');
+      const { data, content } = matter(decoded);
+
+      const nextData = { ...data };
+      if (typeof payload.title === 'string') nextData.title = payload.title.trim();
+      if (typeof payload.description === 'string') nextData.description = payload.description.trim();
+      if (typeof payload.date === 'string') nextData.date = payload.date.trim();
+
+      if (payload.tags !== undefined) {
+        const tags = Array.isArray(payload.tags)
+          ? payload.tags.map((tag: unknown) => String(tag).trim()).filter(Boolean)
+          : String(payload.tags)
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+        nextData.tags = tags;
+      }
+
+      if (typeof payload.coverImage === 'string') {
+        const value = payload.coverImage.trim();
+        if (value) {
+          nextData.coverImage = value;
+        } else {
+          delete nextData.coverImage;
+        }
+      }
+
+      const nextContent = typeof payload.content === 'string' ? payload.content : content;
+      const updated = matter.stringify(nextContent, nextData);
+
+      const commitMessage = String(payload.commitMessage || `Admin update: ${slug} (${locale})`).trim();
+
+      await githubRequest(
+        `/repos/${owner}/${repo}/contents/${fileInfo.path}`,
+        token,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            message: commitMessage,
+            content: Buffer.from(updated, 'utf8').toString('base64'),
+            branch,
+            sha: fileInfo.sha,
+          }),
+        }
+      );
     }
+
+    const defaultTitle = action === 'delete'
+      ? `Delete: ${slug} (${locale})`
+      : `Admin update: ${slug} (${locale})`;
+    const defaultBody = action === 'delete'
+      ? 'Delete post via Aionda admin panel.'
+      : 'Edited via Aionda admin panel.';
+
+    const prTitle = String(payload.prTitle || defaultTitle).trim();
+    const prBody = String(payload.prBody || defaultBody).trim();
+
+    const pr = await githubRequest<{ html_url: string }>(
+      `/repos/${owner}/${repo}/pulls`,
+      token,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          title: prTitle,
+          head: branch,
+          base,
+          body: prBody,
+        }),
+      }
+    );
+
+    return Response.json({ ok: true, prUrl: pr.html_url, branch });
+  } catch (error: any) {
+    return Response.json({ error: error?.message || 'GitHub API error' }, { status: 500 });
   }
-
-  const nextContent = typeof payload.content === 'string' ? payload.content : content;
-  const updated = matter.stringify(nextContent, nextData);
-
-  const branchSuffix = sanitizeBranchName(`${slug}-${locale}-${Date.now()}`);
-  const branch = `admin/${branchSuffix}`;
-
-  const baseRef = await githubRequest<{ object: { sha: string } }>(
-    `/repos/${owner}/${repo}/git/ref/heads/${base}`,
-    token
-  );
-
-  await githubRequest(
-    `/repos/${owner}/${repo}/git/refs`,
-    token,
-    {
-      method: 'POST',
-      body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseRef.object.sha }),
-    }
-  );
-
-  const commitMessage = String(payload.commitMessage || `Admin update: ${slug} (${locale})`).trim();
-
-  await githubRequest(
-    `/repos/${owner}/${repo}/contents/${fileInfo.path}`,
-    token,
-    {
-      method: 'PUT',
-      body: JSON.stringify({
-        message: commitMessage,
-        content: Buffer.from(updated, 'utf8').toString('base64'),
-        branch,
-        sha: fileInfo.sha,
-      }),
-    }
-  );
-
-  const prTitle = String(payload.prTitle || `Admin update: ${slug} (${locale})`).trim();
-  const prBody = String(payload.prBody || 'Edited via Aionda admin panel.').trim();
-
-  const pr = await githubRequest<{ html_url: string }>(
-    `/repos/${owner}/${repo}/pulls`,
-    token,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        title: prTitle,
-        head: branch,
-        base,
-        body: prBody,
-      }),
-    }
-  );
-
-  return Response.json({ ok: true, prUrl: pr.html_url, branch });
 }

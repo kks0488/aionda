@@ -40,6 +40,8 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [canLocalWrite, setCanLocalWrite] = useState(false);
 
   useEffect(() => {
     const savedKey = window.localStorage.getItem(STORAGE_KEY);
@@ -51,6 +53,12 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       window.localStorage.setItem(STORAGE_KEY, apiKey);
     }
   }, [apiKey]);
+
+  useEffect(() => {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
+    setCanLocalWrite(isLocalhost);
+  }, []);
 
   useEffect(() => {
     if (!apiKey) return;
@@ -126,6 +134,10 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
 
   const handleSave = async () => {
     if (!editor) return;
+    if (!canLocalWrite) {
+      setStatus('Local save is disabled here. Use Create PR.');
+      return;
+    }
     setSaving(true);
     setStatus('');
     try {
@@ -222,6 +234,49 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       setPublishStatus('Failed to create PR');
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editor) return;
+    const confirmed = window.confirm(`Delete ${editor.slug}? This creates a PR.`);
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setPublishStatus('');
+    setPrUrl('');
+
+    try {
+      const payload = {
+        slug: editor.slug,
+        locale: activeLocale,
+        action: 'delete',
+        commitMessage: `Admin delete: ${editor.slug} (${activeLocale})`,
+        prTitle: `Delete: ${editor.slug} (${activeLocale})`,
+        prBody: 'Delete post via Aionda admin panel.',
+      };
+
+      const response = await fetch('/api/admin/publish', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        setPublishStatus(response.status === 401 ? 'Unauthorized' : 'Failed to create delete PR');
+        return;
+      }
+
+      const data = await response.json();
+      setPublishStatus('Delete PR created');
+      if (data.prUrl) setPrUrl(data.prUrl);
+    } catch (error) {
+      setPublishStatus('Failed to create delete PR');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -369,9 +424,10 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                       type="button"
                       onClick={handleSave}
                       className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-                      disabled={saving}
+                      disabled={saving || !canLocalWrite}
+                      title={canLocalWrite ? 'Save local file' : 'Local save works only on localhost'}
                     >
-                      {saving ? 'Saving...' : 'Save'}
+                      {saving ? 'Saving...' : 'Save Local'}
                     </button>
                     <button
                       type="button"
@@ -380,6 +436,14 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                       disabled={publishing || !apiKey}
                     >
                       {publishing ? 'Creating PR...' : 'Create PR'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      className="rounded-lg border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-60"
+                      disabled={deleting || !apiKey}
+                    >
+                      {deleting ? 'Creating PR...' : 'Delete PR'}
                     </button>
                   </div>
                 </div>
