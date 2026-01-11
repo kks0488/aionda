@@ -104,8 +104,7 @@ DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 **큐레이�
 - **i18n**: next-intl (ko primary, en secondary)
 - **Styling**: Tailwind CSS
 - **Crawling**: Cheerio (axios, 1초 딜레이)
-- **AI**: Gemini API (검증, 번역, 이미지 생성)
-- **Image Gen**: gemini-3-pro-image-preview
+- **AI**: Gemini API (검증, 번역, 구조화, 이미지 생성)
 - **Automation**: GitHub Actions (하루 4회 cron)
 - **Deployment**: Vercel (자동 배포)
 
@@ -349,14 +348,14 @@ coverImage: "/images/posts/{slug}.jpeg"
 
 ### GitHub Secrets (Required)
 ```
-ANTHROPIC_API_KEY    # Claude API (검증, 번역용)
-GOOGLE_AI_API_KEY    # Gemini API (이미지 생성용)
+GOOGLE_AI_API_KEY    # Gemini API (검증, 번역, 이미지 생성)
 ```
 
 ### Local (.env.local)
 ```
 GEMINI_API_KEY=AIza...
-MIN_QUALITY_SCORE=25
+GEMINI_MODEL=gemini-3-flash-preview
+MIN_QUALITY_SCORE=30
 MAX_POSTS=3
 ```
 

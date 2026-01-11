@@ -1,4 +1,4 @@
-import { generateContent } from './gemini';
+import { generateContent } from './gemini.js';
 import {
   ArticleType,
   CLASSIFY_PROMPT,

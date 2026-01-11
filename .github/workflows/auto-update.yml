@@ -120,7 +120,6 @@ jobs:
             exit 1
           fi
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
       - name: Translate verified posts
@@ -146,7 +145,6 @@ jobs:
             exit 1
           fi
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
         # REMOVED: continue-on-error - translation failures should stop pipeline
 
@@ -157,6 +155,8 @@ jobs:
             echo "❌ MDX generation failed"
             exit 1
           fi
+        env:
+          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
         # REMOVED: continue-on-error - MDX generation failures should stop pipeline
 
       # Phase 4: Generate images (REQUIRED - no continue-on-error)
