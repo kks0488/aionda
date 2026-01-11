@@ -9,10 +9,11 @@ config({ path: '.env.local' });
 // GitHub Actions에서는 GOOGLE_AI_API_KEY, 로컬에서는 GEMINI_API_KEY 사용
 const API_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY || '';
 const IMAGE_MODEL = 'gemini-3-pro-image-preview';
-const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES === 'true';
+const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
+const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
 
-if (!ENABLE_COVER_IMAGES) {
-  console.log('Cover image generation is disabled. Set ENABLE_COVER_IMAGES=true to run this script.');
+if (!ENABLE_COVER_IMAGES || !ENABLE_IMAGE_GENERATION) {
+  console.log('Image generation is disabled. Set ENABLE_IMAGE_GENERATION=true to run this script.');
   process.exit(0);
 }
 

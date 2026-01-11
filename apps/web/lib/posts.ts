@@ -90,7 +90,7 @@ function normalizeTags(rawTags: unknown): string[] {
 const postsDirectory = path.join(process.cwd(), 'content/posts');
 let cachedPostPaths: Set<string> | null = null;
 const publicDirectory = path.join(process.cwd(), 'public');
-const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES === 'true';
+const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 
 function getExistingPostPaths(): Set<string> {
   if (process.env.NODE_ENV === 'production' && cachedPostPaths) {

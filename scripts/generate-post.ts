@@ -13,7 +13,7 @@ import type { ArticleType } from './prompts/structure';
 
 const VERIFIED_DIR = './data/verified';
 const POSTS_DIR = './apps/web/content/posts';
-const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES === 'true';
+const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 
 // Quality validation constants
 const MIN_CONTENT_LENGTH = 650;
