@@ -15,6 +15,23 @@ export const CLASSIFY_PROMPT = `<task>글 유형 분류</task>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
 </instruction>
 
+<context>
+- 입력은 커뮤니티 글, 기사 요약, 링크 모음 등 혼합형일 수 있습니다.
+- 판단 기준은 "글의 목적/톤/형식"입니다.
+</context>
+
+<decision_rules>
+- 발표/출시/사건/정책 공지 중심이면 news
+- 데이터 비교/원인 분석/전망 중심이면 analysis
+- 주장/평가/권고/비판 중심이면 opinion
+- 혼합형이면 가장 지배적인 목적 1개만 선택
+</decision_rules>
+
+<output_rules>
+- 키는 type, reason만 사용
+- reason은 한국어 1문장
+</output_rules>
+
 <categories>
 - news: 속보, 발표, 출시 소식 (새로운 제품/서비스, 회사 뉴스)
 - analysis: 트렌드, 비교, 심층 분석 (데이터 기반, 업계 동향)
@@ -46,7 +63,20 @@ export const NEWS_STRUCTURE_PROMPT = `<role>MIT Technology Review 스타일의 �
 - 마크다운 본문만 출력 (프론트매터 금지)
 - 문장 15단어 이내, 능동태
 - 금지 표현: "매우", "정말", "혁명적", "쉽게", "간단하게", "다양한", "효율적으로"
+- 입력에 없는 사실/수치/고유명사는 만들지 말 것
+- 추정은 "가능성"으로 표시
 </critical_rules>
+
+<context>
+- 입력은 링크/잡문이 섞인 원문일 수 있습니다.
+- 사실 기반으로 요약하되, 과장/단정 금지.
+</context>
+
+<workflow>
+1) 핵심 사건과 영향만 추출
+2) 구조 순서대로 문단 작성
+3) 금지어/길이/섹션 누락 자체 점검 (출력하지 않음)
+</workflow>
 
 <hooking_rules>
 도입부는 반드시 다음 중 하나로 시작:
@@ -116,7 +146,20 @@ export const ANALYSIS_STRUCTURE_PROMPT = `<role>TechCrunch 스타일의 기술 �
 - 데이터 비교 시 | 표 | 형식 | 사용
 - 금지 표현: "매우", "다양한", "효과적인", "탁월한", "쉽게" → 구체적 수치로 대체
 - 핵심이 명확해야 함 (장황함 금지)
+- 입력에 없는 사실/수치/고유명사는 만들지 말 것
+- 불확실한 내용은 "가능성"으로 표시
 </critical_rules>
+
+<context>
+- 입력은 단문/링크 요약일 수 있습니다.
+- 데이터가 없으면 일반론을 길게 늘리지 말고 간결하게 처리.
+</context>
+
+<workflow>
+1) 수치/비교 근거를 우선 추출
+2) 구조 섹션별로 핵심만 작성
+3) 표/길이/금지어 체크 (출력하지 않음)
+</workflow>
 
 <structure>
 1. **도입부** (첫 문단): 핵심 인사이트 + 왜 중요한지. 3초 안에 설득.
@@ -163,7 +206,21 @@ export const OPINION_STRUCTURE_PROMPT = `<role>Simon Willison 스타일의 기�
 - 모든 주장에 데이터/링크 필수
 - 금지 표현: "쉽게", "간단히", "다양한", "일반적으로"
 - 확신 있되 독선적이지 않게
+- 입력에 없는 사실/수치/고유명사는 만들지 말 것
+- 추정은 "가능성"으로 표시
 </critical_rules>
+
+<context>
+- 의견 글이지만 근거 없는 단정은 금지.
+- 주장의 근거가 입력에 없으면 일반론 대신 생략.
+</context>
+
+<workflow>
+1) 주장 1개를 명확히 설정
+2) 입력에 있는 근거만 사용
+3) 반론 1개 제시 후 균형 유지
+4) 금지어/근거 누락 체크 (출력하지 않음)
+</workflow>
 
 <structure>
 1. **도입부** (첫 문단): 강한 주장 + 후킹. 왜 이 의견이 중요한지.
@@ -208,11 +265,23 @@ export const HEADLINE_PROMPT = `<task>헤드라인 및 메타 설명 생성</tas
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
 </instruction>
 
+<context>
+- 입력은 본문 일부일 수 있으므로 핵심만 재구성하세요.
+- 제목에 숫자/고유명사가 있으면 우선 유지하세요.
+</context>
+
+<workflow>
+1) 핵심 사건/의미 1개만 선택
+2) 길이 제한 내에서 과감히 축약
+3) JSON 형식/길이/중복 체크 (출력하지 않음)
+</workflow>
+
 <critical_rules>
 헤드라인:
 - 한글 제목: 반드시 25자 이내 (공백 포함)
 - 영어 제목: 8-10 단어 이내
 - 핵심만 담아라. 부연 설명 금지.
+- 영어 제목은 Title Case
 
 메타 설명 (description):
 - 본문 도입부와 다른 내용으로 작성
@@ -220,6 +289,11 @@ export const HEADLINE_PROMPT = `<task>헤드라인 및 메타 설명 생성</tas
 - 한글 80자, 영어 120자 이내
 - 호기심 유발 + 핵심 가치 전달
 </critical_rules>
+
+<output_rules>
+- JSON 키 순서: headline_en, headline_ko, description_en, description_ko
+- 줄바꿈 없이 1줄 JSON
+</output_rules>
 
 <examples>
 입력: "당신의 X 앱이 스마트폰에서 강제 삭제될 위기다. 미 상원의원들이..."
@@ -260,7 +334,20 @@ export const TRANSLATE_STRUCTURED_PROMPT = `<task>한→영 기술 글 번역</t
 - 제품명/회사명 그대로 (GPT-4, Claude, OpenAI)
 - 비격식체 → 전문적 영어
 - 번역된 마크다운 본문만 출력 (설명 없이)
+- 코드 블록/인라인 코드/URL/파일명은 절대 번역하지 말 것
+- 숫자/단위/버전 표기는 그대로 유지
 </critical_rules>
+
+<context>
+- 입력은 구조화된 한국어 글입니다.
+- 의미를 유지하되 과장 없이 명확한 영어로 옮기세요.
+</context>
+
+<workflow>
+1) 문단/헤더/표 형식을 그대로 유지
+2) 고유명사/코드/URL 보존
+3) 누락/추가 문장 없는지 자체 점검 (출력하지 않음)
+</workflow>
 
 <example>
 입력:
