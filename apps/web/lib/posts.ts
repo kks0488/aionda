@@ -18,6 +18,8 @@ export interface Post {
   coverImage?: string;
 }
 
+export type SearchPost = Pick<Post, 'slug' | 'title' | 'description' | 'tags'>;
+
 /**
  * Parse various date formats to ISO string
  * Supports: 'YYYY.MM.DD HH:mm:ss', 'YYYY-MM-DD', ISO 8601, etc.
@@ -49,7 +51,88 @@ function parseDate(dateStr: string): string {
   return new Date().toISOString();
 }
 
+function normalizeTags(rawTags: unknown): string[] {
+  if (!rawTags) return [];
+  const tags = Array.isArray(rawTags) ? rawTags : [rawTags];
+  return tags
+    .map((tag) => {
+      if (typeof tag === 'string') return tag.trim();
+      if (typeof tag === 'number') return String(tag);
+      return '';
+    })
+    .filter((tag) => tag.length > 0);
+}
+
 const postsDirectory = path.join(process.cwd(), 'content/posts');
+let cachedPostPaths: Set<string> | null = null;
+
+function getExistingPostPaths(): Set<string> {
+  if (process.env.NODE_ENV === 'production' && cachedPostPaths) {
+    return cachedPostPaths;
+  }
+
+  const paths = new Set<string>();
+
+  if (!fs.existsSync(postsDirectory)) {
+    return paths;
+  }
+
+  const locales = fs.readdirSync(postsDirectory);
+  for (const locale of locales) {
+    const localeDir = path.join(postsDirectory, locale);
+    if (!fs.statSync(localeDir).isDirectory()) continue;
+
+    const fileNames = fs.readdirSync(localeDir);
+    for (const fileName of fileNames) {
+      if (!fileName.endsWith('.mdx') && !fileName.endsWith('.md')) continue;
+      const slug = fileName.replace(/\.mdx?$/, '');
+      paths.add(`/${locale}/posts/${slug}`);
+    }
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    cachedPostPaths = paths;
+  }
+
+  return paths;
+}
+
+function normalizeAlternateLocale(
+  rawLocale: unknown,
+  existingPaths?: Set<string>
+): string | undefined {
+  if (!rawLocale || typeof rawLocale !== 'string') return undefined;
+  const value = rawLocale.trim();
+  if (!value) return undefined;
+  const normalized = value.startsWith('/') ? value : `/${value}`;
+  const existing = existingPaths || getExistingPostPaths();
+  return existing.has(normalized) ? normalized : undefined;
+}
+
+function parsePostFile(
+  fullPath: string,
+  slug: string,
+  locale: Locale,
+  existingPaths?: Set<string>
+): Post {
+  const fileContents = fs.readFileSync(fullPath, 'utf8');
+  const { data, content } = matter(fileContents);
+
+  return {
+    slug,
+    title: data.title || slug,
+    description: data.description || data.excerpt || content.slice(0, 160),
+    date: parseDate(data.date),
+    tags: normalizeTags(data.tags),
+    content,
+    locale,
+    verificationScore: data.verificationScore,
+    sourceUrl: data.sourceUrl,
+    sourceId: data.sourceId,
+    alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
+    coverImage: data.coverImage,
+  } as Post;
+}
 
 export function getPosts(locale: Locale): Post[] {
   const localeDir = path.join(postsDirectory, locale);
@@ -60,28 +143,13 @@ export function getPosts(locale: Locale): Post[] {
   }
 
   const fileNames = fs.readdirSync(localeDir);
+  const existingPaths = getExistingPostPaths();
   const posts = fileNames
     .filter((fileName) => fileName.endsWith('.mdx') || fileName.endsWith('.md'))
     .map((fileName) => {
       const slug = fileName.replace(/\.mdx?$/, '');
       const fullPath = path.join(localeDir, fileName);
-      const fileContents = fs.readFileSync(fullPath, 'utf8');
-      const { data, content } = matter(fileContents);
-
-      return {
-        slug,
-        title: data.title || slug,
-        description: data.description || content.slice(0, 160),
-        date: parseDate(data.date),
-        tags: data.tags || [],
-        content,
-        locale,
-        verificationScore: data.verificationScore,
-        sourceUrl: data.sourceUrl,
-        sourceId: data.sourceId,
-        alternateLocale: data.alternateLocale,
-        coverImage: data.coverImage,
-      } as Post;
+      return parsePostFile(fullPath, slug, locale, existingPaths);
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -89,8 +157,21 @@ export function getPosts(locale: Locale): Post[] {
 }
 
 export function getPostBySlug(slug: string, locale: Locale): Post | null {
-  const posts = getPosts(locale);
-  return posts.find((post) => post.slug === slug) || null;
+  const localeDir = path.join(postsDirectory, locale);
+  if (!fs.existsSync(localeDir)) {
+    return null;
+  }
+
+  const extensions = ['.mdx', '.md'];
+  for (const ext of extensions) {
+    const fullPath = path.join(localeDir, `${slug}${ext}`);
+    if (fs.existsSync(fullPath)) {
+      const existingPaths = getExistingPostPaths();
+      return parsePostFile(fullPath, slug, locale, existingPaths);
+    }
+  }
+
+  return null;
 }
 
 export function getAllSlugs(): { locale: Locale; slug: string }[] {

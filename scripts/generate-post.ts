@@ -2,10 +2,12 @@ import {
   readdirSync,
   readFileSync,
   writeFileSync,
+  unlinkSync,
   existsSync,
   mkdirSync,
 } from 'fs';
 import { join } from 'path';
+import matter from 'gray-matter';
 import { structureArticle } from './lib/structure';
 import type { ArticleType } from './prompts/structure';
 
@@ -107,6 +109,33 @@ function generateSlug(title: string): string {
     .replace(/^-/, '');
 }
 
+const MIN_SLUG_LENGTH = 4;
+
+function normalizeSlugCandidate(value?: string): string {
+  if (!value) return '';
+  return generateSlug(value);
+}
+
+function isUsableSlug(slug: string): boolean {
+  if (!slug) return false;
+  if (slug.length < MIN_SLUG_LENGTH) return false;
+  if (/^\d+$/.test(slug)) return false;
+  return true;
+}
+
+function selectSlug(
+  post: VerifiedPost,
+  structured: NonNullable<VerifiedPost['structured']>
+): string {
+  const translatedSlug = normalizeSlugCandidate(post.translation?.slug);
+  const generatedSlug = generateSlug(structured.title_en || post.title || '');
+
+  if (isUsableSlug(translatedSlug)) return translatedSlug;
+  if (isUsableSlug(generatedSlug)) return generatedSlug;
+
+  return post.id ? String(post.id) : generatedSlug || 'post';
+}
+
 function generateFrontmatter(
   post: VerifiedPost,
   locale: 'en' | 'ko',
@@ -116,8 +145,7 @@ function generateFrontmatter(
   const title = isEnglish ? structured.title_en : structured.title_ko;
   const content = isEnglish ? structured.content_en : structured.content_ko;
 
-  const slug =
-    post.translation?.slug || generateSlug(structured.title_en || post.title);
+  const slug = selectSlug(post, structured);
 
   // Use AI-generated description if available, otherwise fallback to content excerpt
   const aiDescription = isEnglish ? structured.description_en : structured.description_ko;
@@ -137,8 +165,20 @@ function generateFrontmatter(
   const combinedText = contentLower + ' ' + titleLower;
 
   // AI model tags
-  const modelMatches =
-    combinedText.match(/gpt|claude|gemini|llama|openai|anthropic|xai|grok|lmarena/gi) || [];
+  const MODEL_TAG_RULES: Array<{ tag: string; regex: RegExp }> = [
+    { tag: 'gpt', regex: /gpt|chatgpt|챗gpt|챗지피티|지피티/i },
+    { tag: 'claude', regex: /claude|클로드/i },
+    { tag: 'gemini', regex: /gemini|제미나이|젬나이/i },
+    { tag: 'llama', regex: /llama|라마/i },
+    { tag: 'openai', regex: /openai|오픈ai|오픈에이아이/i },
+    { tag: 'anthropic', regex: /anthropic|앤트로픽/i },
+    { tag: 'xai', regex: /xai|엑스ai|엑스에이아이/i },
+    { tag: 'grok', regex: /grok|그록/i },
+    { tag: 'lmarena', regex: /lmarena|lm arena/i },
+  ];
+  const modelTags = MODEL_TAG_RULES
+    .filter(({ regex }) => regex.test(combinedText))
+    .map(({ tag }) => tag);
 
   // Category tags based on content keywords
   const categoryTags: string[] = [];
@@ -163,12 +203,35 @@ function generateFrontmatter(
     categoryTags.push('hardware');
   }
 
-  const tags = [
+  const CORE_TAGS = new Set(['agi', 'llm', 'hardware', 'news', 'opinion', 'robotics']);
+  const TYPE_ALIASES: Record<string, string> = {
+    analysis: 'opinion',
+    commentary: 'opinion',
+    review: 'opinion',
+    essay: 'opinion',
+    report: 'news',
+    announcement: 'news',
+    release: 'news',
+    update: 'news',
+  };
+
+  const structuredType = structured.type ? structured.type.toLowerCase() : '';
+  const rawTags = [
     post.category?.toLowerCase(),
-    structured.type,
+    structuredType,
     ...categoryTags,
-    ...new Set(modelMatches.map(m => m.toLowerCase())),
+    ...modelTags,
   ].filter(Boolean);
+
+  const coreTags: string[] = [];
+  for (const tag of rawTags) {
+    const normalized = String(tag).toLowerCase();
+    if (CORE_TAGS.has(normalized)) coreTags.push(normalized);
+    const alias = TYPE_ALIASES[normalized];
+    if (alias) coreTags.push(alias);
+  }
+
+  const tags = [...new Set([...rawTags, ...coreTags])];
 
   const otherLocale = isEnglish ? 'ko' : 'en';
   const coverImage = `/images/posts/${slug}.jpeg`;
@@ -207,6 +270,34 @@ function generateMDX(
   return `${frontmatter}
 ${content.trim()}
 `;
+}
+
+function removeDuplicatePostsBySourceId(
+  localeDir: string,
+  sourceId: string,
+  keepSlug: string
+) {
+  const files = readdirSync(localeDir).filter((f) => f.endsWith('.mdx') || f.endsWith('.md'));
+  const removed: string[] = [];
+
+  for (const file of files) {
+    const fullPath = join(localeDir, file);
+    const raw = readFileSync(fullPath, 'utf-8');
+    const { data } = matter(raw);
+    const fileSourceId = data.sourceId ? String(data.sourceId) : '';
+    if (!fileSourceId || fileSourceId !== sourceId) continue;
+
+    const fileNameSlug = file.replace(/\.mdx?$/, '');
+    const fileSlug = data.slug || fileNameSlug;
+    if (fileSlug === keepSlug && fileNameSlug === keepSlug) continue;
+
+    unlinkSync(fullPath);
+    removed.push(file);
+  }
+
+  if (removed.length > 0) {
+    console.log(`  🧹 Removed ${removed.length} duplicate post(s) for sourceId ${sourceId}`);
+  }
 }
 
 async function main() {
@@ -282,8 +373,12 @@ async function main() {
       continue;
     }
 
-    const slug =
-      post.translation?.slug || generateSlug(structured.title_en || post.title);
+    const slug = selectSlug(post, structured);
+    const sourceId = String(post.id || '');
+    if (sourceId) {
+      removeDuplicatePostsBySourceId(enDir, sourceId, slug);
+      removeDuplicatePostsBySourceId(koDir, sourceId, slug);
+    }
 
     // Generate English version
     const enContent = generateMDX(post, 'en', structured);

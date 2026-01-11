@@ -25,11 +25,17 @@ export default function HomePage({
   setRequestLocale(locale);
 
   const posts = getPosts(locale as Locale);
+  const searchPosts = posts.map(({ slug, title, description, tags }) => ({
+    slug,
+    title,
+    description,
+    tags,
+  }));
 
   return (
     <div className="bg-white dark:bg-[#101922] text-slate-900 dark:text-white min-h-screen">
       {/* Set posts for search */}
-      <SearchDataSetter posts={posts} locale={locale as Locale} />
+      <SearchDataSetter posts={searchPosts} locale={locale as Locale} />
 
       {/* Hero Section */}
       <section className="relative w-full py-20 lg:py-32 px-6 flex flex-col items-center justify-center text-center">

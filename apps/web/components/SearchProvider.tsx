@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { Post } from '@/lib/posts';
+import type { SearchPost } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import SearchModal from './SearchModal';
 
@@ -9,7 +9,7 @@ interface SearchContextType {
   isOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
-  setPosts: (posts: Post[]) => void;
+  setPosts: (posts: SearchPost[]) => void;
   setLocale: (locale: Locale) => void;
 }
 
@@ -29,7 +29,7 @@ interface SearchProviderProps {
 
 export default function SearchProvider({ children }: SearchProviderProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<SearchPost[]>([]);
   const [locale, setLocale] = useState<Locale>('en');
 
   const openSearch = useCallback(() => setIsOpen(true), []);

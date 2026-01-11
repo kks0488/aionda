@@ -32,16 +32,25 @@ export async function generateMetadata({
 
   const url = `${BASE_URL}/${locale}/posts/${slug}`;
   const ogImageUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(post.title)}&date=${post.date}`;
+  const languageAlternates: Record<string, string> = { [locale]: url };
+
+  if (post.alternateLocale) {
+    const normalized = post.alternateLocale.startsWith('/')
+      ? post.alternateLocale
+      : `/${post.alternateLocale}`;
+    const parts = normalized.split('/').filter(Boolean);
+    const [altLocale, route, altSlug] = parts;
+    if ((altLocale === 'en' || altLocale === 'ko') && route === 'posts' && altSlug) {
+      languageAlternates[altLocale] = `${BASE_URL}/${altLocale}/posts/${altSlug}`;
+    }
+  }
 
   return {
     title: post.title,
     description: post.description,
     alternates: {
       canonical: url,
-      languages: {
-        'en': `${BASE_URL}/en/posts/${slug}`,
-        'ko': `${BASE_URL}/ko/posts/${slug}`,
-      },
+      languages: languageAlternates,
     },
     openGraph: {
       title: post.title,
@@ -209,9 +218,12 @@ export default async function PostPage({
               <div className="flex items-center gap-3 text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
                 {post.tags[0] && (
                   <>
-                    <span className="text-primary hover:underline cursor-pointer">
+                    <Link
+                      href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+                      className="text-primary hover:underline"
+                    >
                       {post.tags[0]}
-                    </span>
+                    </Link>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                   </>
                 )}

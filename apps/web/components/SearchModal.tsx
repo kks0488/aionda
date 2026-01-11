@@ -3,19 +3,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { Post } from '@/lib/posts';
+import type { SearchPost } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  posts: Post[];
+  posts: SearchPost[];
   locale: Locale;
 }
 
 export default function SearchModal({ isOpen, onClose, posts, locale }: SearchModalProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Post[]>([]);
+  const [results, setResults] = useState<SearchPost[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);

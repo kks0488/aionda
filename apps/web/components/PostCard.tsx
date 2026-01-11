@@ -21,6 +21,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
   const tagIcon = getTagIcon(primaryTag);
+  const postHref = `/${locale}/posts/${post.slug}`;
 
   const PlaceholderImage = ({ size = 'large' }: { size?: 'large' | 'medium' | 'small' }) => (
     <div className={`w-full h-full bg-gradient-to-br ${tagColor} flex items-center justify-center relative overflow-hidden`}>
@@ -41,8 +42,8 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
   if (variant === 'large') {
     return (
       <article className="group cursor-pointer">
-        <Link href={`/${locale}/posts/${post.slug}`} className="block">
-          <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+        <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+          <Link href={postHref} className="block h-full">
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             {post.coverImage ? (
               <Image
@@ -56,35 +57,38 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             ) : (
               <PlaceholderImage size="large" />
             )}
-            {post.tags[0] && (
-              <span className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
-                {post.tags[0]}
-              </span>
-            )}
-          </div>
+          </Link>
+          {post.tags[0] && (
+            <Link
+              href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+              className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
+            >
+              {post.tags[0]}
+            </Link>
+          )}
+        </div>
 
-          <div className="mt-5 space-y-3">
-            <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <span>{formattedDate}</span>
-              {post.verificationScore !== undefined && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  <span className="flex items-center gap-1 text-primary">
-                    <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                    AI Verified
-                  </span>
-                </>
-              )}
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
-              {post.title}
-            </h2>
-            {post.description && (
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base line-clamp-2">
-                {post.description}
-              </p>
+        <Link href={postHref} className="mt-5 block space-y-3">
+          <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span>{formattedDate}</span>
+            {post.verificationScore !== undefined && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
+                  AI Verified
+                </span>
+              </>
             )}
           </div>
+          <h2 className="text-2xl md:text-3xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
+            {post.title}
+          </h2>
+          {post.description && (
+            <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base line-clamp-2">
+              {post.description}
+            </p>
+          )}
         </Link>
       </article>
     );
@@ -93,8 +97,8 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
   if (variant === 'small') {
     return (
       <article className="group cursor-pointer">
-        <Link href={`/${locale}/posts/${post.slug}`} className="block">
-          <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+        <div className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+          <Link href={postHref} className="block h-full">
             {post.coverImage ? (
               <Image
                 src={post.coverImage}
@@ -106,35 +110,38 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             ) : (
               <PlaceholderImage size="small" />
             )}
-            {post.tags[0] && (
-              <span className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
-                {post.tags[0]}
-              </span>
-            )}
-          </div>
+          </Link>
+          {post.tags[0] && (
+            <Link
+              href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+              className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
+            >
+              {post.tags[0]}
+            </Link>
+          )}
+        </div>
 
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <span>{formattedDate}</span>
-              {post.verificationScore !== undefined && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  <span className="flex items-center gap-1 text-primary">
-                    <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                    Verified
-                  </span>
-                </>
-              )}
-            </div>
-            <h3 className="text-xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
-              {post.title}
-            </h3>
-            {post.description && (
-              <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
-                {post.description}
-              </p>
+        <Link href={postHref} className="mt-4 block space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span>{formattedDate}</span>
+            {post.verificationScore !== undefined && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
+                  Verified
+                </span>
+              </>
             )}
           </div>
+          <h3 className="text-xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
+            {post.title}
+          </h3>
+          {post.description && (
+            <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+              {post.description}
+            </p>
+          )}
         </Link>
       </article>
     );
@@ -143,8 +150,8 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
   // Default medium variant
   return (
     <article className="group cursor-pointer">
-      <Link href={`/${locale}/posts/${post.slug}`} className="block">
-        <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+      <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+        <Link href={postHref} className="block h-full">
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           {post.coverImage ? (
             <Image
@@ -157,35 +164,38 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           ) : (
             <PlaceholderImage size="medium" />
           )}
-          {post.tags[0] && (
-            <span className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white">
-              {post.tags[0]}
-            </span>
-          )}
-        </div>
+        </Link>
+        {post.tags[0] && (
+          <Link
+            href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+            className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
+          >
+            {post.tags[0]}
+          </Link>
+        )}
+      </div>
 
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-            <span>{formattedDate}</span>
-            {post.verificationScore !== undefined && (
-              <>
-                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                <span className="flex items-center gap-1 text-primary">
-                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                  Verified
-                </span>
-              </>
-            )}
-          </div>
-          <h3 className="text-lg font-bold leading-snug group-hover:text-primary transition-colors text-slate-900 dark:text-white line-clamp-2">
-            {post.title}
-          </h3>
-          {post.description && (
-            <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
-              {post.description}
-            </p>
+      <Link href={postHref} className="mt-4 block space-y-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <span>{formattedDate}</span>
+          {post.verificationScore !== undefined && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="flex items-center gap-1 text-primary">
+                <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
+                Verified
+              </span>
+            </>
           )}
         </div>
+        <h3 className="text-lg font-bold leading-snug group-hover:text-primary transition-colors text-slate-900 dark:text-white line-clamp-2">
+          {post.title}
+        </h3>
+        {post.description && (
+          <p className="text-slate-600 dark:text-slate-300 text-sm line-clamp-2">
+            {post.description}
+          </p>
+        )}
       </Link>
     </article>
   );

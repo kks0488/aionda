@@ -24,19 +24,22 @@ const CATEGORIES = [
 
 export default function HomeContent({ posts, locale }: HomeContentProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const normalizedCategory = selectedCategory.toLowerCase();
 
   const filteredPosts = useMemo(() => {
-    if (selectedCategory === 'all') return posts;
+    if (normalizedCategory === 'all') return posts;
     return posts.filter((post) =>
-      post.tags.some((tag) => tag.toLowerCase().includes(selectedCategory.toLowerCase()))
+      post.tags.some((tag) => tag.toLowerCase().includes(normalizedCategory))
     );
-  }, [posts, selectedCategory]);
+  }, [posts, normalizedCategory]);
 
   const featuredPosts = filteredPosts.slice(0, 2);
   const gridPosts = filteredPosts.slice(2, 6);
-  const trendingPosts = [...posts]
-    .sort((a, b) => (b.verificationScore || 0) - (a.verificationScore || 0))
-    .slice(0, 4);
+  const trendingPosts = useMemo(() => (
+    [...posts]
+      .sort((a, b) => (b.verificationScore || 0) - (a.verificationScore || 0))
+      .slice(0, 4)
+  ), [posts]);
 
   return (
     <main className="w-full max-w-7xl mx-auto px-6 pb-20">
@@ -45,7 +48,9 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
         {CATEGORIES.map((category) => (
           <button
             key={category.id}
+            type="button"
             onClick={() => setSelectedCategory(category.id)}
+            aria-pressed={selectedCategory === category.id}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               selectedCategory === category.id
                 ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 scale-105'

@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import type { Post } from '@/lib/posts';
+import type { SearchPost } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import { useSearch } from './SearchProvider';
 
 interface SearchDataSetterProps {
-  posts: Post[];
+  posts: SearchPost[];
   locale: Locale;
 }
 

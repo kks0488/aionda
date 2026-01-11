@@ -71,7 +71,7 @@ export function parsePostDetail(
   // Get content
   const $content = $('.write_div');
   const content = $content.html() || '';
-  const contentText = $content.text().trim();
+  const contentText = extractContentText(content);
 
   // Get images
   const images: ImageRef[] = [];
@@ -111,4 +111,28 @@ export function parsePostDetail(
     url,
     crawledAt: new Date().toISOString(),
   };
+}
+
+function extractContentText(contentHtml: string): string {
+  if (!contentHtml) return '';
+
+  const withBreaks = contentHtml
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<\/table>/gi, '\n')
+    .replace(/<\/blockquote>/gi, '\n');
+
+  const text = cheerio.load(withBreaks).text();
+
+  return text
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
