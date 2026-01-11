@@ -91,6 +91,21 @@ const postsDirectory = path.join(process.cwd(), 'content/posts');
 let cachedPostPaths: Set<string> | null = null;
 const publicDirectory = path.join(process.cwd(), 'public');
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
+const COVER_IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png', 'webp', 'avif'];
+
+function findCoverImageBySlug(slug: string): string | undefined {
+  if (!slug) return undefined;
+
+  for (const ext of COVER_IMAGE_EXTENSIONS) {
+    const relativePath = path.join('images', 'posts', `${slug}.${ext}`);
+    const fullPath = path.join(publicDirectory, relativePath);
+    if (fs.existsSync(fullPath)) {
+      return `/${relativePath.replace(/\\/g, '/')}`;
+    }
+  }
+
+  return undefined;
+}
 
 function getExistingPostPaths(): Set<string> {
   if (process.env.NODE_ENV === 'production' && cachedPostPaths) {
@@ -135,11 +150,13 @@ function normalizeAlternateLocale(
   return existing.has(normalized) ? normalized : undefined;
 }
 
-function normalizeCoverImage(rawCoverImage: unknown): string | undefined {
+function normalizeCoverImage(rawCoverImage: unknown, slug?: string): string | undefined {
   if (!ENABLE_COVER_IMAGES) return undefined;
-  if (!rawCoverImage || typeof rawCoverImage !== 'string') return undefined;
+  if (!rawCoverImage || typeof rawCoverImage !== 'string') {
+    return slug ? findCoverImageBySlug(slug) : undefined;
+  }
   const value = rawCoverImage.trim();
-  if (!value) return undefined;
+  if (!value) return slug ? findCoverImageBySlug(slug) : undefined;
 
   if (/^https?:\/\//i.test(value)) {
     return value;
@@ -149,7 +166,11 @@ function normalizeCoverImage(rawCoverImage: unknown): string | undefined {
   const relativePath = normalized.startsWith('/') ? normalized.slice(1) : normalized;
   const fullPath = path.join(publicDirectory, relativePath);
 
-  return fs.existsSync(fullPath) ? normalized : undefined;
+  if (fs.existsSync(fullPath)) {
+    return normalized;
+  }
+
+  return slug ? findCoverImageBySlug(slug) : undefined;
 }
 
 function parsePostFile(
@@ -173,7 +194,7 @@ function parsePostFile(
     sourceUrl: data.sourceUrl,
     sourceId: data.sourceId,
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
-    coverImage: normalizeCoverImage(data.coverImage),
+    coverImage: normalizeCoverImage(data.coverImage, slug),
   } as Post;
 }
 
