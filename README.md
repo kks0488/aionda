@@ -20,11 +20,11 @@
 
 ## Overview
 
-DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 자동으로 **큐레이션, 검증, 재구성**하여 글로벌 발행하는 완전 자동화 블로그입니다.
+DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 자동으로 **큐레이션, 검증, 재구성**하고 PR 승인 후 발행하는 파이프라인입니다.
 
 - **하루 3-5개 고품질 글** (양보다 질)
-- **하루 4회 자동 실행** (02:00, 08:00, 14:00, 20:00 KST)
-- **다단계 품질 필터링** (500자+, 검증점수 0.5+, 쓰레기 제목 거부)
+- **수동 실행** (workflow_dispatch)
+- **다단계 품질 필터링** (750자+, 검증점수 0.85+, 쓰레기 제목 거부)
 - **AI 생성 커버 이미지** (모든 글에 자동 생성)
 
 ## 품질 게이팅 시스템
@@ -33,15 +33,17 @@ DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 자동으로
 DC Inside Gallery
       ↓ (크롤링)
 data/raw/*.json (수백 개)
-      ↓ [필터 1: 500자 미만 거부, 쓰레기 제목 거부]
-      ↓ [필터 2: 품질 점수 30점 이상]
+      ↓ [필터 1: 750자 미만 거부, 쓰레기 제목 거부]
+      ↓ [필터 2: 품질 점수 45점 이상]
 data/selected/*.json (3개/실행)
       ↓ [필터 3: AI 사실 검증, No-Claims → 저신뢰도]
-      ↓ [필터 4: verificationScore 0.5 이상]
+      ↓ [필터 4: verificationScore 0.85 이상]
 data/verified/*.json
       ↓ [필터 5: 이중 제목 검증 (원본 + 구조화)]
 content/posts/ (고품질 글만)
       ↓ (AI 이미지 생성)
+PR 생성 (수동 승인)
+      ↓
 Vercel Auto-Deploy
 ```
 
@@ -55,7 +57,7 @@ Vercel Auto-Deploy
 | **Styling** | Tailwind CSS |
 | **Crawling** | Cheerio (axios, 1초 딜레이) |
 | **AI** | Gemini API (검증, 번역, 이미지) |
-| **Automation** | GitHub Actions (하루 4회) |
+| **Automation** | GitHub Actions (수동 실행, PR 승인 후 배포) |
 | **Deployment** | Vercel (자동 배포) |
 
 ## Project Structure

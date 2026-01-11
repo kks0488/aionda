@@ -16,16 +16,16 @@ const POSTS_DIR = './apps/web/content/posts';
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 
 // Quality validation constants
-const MIN_CONTENT_LENGTH = 650;
-const MIN_CONTENT_LENGTH_HARD = 550;
-const MIN_VERIFICATION_FOR_SHORT = 0.8;
-const MIN_VERIFICATION_SCORE = 0.7;
+const MIN_CONTENT_LENGTH = 750;
+const MIN_CONTENT_LENGTH_HARD = 600;
+const MIN_VERIFICATION_FOR_SHORT = 0.9;
+const MIN_VERIFICATION_SCORE = 0.85;
 const MIN_SENTENCE_COUNT = 3;
 const MIN_PARAGRAPH_COUNT = 2;
 const MIN_LENGTH_SINGLE_PARAGRAPH = 1800;
-const MIN_VERIFICATION_SINGLE_PARAGRAPH = 0.8;
+const MIN_VERIFICATION_SINGLE_PARAGRAPH = 0.9;
 const MIN_LENGTH_NO_URL = 1200;
-const MIN_VERIFICATION_NO_URL = 0.75;
+const MIN_VERIFICATION_NO_URL = 0.85;
 const MAX_OPINION_POSTS = parseInt(process.env.MAX_OPINION_POSTS || '1');
 const GARBAGE_TITLES = ['제목 없음', '무제', 'ㅇㅇ', 'ㄱㄱ', '.', '..', '...', 'Untitled'];
 

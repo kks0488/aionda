@@ -161,7 +161,7 @@ pnpm verify --id 123457
       "correctedText": "Actual release date was January 8, 2025"
     }
   ],
-  "overallScore": 0.75,
+  "overallScore": 0.85,
   "recommendation": "publish_with_corrections"
 }
 ```
@@ -237,7 +237,7 @@ date: 2025-01-10
 author: "Singularity Blog"
 tags: ["claude", "benchmark", "ai"]
 sourceUrl: "https://gall.dcinside.com/..."
-verificationScore: 0.75
+verificationScore: 0.85
 ---
 
 # Claude 3.5 Opus Benchmark Analysis
@@ -288,10 +288,9 @@ git push
 ### GitHub Actions
 ```yaml
 # .github/workflows/crawl.yml
-name: Daily Crawl
+name: Manual Crawl
 on:
-  schedule:
-    - cron: '0 9 * * *'  # 9 AM UTC daily
+  workflow_dispatch:
 jobs:
   crawl:
     runs-on: ubuntu-latest

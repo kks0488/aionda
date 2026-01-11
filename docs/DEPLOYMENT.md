@@ -246,15 +246,13 @@ jobs:
           vercel-args: '--prod'
 ```
 
-### Daily Crawl Workflow
+### Manual Crawl Workflow
 
 ```yaml
 # .github/workflows/crawl.yml
-name: Daily Crawl
+name: Manual Crawl
 
 on:
-  schedule:
-    - cron: '0 9 * * *'  # 9 AM UTC daily
   workflow_dispatch:  # Manual trigger
 
 jobs:

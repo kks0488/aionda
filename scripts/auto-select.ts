@@ -43,7 +43,7 @@ const TRASH_KEYWORDS = [
 ];
 
 // Minimum content length to be considered a valid article (not chat message)
-const MIN_CONTENT_LENGTH = 650;
+const MIN_CONTENT_LENGTH = 750;
 const MIN_TITLE_LENGTH = 8;
 const MIN_SUBSTANCE_CHARS = 250;
 const MIN_LENGTH_WITHOUT_URL = 1000;
@@ -184,7 +184,7 @@ function calculateQualityScore(post: RawPost): number {
 }
 
 async function main() {
-  const minScore = parseInt(process.env.MIN_QUALITY_SCORE || '35');
+const minScore = parseInt(process.env.MIN_QUALITY_SCORE || '45');
   const maxPosts = parseInt(process.env.MAX_POSTS || '5');
 
   console.log(`🔍 Auto-selecting posts with min score: ${minScore}, max: ${maxPosts}`);
