@@ -79,17 +79,23 @@ DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 **큐레이�
 ├── packages/crawler/            # 크롤링 모듈
 ├── scripts/                     # 자동화 스크립트
 │   ├── crawl.ts                 # DC Inside 크롤러
-│   ├── auto-select.ts           # 품질 점수 기반 자동 선별
-│   ├── verify.ts                # AI 사실 검증
-│   ├── translate.ts             # 한→영 번역
-│   ├── generate-post.ts         # MDX 생성
+│   ├── extract-topics.ts        # 토픽 추출 (NEW)
+│   ├── research-topic.ts        # 출처 리서치 (NEW)
+│   ├── write-article.ts         # 아티클 작성 (NEW)
 │   ├── generate-image.ts        # 커버 이미지 생성
+│   ├── prompts/topics.ts        # 프롬프트 모음
+│   ├── auto-select.ts           # (레거시) 품질 점수 기반 선별
+│   ├── verify.ts                # (레거시) AI 사실 검증
+│   ├── translate.ts             # (레거시) 한→영 번역
+│   ├── generate-post.ts         # (레거시) MDX 생성
 │   └── lib/
 │       └── work-queue.ts        # 작업 큐 관리 (24시간 타임아웃)
 ├── data/
-│   ├── raw/                     # 수집된 글 (440+)
-│   ├── selected/                # 선별된 글
-│   ├── verified/                # 검증된 글
+│   ├── raw/                     # 수집된 글 (800+)
+│   ├── topics/                  # 추출된 토픽 (NEW)
+│   ├── researched/              # 리서치 완료 (NEW)
+│   ├── selected/                # (레거시) 선별된 글
+│   ├── verified/                # (레거시) 검증된 글
 │   └── work-queue.json          # 작업 상태 관리
 ├── .github/workflows/
 │   └── auto-update.yml          # 자동화 워크플로우
@@ -110,24 +116,33 @@ DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 **큐레이�
 
 ---
 
-## Automated Pipeline
+## Automated Pipeline (Topic-Based)
 
 ```
 DC Inside Gallery
-      ↓ (5 pages, 1s delay)
-data/raw/*.json
-      ↓ (quality score ≥ 25, max 3/run)
-data/selected/*.json
-      ↓ (Gemini verification, 3 retries)
-data/verified/*.json
-      ↓ (Gemini translation)
+      ↓ (pnpm crawl, 5 pages, 1s delay)
+data/raw/*.json (800+ posts)
+      ↓ (pnpm extract-topics)
+data/topics/*.json (토픽 추출, 가치 판단)
+      ↓ (pnpm research-topic)
+data/researched/*.json (Tier S/A 출처 2개+ 필수)
+      ↓ (pnpm write-article)
 content/posts/ko/*.mdx + en/*.mdx
-      ↓ (Gemini image, 3 retries)
+      ↓ (pnpm generate-image)
 public/images/posts/*
-      ↓ (Next.js build)
       ↓ (git commit + push)
 Vercel Auto-Deploy
 ```
+
+### Source Tier Classification
+| Tier | 유형 | 예시 |
+|------|------|------|
+| **S** | 학술/공식 | PubMed, arXiv, 공식 docs |
+| **A** | 권위있는 뉴스 | Reuters, TechCrunch, The Verge |
+| **B** | 주의 필요 | 일반 블로그, 커뮤니티 |
+| **C** | 참고만 | SNS, 개인 의견 |
+
+**발행 기준: Tier S/A 출처 2개 이상 필수**
 
 ---
 
@@ -185,26 +200,20 @@ Vercel Auto-Deploy
 ## Manual Commands
 
 ```bash
-# 크롤링
-pnpm crawl              # 최신 글 수집
-pnpm crawl --pages=5    # 5페이지 수집
-
-# 자동 선별
-pnpm auto-select        # 품질 점수 기반 자동 선별
-
-# 검증
-pnpm verify             # 선별된 글 검증
-
-# 번역
-pnpm translate          # 검증된 글 번역
-
-# 포스트 생성
-pnpm generate-post      # MDX 파일 생성
-
-# 이미지 생성
+# === 새 토픽 기반 파이프라인 (권장) ===
+pnpm crawl              # 최신 글 수집 (5페이지)
+pnpm extract-topics     # 토픽 추출 및 가치 판단
+pnpm research-topic     # 웹 검색으로 출처 확보 (Tier S/A 2개+)
+pnpm write-article      # MIT Tech Review 스타일 아티클 생성
 pnpm generate-image     # 커버 이미지 생성
 
-# 빌드 & 배포
+# === 레거시 파이프라인 ===
+pnpm auto-select        # 품질 점수 기반 자동 선별
+pnpm verify             # 선별된 글 검증
+pnpm translate          # 검증된 글 번역
+pnpm generate-post      # MDX 파일 생성
+
+# === 빌드 & 배포 ===
 cd apps/web && pnpm build
 git push                # Vercel 자동 배포
 ```
@@ -268,9 +277,25 @@ git push                # Vercel 자동 배포
 | 글자 수 | 2,000자 이상 |
 | verificationScore | 0.6 이상 |
 | FAQ | 3개 이상 |
-| 출처 | 3개 이상 |
+| 출처 | Tier S/A 2개 이상 |
 | 금지 표현 | 0개 |
 | 커버 이미지 | 필수 (자동 생성) |
+
+### Article Structure
+```
+1. 도입부 (2-3문장): 핵심 인사이트 + 왜 중요한지
+2. ## 현황: 조사된 사실과 데이터 (2-3문단)
+3. ## 분석: 의미와 영향 (2문단)
+4. ## 실전 적용: 독자가 활용할 수 있는 방법 (1-2문단)
+5. ## FAQ: 질문 3개 (Q&A 형식)
+6. ## 결론: 요약 + 행동 제안 (1문단)
+7. ## 참고 자료: 모든 출처 링크 모음
+```
+
+### Citation Rules (IMPORTANT)
+- ❌ 본문에 `[Title](URL)` 형식 인라인 인용 금지
+- ✅ 본문은 깔끔하게, 출처 없이 작성
+- ✅ 모든 출처는 글 마지막 "참고 자료" 섹션에만 모아서 표기
 
 ### Banned Expressions
 
