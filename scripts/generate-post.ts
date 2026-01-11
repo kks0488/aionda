@@ -91,6 +91,8 @@ interface VerifiedPost {
     content_en: string;
     title_ko: string;
     title_en: string;
+    description_ko?: string;
+    description_en?: string;
   };
 }
 
@@ -116,12 +118,17 @@ function generateFrontmatter(
 
   const slug =
     post.translation?.slug || generateSlug(structured.title_en || post.title);
-  const description = content
+
+  // Use AI-generated description if available, otherwise fallback to content excerpt
+  const aiDescription = isEnglish ? structured.description_en : structured.description_ko;
+  const fallbackDescription = content
     .replace(/^#+\s.*$/gm, '') // Remove headers
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove link syntax
     .replace(/\n+/g, ' ')
     .trim()
-    .substring(0, 160);
+    .substring(0, isEnglish ? 120 : 80);
+  const description = aiDescription || fallbackDescription;
+
   const verificationScore = post.verification?.summary?.overallScore || 0.5;
 
   // Extract tags from content

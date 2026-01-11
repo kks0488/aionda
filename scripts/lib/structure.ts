@@ -64,14 +64,25 @@ export async function structureContent(
 const GARBAGE_TITLES = ['제목 없음', '무제', 'Untitled', 'ㅇㅇ', 'ㄱㄱ', '.', '..', '...'];
 
 /**
- * Generate headlines for the article
+ * Generate headlines and meta descriptions for the article
  * CRITICAL: Never returns garbage titles - throws error instead
  */
 export async function generateHeadlines(
   content: string,
   originalTitle: string
-): Promise<{ headline_en: string; headline_ko: string }> {
+): Promise<{
+  headline_en: string;
+  headline_ko: string;
+  description_en: string;
+  description_ko: string;
+}> {
   const prompt = HEADLINE_PROMPT.replace('{content}', content.substring(0, 2000));
+
+  // Default descriptions (fallback)
+  const defaultDescriptions = {
+    description_en: content.replace(/^#+\s.*$/gm, '').replace(/\n+/g, ' ').trim().substring(0, 120),
+    description_ko: content.replace(/^#+\s.*$/gm, '').replace(/\n+/g, ' ').trim().substring(0, 80),
+  };
 
   try {
     const response = await generateContent(prompt);
@@ -89,14 +100,20 @@ export async function generateHeadlines(
         if (originalTitle && !GARBAGE_TITLES.includes(originalTitle.trim())) {
           return {
             headline_ko: originalTitle,
-            headline_en: originalTitle, // Will be translated later if needed
+            headline_en: originalTitle,
+            description_en: result.description_en || defaultDescriptions.description_en,
+            description_ko: result.description_ko || defaultDescriptions.description_ko,
           };
         }
-        // If original is also garbage, throw error
         throw new Error('Cannot generate valid headline: both AI and original titles are garbage');
       }
 
-      return result;
+      return {
+        headline_en: result.headline_en,
+        headline_ko: result.headline_ko,
+        description_en: result.description_en || defaultDescriptions.description_en,
+        description_ko: result.description_ko || defaultDescriptions.description_ko,
+      };
     }
 
     // JSON parsing failed - use original title
@@ -105,6 +122,7 @@ export async function generateHeadlines(
       return {
         headline_ko: originalTitle,
         headline_en: originalTitle,
+        ...defaultDescriptions,
       };
     }
     throw new Error('Cannot generate valid headline: JSON parsing failed and original title is garbage');
@@ -115,6 +133,7 @@ export async function generateHeadlines(
       return {
         headline_ko: originalTitle,
         headline_en: originalTitle,
+        ...defaultDescriptions,
       };
     }
     throw new Error(`Headline generation failed: ${error}`);
@@ -158,6 +177,8 @@ export async function structureArticle(
   content_en: string;
   title_ko: string;
   title_en: string;
+  description_ko: string;
+  description_en: string;
 }> {
   console.log('  📊 Classifying article type...');
   const { type, reason } = await classifyArticle(rawContent);
@@ -169,8 +190,8 @@ export async function structureArticle(
   console.log('  🌐 Translating to English...');
   const content_en = await translateStructured(content_ko);
 
-  console.log('  📰 Generating headlines...');
-  const { headline_en, headline_ko } = await generateHeadlines(content_ko, originalTitle);
+  console.log('  📰 Generating headlines and descriptions...');
+  const { headline_en, headline_ko, description_en, description_ko } = await generateHeadlines(content_ko, originalTitle);
 
   return {
     type,
@@ -178,6 +199,8 @@ export async function structureArticle(
     content_en,
     title_ko: headline_ko,
     title_en: headline_en,
+    description_ko,
+    description_en,
   };
 }
 

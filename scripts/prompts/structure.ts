@@ -196,29 +196,41 @@ export const STRUCTURE_PROMPTS: Record<ArticleType, string> = {
   opinion: OPINION_STRUCTURE_PROMPT,
 };
 
-export const HEADLINE_PROMPT = `<task>헤드라인 생성</task>
+export const HEADLINE_PROMPT = `<task>헤드라인 및 메타 설명 생성</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
 </instruction>
 
 <critical_rules>
+헤드라인:
 - 한글 제목: 반드시 25자 이내 (공백 포함)
 - 영어 제목: 8-10 단어 이내
 - 핵심만 담아라. 부연 설명 금지.
-- 동사로 시작하거나 주어+동사 구조
-- 클릭베이트 금지
+
+메타 설명 (description):
+- 본문 도입부와 다른 내용으로 작성
+- 독자가 "왜 읽어야 하는지" 설명
+- 한글 80자, 영어 120자 이내
+- 호기심 유발 + 핵심 가치 전달
 </critical_rules>
 
 <examples>
+입력: "당신의 X 앱이 스마트폰에서 강제 삭제될 위기다. 미 상원의원들이..."
+출력: {
+  "headline_en": "Senators Demand X Removal Over Grok AI",
+  "headline_ko": "미 상원, X 앱스토어 퇴출 요구",
+  "description_en": "Your X app could vanish from your phone. Here's why senators are targeting Grok AI and what it means for all AI apps.",
+  "description_ko": "앱스토어 AI 규제의 첫 시험대. 1월 23일 결정이 모든 AI 앱의 운명을 바꾼다."
+}
+
 입력: "OpenAI가 GPT-5를 발표했다. 기존 대비 2배 빠르고..."
-출력: {"headline_en": "OpenAI Unveils GPT-5 With 2x Speed", "headline_ko": "OpenAI, GPT-5 공개"}
-
-입력: "미국 상원의원들이 Grok의 유해한 AI 이미지 생성 문제로..."
-출력: {"headline_en": "Senators Demand X Removal Over Grok AI", "headline_ko": "미 상원, X 앱스토어 퇴출 요구"}
-
-입력: "Claude가 코딩 벤치마크에서 GPT-4를 이겼다..."
-출력: {"headline_en": "Claude Beats GPT-4 in Coding", "headline_ko": "Claude, 코딩서 GPT-4 제쳐"}
+출력: {
+  "headline_en": "OpenAI Unveils GPT-5 With 2x Speed",
+  "headline_ko": "OpenAI, GPT-5 공개",
+  "description_en": "The AI race enters a new phase. GPT-5 brings million-token context that could make RAG obsolete.",
+  "description_ko": "100만 토큰 컨텍스트가 RAG를 대체할 수 있다. 개발자가 알아야 할 핵심 변화."
+}
 </examples>
 
 <content>
@@ -226,7 +238,12 @@ export const HEADLINE_PROMPT = `<task>헤드라인 생성</task>
 </content>
 
 <output_format>
-{"headline_en": "영어 헤드라인 (8-10단어)", "headline_ko": "한글 헤드라인 (25자 이내)"}
+{
+  "headline_en": "영어 헤드라인",
+  "headline_ko": "한글 헤드라인",
+  "description_en": "영어 메타 설명 (120자 이내)",
+  "description_ko": "한글 메타 설명 (80자 이내)"
+}
 </output_format>`;
 
 export const TRANSLATE_STRUCTURED_PROMPT = `<task>한→영 기술 글 번역</task>
