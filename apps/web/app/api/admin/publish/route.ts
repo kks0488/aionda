@@ -1,10 +1,27 @@
 import { NextRequest } from 'next/server';
 import matter from 'gray-matter';
+import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
 
 const GITHUB_API = 'https://api.github.com';
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 const AUTO_MERGE_ENABLED = process.env.GITHUB_AUTO_MERGE !== 'false';
 const MERGE_METHOD = String(process.env.GITHUB_MERGE_METHOD || 'SQUASH').toUpperCase();
+const PUBLISH_ENABLED = process.env.ADMIN_PUBLISH_ENABLED === 'true';
+
+function requireLocal(request: NextRequest): Response | null {
+  if (!isLocalOnlyEnabled()) return null;
+
+  const host =
+    request.headers.get('x-forwarded-host') ??
+    request.headers.get('host') ??
+    request.nextUrl.hostname;
+
+  if (!isLocalHost(host)) {
+    return Response.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  return null;
+}
 
 function requireAdmin(request: NextRequest): Response | null {
   const expected = process.env.ADMIN_API_KEY;
@@ -120,8 +137,15 @@ async function findPostPath(owner: string, repo: string, base: string, token: st
 }
 
 export async function POST(request: NextRequest) {
+  const local = requireLocal(request);
+  if (local) return local;
+
   const auth = requireAdmin(request);
   if (auth) return auth;
+
+  if (!PUBLISH_ENABLED) {
+    return Response.json({ error: 'Publish disabled' }, { status: 403 });
+  }
 
   const githubEnv = requireGithubEnv();
   if (githubEnv instanceof Response) return githubEnv;

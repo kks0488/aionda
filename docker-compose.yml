@@ -1,0 +1,36 @@
+# project-registry:start
+x-project-registry:
+  name: aionda
+  port: 3204
+  env: prod
+  updated_at: 2026-01-11T18:41:54Z
+# project-registry:end
+
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Google Analytics
+      - NEXT_PUBLIC_GA_ID=${NEXT_PUBLIC_GA_ID}
+      # Google AdSense
+      - NEXT_PUBLIC_ADSENSE_ID=${NEXT_PUBLIC_ADSENSE_ID}
+      # Site URL
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://aionda.blog}
+      # Admin settings
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - ADMIN_LOCAL_ONLY=${ADMIN_LOCAL_ONLY:-true}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/ko"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

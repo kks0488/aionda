@@ -1,10 +1,26 @@
 import { NextRequest } from 'next/server';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
+import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 const LOCALES = new Set(['en', 'ko']);
+
+function requireLocal(request: NextRequest): Response | null {
+  if (!isLocalOnlyEnabled()) return null;
+
+  const host =
+    request.headers.get('x-forwarded-host') ??
+    request.headers.get('host') ??
+    request.nextUrl.hostname;
+
+  if (!isLocalHost(host)) {
+    return Response.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  return null;
+}
 
 function requireAdmin(request: NextRequest): Response | null {
   const expected = process.env.ADMIN_API_KEY;
@@ -47,6 +63,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const local = requireLocal(request);
+  if (local) return local;
+
   const auth = requireAdmin(request);
   if (auth) return auth;
 
@@ -82,6 +101,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
+  const local = requireLocal(request);
+  if (local) return local;
+
   const auth = requireAdmin(request);
   if (auth) return auth;
 
@@ -127,5 +149,29 @@ export async function PUT(
   const updated = matter.stringify(nextContent, nextData);
   writeFileSync(fullPath, updated);
 
+  return Response.json({ ok: true });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  const local = requireLocal(request);
+  if (local) return local;
+
+  const auth = requireAdmin(request);
+  if (auth) return auth;
+
+  const locale = request.nextUrl.searchParams.get('locale') || 'ko';
+  if (!LOCALES.has(locale)) {
+    return Response.json({ error: 'Invalid locale' }, { status: 400 });
+  }
+
+  const fullPath = resolvePostPath(locale, params.slug);
+  if (!fullPath) {
+    return Response.json({ error: 'Post not found' }, { status: 404 });
+  }
+
+  unlinkSync(fullPath);
   return Response.json({ ok: true });
 }

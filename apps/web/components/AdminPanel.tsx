@@ -22,6 +22,47 @@ type PostDetail = PostSummary & {
 
 const STORAGE_KEY = 'aionda-admin-api-key';
 const LOCALES: Locale[] = ['en', 'ko'];
+const PUBLISH_ENABLED = process.env.NEXT_PUBLIC_ADMIN_PUBLISH === 'true';
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
+
+function parseIpv4(host: string): number[] | null {
+  const parts = host.split('.');
+  if (parts.length !== 4) return null;
+  const nums = parts.map((part) => Number(part));
+  if (nums.some((value) => Number.isNaN(value) || value < 0 || value > 255)) {
+    return null;
+  }
+  return nums;
+}
+
+function isPrivateIpv4(host: string): boolean {
+  const nums = parseIpv4(host);
+  if (!nums) return false;
+  const [a, b] = nums;
+
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+
+  return false;
+}
+
+function isPrivateIpv6(host: string): boolean {
+  if (host === '::1') return true;
+  if (host.startsWith('fc') || host.startsWith('fd')) return true;
+  if (host.startsWith('fe80')) return true;
+  return false;
+}
+
+function isLocalAddress(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  if (!normalized) return false;
+  if (LOCAL_HOSTNAMES.has(normalized) || normalized.endsWith('.local')) return true;
+  return isPrivateIpv4(normalized) || isPrivateIpv6(normalized);
+}
 
 export default function AdminPanel({ locale }: { locale: Locale }) {
   const [apiKey, setApiKey] = useState('');
@@ -41,6 +82,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingLocal, setDeletingLocal] = useState(false);
   const [canLocalWrite, setCanLocalWrite] = useState(false);
 
   useEffect(() => {
@@ -56,8 +98,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     const hostname = window.location.hostname;
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.local');
-    setCanLocalWrite(isLocalhost);
+    setCanLocalWrite(isLocalAddress(hostname));
   }, []);
 
   useEffect(() => {
@@ -135,7 +176,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   const handleSave = async () => {
     if (!editor) return;
     if (!canLocalWrite) {
-      setStatus('Local save is disabled here. Use Create PR.');
+      setStatus('Local save is disabled here. Open this page on localhost.');
       return;
     }
     setSaving(true);
@@ -296,6 +337,42 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     }
   };
 
+  const handleDeleteLocal = async () => {
+    if (!editor) return;
+    if (!canLocalWrite) {
+      setStatus('Local delete is disabled here. Open this page on localhost.');
+      return;
+    }
+    const confirmed = window.confirm(`Delete ${editor.slug}? This removes the local file.`);
+    if (!confirmed) return;
+
+    setDeletingLocal(true);
+    setStatus('');
+    setPublishStatus('');
+    setPrUrl('');
+
+    try {
+      const response = await fetch(`/api/admin/posts/${editor.slug}?locale=${activeLocale}`, {
+        method: 'DELETE',
+        headers: { 'x-api-key': apiKey },
+      });
+
+      if (!response.ok) {
+        setStatus(response.status === 401 ? 'Unauthorized' : 'Failed to delete post');
+        return;
+      }
+
+      setPosts((prev) => prev.filter((post) => post.slug !== editor.slug));
+      setSelectedSlug('');
+      setEditor(null);
+      setStatus('Deleted');
+    } catch (error) {
+      setStatus('Failed to delete post');
+    } finally {
+      setDeletingLocal(false);
+    }
+  };
+
   const handleEditorChange = (field: keyof PostDetail, value: string) => {
     if (!editor) return;
     setEditor({ ...editor, [field]: value });
@@ -309,6 +386,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Admin Editor</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Edit published posts directly. Changes apply to markdown files.
+              {!PUBLISH_ENABLED && ' PR publishing is disabled.'}
             </p>
           </div>
           <Link
@@ -370,12 +448,12 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                   {status}
                 </div>
               )}
-              {publishStatus && (
+              {PUBLISH_ENABLED && publishStatus && (
                 <div className="text-xs font-semibold text-amber-600 dark:text-amber-300">
                   {publishStatus}
                 </div>
               )}
-              {prUrl && (
+              {PUBLISH_ENABLED && prUrl && (
                 <a
                   href={prUrl}
                   target="_blank"
@@ -445,22 +523,36 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                     >
                       {saving ? 'Saving...' : 'Save Local'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handlePublish}
-                      className="rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
-                      disabled={publishing || !apiKey}
-                    >
-                      {publishing ? 'Creating PR...' : 'Create PR'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="rounded-lg border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-60"
-                      disabled={deleting || !apiKey}
-                    >
-                      {deleting ? 'Creating PR...' : 'Delete PR'}
-                    </button>
+                    {PUBLISH_ENABLED ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handlePublish}
+                          className="rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
+                          disabled={publishing || !apiKey}
+                        >
+                          {publishing ? 'Creating PR...' : 'Create PR'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          className="rounded-lg border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-60"
+                          disabled={deleting || !apiKey}
+                        >
+                          {deleting ? 'Creating PR...' : 'Delete PR'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleDeleteLocal}
+                        className="rounded-lg border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-60"
+                        disabled={deletingLocal || !canLocalWrite}
+                        title={canLocalWrite ? 'Delete local file' : 'Local delete works only on localhost'}
+                      >
+                        {deletingLocal ? 'Deleting...' : 'Delete Local'}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -485,26 +577,28 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-xs font-semibold uppercase text-slate-500">PR Title</label>
-                    <input
-                      type="text"
-                      value={prTitle}
-                      onChange={(event) => setPrTitle(event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
-                    />
+                {PUBLISH_ENABLED && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="text-xs font-semibold uppercase text-slate-500">PR Title</label>
+                      <input
+                        type="text"
+                        value={prTitle}
+                        onChange={(event) => setPrTitle(event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold uppercase text-slate-500">PR Body</label>
+                      <input
+                        type="text"
+                        value={prBody}
+                        onChange={(event) => setPrBody(event.target.value)}
+                        className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold uppercase text-slate-500">PR Body</label>
-                    <input
-                      type="text"
-                      value={prBody}
-                      onChange={(event) => setPrBody(event.target.value)}
-                      className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
-                    />
-                  </div>
-                </div>
+                )}
 
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">Description</label>

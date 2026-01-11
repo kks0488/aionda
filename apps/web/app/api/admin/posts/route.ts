@@ -2,9 +2,25 @@ import { NextRequest } from 'next/server';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
+import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 const LOCALES = new Set(['en', 'ko']);
+
+function requireLocal(request: NextRequest): Response | null {
+  if (!isLocalOnlyEnabled()) return null;
+
+  const host =
+    request.headers.get('x-forwarded-host') ??
+    request.headers.get('host') ??
+    request.nextUrl.hostname;
+
+  if (!isLocalHost(host)) {
+    return Response.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  return null;
+}
 
 function requireAdmin(request: NextRequest): Response | null {
   const expected = process.env.ADMIN_API_KEY;
@@ -27,6 +43,9 @@ function normalizeTags(rawTags: unknown): string[] {
 }
 
 export async function GET(request: NextRequest) {
+  const local = requireLocal(request);
+  if (local) return local;
+
   const auth = requireAdmin(request);
   if (auth) return auth;
 
