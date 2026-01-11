@@ -1,12 +1,14 @@
 // Tag utilities for consistent styling across components
 
+// Colors that work well in both light and dark modes
+// Using darker base colors (600-700) that are visible on light backgrounds
 const TAG_COLORS = [
-  'from-blue-500 to-cyan-400',
-  'from-purple-500 to-pink-400',
-  'from-green-500 to-emerald-400',
-  'from-orange-500 to-amber-400',
-  'from-red-500 to-rose-400',
-  'from-indigo-500 to-violet-400',
+  'from-blue-600 to-cyan-500 dark:from-blue-500 dark:to-cyan-400',
+  'from-purple-600 to-pink-500 dark:from-purple-500 dark:to-pink-400',
+  'from-green-600 to-emerald-500 dark:from-green-500 dark:to-emerald-400',
+  'from-orange-600 to-amber-500 dark:from-orange-500 dark:to-amber-400',
+  'from-red-600 to-rose-500 dark:from-red-500 dark:to-rose-400',
+  'from-indigo-600 to-violet-500 dark:from-indigo-500 dark:to-violet-400',
 ];
 
 const TAG_ICONS: Record<string, string> = {
