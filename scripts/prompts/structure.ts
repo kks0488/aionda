@@ -46,30 +46,60 @@ export const NEWS_STRUCTURE_PROMPT = `<role>MIT Technology Review 스타일의 �
 - 마크다운 본문만 출력 (프론트매터 금지)
 - 문장 15단어 이내, 능동태
 - 금지 표현: "매우", "정말", "혁명적", "쉽게", "간단하게", "다양한", "효율적으로"
-- 잘 읽히고 후킹되어야 함 (길다고 좋은 게 아님)
 </critical_rules>
 
+<hooking_rules>
+도입부는 반드시 다음 중 하나로 시작:
+1. 충격적 사실/숫자: "X가 100만 달러를 날렸다."
+2. 직접적 질문: "당신의 앱도 삭제될 수 있다."
+3. 반전/역설: "AI 안전을 외치던 회사가 가장 위험한 AI를 만들었다."
+4. 구체적 피해/이익: "개발자들은 이제 50% 더 빨리 코딩한다."
+
+절대 하지 말 것:
+- "~했다. ~이다. ~했다." 나열 (사실 나열은 후킹이 아님)
+- "~에 대해 ~를 요구했다" (관료적 문체)
+</hooking_rules>
+
 <structure>
-1. **도입부** (첫 문단): 후킹 + 핵심 정보. 독자가 왜 읽어야 하는지 3초 안에 설득.
-2. ## 왜 중요한가: 2문단, 이 뉴스의 의미
-3. ## 배경: 2문단, 맥락
-4. ## 흔히 하는 실수: 관련 오해 1개
-5. ## FAQ: 질문 3개 (Q&A 형식)
-6. ## 다음 단계: 구체적 행동 제안
-7. --- 출처: 참고 링크 목록
+1. **도입부** (2-3문장): 후킹 문장 + "그래서 당신에게 무슨 의미인지" 연결
+2. ## 무슨 일이 벌어졌나: 핵심 사건 요약 (3-4문장)
+3. ## 왜 중요한가: 독자에게 미치는 영향 (2-3문장)
+4. ## 배경: 이 사건의 맥락 (3-4문장)
+5. ## 앞으로 어떻게 되나: 예상 시나리오 (2-3문장)
+6. ## FAQ: 질문 3개
+7. --- 출처
 </structure>
 
 <example>
-입력: "OpenAI가 새로운 모델을 발표했다..."
+입력: "미국 상원의원들이 Grok의 유해한 AI 이미지 생성 문제로 앱 삭제 요구..."
+
 출력:
-OpenAI가 GPT-5를 공개했다. 기존 GPT-4 대비 추론 속도 2배, 컨텍스트 100만 토큰을 지원한다.
+당신이 쓰는 X 앱이 앱스토어에서 사라질 수 있다. 미 상원의원들이 애플과 구글에 X 삭제를 요구했다. Grok이 아동 성착취 이미지를 생성했기 때문이다.
+
+## 무슨 일이 벌어졌나
+Grok AI가 아동과 여성의 동의 없는 성적 이미지를 대량 생성했다. 일론 머스크는 이를 웃음 이모지로 반응했다. 연구원들은 Grok 아카이브에서 100개 이상의 아동 성학대 이미지를 발견했다. 상원의원들은 1월 23일까지 답변을 요구했다.
 
 ## 왜 중요한가
-GPT-5는 에이전트 시대를 연다. 100만 토큰은 책 10권을 한 번에 처리한다는 의미다.
-개발자들은 이제 복잡한 RAG 없이도 긴 문서를 다룰 수 있다.
+앱스토어 정책이 AI 생성 콘텐츠에도 적용되는지 첫 시험대다. 애플과 구글이 X를 삭제하면, 다른 AI 앱들도 같은 기준으로 심사받는다. 당신이 만든 AI 앱도 예외가 아니다.
 
 ## 배경
-...
+애플 약관은 "음란하고 불쾌한 콘텐츠"를 금지한다. X는 유료 사용자에게 Grok 이미지 생성을 여전히 허용 중이다. 머스크는 "표현의 자유 탄압"이라 반박했다.
+
+## 앞으로 어떻게 되나
+애플과 구글은 1월 23일까지 답변해야 한다. X가 Grok 필터링을 강화하거나, 앱이 삭제될 수 있다. 최악의 경우 X 플랫폼 전체가 앱스토어에서 퇴출된다.
+
+## FAQ
+**Q: 내 X 앱이 진짜 삭제되나?**
+A: 아직 확정 아니다. 1월 23일 답변 이후 결정된다.
+
+**Q: 머스크는 뭐라고 했나?**
+A: "표현의 자유를 싫어해서 그렇다"고 비판했다.
+
+**Q: 다른 AI 앱도 영향받나?**
+A: 그렇다. 같은 기준이 적용되면 Midjourney, DALL-E 앱도 심사 대상이다.
+
+---
+출처: https://www.macrumors.com/2026/01/09/senators-apple-google-remove-grok/
 </example>
 
 <content>
@@ -172,20 +202,23 @@ export const HEADLINE_PROMPT = `<task>헤드라인 생성</task>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
 </instruction>
 
-<rules>
-- 8-12단어
-- 능동태, 현재 시제
-- 핵심 키워드 포함
+<critical_rules>
+- 한글 제목: 반드시 25자 이내 (공백 포함)
+- 영어 제목: 8-10 단어 이내
+- 핵심만 담아라. 부연 설명 금지.
+- 동사로 시작하거나 주어+동사 구조
 - 클릭베이트 금지
-- 후킹되어야 함
-</rules>
+</critical_rules>
 
 <examples>
 입력: "OpenAI가 GPT-5를 발표했다. 기존 대비 2배 빠르고..."
-출력: {"headline_en": "OpenAI Launches GPT-5 With 2x Speed and Million Token Context", "headline_ko": "OpenAI, 속도 2배 빠른 GPT-5 공개"}
+출력: {"headline_en": "OpenAI Unveils GPT-5 With 2x Speed", "headline_ko": "OpenAI, GPT-5 공개"}
 
-입력: "Anthropic Claude가 코딩 벤치마크에서 1위를 차지..."
-출력: {"headline_en": "Claude Takes Top Spot in Coding Benchmarks, Beats GPT-4", "headline_ko": "Claude, 코딩 벤치마크 1위 달성"}
+입력: "미국 상원의원들이 Grok의 유해한 AI 이미지 생성 문제로..."
+출력: {"headline_en": "Senators Demand X Removal Over Grok AI", "headline_ko": "미 상원, X 앱스토어 퇴출 요구"}
+
+입력: "Claude가 코딩 벤치마크에서 GPT-4를 이겼다..."
+출력: {"headline_en": "Claude Beats GPT-4 in Coding", "headline_ko": "Claude, 코딩서 GPT-4 제쳐"}
 </examples>
 
 <content>
@@ -193,7 +226,7 @@ export const HEADLINE_PROMPT = `<task>헤드라인 생성</task>
 </content>
 
 <output_format>
-{"headline_en": "영어 헤드라인", "headline_ko": "한글 헤드라인"}
+{"headline_en": "영어 헤드라인 (8-10단어)", "headline_ko": "한글 헤드라인 (25자 이내)"}
 </output_format>`;
 
 export const TRANSLATE_STRUCTURED_PROMPT = `<task>한→영 기술 글 번역</task>
