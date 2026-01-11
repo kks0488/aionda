@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import matter from 'gray-matter';
 
 const GITHUB_API = 'https://api.github.com';
+const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
+const AUTO_MERGE_ENABLED = process.env.GITHUB_AUTO_MERGE !== 'false';
+const MERGE_METHOD = String(process.env.GITHUB_MERGE_METHOD || 'SQUASH').toUpperCase();
 
 function requireAdmin(request: NextRequest): Response | null {
   const expected = process.env.ADMIN_API_KEY;
@@ -52,6 +55,47 @@ async function githubRequest<T>(path: string, token: string, options: RequestIni
   }
 
   return (await response.json()) as T;
+}
+
+async function githubGraphqlRequest<T>(
+  token: string,
+  query: string,
+  variables: Record<string, unknown>
+): Promise<T> {
+  const response = await fetch(GITHUB_GRAPHQL, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query, variables }),
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`GitHub GraphQL ${response.status}: ${errorBody}`);
+  }
+
+  const data = (await response.json()) as { data?: T; errors?: Array<{ message: string }> };
+  if (data.errors?.length) {
+    throw new Error(data.errors.map((error) => error.message).join('; '));
+  }
+
+  if (!data.data) {
+    throw new Error('GitHub GraphQL returned empty data');
+  }
+
+  return data.data;
+}
+
+function resolveMergeMethod(value: string): 'MERGE' | 'SQUASH' | 'REBASE' {
+  if (value === 'MERGE' || value === 'REBASE' || value === 'SQUASH') {
+    return value;
+  }
+  return 'SQUASH';
 }
 
 async function findPostPath(owner: string, repo: string, base: string, token: string, slug: string, locale: string) {
@@ -192,7 +236,7 @@ export async function POST(request: NextRequest) {
     const prTitle = String(payload.prTitle || defaultTitle).trim();
     const prBody = String(payload.prBody || defaultBody).trim();
 
-    const pr = await githubRequest<{ html_url: string }>(
+    const pr = await githubRequest<{ html_url: string; node_id?: string }>(
       `/repos/${owner}/${repo}/pulls`,
       token,
       {
@@ -206,7 +250,33 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    return Response.json({ ok: true, prUrl: pr.html_url, branch });
+    const autoMerge = { attempted: false, enabled: false, message: '' };
+
+    if (AUTO_MERGE_ENABLED && pr.node_id) {
+      autoMerge.attempted = true;
+      try {
+        const mergeMethod = resolveMergeMethod(MERGE_METHOD);
+        const mutation = `
+          mutation EnableAutoMerge($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+            enablePullRequestAutoMerge(input: { pullRequestId: $pullRequestId, mergeMethod: $mergeMethod }) {
+              pullRequest { number }
+            }
+          }
+        `;
+        await githubGraphqlRequest(
+          token,
+          mutation,
+          { pullRequestId: pr.node_id, mergeMethod }
+        );
+        autoMerge.enabled = true;
+      } catch (error: any) {
+        autoMerge.message = error?.message || 'Auto-merge failed';
+      }
+    } else if (!AUTO_MERGE_ENABLED) {
+      autoMerge.message = 'Auto-merge disabled';
+    }
+
+    return Response.json({ ok: true, prUrl: pr.html_url, branch, autoMerge });
   } catch (error: any) {
     return Response.json({ error: error?.message || 'GitHub API error' }, { status: 500 });
   }

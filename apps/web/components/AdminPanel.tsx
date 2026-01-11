@@ -140,6 +140,8 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     }
     setSaving(true);
     setStatus('');
+    setPublishStatus('');
+    setPrUrl('');
     try {
       const nextTags = tagsInput
         .split(',')
@@ -193,6 +195,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     setPublishing(true);
     setPublishStatus('');
     setPrUrl('');
+    setStatus('');
 
     try {
       const nextTags = tagsInput
@@ -228,7 +231,13 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       }
 
       const data = await response.json();
-      setPublishStatus('PR created');
+      let message = 'PR created';
+      if (data.autoMerge?.enabled) {
+        message = 'PR created (auto-merge enabled)';
+      } else if (data.autoMerge?.attempted) {
+        message = 'PR created (auto-merge failed)';
+      }
+      setPublishStatus(message);
       if (data.prUrl) setPrUrl(data.prUrl);
     } catch (error) {
       setPublishStatus('Failed to create PR');
@@ -245,6 +254,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     setDeleting(true);
     setPublishStatus('');
     setPrUrl('');
+    setStatus('');
 
     try {
       const payload = {
@@ -271,7 +281,13 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       }
 
       const data = await response.json();
-      setPublishStatus('Delete PR created');
+      let message = 'Delete PR created';
+      if (data.autoMerge?.enabled) {
+        message = 'Delete PR created (auto-merge enabled)';
+      } else if (data.autoMerge?.attempted) {
+        message = 'Delete PR created (auto-merge failed)';
+      }
+      setPublishStatus(message);
       if (data.prUrl) setPrUrl(data.prUrl);
     } catch (error) {
       setPublishStatus('Failed to create delete PR');
