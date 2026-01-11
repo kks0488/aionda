@@ -14,6 +14,7 @@ interface RawPost {
   views: number;
   likes: number;
   date: string;
+  content?: string;
   contentText?: string;
 }
 
@@ -27,12 +28,14 @@ const QUALITY_KEYWORDS = [
   '뉴럴', 'neural', '파라미터', 'parameter',
   '출시', '발표', '공개', '업데이트', 'release', 'launch',
   '벤치마크', 'benchmark', '성능', 'performance',
+  'arxiv', 'paper', '논문', 'github', '공식', 'documentation', 'whitepaper',
 ];
 
 // Keywords that indicate low-quality content
 const TRASH_KEYWORDS = [
   '광고', '홍보', '도배', '구독', '좋아요',
-  'ㅋㅋㅋㅋㅋ', 'ㅎㅎㅎㅎ', ';;;', '....',
+  'ㅋㅋㅋㅋㅋ', 'ㅋㅋ', 'ㅎㅎㅎㅎ', 'ㅎㅎ', 'ㅠㅠ', 'ㅜㅜ', ';;;', '....',
+  'ㄷㄷ', 'ㅇㅇ', 'ㅁㄴㅇ',
   '질문', '물어봄', '궁금', '어떻게', '왜?',
   '잡담', '수다', '심심', '놀아',
   '야동', '성인', '불법', '토렌트',
@@ -40,7 +43,16 @@ const TRASH_KEYWORDS = [
 ];
 
 // Minimum content length to be considered a valid article (not chat message)
-const MIN_CONTENT_LENGTH = 500;
+const MIN_CONTENT_LENGTH = 650;
+const MIN_TITLE_LENGTH = 8;
+const MIN_SUBSTANCE_CHARS = 250;
+const MIN_LENGTH_WITHOUT_URL = 1000;
+const MIN_QUALITY_KEYWORD_HITS = 2;
+const HIGH_ENGAGEMENT_VIEWS = 200;
+const HIGH_ENGAGEMENT_LIKES = 10;
+const EXTERNAL_URL_PATTERN = /(https?:\/\/|www\.)\S+/gi;
+const LOW_SIGNAL_TITLE_PATTERN = /^[\sㅋㅎㅠㅜㄷㄱ!?~.]+$/;
+const CHATTER_PATTERN = /(ㅋㅋ|ㅎㅎ|ㅠㅠ|ㅜㅜ|;;+|~{2,}|\.{3,}|\?{3,}|!{3,}|ㅇㅇ|ㄷㄷ)/;
 
 // Titles that indicate garbage posts
 const GARBAGE_TITLES = [
@@ -56,14 +68,24 @@ const GARBAGE_TITLES = [
 // Check if content is a meaningful article, not just a chat message
 function isValidArticle(post: RawPost): { valid: boolean; reason?: string } {
   const content = post.contentText || '';
+  const rawContent = post.content || '';
   const title = post.title?.trim() || '';
+  const combined = `${title} ${content}`.toLowerCase();
 
   // Check for garbage title
   if (!title || GARBAGE_TITLES.some((gt) => title === gt)) {
     return { valid: false, reason: `garbage_title: "${title}"` };
   }
 
-  // Check minimum content length (500 chars minimum for an article)
+  if (title.length < MIN_TITLE_LENGTH) {
+    return { valid: false, reason: `short_title: "${title}"` };
+  }
+
+  if (LOW_SIGNAL_TITLE_PATTERN.test(title)) {
+    return { valid: false, reason: `low_signal_title: "${title}"` };
+  }
+
+  // Check minimum content length (long-form minimum for an article)
   if (content.length < MIN_CONTENT_LENGTH) {
     return { valid: false, reason: `too_short: ${content.length} chars (min: ${MIN_CONTENT_LENGTH})` };
   }
@@ -76,11 +98,43 @@ function isValidArticle(post: RawPost): { valid: boolean; reason?: string } {
 
   // Check if content has substance (not just emoticons/symbols)
   const textOnly = content.replace(/[ㅋㅎㄷㄱㅠㅜ\s\.\!\?\~\;\:\(\)\[\]]/g, '');
-  if (textOnly.length < 200) {
+  if (textOnly.length < MIN_SUBSTANCE_CHARS) {
     return { valid: false, reason: `no_substance: only ${textOnly.length} meaningful chars` };
   }
 
+  const noiseChars = (content.match(/[ㅋㅎㅠㅜ~!?]/g) || []).length;
+  if (content.length > 0) {
+    const noiseRatio = noiseChars / content.length;
+    if (noiseRatio > 0.18 && content.length < 1500) {
+      return { valid: false, reason: `noisy_content: ${(noiseRatio * 100).toFixed(0)}% noise` };
+    }
+  }
+
+  if (CHATTER_PATTERN.test(title) && content.length < MIN_LENGTH_WITHOUT_URL) {
+    return { valid: false, reason: `chatter_title: "${title}"` };
+  }
+
+  const externalUrlCount = countExternalUrls(`${rawContent}\n${content}`);
+  if (externalUrlCount === 0) {
+    const keywordHits = countKeywordHits(combined);
+    const highEngagement = post.views >= HIGH_ENGAGEMENT_VIEWS || post.likes >= HIGH_ENGAGEMENT_LIKES;
+    const longForm = content.length >= MIN_LENGTH_WITHOUT_URL;
+    if (!highEngagement && !(longForm && keywordHits >= MIN_QUALITY_KEYWORD_HITS)) {
+      return { valid: false, reason: 'no_external_url' };
+    }
+  }
+
   return { valid: true };
+}
+
+function countExternalUrls(text: string): number {
+  return (text.match(EXTERNAL_URL_PATTERN) || []).length;
+}
+
+function countKeywordHits(text: string): number {
+  return QUALITY_KEYWORDS.reduce((acc, keyword) => (
+    text.includes(keyword.toLowerCase()) ? acc + 1 : acc
+  ), 0);
 }
 
 function calculateQualityScore(post: RawPost): number {
@@ -88,6 +142,7 @@ function calculateQualityScore(post: RawPost): number {
   const title = post.title.toLowerCase();
   const content = (post.contentText || '').toLowerCase();
   const combined = title + ' ' + content;
+  const externalUrlCount = countExternalUrls(`${post.content || ''}\n${post.contentText || ''}`);
 
   // Base score from engagement
   score += Math.min(post.views / 50, 20); // Max 20 points from views
@@ -112,6 +167,9 @@ function calculateQualityScore(post: RawPost): number {
     score += 10;
   }
 
+  // External URL bonus
+  score += externalUrlCount > 0 ? 10 : -10;
+
   // Title length penalty (too short = probably garbage)
   if (post.title.length < 10) {
     score -= 20;
@@ -126,7 +184,7 @@ function calculateQualityScore(post: RawPost): number {
 }
 
 async function main() {
-  const minScore = parseInt(process.env.MIN_QUALITY_SCORE || '30');
+  const minScore = parseInt(process.env.MIN_QUALITY_SCORE || '35');
   const maxPosts = parseInt(process.env.MAX_POSTS || '5');
 
   console.log(`🔍 Auto-selecting posts with min score: ${minScore}, max: ${maxPosts}`);

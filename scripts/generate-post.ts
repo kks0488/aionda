@@ -15,7 +15,17 @@ const VERIFIED_DIR = './data/verified';
 const POSTS_DIR = './apps/web/content/posts';
 
 // Quality validation constants
-const MIN_CONTENT_LENGTH = 500;
+const MIN_CONTENT_LENGTH = 650;
+const MIN_CONTENT_LENGTH_HARD = 550;
+const MIN_VERIFICATION_FOR_SHORT = 0.8;
+const MIN_VERIFICATION_SCORE = 0.7;
+const MIN_SENTENCE_COUNT = 3;
+const MIN_PARAGRAPH_COUNT = 2;
+const MIN_LENGTH_SINGLE_PARAGRAPH = 1800;
+const MIN_VERIFICATION_SINGLE_PARAGRAPH = 0.8;
+const MIN_LENGTH_NO_URL = 1200;
+const MIN_VERIFICATION_NO_URL = 0.75;
+const MAX_OPINION_POSTS = parseInt(process.env.MAX_OPINION_POSTS || '1');
 const GARBAGE_TITLES = ['제목 없음', '무제', 'ㅇㅇ', 'ㄱㄱ', '.', '..', '...', 'Untitled'];
 
 // Final quality check before generating MDX
@@ -51,18 +61,51 @@ function isValidForPublishing(
 
   // Check minimum content length
   if (content.length < MIN_CONTENT_LENGTH) {
-    return { valid: false, reason: `too_short: ${content.length} chars (min: ${MIN_CONTENT_LENGTH})` };
+    if (content.length < MIN_CONTENT_LENGTH_HARD || verificationScore < MIN_VERIFICATION_FOR_SHORT) {
+      return { valid: false, reason: `too_short: ${content.length} chars (min: ${MIN_CONTENT_LENGTH})` };
+    }
   }
 
-  // Check verification score (min 0.5)
-  if (verificationScore < 0.5) {
-    return { valid: false, reason: `low_verification: ${verificationScore} (min: 0.5)` };
+  // Check verification score
+  if (verificationScore < MIN_VERIFICATION_SCORE) {
+    return {
+      valid: false,
+      reason: `low_verification: ${verificationScore} (min: ${MIN_VERIFICATION_SCORE})`,
+    };
   }
 
   // Check if content has multiple sentences (not just one-liner)
   const sentences = content.split(/[.!?]\s+/).filter((s) => s.trim().length > 10);
-  if (sentences.length < 2) {
-    return { valid: false, reason: `single_sentence: only ${sentences.length} valid sentence(s)` };
+  if (sentences.length < MIN_SENTENCE_COUNT) {
+    return {
+      valid: false,
+      reason: `single_sentence: only ${sentences.length} valid sentence(s)`,
+    };
+  }
+
+  const paragraphs = content.split(/\n{2,}/).filter((p) => p.trim().length > 0);
+  if (
+    paragraphs.length < MIN_PARAGRAPH_COUNT &&
+    content.length < MIN_LENGTH_SINGLE_PARAGRAPH &&
+    verificationScore < MIN_VERIFICATION_SINGLE_PARAGRAPH
+  ) {
+    return {
+      valid: false,
+      reason: `single_paragraph: only ${paragraphs.length} paragraph(s)`,
+    };
+  }
+
+  const noiseChars = (content.match(/[ㅋㅎㅠㅜ~!?]/g) || []).length;
+  if (content.length > 0) {
+    const noiseRatio = noiseChars / content.length;
+    if (noiseRatio > 0.15 && content.length < 2000) {
+      return { valid: false, reason: `noisy_content: ${(noiseRatio * 100).toFixed(0)}% noise` };
+    }
+  }
+
+  const hasExternalUrl = /https?:\/\/|www\./i.test(content);
+  if (!hasExternalUrl && verificationScore < MIN_VERIFICATION_NO_URL && content.length < MIN_LENGTH_NO_URL) {
+    return { valid: false, reason: 'no_external_url' };
   }
 
   return { valid: true };
@@ -157,7 +200,7 @@ function generateFrontmatter(
     .substring(0, isEnglish ? 120 : 80);
   const description = aiDescription || fallbackDescription;
 
-  const verificationScore = post.verification?.summary?.overallScore || 0.5;
+  const verificationScore = post.verification?.summary?.overallScore || MIN_VERIFICATION_SCORE;
 
   // Extract tags from content - AI models and category tags
   const contentLower = content.toLowerCase();
@@ -300,6 +343,26 @@ function removeDuplicatePostsBySourceId(
   }
 }
 
+function removePostsBySourceId(localeDir: string, sourceId: string) {
+  const files = readdirSync(localeDir).filter((f) => f.endsWith('.mdx') || f.endsWith('.md'));
+  const removed: string[] = [];
+
+  for (const file of files) {
+    const fullPath = join(localeDir, file);
+    const raw = readFileSync(fullPath, 'utf-8');
+    const { data } = matter(raw);
+    const fileSourceId = data.sourceId ? String(data.sourceId) : '';
+    if (!fileSourceId || fileSourceId !== sourceId) continue;
+
+    unlinkSync(fullPath);
+    removed.push(file);
+  }
+
+  if (removed.length > 0) {
+    console.log(`  🧹 Removed ${removed.length} post(s) for sourceId ${sourceId}`);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const idArg = args.find((a) => a.startsWith('--id='));
@@ -327,23 +390,45 @@ async function main() {
     }
   }
 
-  console.log(`\nGenerating MDX for ${files.length} post(s)...\n`);
+  const fileEntries = files
+    .map((file) => {
+      const raw = readFileSync(join(VERIFIED_DIR, file), 'utf-8');
+      const post = JSON.parse(raw) as VerifiedPost;
+      return {
+        file,
+        post,
+        verificationScore: post.verification?.summary?.overallScore || 0,
+        contentLength: post.contentText ? post.contentText.length : 0,
+      };
+    })
+    .sort((a, b) => {
+      const scoreDiff = b.verificationScore - a.verificationScore;
+      if (Math.abs(scoreDiff) < 0.05) {
+        return b.contentLength - a.contentLength;
+      }
+      return scoreDiff;
+    });
+
+  console.log(`\nGenerating MDX for ${fileEntries.length} post(s)...\n`);
 
   let generated = 0;
   let skipped = 0;
+  let opinionCount = 0;
 
-  for (const file of files) {
+  for (const entry of fileEntries) {
+    const { file, post } = entry;
     const postId = file.replace('.json', '');
     console.log(`Post ${postId}:`);
-
-    const post = JSON.parse(
-      readFileSync(join(VERIFIED_DIR, file), 'utf-8')
-    ) as VerifiedPost;
 
     // Pre-validation (original title and content)
     const preValidation = isValidForPublishing(post);
     if (!preValidation.valid) {
       console.log(`  ❌ SKIPPED (pre): ${preValidation.reason}`);
+      const sourceId = String(post.id || '');
+      if (sourceId) {
+        removePostsBySourceId(enDir, sourceId);
+        removePostsBySourceId(koDir, sourceId);
+      }
       skipped++;
       continue;
     }
@@ -369,6 +454,22 @@ async function main() {
     const postValidation = isValidForPublishing(post, structured);
     if (!postValidation.valid) {
       console.log(`  ❌ SKIPPED (post): ${postValidation.reason}`);
+      const sourceId = String(post.id || '');
+      if (sourceId) {
+        removePostsBySourceId(enDir, sourceId);
+        removePostsBySourceId(koDir, sourceId);
+      }
+      skipped++;
+      continue;
+    }
+
+    if (structured.type === 'opinion' && opinionCount >= MAX_OPINION_POSTS) {
+      console.log(`  ❌ SKIPPED (opinion limit: ${MAX_OPINION_POSTS})`);
+      const sourceId = String(post.id || '');
+      if (sourceId) {
+        removePostsBySourceId(enDir, sourceId);
+        removePostsBySourceId(koDir, sourceId);
+      }
       skipped++;
       continue;
     }
@@ -378,6 +479,9 @@ async function main() {
     if (sourceId) {
       removeDuplicatePostsBySourceId(enDir, sourceId, slug);
       removeDuplicatePostsBySourceId(koDir, sourceId, slug);
+    }
+    if (structured.type === 'opinion') {
+      opinionCount += 1;
     }
 
     // Generate English version
