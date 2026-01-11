@@ -169,8 +169,16 @@ ${originalContent.substring(0, 1000)}
 JSON만 응답하세요.`;
 
   try {
-    const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    // Use model with Google Search tool for verification
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL,
+      tools: [{ googleSearch: {} }]
+    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
       const result = JSON.parse(jsonMatch[0]);

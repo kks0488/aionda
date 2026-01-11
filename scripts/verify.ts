@@ -75,11 +75,23 @@ async function verifyPost(post: SelectedPost): Promise<VerificationReport> {
   const allSources: VerifiedSource[] = [];
   const tierCounts = { S: 0, A: 0, B: 0, C: 0 };
 
-  for (const rawClaim of rawClaims) {
-    console.log(`  🔍 Verifying: "${rawClaim.text?.substring(0, 40)}..."`);
+  // Parallel verification with concurrency limit
+  const CONCURRENCY = 3;
+  const results: any[] = [];
+  
+  for (let i = 0; i < rawClaims.length; i += CONCURRENCY) {
+    const chunk = rawClaims.slice(i, i + CONCURRENCY);
+    const chunkResults = await Promise.all(chunk.map(async (rawClaim) => {
+      console.log(`  🔍 Verifying: "${rawClaim.text?.substring(0, 40)}..."`);
+      const verification = await verifyClaim(rawClaim, post.contentText);
+      return { rawClaim, verification };
+    }));
+    results.push(...chunkResults);
+    // Brief pause between chunks
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
 
-    const verification = await verifyClaim(rawClaim, post.contentText);
-
+  for (const { rawClaim, verification } of results) {
     // Filter valid sources (anti-hallucination)
     const validSources = filterValidSources(verification.sources);
 
@@ -114,18 +126,19 @@ async function verifyPost(post: SelectedPost): Promise<VerificationReport> {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  // Handle no claims case
+  // Handle no claims case - STRICTER: low confidence for unverifiable content
   if (claims.length === 0) {
     claims.push({
       id: 'claim_1',
       text: 'General content',
       type: 'general',
-      verified: true,
-      confidence: 0.7,
-      notes: 'No specific verifiable claims detected',
+      verified: false,  // Changed: unverifiable = not verified
+      confidence: 0.3,  // Changed: low confidence for content without verifiable claims
+      notes: 'No specific verifiable claims detected - content may be opinion/chat',
       sources: [],
       strategy: { keywords: [], focus: 'general', academicRequired: false, domainFilters: [] },
     });
+    console.log('    ⚠️ No verifiable claims - marking as low confidence (0.3)');
   }
 
   // Calculate scores with SearchMode adjustments

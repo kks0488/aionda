@@ -60,11 +60,16 @@ export async function structureContent(
   }
 }
 
+// Garbage titles that should never be used
+const GARBAGE_TITLES = ['제목 없음', '무제', 'Untitled', 'ㅇㅇ', 'ㄱㄱ', '.', '..', '...'];
+
 /**
  * Generate headlines for the article
+ * CRITICAL: Never returns garbage titles - throws error instead
  */
 export async function generateHeadlines(
-  content: string
+  content: string,
+  originalTitle: string
 ): Promise<{ headline_en: string; headline_ko: string }> {
   const prompt = HEADLINE_PROMPT.replace('{content}', content.substring(0, 2000));
 
@@ -72,18 +77,47 @@ export async function generateHeadlines(
     const response = await generateContent(prompt);
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const result = JSON.parse(jsonMatch[0]);
+
+      // Validate headlines - reject garbage titles
+      const isGarbageKo = GARBAGE_TITLES.some((g) => result.headline_ko?.trim() === g);
+      const isGarbageEn = GARBAGE_TITLES.some((g) => result.headline_en?.trim() === g);
+
+      if (isGarbageKo || isGarbageEn || !result.headline_ko?.trim() || !result.headline_en?.trim()) {
+        console.warn('  ⚠️ AI generated garbage title, using original title');
+        // Use original title if AI fails
+        if (originalTitle && !GARBAGE_TITLES.includes(originalTitle.trim())) {
+          return {
+            headline_ko: originalTitle,
+            headline_en: originalTitle, // Will be translated later if needed
+          };
+        }
+        // If original is also garbage, throw error
+        throw new Error('Cannot generate valid headline: both AI and original titles are garbage');
+      }
+
+      return result;
     }
-    return {
-      headline_en: 'Untitled',
-      headline_ko: '제목 없음',
-    };
+
+    // JSON parsing failed - use original title
+    console.warn('  ⚠️ Failed to parse AI headline response, using original title');
+    if (originalTitle && !GARBAGE_TITLES.includes(originalTitle.trim())) {
+      return {
+        headline_ko: originalTitle,
+        headline_en: originalTitle,
+      };
+    }
+    throw new Error('Cannot generate valid headline: JSON parsing failed and original title is garbage');
   } catch (error) {
     console.error('Error generating headlines:', error);
-    return {
-      headline_en: 'Untitled',
-      headline_ko: '제목 없음',
-    };
+    // Last resort: use original title if valid
+    if (originalTitle && !GARBAGE_TITLES.includes(originalTitle.trim())) {
+      return {
+        headline_ko: originalTitle,
+        headline_en: originalTitle,
+      };
+    }
+    throw new Error(`Headline generation failed: ${error}`);
   }
 }
 
@@ -136,14 +170,14 @@ export async function structureArticle(
   const content_en = await translateStructured(content_ko);
 
   console.log('  📰 Generating headlines...');
-  const { headline_en, headline_ko } = await generateHeadlines(content_ko);
+  const { headline_en, headline_ko } = await generateHeadlines(content_ko, originalTitle);
 
   return {
     type,
     content_ko,
     content_en,
-    title_ko: headline_ko || originalTitle,
-    title_en: headline_en || originalTitle,
+    title_ko: headline_ko,
+    title_en: headline_en,
   };
 }
 

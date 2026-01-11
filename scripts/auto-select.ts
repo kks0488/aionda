@@ -39,6 +39,50 @@ const TRASH_KEYWORDS = [
   '코인', '비트', '이더', '투자', '수익률',
 ];
 
+// Minimum content length to be considered a valid article (not chat message)
+const MIN_CONTENT_LENGTH = 500;
+
+// Titles that indicate garbage posts
+const GARBAGE_TITLES = [
+  '제목 없음',
+  '무제',
+  'ㅇㅇ',
+  'ㄱㄱ',
+  '.',
+  '..',
+  '...',
+];
+
+// Check if content is a meaningful article, not just a chat message
+function isValidArticle(post: RawPost): { valid: boolean; reason?: string } {
+  const content = post.contentText || '';
+  const title = post.title?.trim() || '';
+
+  // Check for garbage title
+  if (!title || GARBAGE_TITLES.some((gt) => title === gt)) {
+    return { valid: false, reason: `garbage_title: "${title}"` };
+  }
+
+  // Check minimum content length (500 chars minimum for an article)
+  if (content.length < MIN_CONTENT_LENGTH) {
+    return { valid: false, reason: `too_short: ${content.length} chars (min: ${MIN_CONTENT_LENGTH})` };
+  }
+
+  // Check if content has multiple sentences/paragraphs (not just one-liner)
+  const sentences = content.split(/[.!?]\s+/).filter((s) => s.trim().length > 10);
+  if (sentences.length < 2) {
+    return { valid: false, reason: `single_sentence: only ${sentences.length} valid sentence(s)` };
+  }
+
+  // Check if content has substance (not just emoticons/symbols)
+  const textOnly = content.replace(/[ㅋㅎㄷㄱㅠㅜ\s\.\!\?\~\;\:\(\)\[\]]/g, '');
+  if (textOnly.length < 200) {
+    return { valid: false, reason: `no_substance: only ${textOnly.length} meaningful chars` };
+  }
+
+  return { valid: true };
+}
+
 function calculateQualityScore(post: RawPost): number {
   let score = 0;
   const title = post.title.toLowerCase();
@@ -107,14 +151,24 @@ async function main() {
 
   // Load and score raw posts
   const rawFiles = readdirSync(RAW_DIR).filter((f) => f.endsWith('.json'));
-  const scoredPosts = rawFiles
-    .map((f) => {
-      const content = readFileSync(join(RAW_DIR, f), 'utf-8');
-      const post = JSON.parse(content) as RawPost;
-      return {
-        ...post,
-        qualityScore: calculateQualityScore(post),
-      };
+  const allPosts = rawFiles.map((f) => {
+    const content = readFileSync(join(RAW_DIR, f), 'utf-8');
+    const post = JSON.parse(content) as RawPost;
+    return {
+      ...post,
+      qualityScore: calculateQualityScore(post),
+      validation: isValidArticle(post),
+    };
+  });
+
+  // Filter out invalid articles first, then apply other filters
+  const scoredPosts = allPosts
+    .filter((p) => {
+      if (!p.validation.valid) {
+        console.log(`🚫 [Invalid] ${p.id} - ${p.validation.reason}`);
+        return false;
+      }
+      return true;
     })
     .filter((p) => !selectedIds.has(p.id))
     .filter((p) => p.qualityScore >= minScore)

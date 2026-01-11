@@ -44,9 +44,17 @@ function getPostsWithoutImages(): PostMeta[] {
 
       const slug = file.replace(/\.mdx?$/, '');
 
-      // Skip if already has cover image
+      let hasImage = false;
       if (data.coverImage) {
-        console.log(`⏭️ Skip (has image): ${slug}`);
+        const imagePathRel = data.coverImage.startsWith('/') ? data.coverImage.slice(1) : data.coverImage;
+        const absolutePath = path.join(process.cwd(), 'apps/web/public', imagePathRel);
+        if (fs.existsSync(absolutePath)) {
+          hasImage = true;
+        }
+      }
+
+      if (hasImage) {
+        console.log(`⏭️ Skip (image exists): ${slug}`);
         continue;
       }
 
