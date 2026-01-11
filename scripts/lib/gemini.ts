@@ -254,6 +254,84 @@ ${content.substring(0, 4000)}
 }
 
 /**
+ * Search and verify a research question using Google Search
+ * Used by research-topic.ts for topic investigation
+ */
+export async function searchAndVerify(question: string): Promise<{
+  answer: string;
+  confidence: number;
+  sources: Array<{ url: string; title: string; snippet?: string }>;
+  unverified: string[];
+}> {
+  const prompt = `<task>질문에 대한 검색 및 답변</task>
+
+<instruction>
+반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
+</instruction>
+
+<critical_rules>
+- 검색 결과에서 확인된 정보만 사용
+- 추측/가정 금지 - 확인 안 되면 "확인되지 않음"으로 명시
+- 가짜 URL 생성 절대 금지
+- 출처 모르면 sources: []
+- 확신도 90% 미만이면 솔직하게 표시
+</critical_rules>
+
+<question>
+${question}
+</question>
+
+<output_format>
+{
+  "answer": "검색 결과를 바탕으로 한 답변 (2-3문장)",
+  "confidence": 0.0-1.0,
+  "sources": [
+    {"url": "실제 URL", "title": "페이지 제목", "snippet": "관련 인용문"}
+  ],
+  "unverified": ["확인되지 않은 부분이 있다면 명시"]
+}
+</output_format>`;
+
+  try {
+    // Use model with Google Search tool
+    const model = genAI.getGenerativeModel({
+      model: MODEL,
+      tools: [{ googleSearch: {} }],
+    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        answer: parsed.answer || 'No answer found',
+        confidence: parsed.confidence || 0.5,
+        sources: (parsed.sources || []).filter((s: any) => s.url && s.url.startsWith('http')),
+        unverified: parsed.unverified || [],
+      };
+    }
+
+    return {
+      answer: 'Failed to parse search results',
+      confidence: 0,
+      sources: [],
+      unverified: [question],
+    };
+  } catch (error) {
+    console.error('Error in searchAndVerify:', error);
+    return {
+      answer: 'Search failed due to error',
+      confidence: 0,
+      sources: [],
+      unverified: [question],
+    };
+  }
+}
+
+/**
  * Generate verification summary with SearchMode formatting
  */
 export function generateVerificationSummary(
