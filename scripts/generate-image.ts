@@ -76,27 +76,41 @@ function getPostsWithoutImages(): PostMeta[] {
   return posts;
 }
 
+/**
+ * Generate descriptive image prompt following Gemini best practices:
+ * - Describe scenes in paragraphs, not keyword lists
+ * - Use photography terminology (lens, lighting, angles)
+ * - Be very specific with context and intent
+ */
 function generatePromptForPost(post: PostMeta): string {
-  const tagContext = post.tags.length > 0
-    ? `Related topics: ${post.tags.join(', ')}.`
-    : '';
+  // Determine visual theme based on tags
+  const tagSet = new Set(post.tags.map(t => t.toLowerCase()));
 
-  return `Create a professional blog header image for an AI technology article.
+  let themeColor = 'deep blue and cyan';
+  let visualElement = 'neural network nodes connected by glowing data streams';
 
-Title: "${post.title}"
-${tagContext}
+  if (tagSet.has('openai') || tagSet.has('gpt') || tagSet.has('chatgpt')) {
+    themeColor = 'emerald green and teal';
+    visualElement = 'interconnected geometric shapes forming an abstract brain-like structure';
+  } else if (tagSet.has('anthropic') || tagSet.has('claude')) {
+    themeColor = 'warm amber and coral orange';
+    visualElement = 'flowing organic curves suggesting intelligent conversation';
+  } else if (tagSet.has('google') || tagSet.has('gemini')) {
+    themeColor = 'royal blue and electric purple';
+    visualElement = 'crystalline structures with internal light refraction';
+  } else if (tagSet.has('research') || tagSet.has('paper')) {
+    themeColor = 'silver and platinum white';
+    visualElement = 'abstract mathematical symbols floating in space';
+  }
 
-Style requirements:
-- Modern, minimalist tech aesthetic similar to Vercel, OpenAI, or Anthropic blogs
-- Dark gradient background with deep blue, purple, or dark teal colors
-- Abstract, conceptual visualization representing AI and technology
-- Subtle geometric patterns, flowing lines, or neural network abstractions
-- Glowing accents in cyan, blue, or purple
-- 16:9 aspect ratio composition
-- NO text, logos, or human faces
-- Professional and clean design suitable for a tech news website
+  // Build descriptive paragraph (Gemini best practice: describe scenes, not keywords)
+  return `Imagine a cinematic wide-angle shot of an abstract digital landscape for a premium technology blog. The scene depicts ${visualElement}, rendered in ${themeColor} tones against a deep dark gradient background that transitions from near-black at the edges to a subtle ${themeColor.split(' and ')[0]} glow at the center.
 
-The image should evoke innovation, AI intelligence, and technological progress.`;
+The composition uses professional photography principles: a wide-angle perspective creates depth, with elements gradually fading into soft bokeh in the background. Soft diffused lighting illuminates the central elements from above, creating subtle highlights and long shadows that add dimension.
+
+The overall mood is sophisticated and forward-thinking, similar to the visual identity of companies like Vercel, Stripe, or Linear. The image conveys the concept of "${post.title}" through abstract visual metaphor rather than literal representation.
+
+Technical specifications: 16:9 aspect ratio, no text overlays, no human figures, no corporate logos. The style should be minimalist yet visually striking, suitable as a hero image for a high-quality tech publication.`;
 }
 
 async function generateImage(post: PostMeta): Promise<string | null> {

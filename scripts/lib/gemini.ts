@@ -35,46 +35,36 @@ export async function generateContent(prompt: string): Promise<string> {
 
 /**
  * Extract claims with SearchMode protocols
- * Applies intellectual honesty principle - only extracts verifiable claims
+ * Gemini 3 optimized: XML tags, few-shot examples, critical rules at top
  */
 export async function extractClaims(content: string): Promise<any[]> {
-  const prompt = `# SearchMode Claim Extraction Protocol
+  const prompt = `<task>검증 가능한 사실 주장 추출</task>
 
-## 핵심 원칙
-- Intellectual Honesty: 검증 가능한 사실적 주장만 추출
-- Fact over Assumption: 추측이나 의견은 제외
-- 확신도 90% 이상인 주장만 추출
+<instruction>
+반드시 JSON 배열만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
+</instruction>
 
-## 작업
-다음 한국어 기술/AI 관련 글에서 **검증 가능한 사실적 주장(claims)**을 추출하세요.
+<critical_rules>
+- 검증 가능한 사실적 주장만 추출
+- 추측/의견 제외 ("~인 것 같다", "아마도")
+- 구체적 데이터 있는 주장만 (날짜, 수치, 벤치마크)
+</critical_rules>
 
-## 추출 기준
-1. 날짜, 수치, 벤치마크 등 구체적 데이터가 있는 주장
-2. 회사/제품의 공식 발표나 기능 설명
-3. 기술적 사양이나 비교 정보
-4. 출시/발표 일정
+<examples>
+입력: "OpenAI가 GPT-5를 12월 1일에 발표했다. 성능이 좋아 보인다."
+출력: [{"id": "claim_1", "text": "OpenAI가 GPT-5를 12월 1일에 발표했다", "type": "release_date", "entities": ["OpenAI", "GPT-5"], "searchQueries": ["OpenAI GPT-5 release date", "GPT-5 announcement"], "priority": "high"}]
 
-## 제외 대상
-- 추측성 표현 ("~인 것 같다", "아마도")
-- 개인 의견이나 감상
-- 검증 불가능한 일반론
+입력: "Claude가 HumanEval에서 92.3%를 달성했다. 아마 최고일 것이다."
+출력: [{"id": "claim_1", "text": "Claude가 HumanEval에서 92.3%를 달성했다", "type": "benchmark", "entities": ["Claude", "HumanEval"], "searchQueries": ["Claude HumanEval score", "Claude benchmark results"], "priority": "high"}]
+</examples>
 
-## 글 내용:
+<content>
 ${content.substring(0, 3000)}
+</content>
 
-## 응답 형식 (JSON 배열만):
-[
-  {
-    "id": "claim_1",
-    "text": "주장 텍스트 (원문 그대로)",
-    "type": "release_date|benchmark|pricing|feature|company_statement|comparison|technical_spec|research",
-    "entities": ["관련 회사/제품명"],
-    "searchQueries": ["검증을 위한 검색어1", "검증을 위한 검색어2"],
-    "priority": "high|medium|low"
-  }
-]
-
-JSON 배열만 응답하세요. 다른 텍스트 금지.`;
+<output_format>
+[{"id": "claim_1", "text": "주장", "type": "release_date|benchmark|pricing|feature|company_statement|comparison|technical_spec|research", "entities": ["관련 엔티티"], "searchQueries": ["검색어1", "검색어2"], "priority": "high|medium|low"}]
+</output_format>`;
 
   try {
     const response = await generateContent(prompt);
@@ -91,10 +81,7 @@ JSON 배열만 응답하세요. 다른 텍스트 금지.`;
 
 /**
  * Verify claim with SearchMode protocols
- * Implements:
- * - Source Credibility Tiers (S/A/B/C)
- * - 90% Confidence Threshold
- * - Anti-Hallucination measures
+ * Gemini 3 optimized: XML tags, critical rules at top, few-shot example
  */
 export async function verifyClaim(
   claim: any,
@@ -110,63 +97,49 @@ export async function verifyClaim(
   // Build search strategy
   const strategy = buildSearchStrategy(claim);
 
-  const prompt = `# SearchMode Verification Protocol
+  const prompt = `<task>사실 주장 검증</task>
 
-## 핵심 원칙
-1. Intellectual Honesty: 확신도 90% 미만이면 "검증 불가"로 처리
-2. No Hallucination: 가짜 출처나 추측 정보 생성 금지
-3. Source Credibility: 출처의 신뢰도 계층 평가
+<instruction>
+반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
+</instruction>
 
-## 소스 신뢰도 계층
-- Tier S (🏛️): 학술/연구 (arxiv, Google Scholar, 공식 논문)
-- Tier A (🛡️): 공식/신뢰 (.gov, .edu, 공식 블로그, 메이저 언론)
-- Tier B (⚠️): 주의 필요 (SNS, 포럼, 위키, 개인 블로그)
-- Tier C: 일반 웹사이트
+<critical_rules>
+- 확신도 90% 미만이면 verified: false
+- 가짜 URL 생성 절대 금지
+- 출처 모르면 sources: []
+- Tier S(학술) > A(공식) > B(SNS) > C(일반)
+</critical_rules>
 
-## 검증 대상
+<source_tiers>
+- S: arxiv, Google Scholar, 공식 논문
+- A: .gov, .edu, 공식 블로그, 메이저 언론
+- B: SNS, 포럼, 위키, 개인 블로그
+- C: 일반 웹사이트
+</source_tiers>
+
+<example>
+주장: "OpenAI가 GPT-5를 12월 1일에 발표했다"
+출력: {"verified": true, "confidence": 0.95, "confidenceReason": "공식 블로그에서 확인", "notes": "OpenAI 공식 발표 확인", "sources": [{"url": "https://openai.com/blog/gpt-5", "title": "Introducing GPT-5", "tier": "A", "publishDate": "2025-12-01"}], "isRumor": false, "needsMoreVerification": false}
+</example>
+
+<claim>
 주장: "${claim.text}"
 유형: ${claim.type}
-관련 엔티티: ${claim.entities?.join(', ') || 'N/A'}
+엔티티: ${claim.entities?.join(', ') || 'N/A'}
+</claim>
 
-## 검색 전략
+<search_strategy>
 키워드: ${strategy.keywords.join(', ')}
 초점: ${strategy.focus}
-학술 출처 필요: ${strategy.academicRequired ? '예' : '아니오'}
+</search_strategy>
 
-## 원문 맥락:
-${originalContent.substring(0, 1000)}
+<context>
+${originalContent.substring(0, 800)}
+</context>
 
-## 검증 수행
-1. 이 주장이 공식적으로 확인된 정보인가?
-2. 출처가 있다면 어떤 신뢰도 계층인가?
-3. 수치/날짜가 정확한가?
-4. 루머나 추측인가?
-
-## 응답 형식 (JSON만):
-{
-  "verified": true/false,
-  "confidence": 0.0-1.0,
-  "confidenceReason": "확신도 산정 근거",
-  "notes": "검증 결과 설명",
-  "correctedText": "수정이 필요한 경우만 (선택)",
-  "sources": [
-    {
-      "url": "실제 URL",
-      "title": "출처 제목",
-      "tier": "S|A|B|C",
-      "publishDate": "YYYY-MM-DD (알 수 있는 경우)"
-    }
-  ],
-  "isRumor": true/false,
-  "needsMoreVerification": true/false
-}
-
-## 중요
-- 확신도 90% 미만이면 verified를 false로
-- 출처 URL을 모르면 sources를 빈 배열로
-- 절대 가짜 URL 생성 금지
-
-JSON만 응답하세요.`;
+<output_format>
+{"verified": true/false, "confidence": 0.0-1.0, "confidenceReason": "근거", "notes": "설명", "correctedText": "수정 필요시만", "sources": [{"url": "URL", "title": "제목", "tier": "S|A|B|C", "publishDate": "YYYY-MM-DD"}], "isRumor": true/false, "needsMoreVerification": true/false}
+</output_format>`;
 
   try {
     // Use model with Google Search tool for verification
@@ -224,34 +197,42 @@ JSON만 응답하세요.`;
 
 /**
  * Translate with SearchMode quality standards
+ * Gemini 3 optimized: XML tags, few-shot example, critical rules at top
  */
 export async function translateToEnglish(
   title: string,
   content: string
 ): Promise<{ title_en: string; content_en: string }> {
-  const prompt = `다음 한국어 기술/AI 관련 글을 영어로 번역해주세요.
+  const prompt = `<task>한→영 기술 글 번역</task>
 
-## 번역 규칙:
-1. 기술 용어는 표준 영어 용어 사용 (예: 언어모델 → Language Model)
-2. 제품명/회사명은 그대로 유지 (GPT-4, Claude, OpenAI 등)
-3. 코드 블록, URL은 그대로 유지
-4. 비격식체 한국어는 전문적인 영어로 변환
-5. 한국 특유의 표현은 간단한 설명 추가
-6. 추측성 표현은 그대로 번역 (검증 여부 표시용)
+<instruction>
+반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
+</instruction>
 
-## 원문 제목:
+<critical_rules>
+- 기술 용어: 표준 영어 (언어모델 → Language Model)
+- 제품명/회사명: 그대로 유지 (GPT-4, Claude, OpenAI)
+- 코드 블록/URL: 그대로 유지
+- 비격식체 → 전문적 영어
+</critical_rules>
+
+<example>
+입력 제목: "GPT-5 출시, AI 업계 지각변동"
+입력 내용: "OpenAI가 드디어 GPT-5를 내놨다. 기존 모델 대비 2배 빠르다고 한다."
+출력: {"title_en": "GPT-5 Launch Shakes Up AI Industry", "content_en": "OpenAI has finally released GPT-5. The company claims it runs twice as fast as previous models."}
+</example>
+
+<title>
 ${title}
+</title>
 
-## 원문 내용:
+<content>
 ${content.substring(0, 4000)}
+</content>
 
-## 응답 형식 (JSON):
-{
-  "title_en": "영어 제목",
-  "content_en": "영어 본문"
-}
-
-JSON만 응답하세요.`;
+<output_format>
+{"title_en": "영어 제목", "content_en": "영어 본문"}
+</output_format>`;
 
   try {
     const response = await generateContent(prompt);
