@@ -1,8 +1,18 @@
 # System Architecture
 
+## Mission
+
+> **"한국 AI 커뮤니티의 집단지성을 전문적인 콘텐츠로 정제하여 세계에 전파한다"**
+
+**중요: 우리는 갤러리 글을 그대로 복사하는 것이 아닙니다.**
+
+핵심 원칙: `품질 > 양` | `검증 > 속도` | `가치 > 조회수`
+
+---
+
 ## Overview
 
-AI온다 (aionda) 블로그는 DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 자동으로 수집, 검증, 번역하여 글로벌 발행하는 완전 자동화 시스템입니다.
+AI온다 (aionda) 블로그는 DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 **큐레이션, 검증, 재구성**하여 글로벌 발행하는 완전 자동화 시스템입니다.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -13,7 +23,7 @@ AI온다 (aionda) 블로그는 DC Inside "특이점이 온다" 갤러리의 AI �
 │                                                                              │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐  │
 │  │ Crawler  │──▶│Auto-Select│──▶│ Verifier │──▶│Translator│──▶│Publisher │  │
-│  │(5 pages) │   │(score≥25)│   │ (Gemini) │   │ (Gemini) │   │  (MDX)   │  │
+│  │(5 pages) │   │(score≥30)│   │ (Gemini) │   │ (Gemini) │   │  (MDX)   │  │
 │  └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘  │
 │       │              │              │              │              │          │
 │       ▼              ▼              ▼              ▼              ▼          │
@@ -42,15 +52,17 @@ AI온다 (aionda) 블로그는 DC Inside "특이점이 온다" 갤러리의 AI �
 
 ## Automation Strategy
 
-### Daily Target: 8-12 Posts
+### Daily Target: 3-5 Quality Posts
 
-| 시간 (KST) | 실행 | 목표 글 수 |
+**양보다 질**: 품질 검증을 통과한 글만 발행
+
+| 시간 (KST) | 실행 | 최대 글 수 |
 |-----------|------|----------|
-| 02:00 | 1회차 | 2-3개 |
-| 08:00 | 2회차 | 2-3개 |
-| 14:00 | 3회차 | 2-3개 |
-| 20:00 | 4회차 | 2-3개 |
-| **합계** | **4회** | **8-12개** |
+| 02:00 | 1회차 | 1-2개 |
+| 08:00 | 2회차 | 1-2개 |
+| 14:00 | 3회차 | 1-2개 |
+| 20:00 | 4회차 | 1-2개 |
+| **합계** | **4회** | **3-5개** (품질 유지) |
 
 ### Key Features
 
@@ -112,8 +124,15 @@ scripts/
   - 제목 10자 미만: -20점
 ```
 
+**필수 조건 (먼저 체크):**
+```
+✗ 제목이 "제목 없음", "무제", "ㅇㅇ" 등 → 즉시 거부
+✗ 콘텐츠 500자 미만 → 즉시 거부
+✗ 유의미한 문장 2개 미만 → 즉시 거부
+```
+
 **선택 기준:**
-- `MIN_QUALITY_SCORE`: 25점 이상
+- `MIN_QUALITY_SCORE`: 30점 이상
 - `MAX_POSTS`: 실행당 최대 3개
 - 중복 제외: work-queue 체크, 유사도 70% 이상 skip
 
@@ -126,17 +145,22 @@ AI 기반 사실 검증 모듈입니다.
 1. 클레임 추출 (Gemini)
    └─ 글에서 검증 가능한 주장 추출
 
-2. 웹 검색 (Google Search)
+2. No-Claims 처리 (중요!)
+   └─ 검증할 주장 없음 = verified: false, confidence: 0.3
+   └─ 의견/잡담으로 간주, 저신뢰도 처리
+
+3. 웹 검색 (Google Search)
    └─ 각 주장에 대해 출처 검색
 
-3. 소스 티어 분류
+4. 소스 티어 분류
    ├─ S: 공식 블로그 (openai.com, anthropic.com)
    ├─ A: 주요 언론 (reuters, techcrunch)
    ├─ B: 기술 블로그 (medium, dev.to)
    └─ C: 기타
 
-4. 검증 점수 계산
+5. 검증 점수 계산
    └─ verificationScore: 0.0 ~ 1.0
+   └─ 발행 기준: 0.5 이상
 ```
 
 **출력 예시:**
@@ -255,7 +279,7 @@ scripts/lib/work-queue.ts
 │  │  data/raw/*.json (440+ posts)                                     │    │
 │  └──────────────────────────────────────────────────────────────────┘    │
 │        │                                                                   │
-│        ▼ (quality score ≥ 25, max 3/run)                                   │
+│        ▼ (quality score ≥ 30, 500자+, max 3/run)                            │
 │  ┌──────────────────────────────────────────────────────────────────┐    │
 │  │  data/selected/*.json + work-queue.claimed                        │    │
 │  └──────────────────────────────────────────────────────────────────┘    │
@@ -310,10 +334,10 @@ Steps:
 1. Checkout + Setup (pnpm, Node.js 20)
 2. Cleanup stale claims (24h+)
 3. Crawl (5 pages)
-4. Auto-select (score ≥ 25, max 3)
-5. Verify (3 retries)
-6. Translate (3 retries)
-7. Generate MDX
+4. Auto-select (score ≥ 30, max 3, 500자+)
+5. Verify (3 retries) - 실패 시 파이프라인 중단
+6. Translate (3 retries) - 실패 시 파이프라인 중단
+7. Generate MDX - 이중 검증 (원본 + 구조화 제목)
 8. Generate Images (3 retries)
 9. Build
 10. Commit + Push
@@ -348,7 +372,8 @@ Steps:
 ### Auto-Recovery
 
 - **work-queue 타임아웃**: 24시간 이상 claimed → 자동 해제
-- **continue-on-error**: 크롤링 실패해도 기존 데이터로 진행
+- **크롤링 실패 허용**: 기존 데이터로 진행 (유일한 continue-on-error)
+- **검증/번역/MDX 실패 시 중단**: 불완전한 데이터 커밋 방지
 - **빌드 필수**: 빌드 실패 시 push 차단
 
 ## Security
