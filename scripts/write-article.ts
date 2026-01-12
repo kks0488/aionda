@@ -17,6 +17,7 @@ config({ path: '.env.local' });
 const RESEARCHED_DIR = './data/researched';
 const PUBLISHED_DIR = './data/published';
 const POSTS_DIR = './apps/web/content/posts';
+const MIN_CONFIDENCE = 0.6;
 
 interface VerifiedSource {
   url: string;
@@ -57,9 +58,12 @@ interface ArticleMetadata {
 }
 
 function formatFindings(findings: ResearchFinding[]): string {
+  const usableFindings = findings.filter((finding) => finding.sources.length > 0);
+  if (usableFindings.length === 0) return '';
+
   const lines: string[] = [];
 
-  for (const finding of findings) {
+  for (const finding of usableFindings) {
     lines.push(`### Q: ${finding.question}`);
     lines.push(`**A:** ${finding.answer}`);
     lines.push(`**Confidence:** ${Math.round(finding.confidence * 100)}%`);
@@ -79,6 +83,13 @@ function formatFindings(findings: ResearchFinding[]): string {
   }
 
   return lines.join('\n');
+}
+
+function isPublishable(topic: ResearchedTopic): boolean {
+  const hasTrustedOverall = topic.findings.some((finding) =>
+    finding.sources.some((source) => source.tier === 'S' || source.tier === 'A')
+  );
+  return topic.overallConfidence >= MIN_CONFIDENCE && hasTrustedOverall;
 }
 
 async function writeArticle(topic: ResearchedTopic): Promise<string> {
@@ -283,7 +294,7 @@ async function main() {
   // Get already published topic IDs
   const publishedIds = new Set<string>();
   if (existsSync(PUBLISHED_DIR)) {
-    for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json'))) {
+    for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
       const published = JSON.parse(readFileSync(join(PUBLISHED_DIR, file), 'utf-8'));
       publishedIds.add(published.topicId);
     }
@@ -291,7 +302,7 @@ async function main() {
 
   // Get publishable topics
   const researchedFiles = readdirSync(RESEARCHED_DIR)
-    .filter(f => f.endsWith('.json'))
+    .filter(f => f.endsWith('.json') && !f.startsWith('._'))
     .map(f => {
       const topic = JSON.parse(readFileSync(join(RESEARCHED_DIR, f), 'utf-8')) as ResearchedTopic;
       return { file: f, topic };
@@ -302,7 +313,7 @@ async function main() {
         targetIds.includes(topic.topicId) ||
         targetIds.includes(topic.sourceId);
       if (!matchesTarget) return false;
-      if (!topic.canPublish) return false;
+      if (!isPublishable(topic)) return false;
       if (force) return true;
       return !publishedIds.has(topic.topicId);
     });

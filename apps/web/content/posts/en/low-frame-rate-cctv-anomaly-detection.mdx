@@ -1,0 +1,60 @@
+---
+title: "Can Anomaly Detection Work in Low-Frame-Rate Public CCTV"
+slug: "low-frame-rate-cctv-anomaly-detection"
+date: "2026-01-12"
+locale: "en"
+description: "Exploring technical approaches for anomaly detection in low-frame-rate public CCTV, including image processing and hybrid methods to overcome severe limitations."
+tags: ["CCTV", "컴퓨터 비전", "이상 탐지", "저프레임", "공공안전"]
+author: "AI온다"
+sourceId: "930097"
+sourceUrl: "https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=930097"
+verificationScore: 0.95
+alternateLocale: "/ko/posts/low-frame-rate-cctv-anomaly-detection"
+coverImage: "/images/posts/low-frame-rate-cctv-anomaly-detection.jpeg"
+---
+
+# The Eyes of Public CCTV: Can Anomalous Objects Be Captured in Low-Frame-Rate Environments?
+
+The task of analyzing unidentified objects in public CCTV footage often confronts the harsh reality of extremely low frame rates. One must identify the nature and intent of moving objects using only still images captured at 30-second intervals, and distinguishing noise from actual objects becomes an additional challenge under nighttime or low-light conditions. We examine what technical approaches are needed for computer vision-based anomaly detection systems to overcome these limitations and establish themselves as practical security tools.
+
+## Current Status: Investigated Facts and Data
+
+South Korea's public CCTV systems generally maintain a resolution standard of 2 megapixels (1920x1080) or higher. The video retention period is typically within 30 days, following Personal Information Protection Act guidelines. However, in systems for specific purposes, such as public traffic information services, the video update cycle may be adjusted to between 5 and 20 minutes considering system load. This represents a significant difference from security scenarios requiring real-time analysis.
+
+According to computer vision research, 30 frames per second (FPS) is generally considered the standard for reliably detecting and tracking dynamic objects. Some algorithms can perform basic tracking even at low speeds of 5-10 FPS, but the accuracy of deep learning-based models tends to drop sharply below 10 FPS. For fast-moving objects or high-security environments, a high frame rate of 60 FPS or more is recommended.
+
+## Analysis: Meaning and Impact
+
+The long video update cycle of public CCTV (e.g., 30-second intervals) is effectively a mere 0.033 frames per second. This is significantly lower than the minimum frame rate requirements demanded by computer vision algorithms. Consequently, applying traditional video-based object tracking algorithms becomes virtually impossible, leading to the fundamental constraint of having to analyze each frame as an independent still image.
+
+Under these constraints, analysts must rely on image processing techniques. The object's outline and texture information can be extracted by inverting image colors or analyzing light patterns. Furthermore, comparative analysis techniques are used, estimating the size of an observed object within a 1-2 meter range by comparing it with known-sized reference objects within the frame (e.g., vehicles, streetlights, road signs). In nighttime environments, algorithms like Robust PCA or spatiotemporal filtering can help distinguish random noise from the movement of actual objects.
+
+## Practical Application: Methods Readers Can Utilize
+
+Analyzing low-frame-rate CCTV footage requires a 'forensic' approach that extracts the maximum information from within a single frame, rather than relying on continuous motion information. First, analysts should focus on the relative size ratio of the object to its surrounding environment rather than its absolute size. Second, essential image preprocessing steps, such as color channel separation or contrast adjustment, can be introduced to emphasize the object's morphological features (shape, asymmetry, reflectivity).
+
+Institutions considering technological adoption should review hybrid solutions that combine multiple analytical techniques rather than a single high-performance algorithm. For example, a workflow can be constructed where preprocessing is performed with a low-light image enhancement algorithm, candidate object regions are derived, and these are cross-validated with reference object comparison analysis and light pattern analysis. This helps reduce the potential for errors from a single methodology.
+
+## FAQ: 3 Questions
+
+**Q: Why is public CCTV footage often not real-time?**
+A: The main reasons are compliance with personal information protection regulations, data storage costs, and managing system load on large-scale networks. Real-time streaming requires significant bandwidth and processing power, posing technical and economic constraints for applying it to all cameras.
+
+**Q: Is it possible to determine an object's movement path with footage at 30-second intervals?**
+A: Continuous path tracking is difficult. Instead, indirect analysis is possible by combining spatiotemporal location information of an object captured in footage from multiple cameras to infer its approximate direction of movement or appearance patterns.
+
+**Q: Can AI automate the analysis of low-frame-rate footage?**
+A: At the current technological level, its role as a semi-automated tool is more suitable than full automation. AI is effective in screening candidate frames likely to contain anomalous signs from numerous frames or highlighting specific features of an object to assist human analysts' judgment.
+
+## Conclusion: Summary + Action Proposal
+
+The low-frame-rate environment of public CCTV is an obstacle for computer vision systems, but meaningful clues can be extracted by combining image processing and comparative analysis techniques. For practical application of the technology, setting realistic expectations aligned with video acquisition conditions and a hybrid approach combining human analytical ability with machine processing speed are key. Analysts must develop the ability to interpret single frames in depth, and technology developers must embark on algorithm design that explicitly considers the constraints of low frame rates and low light.
+---
+
+## 참고 자료
+
+- 🛡️ [공공기관 고정형 영상정보처리기기 설치·운영 가이드라인](https://www.pipc.go.kr/np/cop/bbs/selectBoardArticle.do?bbsId=BS217&nttId=9870)
+- 🏛️ [Situation-Based Dynamic Frame-Rate Control for on-Line Object Tracking](https://ieeexplore.ieee.org/document/8672727)
+- 🏛️ [The Impact of Frame-Dropping on Performance and Energy Consumption for Multi-Object Tracking](https://arxiv.org/abs/2308.01653)
+- 🏛️ [Motion-Aware Structured Matrix Factorization for Foreground Detection in Complex Scenes](https://dl.acm.org/doi/10.1145/3391060)
+- 🏛️ [Spatial-temporal noise reduction filter for image devices](https://ieeexplore.ieee.org/document/4694002)

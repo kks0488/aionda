@@ -154,12 +154,12 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
     ? findings.reduce((sum, f) => sum + f.confidence, 0) / findings.length
     : 0;
 
-  // Require at least one trusted source (S/A) per question
-  const hasTrustedPerQuestion = findings.length > 0 && findings.every(
+  // Require at least one trusted source (S/A) overall
+  const hasTrustedOverall = findings.length > 0 && findings.some(
     (finding) => finding.sources.some((s) => s.tier === 'S' || s.tier === 'A')
   );
 
-  const canPublish = avgConfidence >= MIN_CONFIDENCE && hasTrustedPerQuestion;
+  const canPublish = avgConfidence >= MIN_CONFIDENCE && hasTrustedOverall;
 
   return {
     topicId: topic.id,

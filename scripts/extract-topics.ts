@@ -17,7 +17,7 @@ const TOPICS_DIR = './data/topics';
 const PUBLISHED_DIR = './data/published';
 
 // Minimum content length to consider
-const MIN_CONTENT_LENGTH = 300;
+const MIN_CONTENT_LENGTH = parseInt(process.env.MIN_CONTENT_LENGTH || '300', 10);
 
 // Maximum topics to extract per run
 const MAX_TOPICS = parseInt(process.env.MAX_TOPICS || '3');
