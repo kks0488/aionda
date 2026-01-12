@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { config } from 'dotenv';
 import {
   buildSearchStrategy,
@@ -12,23 +13,75 @@ import {
 // Load environment variables
 config({ path: '.env.local' });
 
+const AI_API_DISABLED = ['true', '1'].includes(
+  (process.env.AI_API_DISABLED || '').toLowerCase()
+);
+const AI_TEXT_PROVIDER_RAW = (process.env.AI_TEXT_PROVIDER || 'gemini').toLowerCase();
+const AI_TEXT_PROVIDER = AI_TEXT_PROVIDER_RAW === 'deepseek' ? 'deepseek' : 'gemini';
 const API_KEY = process.env.GEMINI_API_KEY || '';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
+const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
 
-if (!API_KEY) {
-  console.warn('⚠️ GEMINI_API_KEY not found in .env.local');
+if (AI_API_DISABLED) {
+  console.warn('⚠️ AI API is disabled via AI_API_DISABLED=true.');
+} else {
+  if (AI_TEXT_PROVIDER_RAW !== AI_TEXT_PROVIDER) {
+    console.warn(`⚠️ Unknown AI_TEXT_PROVIDER "${AI_TEXT_PROVIDER_RAW}", falling back to "gemini".`);
+  }
+  if (AI_TEXT_PROVIDER === 'deepseek' && !DEEPSEEK_API_KEY) {
+    console.warn('⚠️ DEEPSEEK_API_KEY not found in .env.local');
+  }
+  if (!API_KEY) {
+    console.warn('⚠️ GEMINI_API_KEY not found in .env.local (Gemini search/verify will fail)');
+  }
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
+const deepseek =
+  DEEPSEEK_API_KEY
+    ? new OpenAI({ apiKey: DEEPSEEK_API_KEY, baseURL: DEEPSEEK_BASE_URL })
+    : null;
+
+function assertAiEnabled() {
+  if (AI_API_DISABLED) {
+    const error = new Error('AI API disabled (AI_API_DISABLED=true)');
+    (error as Error & { code?: string }).code = 'AI_API_DISABLED';
+    throw error;
+  }
+}
 
 export async function generateContent(prompt: string): Promise<string> {
+  assertAiEnabled();
   try {
+    if (AI_TEXT_PROVIDER === 'deepseek') {
+      if (!deepseek) {
+        throw new Error('DEEPSEEK_API_KEY not found in .env.local');
+      }
+      const completion = await deepseek.chat.completions.create({
+        model: DEEPSEEK_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const content = completion.choices?.[0]?.message?.content;
+      if (typeof content === 'string') {
+        return content;
+      }
+      if (Array.isArray(content)) {
+        return content
+          .map((part) => (typeof part === 'string' ? part : part?.text || ''))
+          .join('');
+      }
+      return '';
+    }
+
     const model = genAI.getGenerativeModel({ model: MODEL });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
   } catch (error) {
-    console.error('Gemini API error:', error);
+    const providerLabel = AI_TEXT_PROVIDER === 'deepseek' ? 'DeepSeek' : 'Gemini';
+    console.error(`${providerLabel} API error:`, error);
     throw error;
   }
 }
@@ -94,6 +147,7 @@ export async function verifyClaim(
   sources: VerifiedSource[];
   strategy: SearchStrategy;
 }> {
+  assertAiEnabled();
   // Build search strategy
   const strategy = buildSearchStrategy(claim);
 
@@ -203,6 +257,7 @@ export async function translateToEnglish(
   title: string,
   content: string
 ): Promise<{ title_en: string; content_en: string }> {
+  assertAiEnabled();
   const prompt = `<task>한→영 기술 글 번역</task>
 
 <instruction>
@@ -263,6 +318,7 @@ export async function searchAndVerify(question: string): Promise<{
   sources: Array<{ url: string; title: string; snippet?: string }>;
   unverified: string[];
 }> {
+  assertAiEnabled();
   const prompt = `<task>질문에 대한 검색 및 답변</task>
 
 <instruction>

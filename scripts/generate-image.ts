@@ -6,11 +6,19 @@ import matter from 'gray-matter';
 
 config({ path: '.env.local' });
 
+const AI_API_DISABLED = ['true', '1'].includes(
+  (process.env.AI_API_DISABLED || '').toLowerCase()
+);
 // GitHub Actions에서는 GOOGLE_AI_API_KEY, 로컬에서는 GEMINI_API_KEY 사용
 const API_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY || '';
 const IMAGE_MODEL = 'gemini-3-pro-image-preview';
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
+
+if (AI_API_DISABLED) {
+  console.log('AI API is disabled via AI_API_DISABLED=true.');
+  process.exit(0);
+}
 
 if (!ENABLE_COVER_IMAGES || !ENABLE_IMAGE_GENERATION) {
   console.log('Image generation is disabled. Set ENABLE_IMAGE_GENERATION=true to run this script.');
