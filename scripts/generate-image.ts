@@ -11,7 +11,7 @@ const AI_API_DISABLED = ['true', '1'].includes(
 );
 // GitHub Actions에서는 GOOGLE_AI_API_KEY, 로컬에서는 GEMINI_API_KEY 사용
 const API_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY || '';
-const IMAGE_MODEL = 'gemini-3-pro-image-preview';
+const IMAGE_MODEL = 'gemini-2.5-flash-image';
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
 
