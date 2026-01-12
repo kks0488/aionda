@@ -24,6 +24,8 @@ const RESEARCHED_DIR = './data/researched';
 
 // Minimum confidence to consider research valid
 const MIN_CONFIDENCE = 0.6;
+const TRUSTED_SOURCE_HINTS =
+  'site:.gov OR site:.go.kr OR site:.edu OR site:.ac.kr OR site:arxiv.org OR site:ncbi.nlm.nih.gov OR site:tsmc.com OR site:nvidia.com OR site:thekurzweillibrary.com OR site:klri.re.kr OR site:scourt.go.kr OR site:law.go.kr';
 
 interface ExtractedTopic {
   id: string;
@@ -65,10 +67,9 @@ async function researchQuestion(question: string): Promise<ResearchFinding> {
     // Use searchAndVerify which integrates SearchMode
     const searchResult = await searchAndVerify(question);
 
-    // Parse sources and classify by tier
-    const sources: VerifiedSource[] = [];
-    if (searchResult.sources) {
-      for (const src of searchResult.sources) {
+    const buildSources = (result: Array<{ url: string; title?: string }> = []) => {
+      const sources: VerifiedSource[] = [];
+      for (const src of result) {
         const tier = classifySource(src.url);
         sources.push({
           url: src.url,
@@ -78,7 +79,31 @@ async function researchQuestion(question: string): Promise<ResearchFinding> {
           icon: getTierIcon(tier),
         });
       }
+      return sources;
+    };
+
+    let sources = buildSources(searchResult.sources || []);
+    let trustedSources = sources.filter((s) => s.tier === 'S' || s.tier === 'A');
+    let answer = searchResult.answer || 'No answer found';
+    let confidence = searchResult.confidence || 0;
+    let unverified = searchResult.unverified || [];
+
+    if (trustedSources.length === 0) {
+      console.log('       ↻ Retrying with trusted-source filters...');
+      const retryResult = await searchAndVerify(`${question} ${TRUSTED_SOURCE_HINTS}`);
+      const retrySources = buildSources(retryResult.sources || []);
+      const retryTrusted = retrySources.filter((s) => s.tier === 'S' || s.tier === 'A');
+
+      if (retryTrusted.length > 0) {
+        sources = retrySources;
+        trustedSources = retryTrusted;
+        answer = retryResult.answer || answer;
+        confidence = retryResult.confidence || confidence;
+        unverified = retryResult.unverified || unverified;
+      }
     }
+
+    sources = trustedSources;
 
     // Log tier distribution
     const tierCounts = { S: 0, A: 0, B: 0, C: 0 };
@@ -92,10 +117,10 @@ async function researchQuestion(question: string): Promise<ResearchFinding> {
 
     return {
       question,
-      answer: searchResult.answer || 'No answer found',
-      confidence: searchResult.confidence || 0,
+      answer,
+      confidence,
       sources,
-      unverified: searchResult.unverified || [],
+      unverified,
     };
   } catch (error) {
     console.error(`       ❌ Research failed:`, error);
@@ -129,12 +154,12 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
     ? findings.reduce((sum, f) => sum + f.confidence, 0) / findings.length
     : 0;
 
-  // Check if we have enough high-quality sources
-  const allSources = findings.flatMap(f => f.sources);
-  const tierSA = allSources.filter(s => s.tier === 'S' || s.tier === 'A').length;
-  const hasQualitySources = tierSA >= 2;
+  // Require at least one trusted source (S/A) per question
+  const hasTrustedPerQuestion = findings.length > 0 && findings.every(
+    (finding) => finding.sources.some((s) => s.tier === 'S' || s.tier === 'A')
+  );
 
-  const canPublish = avgConfidence >= MIN_CONFIDENCE && hasQualitySources;
+  const canPublish = avgConfidence >= MIN_CONFIDENCE && hasTrustedPerQuestion;
 
   return {
     topicId: topic.id,
@@ -151,6 +176,17 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
 }
 
 async function main() {
+  const args = process.argv.slice(2);
+  const idArg = args.find((a) => a.startsWith('--id='));
+  const targetIds = idArg
+    ? idArg
+        .split('=')[1]
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    : [];
+  const force = args.includes('--force');
+
   const header = formatVerificationHeader();
   const mode = getSystemMode();
 
@@ -187,7 +223,15 @@ async function main() {
       const topic = JSON.parse(readFileSync(join(TOPICS_DIR, f), 'utf-8')) as ExtractedTopic;
       return { file: f, topic };
     })
-    .filter(({ topic }) => !researchedIds.has(topic.id));
+    .filter(({ topic }) => {
+      const matchesTarget =
+        targetIds.length === 0 ||
+        targetIds.includes(topic.id) ||
+        targetIds.includes(topic.sourceId);
+      if (!matchesTarget) return false;
+      if (force) return true;
+      return !researchedIds.has(topic.id);
+    });
 
   if (topicFiles.length === 0) {
     console.log('✅ All topics have been researched.');

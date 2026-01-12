@@ -4,12 +4,13 @@
  * Pipeline: crawl → extract-topics → research-topic → write-article
  */
 
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from 'fs';
+import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, statSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 import { generateContent } from './lib/gemini.js';
 import { translateStructured } from './lib/structure';
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
+import matter from 'gray-matter';
 
 config({ path: '.env.local' });
 
@@ -125,7 +126,8 @@ async function generateMetadata(content: string): Promise<ArticleMetadata> {
 function generateFrontmatter(
   metadata: ArticleMetadata,
   topic: ResearchedTopic,
-  locale: 'ko' | 'en'
+  locale: 'ko' | 'en',
+  slug: string
 ): string {
   const isEnglish = locale === 'en';
   const title = isEnglish ? metadata.title_en : metadata.title_ko;
@@ -136,9 +138,9 @@ function generateFrontmatter(
   const allSources = topic.findings.flatMap(f => f.sources);
   const uniqueSources = [...new Map(allSources.map(s => [s.url, s])).values()];
 
-  return `---
+return `---
 title: "${title.replace(/"/g, '\\"')}"
-slug: "${metadata.slug}"
+slug: "${slug}"
 date: "${new Date().toISOString().split('T')[0]}"
 locale: "${locale}"
 description: "${description.replace(/"/g, '\\"')}"
@@ -147,20 +149,95 @@ author: "AI온다"
 sourceId: "${topic.sourceId}"
 sourceUrl: "${topic.sourceUrl}"
 verificationScore: ${topic.overallConfidence}
-alternateLocale: "/${otherLocale}/posts/${metadata.slug}"
-coverImage: "/images/posts/${metadata.slug}.jpeg"
+alternateLocale: "/${otherLocale}/posts/${slug}"
+coverImage: "/images/posts/${slug}.jpeg"
 ---`;
 }
 
+function findExistingSlugBySourceId(localeDir: string, sourceId: string): string | null {
+  if (!existsSync(localeDir)) return null;
+
+  const files = readdirSync(localeDir).filter((f) => f.endsWith('.mdx') || f.endsWith('.md'));
+  let selectedSlug: string | null = null;
+  let selectedMtime = Number.POSITIVE_INFINITY;
+
+  for (const file of files) {
+    const raw = readFileSync(join(localeDir, file), 'utf-8');
+    const { data } = matter(raw);
+    const fileSourceId = data.sourceId ? String(data.sourceId) : '';
+    if (fileSourceId !== sourceId) continue;
+
+    const fileSlug = data.slug || file.replace(/\.mdx?$/, '');
+    const mtime = statSync(join(localeDir, file)).mtimeMs;
+    if (mtime < selectedMtime) {
+      selectedMtime = mtime;
+      selectedSlug = String(fileSlug);
+    }
+  }
+
+  return selectedSlug;
+}
+
+function removeDuplicatePostsBySourceId(localeDir: string, sourceId: string, keepSlug: string) {
+  if (!existsSync(localeDir)) return;
+  const files = readdirSync(localeDir).filter((f) => f.endsWith('.mdx') || f.endsWith('.md'));
+  const removed: string[] = [];
+
+  for (const file of files) {
+    const fullPath = join(localeDir, file);
+    const raw = readFileSync(fullPath, 'utf-8');
+    const { data } = matter(raw);
+    const fileSourceId = data.sourceId ? String(data.sourceId) : '';
+    if (fileSourceId !== sourceId) continue;
+
+    const fileSlug = data.slug || file.replace(/\.mdx?$/, '');
+    if (String(fileSlug) === keepSlug) continue;
+
+    unlinkSync(fullPath);
+    removed.push(file);
+  }
+
+  if (removed.length > 0) {
+    console.log(`   🧹 Removed ${removed.length} duplicate post(s) for sourceId ${sourceId}`);
+  }
+}
+
+function stripInlineReferences(content: string): string {
+  const markers = [
+    /^##\s*참고\s*자료\s*$/m,
+    /^\*\*참고\s*자료\*\*\s*$/m,
+    /^##\s*References\s*$/mi,
+    /^##\s*Sources\s*$/mi,
+  ];
+
+  let cutIndex = -1;
+  for (const marker of markers) {
+    const match = marker.exec(content);
+    if (match) {
+      if (cutIndex === -1 || match.index < cutIndex) {
+        cutIndex = match.index;
+      }
+    }
+  }
+
+  if (cutIndex === -1) return content;
+
+  const hrIndex = content.lastIndexOf('\n---', cutIndex);
+  const start = hrIndex >= 0 ? hrIndex : cutIndex;
+  return content.slice(0, start).trim();
+}
+
 function appendSources(content: string, topic: ResearchedTopic): string {
+  const cleaned = stripInlineReferences(content);
   const allSources = topic.findings.flatMap(f => f.sources);
   const uniqueSources = [...new Map(allSources.map(s => [s.url, s])).values()];
+  const trustedSources = uniqueSources.filter((s) => s.tier === 'S' || s.tier === 'A');
 
-  if (uniqueSources.length === 0) return content;
+  if (trustedSources.length === 0) return cleaned;
 
   // Sort by tier
   const tierOrder: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
-  uniqueSources.sort((a, b) => (tierOrder[a.tier] || 3) - (tierOrder[b.tier] || 3));
+  trustedSources.sort((a, b) => (tierOrder[a.tier] || 3) - (tierOrder[b.tier] || 3));
 
   const sourcesSection = [
     '',
@@ -168,13 +245,24 @@ function appendSources(content: string, topic: ResearchedTopic): string {
     '',
     '## 참고 자료',
     '',
-    ...uniqueSources.map(s => `- ${s.icon} [${s.title}](${s.url})`),
+    ...trustedSources.map(s => `- ${s.icon} [${s.title}](${s.url})`),
   ].join('\n');
 
-  return content + sourcesSection;
+  return cleaned + sourcesSection;
 }
 
 async function main() {
+  const args = process.argv.slice(2);
+  const idArg = args.find((a) => a.startsWith('--id='));
+  const targetIds = idArg
+    ? idArg
+        .split('=')[1]
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    : [];
+  const force = args.includes('--force');
+
   console.log('\n' + '═'.repeat(60));
   console.log('  Article Writing Pipeline');
   console.log('  Writing articles from researched topics');
@@ -208,7 +296,16 @@ async function main() {
       const topic = JSON.parse(readFileSync(join(RESEARCHED_DIR, f), 'utf-8')) as ResearchedTopic;
       return { file: f, topic };
     })
-    .filter(({ topic }) => topic.canPublish && !publishedIds.has(topic.topicId));
+    .filter(({ topic }) => {
+      const matchesTarget =
+        targetIds.length === 0 ||
+        targetIds.includes(topic.topicId) ||
+        targetIds.includes(topic.sourceId);
+      if (!matchesTarget) return false;
+      if (!topic.canPublish) return false;
+      if (force) return true;
+      return !publishedIds.has(topic.topicId);
+    });
 
   if (researchedFiles.length === 0) {
     console.log('✅ No publishable topics to write.');
@@ -238,24 +335,35 @@ async function main() {
       let articleEn = await translateStructured(articleKo);
       articleEn = appendSources(articleEn, topic);
 
+      const sourceId = String(topic.sourceId || '');
+      const existingSlug =
+        (sourceId ? findExistingSlugBySourceId(koDir, sourceId) : null) ||
+        (sourceId ? findExistingSlugBySourceId(enDir, sourceId) : null);
+      const slug = existingSlug || metadata.slug;
+
       // Generate frontmatter
-      const frontmatterKo = generateFrontmatter(metadata, topic, 'ko');
-      const frontmatterEn = generateFrontmatter(metadata, topic, 'en');
+      const frontmatterKo = generateFrontmatter(metadata, topic, 'ko', slug);
+      const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug);
 
       // Write files
-      const koFile = join(koDir, `${metadata.slug}.mdx`);
-      const enFile = join(enDir, `${metadata.slug}.mdx`);
+      const koFile = join(koDir, `${slug}.mdx`);
+      const enFile = join(enDir, `${slug}.mdx`);
 
       writeFileSync(koFile, `${frontmatterKo}\n\n${articleKo}\n`);
       writeFileSync(enFile, `${frontmatterEn}\n\n${articleEn}\n`);
 
-      console.log(`   ✅ Created: ${metadata.slug}.mdx`);
+      console.log(`   ✅ Created: ${slug}.mdx`);
+
+      if (sourceId) {
+        removeDuplicatePostsBySourceId(enDir, sourceId, slug);
+        removeDuplicatePostsBySourceId(koDir, sourceId, slug);
+      }
 
       // Move to published
       const publishedData = {
         topicId: topic.topicId,
         sourceId: topic.sourceId,
-        slug: metadata.slug,
+        slug,
         publishedAt: new Date().toISOString(),
       };
       writeFileSync(join(PUBLISHED_DIR, `${topic.topicId}.json`), JSON.stringify(publishedData, null, 2));

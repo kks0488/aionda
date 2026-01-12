@@ -60,6 +60,7 @@ const TIER_S_DOMAINS = [
   'springer.com',
   'ieee.org',
   'acm.org',
+  'frontiersin.org',
 ];
 
 // Tier A: Official/Trusted Sources (🛡️)
@@ -68,13 +69,17 @@ const TIER_A_PATTERNS = [
   /\.mil$/,
   /\.edu$/,
   /\.ac\.[a-z]{2}$/,
+  /\.go\.kr$/,
   /openai\.com/,
   /anthropic\.com/,
+  /tsmc\.com/,
   /google\.com\/(?:blog|research)/,
   /microsoft\.com\/(?:research|blog)/,
   /meta\.com/,
   /nvidia\.com/,
   /huggingface\.co/,
+  /thekurzweillibrary\.com/,
+  /klri\.re\.kr/,
   /reuters\.com/,
   /apnews\.com/,
   /bbc\.com/,
