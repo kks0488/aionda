@@ -11,7 +11,7 @@ const AI_API_DISABLED = ['true', '1'].includes(
 
 // SiliconFlow API
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || '';
-const IMAGE_MODEL = process.env.IMAGE_MODEL || 'Tongyi-MAI/Z-Image-Turbo';
+const IMAGE_MODEL = process.env.IMAGE_MODEL || 'Qwen/Qwen-Image';
 const SILICONFLOW_API_URL = 'https://api.siliconflow.com/v1/images/generations';
 
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
