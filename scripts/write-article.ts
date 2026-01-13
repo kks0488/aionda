@@ -10,6 +10,7 @@ import { config } from 'dotenv';
 import { generateContent } from './lib/gemini.js';
 import { translateStructured } from './lib/structure';
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
+import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import matter from 'gray-matter';
 
 config({ path: '.env.local' });
@@ -332,6 +333,19 @@ async function main() {
     console.log(`   Confidence: ${Math.round(topic.overallConfidence * 100)}%`);
 
     try {
+      // memU 중복 체크
+      console.log('   🔍 Checking for duplicates (memU)...');
+      const duplicateCheck = await checkBeforePublish(
+        topic.title,
+        topic.description + '\n' + topic.keyInsights.join('\n')
+      );
+
+      if (duplicateCheck.isDuplicate && !force) {
+        console.log(`   ⚠️ Similar content found (score: ${duplicateCheck.similarItems[0]?.score?.toFixed(2)})`);
+        console.log(`   ⏭️ Skipping to avoid duplicate. Use --force to override.`);
+        continue;
+      }
+
       // Write Korean article
       console.log('   📝 Writing Korean article...');
       let articleKo = await writeArticle(topic);
@@ -378,6 +392,13 @@ async function main() {
         publishedAt: new Date().toISOString(),
       };
       writeFileSync(join(PUBLISHED_DIR, `${topic.topicId}.json`), JSON.stringify(publishedData, null, 2));
+
+      // memU에 저장 (중복 방지용)
+      console.log('   💾 Saving to memU...');
+      const saved = await saveAfterPublish(metadata.title_ko, articleKo, slug);
+      if (saved) {
+        console.log('   ✅ Saved to memU for future duplicate detection');
+      }
 
       written++;
     } catch (error) {

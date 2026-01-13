@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -9,9 +8,12 @@ config({ path: '.env.local' });
 const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
 );
-// GitHub Actions에서는 GOOGLE_AI_API_KEY, 로컬에서는 GEMINI_API_KEY 사용
-const API_KEY = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY || '';
-const IMAGE_MODEL = 'gemini-2.5-flash-image';
+
+// SiliconFlow API
+const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || '';
+const IMAGE_MODEL = process.env.IMAGE_MODEL || 'Tongyi-MAI/Z-Image-Turbo';
+const SILICONFLOW_API_URL = 'https://api.siliconflow.com/v1/images/generations';
+
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
 
@@ -25,12 +27,10 @@ if (!ENABLE_COVER_IMAGES || !ENABLE_IMAGE_GENERATION) {
   process.exit(0);
 }
 
-if (!API_KEY) {
-  console.error('GOOGLE_AI_API_KEY or GEMINI_API_KEY not found');
+if (!SILICONFLOW_API_KEY) {
+  console.error('SILICONFLOW_API_KEY not found');
   process.exit(1);
 }
-
-const genAI = new GoogleGenerativeAI(API_KEY);
 
 interface PostMeta {
   slug: string;
@@ -255,64 +255,69 @@ function generatePromptForPost(post: PostMeta): string {
   const secondaryElements = visualElements.slice(1).join(', ');
   const styleDescription = [...new Set(styles)].join(', ');
 
-  return `Create a premium technology blog cover image.
-
-MAIN SUBJECT: ${mainElement}
-${secondaryElements ? `SECONDARY ELEMENTS: ${secondaryElements}` : ''}
-TOPIC: "${post.title}"
-
-STYLE:
-- Color palette: ${themeColor} tones with dark gradient background
-- Aesthetic: ${styleDescription}, premium tech publication quality
-- Mood: Sophisticated, forward-thinking, professional
-- Lighting: Dramatic with subtle highlights and ambient glow
-
-COMPOSITION:
-- Wide 16:9 aspect ratio
-- Central focus with depth through subtle blur
-- Clean, uncluttered layout suitable for text overlay
-
-RESTRICTIONS:
-- NO text, logos, or watermarks
-- NO human faces or realistic people
-- Abstract/conceptual representation preferred
-- High contrast for readability when used as hero image`;
+  return `Premium technology blog cover image. MAIN SUBJECT: ${mainElement}. ${secondaryElements ? `SECONDARY: ${secondaryElements}.` : ''} TOPIC: "${post.title}". STYLE: ${themeColor} tones with dark gradient background, ${styleDescription}, premium tech publication quality. Sophisticated, forward-thinking, professional mood. Dramatic lighting with subtle highlights and ambient glow. Wide 16:9 aspect ratio. Central focus with depth. Clean layout suitable for text overlay. NO text, logos, or watermarks. NO human faces. Abstract/conceptual representation.`;
 }
 
 async function generateImage(post: PostMeta): Promise<string | null> {
   console.log(`\n🎨 Generating image for: ${post.title}`);
+  console.log(`📷 Using model: ${IMAGE_MODEL}`);
 
   try {
-    const model = genAI.getGenerativeModel({ model: IMAGE_MODEL });
     const prompt = generatePromptForPost(post);
+    console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`);
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+    const response = await fetch(SILICONFLOW_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SILICONFLOW_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: IMAGE_MODEL,
+        prompt: prompt,
+        image_size: '1024x576', // 16:9 aspect ratio
+        num_inference_steps: 8,
+        batch_size: 1,
+      }),
+    });
 
-    // Check if response contains image data
-    const parts = response.candidates?.[0]?.content?.parts;
-    if (parts) {
-      for (const part of parts) {
-        if ('inlineData' in part && part.inlineData) {
-          const imageData = part.inlineData.data;
-          const mimeType = part.inlineData.mimeType;
-          const extension = mimeType?.split('/')[1] || 'png';
-
-          const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
-          if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-          }
-
-          const outputPath = path.join(outputDir, `${post.slug}.${extension}`);
-          fs.writeFileSync(outputPath, Buffer.from(imageData, 'base64'));
-
-          console.log(`✅ Saved: ${outputPath}`);
-          return `/images/posts/${post.slug}.${extension}`;
-        }
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ API Error (${response.status}): ${errorText}`);
+      return null;
     }
 
-    console.log(`❌ No image data in response for: ${post.title}`);
+    const data = await response.json();
+
+    // SiliconFlow returns images in data.images array with url or b64_json
+    if (data.images && data.images.length > 0) {
+      const imageInfo = data.images[0];
+
+      const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      const outputPath = path.join(outputDir, `${post.slug}.png`);
+
+      if (imageInfo.url) {
+        // Download from URL
+        const imageResponse = await fetch(imageInfo.url);
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        fs.writeFileSync(outputPath, imageBuffer);
+      } else if (imageInfo.b64_json) {
+        // Decode base64
+        fs.writeFileSync(outputPath, Buffer.from(imageInfo.b64_json, 'base64'));
+      } else {
+        console.log(`❌ No image data in response`);
+        return null;
+      }
+
+      console.log(`✅ Saved: ${outputPath}`);
+      return `/images/posts/${post.slug}.png`;
+    }
+
+    console.log(`❌ No images in response for: ${post.title}`);
     return null;
 
   } catch (error: any) {
@@ -341,7 +346,8 @@ function updatePostFrontmatter(locale: string, slug: string, imagePath: string) 
 
 async function main() {
   console.log('🔍 Finding posts without images...\n');
-  console.log(`📷 Using model: ${IMAGE_MODEL}\n`);
+  console.log(`📷 Using model: ${IMAGE_MODEL}`);
+  console.log(`🌐 API: SiliconFlow\n`);
 
   const posts = getPostsWithoutImages();
 
@@ -369,8 +375,8 @@ async function main() {
 
     // Rate limiting: wait between requests
     if (i < posts.length - 1) {
-      console.log('⏳ Waiting 5 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      console.log('⏳ Waiting 2 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 
