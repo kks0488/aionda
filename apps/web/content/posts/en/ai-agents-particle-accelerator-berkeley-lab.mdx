@@ -1,0 +1,81 @@
+---
+title: AI Agents Managing Particle Accelerators at Berkeley National Lab
+slug: ai-agents-particle-accelerator-berkeley-lab
+date: '2026-01-14'
+locale: en
+description: >-
+  LBNL introduces the Osprey framework, using AI agents to manage particle
+  accelerators via real-time data analysis and control.
+tags:
+  - 입자가속기
+  - AI에이전트
+  - LBNL
+  - 오스프리
+  - LLM
+author: AI온다
+sourceId: nvidia-1hc1pbf
+sourceUrl: 'https://blogs.nvidia.com/blog/ai-copilot-berkeley-x-ray-particle-accelerator/'
+verificationScore: 0.9499999999999998
+alternateLocale: /ko/posts/ai-agents-particle-accelerator-berkeley-lab
+coverImage: /images/posts/ai-agents-particle-accelerator-berkeley-lab.png
+---
+
+When a massive particle accelerator stops due to an unexpected malfunction, trillions of won in budget and tens of thousands of research hours vanish into thin air. Until now, reviving these complex machines has been the responsibility of 'master' scientists who have spent decades memorizing every manual. However, researchers at Lawrence Berkeley National Laboratory (LBNL) are now turning to a chatbot instead of waking up colleagues at 3 AM. "Why is the beam unstable right now?"
+
+Berkeley Lab's 'Advanced Light Source (ALS)' recently introduced the 'Accelerator Assistant,' based on Large Language Models (LLMs). This is not just a secretary that summarizes documents. It is a functional 'agent' that reads real-time data from over 230,000 sensors, writes code, and controls massive physical equipment. AI, once confined to the world of text, has finally taken the wheel in the physical world governed by the laws of physics.
+
+### The 'Osprey' Framework: The Brain of the Accelerator
+
+ALS is a massive experimental facility that accelerates electrons to near the speed of light to produce powerful X-rays. Its operating system, EPICS (Experimental Physics and Industrial Control System), manages over 230,000 Process Variables (PVs). It is nearly impossible for human operators to grasp the correlations between all these numbers in real-time.
+
+To solve this challenge, Berkeley Lab built an agent framework called 'Osprey.' The technical core is a 'Plan-first' architecture. When a user raises an issue in natural language, the AI does not provide an answer immediately; instead, it first writes Python code to solve the problem. This code runs in a Jupyter Notebook environment, analyzing real-time accelerator data and issuing commands to the hardware.
+
+The reasoning structure is also sophisticated. Tasks requiring high security and speed are handled by local models based on Llama or Ollama, running on the lab's internal NVIDIA H100 servers. For more complex reasoning, it adopts a hybrid approach, calling high-performance cloud models like Google Gemini or Anthropic Claude through the 'CBorg' gateway.
+
+### Overcoming the Physical Threat of 'Hallucinations'
+
+In extremely sensitive equipment like particle accelerators, AI 'hallucinations' can lead directly to hardware damage. A single incorrect voltage value entered by an AI could burn out a magnet worth tens of billions of won.
+
+To prevent this, the research team has extremely refined Retrieval-Augmented Generation (RAG) technology. The AI utilizes decades of operating manuals, wikis, and past incident records as training data. In addition, 'context engineering' was added, ensuring the AI cross-references previous execution records and current physical constraints before issuing any command.
+
+Instead of simply saying "Press this button," the AI confirms logical grounds, such as: "According to a 2018 report, valve A should only be opened by 5% in this situation; therefore, after checking current variables, I will open it by 4.8%." This sets a new standard for AI in securing the reliability of expert scientific knowledge.
+
+### How Intelligent Agents Will Change the Future of Big Science
+
+This initiative is not just an internal achievement for Berkeley Lab. It could be the solution to the 'knowledge transfer' problem faced by large-scale scientific infrastructures worldwide. AI has begun to digitize and preserve the tacit knowledge that often disappears when experienced engineers retire.
+
+However, significant hurdles remain. Extending this system to ultra-large facilities like CERN presents integration issues between heterogeneous hardware. In environments where hundreds of thousands of variables change every millisecond, the latency of cloud-based LLMs could be a fatal weakness. Furthermore, the extent of the human role as the 'final approver' to verify the physical validity of AI-suggested solutions remains a subject of debate.
+
+### AI Utilization Guide for Scientists
+
+Physicists and engineers must now learn how to communicate with AI instead of memorizing complex control commands. The Berkeley Lab case suggests that the combination of domain-specific data and LLMs has moved beyond a mere trend to become an essential practical tool for survival.
+
+1. **Data Standardization**: Unstructured manuals and log records held by labs or companies must be immediately organized into formats that AI can read.
+2. **Agent Workflow Design**: Rather than a simple Q&A chatbot, one must design an 'executable agent' structure that runs code and verifies results.
+3. **Hybrid Infrastructure Construction**: A gateway strategy is needed to flexibly connect local GPU resources for data security with cloud APIs for high-performance reasoning.
+
+### FAQ
+
+**Q: What if the AI accidentally causes an explosion while operating the accelerator?**
+A: The Accelerator Assistant maintains a 'Human-in-the-loop' structure, requiring final approval from a human operator before directly controlling hardware. It also validates safety by simulating code in a sandbox environment first.
+
+**Q: How is this different from existing automated control systems?**
+A: Existing systems operate only according to predefined rules (If-Then). In contrast, AI agents can perform unstructured reasoning and problem-solving, such as: "A problem similar to yesterday's has occurred; is the solution on page 4 of the manual still valid for the current situation?"
+
+**Q: Can this system be used in other laboratories immediately?**
+A: While the Osprey framework embraces an open-source spirit, additional work is required to port domain-specific knowledge into the RAG system because EPICS PV names and manuals differ across laboratories.
+
+### Conclusion: The Smartest Intern in the Lab
+
+Berkeley Lab's Accelerator Assistant proves that LLMs are more than just 'all talk.' It is the smartest intern managing the most complex machinery and an operator that never sleeps. AI is now evolving beyond translating human language into machine language to become a 'digital physical engineer' that directly controls physical reality. What we should focus on is not the AI's conversational ability, but how that intelligence moves the real world.
+---
+
+## 참고 자료
+
+- 🛡️ [Agentic AI at the Advanced Light Source - Machine Learning and the Physical Sciences](https://github.io/ml-physical-sciences/2024/papers/21.pdf)
+- 🛡️ [AI@ALS Workshop Report: Machine Learning Needs at the Advanced Light Source](https://simonleemann.ch/wp-content/uploads/2024/08/AI_at_ALS_Workshop_Report.pdf)
+- 🛡️ [AI Copilot Keeps Berkeley’s X-Ray Particle Accelerator on Track](https://blogs.nvidia.com/blog/berkeley-lab-als-accelerator-assistant/)
+- 🏛️ [Agentic AI for Multi-Stage Physics Experiments at a Large-Scale User Facility Particle Accelerator](https://arxiv.org/abs/2509.21)
+- 🏛️ [AI Copilot Keeps Berkeley's X-Ray Particle Accelerator on Track](https://blogs.nvidia.com/blog/ai-copilot-berkeley-lab-particle-accelerator/)
+- 🏛️ [AI Copilot Keeps Berkeley's X-Ray Particle Accelerator on Track | NVIDIA Blog](https://blogs.nvidia.com/blog/berkeley-lab-ai-accelerator-assistant/)
+- 🏛️ [Towards Agentic AI on Particle Accelerators](https://arxiv.org/abs/2409.06336)
