@@ -20,9 +20,12 @@ echo "=========================================="
 export PATH="/home/kkaemo/.local/share/pnpm:$PATH"
 source /home/kkaemo/projects/aionda/.env.local 2>/dev/null || true
 
-# 1. 크롤링 (최신 글 수집)
-echo "[$(date '+%H:%M:%S')] Step 1: Crawling..."
-pnpm crawl --pages=2 || echo "Crawl warning (might be empty)"
+# 1. 크롤링 (DC Inside + RSS)
+echo "[$(date '+%H:%M:%S')] Step 1a: Crawling DC Inside..."
+pnpm crawl --pages=2 || echo "DC crawl warning (might be empty)"
+
+echo "[$(date '+%H:%M:%S')] Step 1b: Crawling RSS feeds..."
+pnpm crawl-rss || echo "RSS crawl warning"
 
 # 2. 토픽 추출
 echo "[$(date '+%H:%M:%S')] Step 2: Extracting topics..."
