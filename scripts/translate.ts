@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { translateToEnglish } from './lib/gemini.js';
+import { translateToEnglish } from './lib/deepseek.js';
 
 config({ path: '.env.local' });
 

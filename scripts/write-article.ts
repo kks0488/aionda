@@ -7,8 +7,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, statSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { generateContent } from './lib/gemini.js';
-import { translateStructured } from './lib/structure';
+import { generateContent, translateToEnglish } from './lib/deepseek';
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import matter from 'gray-matter';
@@ -357,7 +356,8 @@ async function main() {
 
       // Translate to English
       console.log('   🌐 Translating to English...');
-      let articleEn = await translateStructured(articleKo);
+      const translated = await translateToEnglish(metadata.title_ko, articleKo);
+      let articleEn = translated.content_en;
       articleEn = appendSources(articleEn, topic);
 
       const sourceId = String(topic.sourceId || '');
