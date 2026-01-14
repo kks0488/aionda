@@ -1,35 +1,55 @@
 /**
- * Extract discussable topics from raw gallery posts
+ * Unified Topic Extraction Pipeline
  *
- * Pipeline: crawl → extract-topics → research-topic → write-article
+ * Extracts discussable topics from multiple sources:
+ * - DC Inside gallery posts (data/raw/)
+ * - Official AI company blogs (data/official/)
+ * - Tech news RSS feeds (data/news/)
+ *
+ * Priority: Official (Tier S) > News (Tier A) > Community (Tier C)
+ *
+ * Usage:
+ *   pnpm extract-topics              # All sources
+ *   pnpm extract-topics --source=raw      # DC Inside only
+ *   pnpm extract-topics --source=official # Official blogs only
+ *   pnpm extract-topics --source=news     # News only
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 import { generateContent } from './lib/gemini';
-import { EXTRACT_TOPIC_PROMPT } from './prompts/topics';
+import { EXTRACT_TOPIC_PROMPT, EXTRACT_TOPIC_FROM_NEWS_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });
 
+// Data directories
 const RAW_DIR = './data/raw';
+const OFFICIAL_DIR = './data/official';
+const NEWS_DIR = './data/news';
 const TOPICS_DIR = './data/topics';
 const PUBLISHED_DIR = './data/published';
 
-// Minimum content length to consider
-const MIN_CONTENT_LENGTH = parseInt(process.env.MIN_CONTENT_LENGTH || '300', 10);
+// Configuration
+const MIN_CONTENT_LENGTH = parseInt(process.env.MIN_CONTENT_LENGTH || '100', 10);
+const MAX_TOPICS = parseInt(process.env.MAX_TOPICS || '5');
 
-// Maximum topics to extract per run
-const MAX_TOPICS = parseInt(process.env.MAX_TOPICS || '3');
+// Source types
+type SourceType = 'raw' | 'official' | 'news';
+type SourceTier = 'S' | 'A' | 'B' | 'C';
 
-interface RawPost {
+interface UnifiedPost {
   id: string;
+  sourceType: SourceType;
+  sourceTier: SourceTier;
+  sourceName: string;
   title: string;
-  contentText: string;
-  date: string;
-  views: number;
-  likes: number;
+  content: string;
   url: string;
+  date: string;
+  // DC Inside specific
+  views?: number;
+  likes?: number;
 }
 
 interface ExtractedTopic {
@@ -37,6 +57,9 @@ interface ExtractedTopic {
   sourceId: string;
   sourceUrl: string;
   sourceDate: string;
+  sourceType: SourceType;
+  sourceTier: SourceTier;
+  sourceName: string;
   title: string;
   description: string;
   keyInsights: string[];
@@ -44,8 +67,134 @@ interface ExtractedTopic {
   extractedAt: string;
 }
 
-async function extractTopicFromPost(post: RawPost): Promise<ExtractedTopic | null> {
-  const prompt = EXTRACT_TOPIC_PROMPT.replace('{content}', post.contentText.substring(0, 4000));
+/**
+ * Load DC Inside gallery posts
+ */
+function loadRawPosts(): UnifiedPost[] {
+  if (!existsSync(RAW_DIR)) return [];
+
+  return readdirSync(RAW_DIR)
+    .filter(f => f.endsWith('.json') && !f.startsWith('._'))
+    .map(f => {
+      try {
+        const data = JSON.parse(readFileSync(join(RAW_DIR, f), 'utf-8'));
+        return {
+          id: data.id,
+          sourceType: 'raw' as SourceType,
+          sourceTier: 'C' as SourceTier,
+          sourceName: 'DC Inside 특이점갤러리',
+          title: data.title || '',
+          content: data.contentText || '',
+          url: data.url || `https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=${data.id}`,
+          date: data.date || '',
+          views: data.views || 0,
+          likes: data.likes || 0,
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((p): p is UnifiedPost => p !== null && p.content.length >= MIN_CONTENT_LENGTH);
+}
+
+/**
+ * Load official blog posts from RSS
+ */
+function loadOfficialPosts(): UnifiedPost[] {
+  if (!existsSync(OFFICIAL_DIR)) return [];
+
+  return readdirSync(OFFICIAL_DIR)
+    .filter(f => f.endsWith('.json') && !f.startsWith('._') && !f.includes('-meta'))
+    .map(f => {
+      try {
+        const data = JSON.parse(readFileSync(join(OFFICIAL_DIR, f), 'utf-8'));
+        return {
+          id: data.id,
+          sourceType: 'official' as SourceType,
+          sourceTier: (data.sourceTier || 'S') as SourceTier,
+          sourceName: data.sourceName || 'Official Blog',
+          title: data.title || '',
+          content: data.contentSnippet || data.content || '',
+          url: data.link || '',
+          date: data.pubDate || '',
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((p): p is UnifiedPost => p !== null && p.title.length > 5);
+}
+
+/**
+ * Load news posts from RSS
+ */
+function loadNewsPosts(): UnifiedPost[] {
+  if (!existsSync(NEWS_DIR)) return [];
+
+  return readdirSync(NEWS_DIR)
+    .filter(f => f.endsWith('.json') && !f.startsWith('._'))
+    .map(f => {
+      try {
+        const data = JSON.parse(readFileSync(join(NEWS_DIR, f), 'utf-8'));
+        return {
+          id: data.id,
+          sourceType: 'news' as SourceType,
+          sourceTier: (data.sourceTier || 'A') as SourceTier,
+          sourceName: data.sourceName || 'Tech News',
+          title: data.title || '',
+          content: data.contentSnippet || data.content || '',
+          url: data.link || '',
+          date: data.pubDate || '',
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((p): p is UnifiedPost => p !== null && p.title.length > 5);
+}
+
+/**
+ * Get already processed source IDs
+ */
+function getProcessedIds(): Set<string> {
+  const processed = new Set<string>();
+
+  // From topics
+  if (existsSync(TOPICS_DIR)) {
+    for (const file of readdirSync(TOPICS_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
+      try {
+        const topic = JSON.parse(readFileSync(join(TOPICS_DIR, file), 'utf-8'));
+        processed.add(topic.sourceId);
+      } catch {}
+    }
+  }
+
+  // From published
+  if (existsSync(PUBLISHED_DIR)) {
+    for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
+      try {
+        const pub = JSON.parse(readFileSync(join(PUBLISHED_DIR, file), 'utf-8'));
+        processed.add(pub.sourceId);
+      } catch {}
+    }
+  }
+
+  return processed;
+}
+
+/**
+ * Extract topic from a post using Gemini
+ */
+async function extractTopicFromPost(post: UnifiedPost): Promise<ExtractedTopic | null> {
+  // Use different prompt for news/official vs community posts
+  const isNewsOrOfficial = post.sourceType !== 'raw';
+  const promptTemplate = isNewsOrOfficial ? EXTRACT_TOPIC_FROM_NEWS_PROMPT : EXTRACT_TOPIC_PROMPT;
+
+  const contentToAnalyze = isNewsOrOfficial
+    ? `제목: ${post.title}\n\n내용: ${post.content.substring(0, 2000)}`
+    : post.content.substring(0, 4000);
+
+  const prompt = promptTemplate.replace('{content}', contentToAnalyze);
 
   try {
     const response = await generateContent(prompt);
@@ -74,6 +223,9 @@ async function extractTopicFromPost(post: RawPost): Promise<ExtractedTopic | nul
       sourceId: post.id,
       sourceUrl: post.url,
       sourceDate: post.date,
+      sourceType: post.sourceType,
+      sourceTier: post.sourceTier,
+      sourceName: post.sourceName,
       title: topic.title,
       description: topic.description || '',
       keyInsights: topic.keyInsights || [],
@@ -86,78 +238,86 @@ async function extractTopicFromPost(post: RawPost): Promise<ExtractedTopic | nul
   }
 }
 
+/**
+ * Sort posts by priority: Official > News > Raw, then by date
+ */
+function sortByPriority(posts: UnifiedPost[]): UnifiedPost[] {
+  const tierOrder: Record<SourceTier, number> = { S: 0, A: 1, B: 2, C: 3 };
+
+  return posts.sort((a, b) => {
+    // First by tier
+    const tierDiff = tierOrder[a.sourceTier] - tierOrder[b.sourceTier];
+    if (tierDiff !== 0) return tierDiff;
+
+    // Then by date (newest first)
+    const dateA = new Date(a.date || '2000-01-01');
+    const dateB = new Date(b.date || '2000-01-01');
+    return dateB.getTime() - dateA.getTime();
+  });
+}
+
 async function main() {
   console.log('\n' + '═'.repeat(60));
-  console.log('  Topic Extraction Pipeline');
-  console.log('  Reading gallery posts and extracting discussable topics');
+  console.log('  Unified Topic Extraction Pipeline');
+  console.log('  Sources: Official Blogs + News + DC Inside');
   console.log('═'.repeat(60) + '\n');
 
+  // Parse CLI arguments
+  const args = process.argv.slice(2);
+  const sourceArg = args.find(a => a.startsWith('--source='));
+  const sourceFilter = sourceArg ? sourceArg.split('=')[1] as SourceType : undefined;
+
   // Ensure directories exist
-  if (!existsSync(RAW_DIR)) {
-    console.log('❌ No raw posts found. Run `pnpm crawl` first.');
-    process.exit(1);
-  }
   if (!existsSync(TOPICS_DIR)) mkdirSync(TOPICS_DIR, { recursive: true });
   if (!existsSync(PUBLISHED_DIR)) mkdirSync(PUBLISHED_DIR, { recursive: true });
 
-  // Get already processed source IDs
-  const processedSourceIds = new Set<string>();
+  // Get already processed IDs
+  const processedIds = getProcessedIds();
+  console.log(`📁 Already processed: ${processedIds.size} posts\n`);
 
-  // From topics
-  if (existsSync(TOPICS_DIR)) {
-    for (const file of readdirSync(TOPICS_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
-      const topic = JSON.parse(readFileSync(join(TOPICS_DIR, file), 'utf-8'));
-      processedSourceIds.add(topic.sourceId);
-    }
+  // Load posts from all sources
+  let allPosts: UnifiedPost[] = [];
+
+  if (!sourceFilter || sourceFilter === 'official') {
+    const officialPosts = loadOfficialPosts();
+    console.log(`📰 Official blogs: ${officialPosts.length} posts`);
+    allPosts.push(...officialPosts);
   }
 
-  // From published
-  if (existsSync(PUBLISHED_DIR)) {
-    for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
-      const published = JSON.parse(readFileSync(join(PUBLISHED_DIR, file), 'utf-8'));
-      processedSourceIds.add(published.sourceId);
-    }
+  if (!sourceFilter || sourceFilter === 'news') {
+    const newsPosts = loadNewsPosts();
+    console.log(`📰 News feeds: ${newsPosts.length} posts`);
+    allPosts.push(...newsPosts);
   }
 
-  // Get raw posts sorted by date (newest first)
-  const rawFiles = readdirSync(RAW_DIR)
-    .filter(f => f.endsWith('.json'))
-    .map(f => {
-      const post = JSON.parse(readFileSync(join(RAW_DIR, f), 'utf-8')) as RawPost;
-      return { file: f, post };
-    })
-    .filter(({ post }) => {
-      // Skip already processed
-      if (processedSourceIds.has(post.id)) return false;
-      // Skip too short
-      if ((post.contentText?.length || 0) < MIN_CONTENT_LENGTH) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      // Sort by date (newest first), then by views
-      const dateA = new Date(a.post.date || '2000-01-01');
-      const dateB = new Date(b.post.date || '2000-01-01');
-      if (dateB.getTime() !== dateA.getTime()) {
-        return dateB.getTime() - dateA.getTime();
-      }
-      return (b.post.views || 0) - (a.post.views || 0);
-    });
+  if (!sourceFilter || sourceFilter === 'raw') {
+    const rawPosts = loadRawPosts();
+    console.log(`📰 DC Inside: ${rawPosts.length} posts`);
+    allPosts.push(...rawPosts);
+  }
 
-  if (rawFiles.length === 0) {
-    console.log('✅ No new posts to process.');
+  // Filter out already processed
+  const unprocessedPosts = allPosts.filter(p => !processedIds.has(p.id));
+  console.log(`\n📋 Unprocessed: ${unprocessedPosts.length} posts`);
+
+  if (unprocessedPosts.length === 0) {
+    console.log('\n✅ No new posts to process.');
     process.exit(0);
   }
 
-  console.log(`📚 Found ${rawFiles.length} unprocessed posts\n`);
-  console.log(`🎯 Extracting up to ${MAX_TOPICS} topics...\n`);
+  // Sort by priority and limit
+  const sortedPosts = sortByPriority(unprocessedPosts);
+  console.log(`🎯 Processing up to ${MAX_TOPICS} topics (Priority: S > A > B > C)\n`);
 
   let extracted = 0;
+  const tierEmoji: Record<SourceTier, string> = { S: '🏛️', A: '🛡️', B: '📝', C: '💬' };
 
-  for (const { file, post } of rawFiles) {
+  for (const post of sortedPosts) {
     if (extracted >= MAX_TOPICS) break;
 
-    console.log(`📋 Post ${post.id}: "${post.title?.substring(0, 40)}..."`);
-    console.log(`   Views: ${post.views}, Likes: ${post.likes}`);
+    const emoji = tierEmoji[post.sourceTier];
+    console.log(`${emoji} [${post.sourceTier}] ${post.sourceName}`);
+    console.log(`   📋 "${post.title.substring(0, 50)}..."`);
 
     const topic = await extractTopicFromPost(post);
 
@@ -165,7 +325,7 @@ async function main() {
       const topicFile = `${topic.id}.json`;
       writeFileSync(join(TOPICS_DIR, topicFile), JSON.stringify(topic, null, 2));
 
-      console.log(`   ✅ Topic extracted: "${topic.title}"`);
+      console.log(`   ✅ Topic: "${topic.title}"`);
       console.log(`   📝 Research questions: ${topic.researchQuestions.length}`);
       extracted++;
     }

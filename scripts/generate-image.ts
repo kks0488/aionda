@@ -1,7 +1,18 @@
+/**
+ * AI-Powered Cover Image Generator
+ *
+ * Uses Gemini to analyze article content and generate contextual image prompts,
+ * then SiliconFlow API to create the actual images.
+ *
+ * Pipeline: analyze article → generate prompt → create image
+ */
+
 import { config } from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
+import { generateContent } from './lib/gemini';
+import { GENERATE_IMAGE_PROMPT_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });
 
@@ -41,96 +52,9 @@ interface PostMeta {
   filePath: string;
 }
 
-// 키워드 → 시각적 요소 매핑
-const VISUAL_MAPPINGS: Record<string, { element: string; style: string }> = {
-  // 로봇/하드웨어
-  robot: { element: 'sleek humanoid robot silhouette with glowing joints', style: 'industrial futuristic' },
-  humanoid: { element: 'humanoid figure with articulated limbs and sensors', style: 'mechanical precision' },
-  atlas: { element: 'bipedal robot in dynamic pose, industrial setting', style: 'Boston Dynamics aesthetic' },
-  optimus: { element: 'sleek humanoid robot with tesla aesthetic', style: 'Tesla design' },
-  factory: { element: 'automated assembly line with robotic arms', style: 'industrial automation' },
-  manufacturing: { element: 'smart factory floor with automation systems', style: 'Industry 4.0' },
-  hardware: { element: 'circuit boards and processors with heat sinks', style: 'tech hardware' },
-  chip: { element: 'semiconductor chip with intricate pathways', style: 'microelectronics' },
-  gpu: { element: 'graphics processing unit with cooling fans', style: 'high-performance computing' },
-  sensor: { element: 'array of sensors emitting detection waves', style: 'IoT sensing' },
-  arm: { element: 'robotic arm with precision gripper', style: 'industrial robotics' },
-
-  // Physical AI
-  physical: { element: 'robot interacting with real-world objects', style: 'embodied AI' },
-  autonomous: { element: 'self-navigating machine in environment', style: 'autonomous systems' },
-  embodied: { element: 'AI manifested in physical form', style: 'embodied intelligence' },
-
-  // AI/소프트웨어
-  agent: { element: 'autonomous digital entity navigating data streams', style: 'agentic AI' },
-  cowork: { element: 'AI assistant managing digital workspace and files', style: 'productivity AI' },
-  assistant: { element: 'helpful AI interface with floating documents', style: 'AI assistant' },
-  model: { element: 'neural network layers with flowing connections', style: 'deep learning' },
-  llm: { element: 'language tokens transforming into knowledge', style: 'NLP visualization' },
-  training: { element: 'data flowing through optimization landscape', style: 'ML training' },
-  inference: { element: 'neural pathways lighting up in sequence', style: 'AI inference' },
-  reasoning: { element: 'branching thought patterns and logic trees', style: 'AI reasoning' },
-
-  // 회사/브랜드 시각화
-  deepmind: { element: 'abstract brain structure with geometric patterns', style: 'DeepMind research' },
-  gemini: { element: 'dual intertwined AI streams', style: 'Google AI' },
-  isaac: { element: 'simulation environment with virtual robots', style: 'Nvidia robotics' },
-  gr00t: { element: 'humanoid robot learning from demonstration', style: 'robot foundation model' },
-  cosmos: { element: 'synthetic world generation visualization', style: 'world model' },
-
-  // 생산성/오피스
-  productivity: { element: 'organized digital workspace with flowing tasks', style: 'productivity tech' },
-  office: { element: 'modern workspace with digital overlays', style: 'smart office' },
-  workflow: { element: 'connected process nodes in automation flow', style: 'workflow automation' },
-  document: { element: 'floating documents being organized by AI', style: 'document AI' },
-  file: { element: 'file management system with smart sorting', style: 'file automation' },
-
-  // 비즈니스/금융
-  funding: { element: 'rising graph with investment flow visualization', style: 'fintech' },
-  ipo: { element: 'stock market visualization with upward trajectory', style: 'financial markets' },
-  valuation: { element: 'abstract wealth growth representation', style: 'corporate finance' },
-  billion: { element: 'exponential growth curve with milestone markers', style: 'big money' },
-  startup: { element: 'rocket launch trajectory with data trails', style: 'venture growth' },
-  revenue: { element: 'ascending bar chart with golden highlights', style: 'financial growth' },
-
-  // 의료/헬스케어
-  health: { element: 'DNA helix intertwined with digital interface', style: 'biotech' },
-  medical: { element: 'medical imaging with AI overlay', style: 'healthcare AI' },
-  healthcare: { element: 'patient data visualization with care symbols', style: 'healthtech' },
-
-  // 이벤트/발표
-  ces: { element: 'futuristic expo hall with tech displays', style: 'trade show' },
-  launch: { element: 'product reveal with dramatic lighting', style: 'product launch' },
-  release: { element: 'software deployment visualization', style: 'product release' },
-  announcement: { element: 'stage presentation with holographic display', style: 'tech keynote' },
-  update: { element: 'version upgrade transformation', style: 'software update' },
-
-  // 플랫폼/인프라
-  platform: { element: 'interconnected ecosystem of services', style: 'platform architecture' },
-  api: { element: 'data endpoints connecting multiple services', style: 'API infrastructure' },
-  sdk: { element: 'developer tools and code blocks floating', style: 'developer platform' },
-  cloud: { element: 'distributed computing nodes in virtual space', style: 'cloud computing' },
-  android: { element: 'modular platform with plugin architecture', style: 'open platform' },
-  ecosystem: { element: 'interconnected nodes forming organic network', style: 'tech ecosystem' },
-
-  // 데이터/학습
-  synthetic: { element: 'artificially generated data patterns', style: 'synthetic data' },
-  simulation: { element: 'virtual environment with physics rendering', style: 'simulation tech' },
-  data: { element: 'flowing streams of structured information', style: 'data visualization' },
-
-  // 경쟁/비교
-  vs: { element: 'two forces in dynamic tension', style: 'competitive contrast' },
-  comparison: { element: 'side by side tech comparison visualization', style: 'comparative analysis' },
-  competition: { element: 'racing trajectories converging', style: 'market competition' },
-  battle: { element: 'opposing tech forces in confrontation', style: 'tech rivalry' },
-
-  // 미래/트렌드
-  future: { element: 'forward-looking horizon with emerging tech', style: 'futuristic vision' },
-  trend: { element: 'rising wave patterns showing direction', style: 'trend analysis' },
-  prediction: { element: 'crystal ball effect with tech imagery', style: 'tech forecast' },
-  '2026': { element: 'futuristic timeline with milestone markers', style: 'near future' },
-};
-
+/**
+ * Find posts that need cover images
+ */
 function getPostsWithoutImages(): PostMeta[] {
   const postsDir = path.join(process.cwd(), 'apps/web/content/posts');
   const posts: PostMeta[] = [];
@@ -163,7 +87,7 @@ function getPostsWithoutImages(): PostMeta[] {
         continue;
       }
 
-      // Only add once per slug (prefer EN)
+      // Only add once per slug (prefer EN for analysis)
       if (seenSlugs.has(slug)) continue;
       seenSlugs.add(slug);
 
@@ -182,88 +106,67 @@ function getPostsWithoutImages(): PostMeta[] {
 }
 
 /**
- * Extract keywords from title and excerpt
+ * Generate image prompt using Gemini AI
  */
-function extractKeywords(text: string): string[] {
-  const lowerText = text.toLowerCase();
-  const keywords: string[] = [];
+async function generateImagePromptWithAI(post: PostMeta): Promise<string> {
+  const prompt = GENERATE_IMAGE_PROMPT_PROMPT
+    .replace('{title}', post.title)
+    .replace('{excerpt}', post.excerpt);
 
-  for (const keyword of Object.keys(VISUAL_MAPPINGS)) {
-    if (lowerText.includes(keyword)) {
-      keywords.push(keyword);
+  try {
+    const response = await generateContent(prompt);
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      const result = JSON.parse(jsonMatch[0]);
+      if (result.imagePrompt) {
+        return result.imagePrompt;
+      }
     }
+  } catch (error: any) {
+    console.log(`    ⚠️ AI prompt generation failed: ${error.message}`);
   }
 
-  return keywords;
+  // Fallback to generic prompt if AI fails
+  return generateFallbackPrompt(post);
 }
 
 /**
- * Determine brand color based on tags
+ * Fallback prompt generator (if AI fails)
  */
-function getBrandColor(tags: string[]): string {
-  const tagSet = new Set(tags.map(t => t.toLowerCase()));
+function generateFallbackPrompt(post: PostMeta): string {
+  // Extract key concepts from title
+  const title = post.title.toLowerCase();
 
-  if (tagSet.has('openai') || tagSet.has('gpt') || tagSet.has('chatgpt')) {
-    return 'emerald green and teal';
-  } else if (tagSet.has('anthropic') || tagSet.has('claude')) {
-    return 'warm amber and coral orange';
-  } else if (tagSet.has('google') || tagSet.has('gemini') || tagSet.has('deepmind')) {
-    return 'royal blue and electric purple';
-  } else if (tagSet.has('nvidia')) {
-    return 'nvidia green and black';
-  } else if (tagSet.has('boston dynamics') || tagSet.has('hyundai')) {
-    return 'steel blue and silver';
-  } else if (tagSet.has('tesla')) {
-    return 'electric red and dark gray';
-  } else if (tagSet.has('research') || tagSet.has('paper')) {
-    return 'silver and platinum white';
+  // Simple keyword-based visual selection
+  let visual = 'abstract technology visualization with flowing data streams';
+
+  if (title.includes('robot') || title.includes('humanoid')) {
+    visual = 'sleek humanoid robot silhouette with glowing joints in industrial setting';
+  } else if (title.includes('career') || title.includes('job') || title.includes('work')) {
+    visual = 'human silhouettes on fragmented corporate platforms with digital elements';
+  } else if (title.includes('model') || title.includes('llm') || title.includes('gpt') || title.includes('claude')) {
+    visual = 'neural network layers with glowing connections and data flow';
+  } else if (title.includes('future') || title.includes('2026') || title.includes('prediction')) {
+    visual = 'forward-looking horizon with emerging technology structures';
+  } else if (title.includes('code') || title.includes('developer') || title.includes('programming')) {
+    visual = 'floating code fragments transforming into abstract patterns';
   }
-  return 'deep blue and cyan';
+
+  return `Cinematic digital art, ${visual}, deep blue and cyan color palette, dark gradient background, futuristic tech aesthetic, sophisticated mood, dramatic volumetric lighting, subtle glow effects, 16:9 composition, abstract conceptual visualization, ultra high quality render`;
 }
 
 /**
- * Generate descriptive image prompt based on content analysis
+ * Generate image using SiliconFlow API
  */
-function generatePromptForPost(post: PostMeta): string {
-  // 1. 제목 + excerpt에서 키워드 추출
-  const combinedText = `${post.title} ${post.excerpt}`;
-  const keywords = extractKeywords(combinedText);
-
-  // 2. 브랜드 색상 결정
-  const themeColor = getBrandColor(post.tags);
-
-  // 3. 키워드 기반 시각 요소 수집
-  const visualElements: string[] = [];
-  const styles: string[] = [];
-
-  for (const keyword of keywords.slice(0, 3)) { // 최대 3개 키워드
-    const mapping = VISUAL_MAPPINGS[keyword];
-    if (mapping) {
-      visualElements.push(mapping.element);
-      styles.push(mapping.style);
-    }
-  }
-
-  // 4. 기본값 (키워드가 없을 경우)
-  if (visualElements.length === 0) {
-    visualElements.push('abstract technology visualization with data flows');
-    styles.push('modern tech');
-  }
-
-  // 5. 프롬프트 구성
-  const mainElement = visualElements[0];
-  const secondaryElements = visualElements.slice(1).join(', ');
-  const styleDescription = [...new Set(styles)].join(', ');
-
-  return `Premium technology blog cover image. MAIN SUBJECT: ${mainElement}. ${secondaryElements ? `SECONDARY: ${secondaryElements}.` : ''} STYLE: ${themeColor} tones with dark gradient background, ${styleDescription}, premium tech publication quality. Sophisticated, forward-thinking, professional mood. Dramatic lighting with subtle highlights and ambient glow. Wide 16:9 aspect ratio. Central focus with depth. CRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO logos, NO watermarks anywhere in the image. NO human faces. Pure abstract/conceptual visual representation only.`;
-}
-
 async function generateImage(post: PostMeta): Promise<string | null> {
   console.log(`\n🎨 Generating image for: ${post.title}`);
   console.log(`📷 Using model: ${IMAGE_MODEL}`);
 
   try {
-    const prompt = generatePromptForPost(post);
+    // Generate prompt with AI
+    console.log(`🤖 Generating prompt with AI...`);
+    const prompt = await generateImagePromptWithAI(post);
     console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`);
 
     const response = await fetch(SILICONFLOW_API_URL, {
@@ -275,6 +178,7 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       body: JSON.stringify({
         model: IMAGE_MODEL,
         prompt: prompt,
+        negative_prompt: 'text, letters, words, numbers, watermark, logo, signature, label, caption, title, subtitle, writing, font, typography, alphabet, characters, symbols, icons with text, blurry, low quality',
         image_size: '1024x576', // 16:9 aspect ratio
         num_inference_steps: 8,
         batch_size: 1,
@@ -287,7 +191,7 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       return null;
     }
 
-    const data = await response.json();
+    const data = await response.json() as { images?: Array<{ url?: string; b64_json?: string }> };
 
     // SiliconFlow returns images in data.images array with url or b64_json
     if (data.images && data.images.length > 0) {
@@ -326,6 +230,9 @@ async function generateImage(post: PostMeta): Promise<string | null> {
   }
 }
 
+/**
+ * Update post frontmatter with cover image
+ */
 function updatePostFrontmatter(locale: string, slug: string, imagePath: string) {
   const postsDir = path.join(process.cwd(), 'apps/web/content/posts');
 
@@ -347,6 +254,7 @@ function updatePostFrontmatter(locale: string, slug: string, imagePath: string) 
 async function main() {
   console.log('🔍 Finding posts without images...\n');
   console.log(`📷 Using model: ${IMAGE_MODEL}`);
+  console.log(`🤖 Using AI for prompt generation`);
   console.log(`🌐 API: SiliconFlow\n`);
 
   const posts = getPostsWithoutImages();
@@ -375,8 +283,8 @@ async function main() {
 
     // Rate limiting: wait between requests
     if (i < posts.length - 1) {
-      console.log('⏳ Waiting 2 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('⏳ Waiting 3 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
 

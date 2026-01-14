@@ -34,6 +34,41 @@ export const EXTRACT_TOPIC_PROMPT = `당신은 AI 기술 큐레이터입니다.
 
 JSON만 응답하세요.`;
 
+export const EXTRACT_TOPIC_FROM_NEWS_PROMPT = `당신은 AI 기술 에디터입니다.
+다음 뉴스/블로그 기사를 읽고, 우리 블로그에서 다룰 만한 토픽인지 판단하세요.
+
+## 기사:
+{content}
+
+## 추출 기준:
+1. AI/기술 관련 뉴스인가?
+2. 최신 정보인가? (1주일 이내 발표)
+3. 독자에게 가치가 있는가?
+4. 이미 널리 알려진 오래된 뉴스가 아닌가?
+
+## 응답 규칙:
+- AI/기술과 무관하면 worthDiscussing: false
+- 단순 제품 광고/홍보는 제외
+- 실질적 기술 변화가 있는 것만 선택
+
+## 응답 (JSON):
+{
+  "worthDiscussing": true/false,
+  "reason": "판단 이유 (1문장)",
+  "topic": {
+    "title": "토픽 제목 (전문적, 20자 이내)",
+    "description": "토픽 설명 (1-2문장)",
+    "keyInsights": ["핵심 인사이트 1", "핵심 인사이트 2"],
+    "researchQuestions": [
+      "추가 조사할 질문 1",
+      "추가 조사할 질문 2",
+      "추가 조사할 질문 3"
+    ]
+  }
+}
+
+JSON만 응답하세요.`;
+
 export const RESEARCH_QUESTION_PROMPT = `당신은 AI 기술 리서처입니다.
 다음 질문에 대해 검색 결과를 바탕으로 정확한 답변을 작성하세요.
 
@@ -147,6 +182,37 @@ export const GENERATE_METADATA_PROMPT = `다음 본문에 맞는 메타데이터
   "description_ko": "한글 메타 설명",
   "description_en": "English meta description",
   "tags": ["tag1", "tag2", "tag3"]
+}
+
+JSON만 응답하세요.`;
+
+export const GENERATE_IMAGE_PROMPT_PROMPT = `당신은 AI 이미지 생성 프롬프트 전문가입니다.
+다음 블로그 글의 제목과 내용을 바탕으로, 커버 이미지 생성용 프롬프트를 작성하세요.
+
+## 글 정보:
+제목: {title}
+요약: {excerpt}
+
+## 프롬프트 작성 규칙:
+1. **절대 텍스트 금지**: 프롬프트에 제목, 레이블, 텍스트 관련 단어 포함 금지
+2. **시각적 메타포**: 글의 핵심 개념을 추상적 이미지로 표현
+3. **분위기**: 미래적, 기술적, 전문적
+4. **색상**: 블루/시안/다크 그라디언트 기본
+5. **구도**: 16:9 비율, 중앙 포커스
+
+## 좋은 예시:
+- "AI 일자리 대체" → "human silhouettes dissolving into digital particles, office environment fading into circuit patterns"
+- "커리어 피라미드 붕괴" → "crumbling geometric pyramid structure with fragmented platforms, figures climbing unstable steps"
+- "LLM 추론 능력" → "neural pathways forming tree-like branching structures, glowing connections"
+
+## 나쁜 예시 (금지):
+- "AI job replacement text" (텍스트 언급)
+- "cover image for blog post" (블로그/커버 언급)
+- "title: AI Revolution" (제목/레이블)
+
+## 응답 (JSON):
+{
+  "imagePrompt": "Cinematic digital art, [시각적 요소들], [색상 팔레트], dark gradient background, futuristic aesthetic, dramatic lighting, 16:9 composition, abstract conceptual visualization, ultra high quality"
 }
 
 JSON만 응답하세요.`;

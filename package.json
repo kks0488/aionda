@@ -7,6 +7,8 @@
     "build": "pnpm --filter web build",
     "start": "pnpm --filter web start",
     "crawl": "tsx scripts/crawl.ts",
+    "crawl-rss": "tsx scripts/crawl-rss.ts",
+    "crawl-all": "pnpm crawl && pnpm crawl-rss",
     "crawl-official": "tsx scripts/crawl-official.ts",
     "select": "tsx scripts/select.ts",
     "auto-select": "tsx scripts/auto-select.ts",
@@ -17,14 +19,15 @@
     "extract-topics": "tsx scripts/extract-topics.ts",
     "research-topic": "tsx scripts/research-topic.ts",
     "write-article": "tsx scripts/write-article.ts",
-    "pipeline": "pnpm crawl && pnpm extract-topics && pnpm research-topic && pnpm write-article && pnpm generate-image"
+    "pipeline": "pnpm crawl-all && pnpm extract-topics && pnpm research-topic && pnpm write-article && pnpm generate-image"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",
     "@google/generative-ai": "^0.21.0",
     "dotenv": "^16.6.1",
     "gray-matter": "^4.0.3",
-    "openai": "^6.16.0"
+    "openai": "^6.16.0",
+    "rss-parser": "^3.13.0"
   },
   "devDependencies": {
     "tsx": "^4.7.0",

@@ -39,13 +39,24 @@
 
 ### 자동 파이프라인 소스
 
-**현재 (갤러리 기반):**
-- DC Inside 특이점갤러리 → 토픽 추출 → 웹 리서치 → 기사 작성
+**다중 소스 통합 파이프라인:**
 
-**확장 예정 (공식 소스 추가):**
-- RSS 피드: Anthropic, OpenAI, Google AI 블로그
-- 뉴스 API: TechCrunch, The Verge
-- 자동 크롤링 → 중요도 판단 → 기사 작성
+| 소스 | Tier | 스크립트 | 데이터 |
+|------|------|----------|--------|
+| 공식 블로그 (Nvidia, DeepMind, Microsoft, HuggingFace) | S | `crawl-rss` | `data/official/` |
+| 뉴스 (TechCrunch, Ars Technica, VentureBeat, MIT Tech Review, Wired, ZDNet) | A | `crawl-rss` | `data/news/` |
+| DC Inside 특이점갤러리 | C | `crawl` | `data/raw/` |
+
+**파이프라인 흐름:**
+```
+[다양한 소스] → extract-topics → research-topic → write-article → generate-image
+     ↓              ↓                  ↓               ↓              ↓
+  S/A/C 우선순위   토픽 추출        Gemini 검색      글 작성      AI 이미지
+```
+
+**이미지 생성:**
+- Gemini로 글 내용 분석 → 시각적 메타포 생성 → SiliconFlow 이미지 생성
+- 텍스트 없는 추상적 시각화
 
 ### 최신성 기준
 
@@ -129,24 +140,22 @@ DC Inside "특이점이 온다" 갤러리의 AI 관련 콘텐츠를 **큐레이�
 ├── packages/crawler/            # 크롤링 모듈
 ├── scripts/                     # 자동화 스크립트
 │   ├── crawl.ts                 # DC Inside 크롤러
-│   ├── extract-topics.ts        # 토픽 추출 (NEW)
-│   ├── research-topic.ts        # 출처 리서치 (NEW)
-│   ├── write-article.ts         # 아티클 작성 (NEW)
-│   ├── generate-image.ts        # 커버 이미지 생성
+│   ├── crawl-rss.ts             # RSS 피드 크롤러 (공식 블로그 + 뉴스)
+│   ├── extract-topics.ts        # 통합 토픽 추출 (S/A/C 우선순위)
+│   ├── research-topic.ts        # Gemini + Google Search 검증
+│   ├── write-article.ts         # 아티클 작성
+│   ├── generate-image.ts        # AI 동적 이미지 프롬프트 + SiliconFlow
 │   ├── prompts/topics.ts        # 프롬프트 모음
-│   ├── auto-select.ts           # (레거시) 품질 점수 기반 선별
-│   ├── verify.ts                # (레거시) AI 사실 검증
-│   ├── translate.ts             # (레거시) 한→영 번역
-│   ├── generate-post.ts         # (레거시) MDX 생성
 │   └── lib/
-│       └── work-queue.ts        # 작업 큐 관리 (24시간 타임아웃)
+│       ├── gemini.ts            # Gemini API 클라이언트
+│       └── work-queue.ts        # 작업 큐 관리
 ├── data/
-│   ├── raw/                     # 수집된 글 (800+)
-│   ├── topics/                  # 추출된 토픽 (NEW)
-│   ├── researched/              # 리서치 완료 (NEW)
-│   ├── selected/                # (레거시) 선별된 글
-│   ├── verified/                # (레거시) 검증된 글
-│   └── work-queue.json          # 작업 상태 관리
+│   ├── raw/                     # DC Inside 수집
+│   ├── official/                # 공식 블로그 RSS (Tier S)
+│   ├── news/                    # 뉴스 RSS (Tier A)
+│   ├── topics/                  # 추출된 토픽
+│   ├── researched/              # 리서치 완료
+│   └── published/               # 발행 완료
 ├── .github/workflows/
 │   └── auto-update.yml          # 자동화 워크플로우
 ├── docs/                        # 문서
@@ -250,14 +259,20 @@ Vercel Auto-Deploy
 ## Manual Commands
 
 ```bash
-# === 새 토픽 기반 파이프라인 (권장) ===
-pnpm crawl              # 최신 글 수집 (5페이지)
-pnpm extract-topics     # 토픽 추출 및 가치 판단
-pnpm research-topic     # 웹 검색으로 출처 확보 (Tier S/A 2개+)
-pnpm write-article      # MIT Tech Review 스타일 아티클 생성
-pnpm generate-image     # 커버 이미지 생성
+# === 다중 소스 파이프라인 (권장) ===
+pnpm crawl              # DC Inside 크롤링
+pnpm crawl-rss          # 공식 블로그 + 뉴스 RSS 수집
+pnpm crawl-all          # 모든 소스 크롤링 (위 두 개 동시 실행)
 
-# === 레거시 파이프라인 ===
+pnpm extract-topics     # 통합 토픽 추출 (S > A > C 우선순위)
+pnpm research-topic     # Gemini + Google Search 검증
+pnpm write-article      # 아티클 생성 (ko + en)
+pnpm generate-image     # AI 동적 프롬프트 + 이미지 생성
+
+# === 전체 파이프라인 한번에 ===
+pnpm pipeline           # crawl → extract → research → write → image
+
+# === 레거시 파이프라인 (사용 안함) ===
 pnpm auto-select        # 품질 점수 기반 자동 선별
 pnpm verify             # 선별된 글 검증
 pnpm translate          # 검증된 글 번역
