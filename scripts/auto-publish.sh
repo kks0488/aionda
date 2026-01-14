@@ -17,7 +17,8 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-publish started"
 echo "=========================================="
 
 # 환경변수 로드
-export PATH="/home/kkaemo/.local/share/pnpm:$PATH"
+export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
+source /home/kkaemo/.bashrc 2>/dev/null || true
 source /home/kkaemo/projects/aionda/.env.local 2>/dev/null || true
 
 # 1. 크롤링 (DC Inside + RSS)

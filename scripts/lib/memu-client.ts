@@ -6,6 +6,17 @@
  */
 
 const MEMU_API_URL = process.env.MEMU_API_URL || 'http://localhost:8100';
+const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 2500);
+
+async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEMU_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 interface MemorizeRequest {
   content: string;
@@ -58,7 +69,7 @@ interface RetrieveResponse {
  */
 export async function checkMemuHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${MEMU_API_URL}/health`);
+    const response = await fetchWithTimeout(`${MEMU_API_URL}/health`);
     const data = await response.json();
     return data.status === 'ok';
   } catch {
@@ -72,7 +83,7 @@ export async function checkMemuHealth(): Promise<boolean> {
  */
 export async function memorize(request: MemorizeRequest): Promise<MemorizeResponse | null> {
   try {
-    const response = await fetch(`${MEMU_API_URL}/memorize`, {
+    const response = await fetchWithTimeout(`${MEMU_API_URL}/memorize`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -104,7 +115,7 @@ export async function memorize(request: MemorizeRequest): Promise<MemorizeRespon
  */
 export async function checkSimilar(request: CheckSimilarRequest): Promise<CheckSimilarResponse | null> {
   try {
-    const response = await fetch(`${MEMU_API_URL}/check-similar`, {
+    const response = await fetchWithTimeout(`${MEMU_API_URL}/check-similar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -131,7 +142,7 @@ export async function checkSimilar(request: CheckSimilarRequest): Promise<CheckS
  */
 export async function retrieve(request: RetrieveRequest): Promise<RetrieveResponse | null> {
   try {
-    const response = await fetch(`${MEMU_API_URL}/retrieve`, {
+    const response = await fetchWithTimeout(`${MEMU_API_URL}/retrieve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
