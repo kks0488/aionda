@@ -105,7 +105,7 @@ async function main() {
 
   // From topics
   if (existsSync(TOPICS_DIR)) {
-    for (const file of readdirSync(TOPICS_DIR).filter(f => f.endsWith('.json'))) {
+    for (const file of readdirSync(TOPICS_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
       const topic = JSON.parse(readFileSync(join(TOPICS_DIR, file), 'utf-8'));
       processedSourceIds.add(topic.sourceId);
     }
@@ -113,7 +113,7 @@ async function main() {
 
   // From published
   if (existsSync(PUBLISHED_DIR)) {
-    for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json'))) {
+    for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
       const published = JSON.parse(readFileSync(join(PUBLISHED_DIR, file), 'utf-8'));
       processedSourceIds.add(published.sourceId);
     }
