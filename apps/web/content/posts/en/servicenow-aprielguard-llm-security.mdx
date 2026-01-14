@@ -1,0 +1,78 @@
+---
+title: Enhancing LLM Security With ServiceNow AprielGuard Guardrail System
+slug: servicenow-aprielguard-llm-security
+date: '2026-01-14'
+locale: en
+description: >-
+  AprielGuard offers multi-layered LLM security with 32k context support and
+  customizable guardrail policies for enterprises.
+tags:
+  - AI Security
+  - LLM
+  - AprielGuard
+  - ServiceNow
+  - Prompt Injection
+author: AI온다
+sourceId: huggingface-517t88
+sourceUrl: 'https://huggingface.co/blog/ServiceNow-AI/aprielguard'
+verificationScore: 0.9333333333333332
+alternateLocale: /ko/posts/servicenow-aprielguard-llm-security
+coverImage: /images/posts/servicenow-aprielguard-llm-security.png
+---
+
+As 'Jailbreak' attacks targeting Large Language Models (LLMs) become increasingly sophisticated, AI security has shifted from being an option to a matter of survival. To prevent incidents where defenseless chatbots spout hate speech or leak corporate confidential information, ServiceNow-AI has introduced a powerful shield: 'AprielGuard.' This tool is the result of the industry's desperate demand to secure not just simple filters, but the overall safety and adversarial robustness of AI systems.
+
+## Spear vs. Shield: The Multi-Layered Defense Framework Proposed by AprielGuard
+
+AprielGuard, released by the ServiceNow-AI research team, precisely addresses the limitations of existing security tools. While previous open-source models like Meta's Llama Guard or IBM's Granite Guardian were limited to short-form verification, AprielGuard utilizes 8B parameters to achieve the sophistication required to understand full context. A particularly noteworthy feature is its support for a long context of up to 32k tokens. This is the key to detecting Prompt Injection attacks hidden within tens of thousands of characters of documents or complex conversation logs.
+
+Performance metrics prove the sharpness of this shield. In major security benchmarks such as Gandalf and Salad-Data, AprielGuard recorded detection performance surpassing existing models. Beyond simply blocking attacks, it shows exceptional response capabilities in agentic workflow scenarios. It has proven its ability to monitor and block security vulnerabilities in real-time that may arise during the complex processes where AI reasons independently and utilizes tools.
+
+## Balancing Latency and Transparency
+
+The most unique feature of AprielGuard is its selective operation of a 'Reasoning' mode. Users can choose between a speed-oriented 'Non-reasoning' mode and a 'Reasoning' mode that emphasizes explainability. In an operational environment, latency translates directly to cost and user experience. The Non-reasoning mode, which performs real-time filtering with a latency of less than approximately 200ms on an A100 GPU, demonstrates performance suitable for service commercialization.
+
+Conversely, the Reasoning mode explains step-by-step why the AI blocked a particular input and which guidelines were violated. This serves as a powerful weapon in fields like finance and healthcare, where security audits or high levels of trust are required. However, the computational overhead generated during the step-by-step reasoning process remains a challenge to be solved. As latency increases, the burden felt by developers during actual service implementation inevitably grows.
+
+## Personalization of Policy: 'Bring-your-own-policy'
+
+While traditional security tools enforced fixed rules, AprielGuard ensures flexibility by presenting the 'Bring-your-own-policy' paradigm. Enterprises can directly define their own taxonomies and safety categories and set decision thresholds. For example, a medical institution can inject patient information protection guidelines, while a financial institution can inject compliance with capital market laws directly into the guardrail policy.
+
+This customization feature is an attractive option for engineers looking to build AI services specialized for specific domains. The process of verifying compliance with complex domain instructions through structured reasoning functions and filtering them in real-time produces an effect similar to having a professional security officer standing by the AI.
+
+## A Sober Evaluation: Mountains Yet to Climb
+
+However, AprielGuard is not a magic wand that solves every problem. According to information released to date, specific UI/UX or API implementation guides for setting domain-specific policies are somewhat lacking. The inconvenience of developers having to dive directly into the code to set up policies could act as an initial barrier to entry.
+
+Furthermore, the lack of clear benchmark results for non-English datasets, such as Korean, is a factor that makes domestic companies hesitate to adopt it. Whether it will show the same level of defense against adversarial attacks that exploit subtle nuances in linguistic characteristics remains in the realm of verification. The lack of specific latency data when the Reasoning mode is activated also acts as an element of uncertainty in service environments that must handle large-scale traffic.
+
+## Practical Guide for Developers
+
+For developers looking to adopt AprielGuard immediately, it is recommended to first test the 8B model released on Hugging Face. First, defense strategies should be bifurcated according to the nature of the service. For chatbot services where user response speed is critical, a hybrid strategy—using the Non-reasoning mode as the default and switching to the Reasoning mode for precise analysis only when high-risk commands are detected—is effective.
+
+When utilizing it in the finance or healthcare domains, the work of redefining the taxonomy based on internally held guideline data must come first. By utilizing AprielGuard's flexible policy setting features to train the model on corporate ethical regulations or control them at the prompt level, organizations can build an AI security system that goes beyond simple blocking and aligns with corporate identity.
+
+## FAQ: 3 Questions About AprielGuard
+
+**Q: What is the biggest difference compared to the existing Llama Guard?**
+**A:** It lies in 'contextual understanding' and 'flexibility' rather than simple detection performance. It supports a long context of 32k tokens to understand complex scenarios and supports 'Bring-your-own-policy,' allowing users to define their own security policies, which is a decisive difference.
+
+**Q: Is the speed too slow for application in real-time services?**
+**A:** In the Non-reasoning mode intended for production environments, it maintains a latency of less than 200ms based on an A100 GPU. Compared to typical LLM response times, this is an overhead that is difficult to perceive. However, caution is needed as the Reasoning mode, which outputs the entire reasoning process, can be significantly slower.
+
+**Q: Does it understand technical terminology in specific industrial fields well?**
+**A:** While the base model has already learned extensive data, industry-specific guidelines must be set by the user. The strength of AprielGuard lies in its design, which makes it easy to combine complex domain knowledge with security rules.
+
+## Conclusion: A Milestone Toward a Safer AI Era
+
+AprielGuard demonstrates that LLM security is evolving from simply 'blocking bad words' to 'ensuring the stability of complex systems.' The support for 32k tokens and flexible policy customization are essential defense mechanisms in the era of AI agents. Although tasks such as verifying Korean datasets and supplementing specific operational guides remain, this multi-layered defense system presented by ServiceNow-AI will serve as a clear milestone for all companies seeking to build trustworthy AI. It is worth watching how much more optimized AprielGuard will become across various languages and hardware environments in the future.
+---
+
+## 참고 자료
+
+- 🛡️ [ServiceNow-AI/AprielGuard - Hugging Face](https://huggingface.co/ServiceNow-AI/AprielGuard)
+- 🛡️ [AprielGuard - ResearchGate](https://www.researchgate.net/publication/386862561_AprielGuard)
+- 🛡️ [AprielGuard: A Unified Safety and Adversarial Robustness Framework for Modern LLM Systems](https://hyper.ai/news/24131)
+- 🛡️ [AprielGuard - ResearchGate](https://www.researchgate.net/publication/386985246_AprielGuard)
+- 🏛️ [AprielGuard: A Guardrail for Safety and Adversarial Robustness in Modern LLM Systems](https://arxiv.org/abs/2512.20293)
+- 🏛️ [AprielGuard: An Input–Output Safeguard Framework for Generative AI](https://arxiv.org/abs/2412.16244)

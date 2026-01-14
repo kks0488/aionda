@@ -1,0 +1,76 @@
+---
+title: 'AI 보안의 새로운 방패: ServiceNow AprielGuard'
+slug: servicenow-aprielguard-llm-security
+date: '2026-01-14'
+locale: ko
+description: AprielGuard는 다층 방어 체계와 맞춤형 정책으로 LLM의 보안성과 신뢰성을 높이는 강력한 보안 도구입니다.
+tags:
+  - AI Security
+  - LLM
+  - AprielGuard
+  - ServiceNow
+  - Prompt Injection
+author: AI온다
+sourceId: huggingface-517t88
+sourceUrl: 'https://huggingface.co/blog/ServiceNow-AI/aprielguard'
+verificationScore: 0.9333333333333332
+alternateLocale: /en/posts/servicenow-aprielguard-llm-security
+coverImage: /images/posts/servicenow-aprielguard-llm-security.png
+---
+
+거대언어모델(LLM)을 향한 '탈옥(Jailbreak)' 공격이 지능화되면서 AI 보안은 이제 선택이 아닌 생존의 문제가 되었습니다. 무방비 상태의 챗봇이 혐오 발언을 쏟아내거나 기업의 기밀 정보를 유출하는 사고를 막기 위해, ServiceNow-AI가 강력한 방패인 'AprielGuard'를 꺼내 들었습니다. 이는 단순한 필터를 넘어 AI 시스템 전체의 안전성과 적대적 견고성을 확보하려는 업계의 절박한 요구를 반영한 결과물입니다.
+
+## 창과 방패의 대결: AprielGuard가 제안하는 다층 방어 체계
+
+ServiceNow-AI 연구팀이 공개한 AprielGuard는 기존 보안 도구들이 가진 한계를 정밀하게 파고듭니다. 메타의 Llama Guard나 IBM의 Granite Guardian 같은 기존 오픈소스 모델들이 단답형 검증에 그쳤다면, AprielGuard는 8B 규모의 매개변수를 활용해 문맥 전체를 파악하는 정교함을 갖췄습니다. 특히 주목할 지점은 32k 토큰에 달하는 긴 컨텍스트 지원입니다. 이는 수만 자 분량의 문서나 복잡한 대화 기록 속에 숨겨진 프롬프트 인젝션(Prompt Injection) 공격을 잡아내는 핵심 열쇠가 됩니다.
+
+성능 지표는 이 방패의 날카로움을 증명합니다. 주요 보안 벤치마크인 Gandalf와 Salad-Data에서 AprielGuard는 기존 모델들을 상회하는 탐지 성능을 기록했습니다. 단순히 공격을 막는 수준을 넘어, 에이전트(Agentic) 워크플로우 시나리오에서의 대응 능력이 탁월합니다. AI가 스스로 추론하고 도구를 사용하는 복잡한 과정에서 발생할 수 있는 보안 허점을 실시간으로 모니터링하고 차단하는 능력을 입증한 셈입니다.
+
+## 지연 시간과 투명성 사이의 줄타기
+
+AprielGuard의 가장 독특한 특징은 '추론(Reasoning)' 모드의 선택적 운영입니다. 사용자는 속도 중심의 'Non-reasoning' 모드와 설명 가능성을 강조한 'Reasoning' 모드 중 하나를 선택할 수 있습니다. 운영 환경에서 지연 시간(Latency)은 곧 비용이자 사용자 경험입니다. A100 GPU 기준 약 200ms 미만의 지연 시간으로 실시간 필터링을 수행하는 Non-reasoning 모드는 서비스 상용화에 적합한 성능을 보여줍니다.
+
+반면 Reasoning 모드는 AI가 왜 해당 입력을 차단했는지, 어떤 가이드라인을 위반했는지 단계별로 설명합니다. 이는 보안 감사나 고도의 신뢰가 필요한 금융, 의료 분야에서 강력한 무기가 됩니다. 다만 단계별 추론 과정에서 발생하는 계산 오버헤드는 해결해야 할 숙제입니다. 지연 시간이 길어질수록 실제 서비스 적용 단계에서 개발자가 느끼는 부담은 가중될 수밖에 없기 때문입니다.
+
+## 정책의 개인화: 'Bring-your-own-policy'
+
+기존 보안 도구들이 정해진 규칙만을 강요했다면, AprielGuard는 'Bring-your-own-policy' 패러다임을 제시하며 유연성을 확보했습니다. 기업은 자신들만의 분류 체계(Taxonomy)와 안전 카테고리를 직접 정의하고, 의사결정 임계값을 설정할 수 있습니다. 예를 들어 의료 분야라면 환자 정보 보호 지침을, 금융권이라면 자본시장법 준수 여부를 가드레일 정책에 직접 주입하는 방식입니다.
+
+이러한 커스터마이징 기능은 특정 도메인에 특화된 AI 서비스를 구축하려는 엔지니어들에게 매력적인 선택지입니다. 구조화된 추론 기능을 통해 복잡한 도메인 지침 준수 여부를 검증하고, 이를 실시간으로 필터링하는 과정은 마치 전문 보안 요원이 AI 옆을 지키는 것과 같은 효과를 냅니다.
+
+## 냉정한 평가: 넘어야 할 산들
+
+하지만 AprielGuard가 모든 문제를 해결하는 마법 지팡이는 아닙니다. 현재까지 공개된 정보에 따르면, 도메인별 특화 정책을 설정하기 위한 구체적인 UI/UX나 API 구현 가이드는 다소 부족한 실정입니다. 개발자가 직접 코드를 파고들며 정책을 세팅해야 하는 번거로움은 초기 진입 장벽으로 작용할 수 있습니다.
+
+또한, 한국어와 같은 비영어권 데이터셋에 대한 벤치마크 결과가 명확하지 않다는 점도 국내 기업들이 도입을 망설이게 하는 요인입니다. 언어적 특성에 따른 미묘한 뉘앙스 차이를 이용한 적대적 공격에 대해서도 동일한 방어력을 보여줄지는 여전히 검증의 영역으로 남아 있습니다. Reasoning 모드 활성화 시 발생하는 구체적인 지연 시간 데이터가 부족하다는 점 역시 대규모 트래픽을 처리해야 하는 서비스 환경에서는 불안 요소로 작용합니다.
+
+## 개발자를 위한 실천 가이드
+
+AprielGuard를 즉시 도입하고자 하는 개발자라면 허깅페이스(Hugging Face)에 공개된 8B 모델을 먼저 테스트해볼 것을 권장합니다. 우선 서비스의 성격에 따라 방어 전략을 이원화해야 합니다. 사용자 응답 속도가 중요한 챗봇 서비스라면 Non-reasoning 모드를 기본으로 설정하고, 고위험군 명령이 감지되었을 때만 Reasoning 모드로 전환하여 정밀 분석을 수행하는 하이브리드 전략이 유효합니다.
+
+금융이나 의료 도메인에서 활용할 경우, 자체 보유한 가이드라인 데이터를 바탕으로 분류 체계를 재정의하는 작업이 선행되어야 합니다. AprielGuard가 제공하는 유연한 정책 설정 기능을 활용해 기업 내부의 윤리 규정을 모델에 학습시키거나 프롬프트 수준에서 제어함으로써, 단순한 차단을 넘어 기업 정체성에 부합하는 AI 보안 체계를 구축할 수 있습니다.
+
+## FAQ: AprielGuard에 대해 궁금한 3가지
+
+**Q: 기존 Llama Guard와 비교했을 때 가장 큰 차이점은 무엇인가요?**
+A: 단순 탐지 성능보다 '맥락 이해력'과 '유연성'에 있습니다. 32k 토큰의 긴 컨텍스트를 지원하여 복잡한 시나리오를 파악하며, 사용자가 직접 보안 정책을 정의할 수 있는 'Bring-your-own-policy'를 지원한다는 점이 결정적인 차이입니다.
+
+**Q: 실시간 서비스에 적용하기에 속도가 너무 느리지는 않을까요?**
+A: 생산 환경을 위한 Non-reasoning 모드에서는 A100 GPU 기준 200ms 미만의 지연 시간을 유지합니다. 일반적인 LLM 응답 시간과 비교하면 체감하기 어려운 수준의 오버헤드입니다. 다만 추론 과정을 모두 출력하는 Reasoning 모드는 이보다 훨씬 느릴 수 있으므로 주의가 필요합니다.
+
+**Q: 특정 산업 분야의 전문 용어도 잘 이해하나요?**
+A: 기본 모델이 이미 광범위한 데이터를 학습했으나, 산업 특화 가이드라인은 사용자가 직접 설정해야 합니다. AprielGuard의 강점은 복잡한 도메인 지식을 보안 규칙에 결합하기 쉽도록 설계되었다는 점에 있습니다.
+
+## 결론: 더 안전한 AI 시대로의 이정표
+
+AprielGuard는 LLM 보안이 단순히 '나쁜 말을 막는 것'에서 '복잡한 시스템의 안정성을 보장하는 것'으로 진화하고 있음을 보여줍니다. 32k 토큰 지원과 유연한 정책 커스터마이징은 AI 에이전트 시대에 필수적인 방어 기제입니다. 비록 한국어 데이터셋 검증이나 구체적인 운영 가이드 보완이라는 과제가 남았지만, ServiceNow-AI가 제시한 이 다층 방어 체계는 신뢰할 수 있는 AI를 구축하려는 모든 기업에게 명확한 이정표가 될 것입니다. 앞으로 AprielGuard가 다양한 언어와 하드웨어 환경에서 얼마나 더 최적화된 성능을 보여줄지 지켜볼 필요가 있습니다.
+---
+
+## 참고 자료
+
+- 🛡️ [ServiceNow-AI/AprielGuard - Hugging Face](https://huggingface.co/ServiceNow-AI/AprielGuard)
+- 🛡️ [AprielGuard - ResearchGate](https://www.researchgate.net/publication/386862561_AprielGuard)
+- 🛡️ [AprielGuard: A Unified Safety and Adversarial Robustness Framework for Modern LLM Systems](https://hyper.ai/news/24131)
+- 🛡️ [AprielGuard - ResearchGate](https://www.researchgate.net/publication/386985246_AprielGuard)
+- 🏛️ [AprielGuard: A Guardrail for Safety and Adversarial Robustness in Modern LLM Systems](https://arxiv.org/abs/2512.20293)
+- 🏛️ [AprielGuard: An Input–Output Safeguard Framework for Generative AI](https://arxiv.org/abs/2412.16244)
