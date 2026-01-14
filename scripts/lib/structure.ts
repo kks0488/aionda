@@ -1,4 +1,4 @@
-import { generateContent } from './deepseek.js';
+import { generateContent } from './gemini.js';
 import {
   ArticleType,
   CLASSIFY_PROMPT,

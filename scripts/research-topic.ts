@@ -1,15 +1,15 @@
 /**
- * Research topics using DeepSeek Reasoner
+ * Research topics using Gemini + Google Search
  *
  * Pipeline: crawl → extract-topics → research-topic → write-article
  *
- * Note: Gemini 제거됨. DeepSeek 지식 기반 리서치 사용.
+ * Gemini Flash + Google Search로 실시간 웹 검색 기반 리서치
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { researchQuestion as deepseekResearch, verifyClaim } from './lib/deepseek';
+import { searchAndVerify } from './lib/gemini';
 
 config({ path: '.env.local' });
 
@@ -60,38 +60,54 @@ interface ResearchedTopic {
   canPublish: boolean;
 }
 
-async function researchQuestionWithDeepSeek(
+function getTierIcon(tier: string): string {
+  switch (tier) {
+    case 'S': return '🏛️';
+    case 'A': return '🛡️';
+    case 'B': return '⚠️';
+    default: return '📄';
+  }
+}
+
+function getDomainFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace('www.', '');
+  } catch {
+    return 'unknown';
+  }
+}
+
+async function researchQuestionWithGemini(
   question: string,
   context: string
 ): Promise<ResearchFinding> {
   console.log(`    🔍 Researching: "${question.substring(0, 50)}..."`);
 
   try {
-    const result = await deepseekResearch(question, context);
+    const result = await searchAndVerify(question, context);
 
-    // DeepSeek 지식 기반이므로 URL 출처 없음
-    // keyFacts를 기반으로 가상의 소스 생성 (신뢰도 표시용)
-    const sources: VerifiedSource[] = [];
+    // 실제 웹 검색 결과를 VerifiedSource 형식으로 변환
+    const sources: VerifiedSource[] = result.sources.map(s => ({
+      url: s.url,
+      title: s.title,
+      tier: s.tier || 'C',
+      domain: getDomainFromUrl(s.url),
+      icon: getTierIcon(s.tier || 'C'),
+    }));
 
-    // 높은 신뢰도면 A 티어로 표시
-    if (result.confidence >= 0.8) {
-      sources.push({
-        url: '#deepseek-knowledge',
-        title: 'DeepSeek Knowledge Base',
-        tier: 'A',
-        domain: 'deepseek.com',
-        icon: '🤖',
-      });
-    }
+    const tierCounts = sources.reduce((acc, s) => {
+      acc[s.tier] = (acc[s.tier] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-    console.log(`       Confidence: ${Math.round(result.confidence * 100)}% | Facts: ${result.keyFacts.length}`);
+    console.log(`       Confidence: ${Math.round(result.confidence * 100)}% | Sources: ${sources.length} (S:${tierCounts['S'] || 0} A:${tierCounts['A'] || 0})`);
 
     return {
       question,
       answer: result.answer,
       confidence: result.confidence,
       sources,
-      unverified: result.needsVerification,
+      unverified: result.unverified,
     };
   } catch (error) {
     console.error(`       ❌ Research failed:`, error);
@@ -114,7 +130,7 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   const context = `${topic.title}\n${topic.description}\n${topic.keyInsights.join('\n')}`;
 
   for (const question of topic.researchQuestions) {
-    const finding = await researchQuestionWithDeepSeek(question, context);
+    const finding = await researchQuestionWithGemini(question, context);
     findings.push(finding);
 
     // Rate limiting
@@ -126,22 +142,24 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
     ? findings.reduce((sum, f) => sum + f.confidence, 0) / findings.length
     : 0;
 
-  // 핵심 인사이트 검증
-  console.log(`\n   🔬 Verifying key insights...`);
-  let verifiedInsights = 0;
-  for (const insight of topic.keyInsights.slice(0, 3)) {
-    const verification = await verifyClaim(insight, context);
-    if (verification.verified && verification.confidence >= 0.7) {
-      verifiedInsights++;
-    }
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
+  // 검증된 출처 확인 (Tier S/A)
+  const hasTrustedSources = findings.some(f =>
+    f.sources.some(s => s.tier === 'S' || s.tier === 'A')
+  );
 
-  const hasVerifiedContent = verifiedInsights > 0 || avgConfidence >= MIN_CONFIDENCE;
+  const hasVerifiedContent = hasTrustedSources || avgConfidence >= MIN_CONFIDENCE;
+
+  // 전체 출처 통계
+  const allSources = findings.flatMap(f => f.sources);
+  const tierStats = allSources.reduce((acc, s) => {
+    acc[s.tier] = (acc[s.tier] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   console.log(`\n   📊 Summary:`);
   console.log(`      Average Confidence: ${Math.round(avgConfidence * 100)}%`);
-  console.log(`      Verified Insights: ${verifiedInsights}/${Math.min(topic.keyInsights.length, 3)}`);
+  console.log(`      Total Sources: ${allSources.length} (S:${tierStats['S'] || 0} A:${tierStats['A'] || 0} B:${tierStats['B'] || 0})`);
+  console.log(`      Has Trusted Sources: ${hasTrustedSources ? '✅' : '❌'}`);
   console.log(`      Can Publish: ${hasVerifiedContent ? '✅' : '❌'}`);
 
   return {
@@ -164,8 +182,8 @@ async function main() {
   const maxTopics = limitArg ? parseInt(limitArg.split('=')[1]) : 5;
 
   console.log('\n' + '═'.repeat(60));
-  console.log('  Research Pipeline (DeepSeek Reasoner)');
-  console.log('  Researching extracted topics');
+  console.log('  Research Pipeline (Gemini + Google Search)');
+  console.log('  Real-time web search for topic research');
   console.log('═'.repeat(60) + '\n');
 
   // Ensure directories exist

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { extractClaims, verifyClaimLegacy as verifyClaim, generateVerificationSummary } from './lib/deepseek.js';
+import { extractClaims, verifyClaim, generateVerificationSummary } from './lib/gemini.js';
 import {
   formatVerificationHeader,
   formatSourcesOutput,

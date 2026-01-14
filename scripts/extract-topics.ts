@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { generateContent } from './lib/deepseek';
+import { generateContent } from './lib/gemini';
 import { EXTRACT_TOPIC_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });
