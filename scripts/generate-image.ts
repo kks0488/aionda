@@ -255,7 +255,7 @@ function generatePromptForPost(post: PostMeta): string {
   const secondaryElements = visualElements.slice(1).join(', ');
   const styleDescription = [...new Set(styles)].join(', ');
 
-  return `Premium technology blog cover image. MAIN SUBJECT: ${mainElement}. ${secondaryElements ? `SECONDARY: ${secondaryElements}.` : ''} TOPIC: "${post.title}". STYLE: ${themeColor} tones with dark gradient background, ${styleDescription}, premium tech publication quality. Sophisticated, forward-thinking, professional mood. Dramatic lighting with subtle highlights and ambient glow. Wide 16:9 aspect ratio. Central focus with depth. Clean layout suitable for text overlay. NO text, logos, or watermarks. NO human faces. Abstract/conceptual representation.`;
+  return `Premium technology blog cover image. MAIN SUBJECT: ${mainElement}. ${secondaryElements ? `SECONDARY: ${secondaryElements}.` : ''} STYLE: ${themeColor} tones with dark gradient background, ${styleDescription}, premium tech publication quality. Sophisticated, forward-thinking, professional mood. Dramatic lighting with subtle highlights and ambient glow. Wide 16:9 aspect ratio. Central focus with depth. CRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO logos, NO watermarks anywhere in the image. NO human faces. Pure abstract/conceptual visual representation only.`;
 }
 
 async function generateImage(post: PostMeta): Promise<string | null> {
