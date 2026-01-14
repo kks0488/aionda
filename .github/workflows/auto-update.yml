@@ -51,10 +51,15 @@ jobs:
       # crawl → extract-topics → research-topic → write-article → generate-image
       # ============================================
 
-      # Phase 1: Crawl
+      # Phase 1: Crawl (All Sources)
       - name: Crawl new posts (DC Inside)
         if: github.event.inputs.skip_crawl != 'true'
         run: pnpm crawl --pages=5
+        continue-on-error: true
+
+      - name: Crawl RSS feeds (Official Blogs + News)
+        if: github.event.inputs.skip_crawl != 'true'
+        run: pnpm crawl-rss
         continue-on-error: true
 
       # Phase 2: Extract Topics
