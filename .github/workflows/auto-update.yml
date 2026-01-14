@@ -62,11 +62,24 @@ jobs:
         run: pnpm crawl-rss
         continue-on-error: true
 
-      # Phase 2: Extract Topics
+      # Phase 2: Extract Topics (with retry)
       - name: Extract discussable topics
         id: extract
         run: |
-          pnpm extract-topics
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if pnpm extract-topics; then
+              echo "✅ Topic extraction completed successfully"
+              break
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "⚠️ Extract attempt $RETRY_COUNT failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+
           TOPIC_COUNT=$(ls -1 data/topics/*.json 2>/dev/null | wc -l)
           echo "topic_count=$TOPIC_COUNT" >> $GITHUB_OUTPUT
           echo "📋 Extracted $TOPIC_COUNT topic(s)"
