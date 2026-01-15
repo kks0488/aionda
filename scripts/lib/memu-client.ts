@@ -6,7 +6,7 @@
  */
 
 const MEMU_API_URL = process.env.MEMU_API_URL || 'http://localhost:8100';
-const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 2500);
+const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 15000);
 
 async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEMU_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -16,6 +16,11 @@ async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEM
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return 'name' in error && (error as { name?: unknown }).name === 'AbortError';
 }
 
 interface MemorizeRequest {
@@ -101,6 +106,10 @@ export async function memorize(request: MemorizeRequest): Promise<MemorizeRespon
 
     return await response.json();
   } catch (error) {
+    if (isAbortError(error)) {
+      console.warn(`[memU] Memorize timed out after ${MEMU_TIMEOUT_MS}ms`);
+      return null;
+    }
     console.error('[memU] Memorize error:', error);
     return null;
   }
@@ -132,6 +141,10 @@ export async function checkSimilar(request: CheckSimilarRequest): Promise<CheckS
 
     return await response.json();
   } catch (error) {
+    if (isAbortError(error)) {
+      console.warn(`[memU] Check-similar timed out after ${MEMU_TIMEOUT_MS}ms`);
+      return null;
+    }
     console.error('[memU] Check similar error:', error);
     return null;
   }
@@ -159,6 +172,10 @@ export async function retrieve(request: RetrieveRequest): Promise<RetrieveRespon
 
     return await response.json();
   } catch (error) {
+    if (isAbortError(error)) {
+      console.warn(`[memU] Retrieve timed out after ${MEMU_TIMEOUT_MS}ms`);
+      return null;
+    }
     console.error('[memU] Retrieve error:', error);
     return null;
   }

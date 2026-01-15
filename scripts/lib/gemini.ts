@@ -19,13 +19,21 @@ const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
 );
 const API_KEY = process.env.GEMINI_API_KEY || '';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 
 if (!AI_API_DISABLED && !API_KEY) {
   console.warn('⚠️ GEMINI_API_KEY not found in .env.local');
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
+
+const TODAY = new Date().toISOString().split('T')[0];
+const CONTEXT_INJECTION = `
+<system_context>
+Today's Date: ${TODAY}
+Current State-of-the-Art (2026): Gemini 3, GPT-5, Claude 4, DeepSeek-V4
+Operational Context: You are operating in 2026. Focus on the latest AI breakthroughs. Legacy models like Gemini 1.5, GPT-4, or Claude 3 are considered historical references unless specifically discussed for comparison.
+</system_context>`;
 
 function assertAiEnabled() {
   if (AI_API_DISABLED) {
@@ -45,7 +53,8 @@ export async function generateContent(prompt: string): Promise<string> {
   assertAiEnabled();
   try {
     const model = genAI.getGenerativeModel({ model: MODEL });
-    const result = await model.generateContent(prompt);
+    const fullPrompt = CONTEXT_INJECTION + '\n' + prompt;
+    const result = await model.generateContent(fullPrompt);
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -67,7 +76,7 @@ export async function searchAndVerify(question: string, context?: string): Promi
 
   const contextSection = context ? `\n<context>\n${context.substring(0, 1500)}\n</context>` : '';
 
-  const prompt = `<task>질문에 대한 검색 및 답변</task>
+  const prompt = CONTEXT_INJECTION + `\n<task>질문에 대한 검색 및 답변</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
@@ -151,7 +160,7 @@ export async function verifyClaim(
   assertAiEnabled();
   const strategy = buildSearchStrategy(claim);
 
-  const prompt = `<task>사실 주장 검증</task>
+  const prompt = CONTEXT_INJECTION + `\n<task>사실 주장 검증</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
@@ -162,6 +171,7 @@ export async function verifyClaim(
 - 가짜 URL 생성 절대 금지
 - 출처 모르면 sources: []
 - Tier S(학술) > A(공식) > B(SNS) > C(일반)
+- 2026년 현재 시점에서 더 이상 유효하지 않은 정보(구식 모델 성능 등)는 허위 정보로 간주하여 verified: false 처리
 </critical_rules>
 
 <claim>
@@ -230,7 +240,7 @@ ${originalContent.substring(0, 800)}
  * 검증 가능한 주장 추출
  */
 export async function extractClaims(content: string): Promise<any[]> {
-  const prompt = `<task>검증 가능한 사실 주장 추출</task>
+  const prompt = CONTEXT_INJECTION + `\n<task>검증 가능한 사실 주장 추출</task>
 
 <instruction>
 반드시 JSON 배열만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
@@ -240,6 +250,7 @@ export async function extractClaims(content: string): Promise<any[]> {
 - 검증 가능한 사실적 주장만 추출
 - 추측/의견 제외 ("~인 것 같다", "아마도")
 - 구체적 데이터 있는 주장만 (날짜, 수치, 벤치마크)
+- 현재(2026년) 시점에서 이미 구식이 된 정보는 추출 우선순위를 낮추거나(low) 제외
 </critical_rules>
 
 <content>
@@ -272,7 +283,7 @@ export async function translateToEnglish(
 ): Promise<{ title_en: string; content_en: string }> {
   assertAiEnabled();
 
-  const prompt = `<task>한→영 기술 글 번역</task>
+  const prompt = CONTEXT_INJECTION + `\n<task>한→영 기술 글 번역</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
@@ -280,7 +291,7 @@ export async function translateToEnglish(
 
 <critical_rules>
 - 기술 용어: 표준 영어 (언어모델 → Language Model)
-- 제품명/회사명: 그대로 유지 (GPT-4, Claude, OpenAI)
+- 제품명/회사명: 그대로 유지 (GPT-5, Gemini 3, Claude 4 등 최신 명칭 반영)
 - 코드 블록/URL: 그대로 유지
 - 비격식체 → 전문적 영어
 - 마크다운 형식 유지

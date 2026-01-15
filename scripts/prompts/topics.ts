@@ -44,12 +44,13 @@ export const EXTRACT_TOPIC_FROM_NEWS_PROMPT = `당신은 AI 기술 에디터입�
 1. AI/기술 관련 뉴스인가?
 2. 최신 정보인가? (1주일 이내 발표)
 3. 독자에게 가치가 있는가?
-4. 이미 널리 알려진 오래된 뉴스가 아닌가?
+4. 이미 널리 알려진 오래된 뉴스가 아닌가? (예: 2026년 시점에서 Gemini 1.5, GPT-4 소식은 구식임)
 
 ## 응답 규칙:
 - AI/기술과 무관하면 worthDiscussing: false
 - 단순 제품 광고/홍보는 제외
 - 실질적 기술 변화가 있는 것만 선택
+- 2026년 기준 레거시 모델(Gemini 1.x, GPT-4) 관련 단순 소식은 worthDiscussing: false
 
 ## 응답 (JSON):
 {

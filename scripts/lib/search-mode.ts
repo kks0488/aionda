@@ -203,9 +203,11 @@ export function buildSearchStrategy(claim: {
       } else if (entityLower.includes('anthropic') || entityLower.includes('claude')) {
         domainFilters.push('site:anthropic.com');
       } else if (entityLower.includes('google') || entityLower.includes('gemini')) {
-        domainFilters.push('site:blog.google', 'site:deepmind.google');
+        domainFilters.push('site:blog.google', 'site:deepmind.google', 'site:ai.google.dev');
       } else if (entityLower.includes('meta') || entityLower.includes('llama')) {
         domainFilters.push('site:ai.meta.com');
+      } else if (entityLower.includes('deepseek')) {
+        domainFilters.push('site:deepseek.com');
       }
     }
   }
@@ -318,10 +320,10 @@ export function getVerificationTimestamp(): string {
 }
 
 /**
- * Get system mode based on threshold date (2025-11-23)
+ * Get system mode based on threshold date (2026-01-15)
  */
 export function getSystemMode(): 'online' | 'offline' {
-  const threshold = new Date('2025-11-23T00:00:00');
+  const threshold = new Date('2026-01-15T00:00:00');
   const now = new Date();
   return now >= threshold ? 'online' : 'offline';
 }

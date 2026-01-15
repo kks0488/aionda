@@ -65,12 +65,29 @@ const GARBAGE_TITLES = [
   '...',
 ];
 
+const MAX_AGE_DAYS = 14;
+
 // Check if content is a meaningful article, not just a chat message
 function isValidArticle(post: RawPost): { valid: boolean; reason?: string } {
   const content = post.contentText || '';
   const rawContent = post.content || '';
   const title = post.title?.trim() || '';
   const combined = `${title} ${content}`.toLowerCase();
+
+  // Freshness check
+  if (post.date) {
+    try {
+      const postDate = new Date(post.date.replace(/\./g, '-'));
+      const now = new Date();
+      const ageInDays = (now.getTime() - postDate.getTime()) / (1000 * 3600 * 24);
+      
+      if (ageInDays > MAX_AGE_DAYS) {
+        return { valid: false, reason: `stale_content: ${Math.round(ageInDays)} days old (max: ${MAX_AGE_DAYS})` };
+      }
+    } catch (e) {
+      console.warn(`⚠️ Failed to parse date: ${post.date}`);
+    }
+  }
 
   // Check for garbage title
   if (!title || GARBAGE_TITLES.some((gt) => title === gt)) {
