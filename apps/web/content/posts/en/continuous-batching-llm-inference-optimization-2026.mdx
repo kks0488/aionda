@@ -1,0 +1,56 @@
+---
+title: Continuous Batching and PagedAttention for GPT 5.2 Inference Optimization
+slug: continuous-batching-llm-inference-optimization-2026
+date: '2026-01-15'
+locale: en
+description: >-
+  Explore how continuous batching and PagedAttention optimize GPT 5.2 inference
+  and maximize GPU throughput in 2026.
+tags:
+  - LLM
+  - Continuous Batching
+  - PagedAttention
+  - GPT 5.2
+  - Inference Optimization
+author: AI온다
+sourceId: huggingface-2ia948t
+sourceUrl: 'https://huggingface.co/blog/continuous_batching'
+verificationScore: 0.9666666666666667
+alternateLocale: /ko/posts/continuous-batching-llm-inference-optimization-2026
+coverImage: /images/posts/continuous-batching-llm-inference-optimization-2026.png
+---
+
+Every millisecond a GPU remains idle is equivalent to burning cash. The secret that allows Large Language Models (LLMs) such as GPT 5.2 and Claude 4.5 to provide real-time responses to hundreds of millions of users in 2026 lies not in larger parameters, but in 'inference optimization' running deep within the engine room. At its center is 'Continuous Batching,' a technology that breaks down static queues and inserts tokens in real-time. This technology has emerged beyond a mere accelerator into a survival strategy that determines the profitability of AI companies.
+
+'Static Batching,' which was the standard during the GPT-4 era, was the pinnacle of inefficiency. Static batching is a structure where new requests must wait until all existing requests in the batch are completed. For example, if a request to generate 10 sentences and a request to generate 1,000 tokens are grouped into one batch, the short request has to wait idly while occupying GPU memory until the long request is finished, even if it completes in a few seconds. This was no different from a bus standing in the middle of a city with all doors locked until a single passenger got off.
+
+Continuous batching, proposed by the vLLM team, transformed this bus into a subway where passengers frequently board and exit. At the end of each request's token generation cycle (iteration), completed requests are immediately exported, and the empty space is filled with new pending requests. As of January 2026, high-efficiency models like DeepSeek-V4 have used this method to increase throughput by at least 4x to as much as 10x compared to static batching. The GPU has now become a massive factory churning out tokens without a moment's rest.
+
+Simply inserting requests is not enough. For continuous batching to perform at its best, 'PagedAttention'—a revolution in memory management—is essential. In the past, memory waste was significant because the 'KV cache' memory required for LLMs to generate answers had to be allocated in large, contiguous chunks in advance. However, PagedAttention manages the KV cache by breaking it into small block units, similar to the virtual memory techniques used in operating systems. Thanks to this, even when new requests enter via continuous batching, empty spaces can be filled seamlessly without memory fragmentation. As memory efficiency approaches near-perfection, the number of concurrent users a single GPU can accommodate has increased exponentially.
+
+Of course, there are challenges. State-of-the-art (SOTA) models in 2026 possess multimodal capabilities to process high-resolution video and complex code simultaneously alongside text. When input data (Prefill) becomes extremely long, a bottleneck occurs where the token generation speed of existing users slows down noticeably during the process of adding new requests to the batch. To solve this, OpenAI and Google introduced 'Inference Disaggregation' technology. This involves physically separating dedicated nodes that process inputs from nodes that generate tokens, ensuring they do not hinder each other's performance.
+
+Developers must now focus on 'SLO-Aware' scheduling rather than simple model performance metrics. The era of processing all requests equally is over. A sophisticated priority algorithm determines the quality of service: minimizing the Time to First Token (TTFT) for real-time chat users while guaranteeing total throughput for enterprise customers running massive document summarizations. Infrastructure engineering in 2026 has evolved from choosing a model to a realm of economics—deciding how to allocate tokens at what speed to whom within limited resources.
+
+**FAQ**
+
+**Q: Does implementing continuous batching unconditionally shorten user latency?**
+A: Not necessarily. While throughput increases dramatically, if new requests continue to arrive while the batch is full, the Time Between Tokens (TBT) perceived by individual users may increase slightly. Therefore, depending on the nature of the service, scheduling options such as 'Shortest Job First (SJF)' or 'Deadline-Aware' must be appropriately mixed.
+
+**Q: Is it efficient even when the input length is tens of thousands of tokens in multimodal models?**
+A: Extremely long inputs are difficult to handle with continuous batching alone without 'Chunked Prefill' technology. Long inputs must be divided into small chunks and pushed into the batch gradually to avoid interrupting the flow of existing generation tasks. If you are operating a model at the level of GPT 5.2, it is essential to consider an inference disaggregation architecture.
+
+**Q: Can this effect be seen in frameworks other than vLLM?**
+A: Currently, major inference engines such as NVIDIA's TensorRT-LLM and Hugging Face's TGI have all adopted continuous batching as a standard feature. However, as of 2026, actual performance differences arise based on how flexibly each framework combines GPU hardware's FP4/FP6 quantization acceleration with continuous batching.
+
+Ultimately, the battlefield of the AI race has shifted from model size to 'inference economics.' The combination of continuous batching and PagedAttention is the primary contributor to offsetting expensive GPU costs with user subscription fees. The future challenge lies in how to further fragment and distribute the massive inputs of the multimodal era to implement an artificial intelligence experience that flows seamlessly, like electricity.
+---
+
+## 참고 자료
+
+- 🛡️ [vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention](https://blog.vllm.ai/2023/06/20/vllm.html)
+- 🛡️ [Optimal Scheduling Algorithms for LLM Inference: Theory and Practice](https://arxiv.org/abs/2508.01002)
+- 🛡️ [[vLLM] LLM Inference Optimizations: Chunked Prefill and Decode-Maximal Batching](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEGZP1mRbGtEUjsM4e1m-vn7uoExT8py9YY1j--Rj_7YN-rOqB1l278jljSp3jfT66jFINzUDU2rtGSgqkWdMg8iO392ptEAKd1vGR1zpxV6ZI88bCuBgcoBeq5zadfRY9P2ijopaqDlMfKvoP3U7p4VBCoU7_USeHzOcPyv0NqSWwDhGz1Fn7bybmdv_W2kO0=)
+- 🏛️ [Efficient Memory Management for Large Language Model Serving with PagedAttention](https://arxiv.org/abs/2309.06180)
+- 🏛️ [Throughput-Optimal Scheduling Algorithms for LLM Inference and AI Agents](https://arxiv.org/abs/2504.10234)
+- 🏛️ [AI Is No Longer About Training Bigger Models — It's About Inference at Scale - SambaNova](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEjTu37SNfHm9BrKFGHgO3FlN9g_n9rv3Endv-tqkP2ZGp-utvD6ZLcmUzVASuipPrUSpByo1ShFUYcQloMfT-Xn_y0rCD1nzfbVgkhukunJB5x3c5tMMfzgjVKDU5Rk16gMYkCZP3w9fHbORXWw7fi2osypJq_cClxgIBrhLwon4R_ZyONq7GuKs4ttg5YFQlXWnaLW2qcJWa4PamamA==)

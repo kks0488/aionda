@@ -1,0 +1,54 @@
+---
+title: 'GPT 5.2 시대의 생존 전략, 연속 배칭 기반 추론 최적화'
+slug: continuous-batching-llm-inference-optimization-2026
+date: '2026-01-15'
+locale: ko
+description: 'GPT 5.2 시대, GPU 효율을 극대화하는 연속 배칭과 페이지드어텐션 등 LLM 추론 최적화 기술의 진화와 전략을 다룹니다.'
+tags:
+  - LLM
+  - Continuous Batching
+  - PagedAttention
+  - GPT 5.2
+  - Inference Optimization
+author: AI온다
+sourceId: huggingface-2ia948t
+sourceUrl: 'https://huggingface.co/blog/continuous_batching'
+verificationScore: 0.9666666666666667
+alternateLocale: /en/posts/continuous-batching-llm-inference-optimization-2026
+coverImage: /images/posts/continuous-batching-llm-inference-optimization-2026.png
+---
+
+GPU가 유휴 상태인 매 밀리초는 타오르는 현금과 같다. 2026년 현재 GPT 5.2와 Claude 4.5 같은 거대언어모델(LLM)이 수억 명의 사용자에게 실시간으로 답변을 쏟아낼 수 있는 비결은 더 큰 매개변수가 아니라, 엔진룸 깊숙한 곳에서 돌아가는 '추론 최적화'에 있다. 그 중심에는 정적인 대기열을 깨부수고 토큰을 실시간으로 끼워 넣는 '연속 배칭(Continuous Batching)' 기술이 자리 잡고 있다. 이 기술은 단순한 가속기를 넘어 AI 기업의 수익성을 결정짓는 생존 전략으로 부상했다.
+
+과거 GPT-4 시절에 머물러 있던 '정적 배칭(Static Batching)'은 비효율의 극치였다. 정적 배칭은 모든 요청이 끝날 때까지 새로운 요청을 받지 못하고 기다려야 하는 구조다. 예를 들어 10개의 문장을 생성하는 요청과 1,000개의 토큰을 뽑아내야 하는 요청이 한 배치에 묶이면, 짧은 요청은 단 몇 초 만에 끝나더라도 긴 요청이 완료될 때까지 GPU 메모리를 점유한 채 멍하니 기다려야 했다. 이는 도심 한복판에서 승객 한 명이 내릴 때까지 모든 문을 걸어 잠그고 서 있는 버스와 다를 바 없었다.
+
+vLLM 팀이 제안한 연속 배칭은 이 버스를 수시로 승객이 타고 내리는 지하철로 바꿨다. 각 요청의 토큰 생성 주기(Iteration)가 끝날 때마다 완료된 요청은 즉시 내보내고, 그 빈자리에 대기 중인 새로운 요청을 채워 넣는다. 2026년 1월 기준, DeepSeek-V4와 같은 고효율 모델들은 이 방식을 통해 정적 배칭 대비 처리량(Throughput)을 최소 4배에서 최대 10배까지 끌어올렸다. GPU는 이제 단 한 순간도 쉬지 않고 토큰을 찍어내는 거대한 공장이 되었다.
+
+단순히 끼워 넣는 것만으로는 부족하다. 연속 배칭이 제 성능을 발휘하려면 메모리 관리의 혁명인 '페이지드어텐션(PagedAttention)'이 필수적이다. 과거에는 LLM이 답변을 생성할 때 필요한 'KV 캐시' 메모리를 미리 거대하게 할당해야 했기에 메모리 낭비가 심했다. 하지만 페이지드어텐션은 운영체제의 가상 메모리 기법처럼 KV 캐시를 작은 블록 단위로 쪼개 관리한다. 덕분에 연속 배칭으로 새로운 요청이 들어와도 메모리 단편화 없이 빈 공간을 빈틈없이 채울 수 있다. 메모리 효율이 0에 수렴하게 되면서, 단일 GPU가 수용할 수 있는 동시 접속자 수는 비약적으로 증가했다.
+
+물론 장점만 있는 것은 아니다. 2026년의 SOTA(State-of-the-Art) 모델들은 텍스트를 넘어 고해상도 영상과 복잡한 코드를 동시에 처리하는 멀티모달 능력을 갖췄다. 입력 데이터(Prefill)가 극단적으로 길어지면, 새로운 요청을 배치에 태우는 과정에서 기존 사용자들의 토큰 생성 속도가 눈에 띄게 느려지는 병목 현상이 발생한다. 이를 해결하기 위해 오픈에이아이(OpenAI)와 구글은 '추론 분리(Disaggregation)' 기술을 도입했다. 입력을 처리하는 전용 노드와 토큰을 생성하는 노드를 물리적으로 분리하여, 서로가 서로의 발목을 잡지 않도록 설계한 것이다.
+
+개발자들은 이제 단순한 모델 성능 수치보다 'SLO-Aware' 스케줄링에 집중해야 한다. 모든 요청을 공평하게 처리하는 시대는 지났다. 실시간 채팅 사용자에게는 첫 번째 토큰이 나오는 시간(TTFT)을 최소화해주고, 대량의 문서 요약을 돌리는 기업 고객에게는 전체 처리량을 보장해주는 정교한 우선순위 알고리즘이 서비스의 급을 결정한다. 2026년의 인프라 엔지니어링은 모델을 고르는 일이 아니라, 제한된 자원 안에서 누구에게 어떤 속도로 토큰을 배분할지 결정하는 경제학의 영역으로 진화했다.
+
+**FAQ**
+
+**Q: 연속 배칭을 도입하면 사용자 지연 시간(Latency)이 무조건 짧아지나?**
+A: 반드시 그렇지는 않다. 처리량(Throughput)은 비약적으로 늘어나지만, 배치가 꽉 찬 상태에서 새로운 요청이 계속 들어오면 개별 사용자가 느끼는 토큰 간 생성 시간(TBT)은 미세하게 늘어날 수 있다. 따라서 서비스의 성격에 따라 '최단 작업 우선(SJF)'이나 '마감 시간 준수' 스케줄링 옵션을 적절히 섞어야 한다.
+
+**Q: 멀티모달 모델에서 입력 길이가 수만 토큰일 때도 효율적인가?**
+A: 매우 긴 입력값은 '청크드 프리필(Chunked Prefill)' 기술 없이 연속 배칭만으로 감당하기 어렵다. 긴 입력을 작은 덩어리로 나눠 조금씩 배치에 밀어 넣어야 기존 생성 작업의 흐름을 끊지 않는다. GPT 5.2 수준의 모델을 운영한다면 추론 분리 아키텍처를 검토하는 것이 필수적이다.
+
+**Q: vLLM 외에 다른 프레임워크에서도 이 효과를 볼 수 있나?**
+A: 현재 NVIDIA의 TensorRT-LLM이나 Hugging Face의 TGI 등 주요 추론 엔진들은 모두 연속 배칭을 기본 사양으로 채택했다. 다만 2026년 시점에서는 각 프레임워크가 GPU 하드웨어의 FP4/FP6 양자화 가속을 얼마나 유연하게 연속 배칭과 결합하느냐에 따라 실제 성능 차이가 발생한다.
+
+결국 AI 경쟁의 승부처는 모델의 크기가 아니라 '추론의 경제성'으로 옮겨왔다. 연속 배칭과 페이지드어텐션의 결합은 비싼 GPU 비용을 사용자들의 구독료로 상쇄할 수 있게 만든 일등 공신이다. 앞으로의 과제는 멀티모달 시대의 거대한 입력을 어떻게 더 잘게 쪼개고 분산시켜, 마치 전기가 흐르듯 끊김 없는 인공지능 경험을 구현하느냐에 달려 있다.
+---
+
+## 참고 자료
+
+- 🛡️ [vLLM: Easy, Fast, and Cheap LLM Serving with PagedAttention](https://blog.vllm.ai/2023/06/20/vllm.html)
+- 🛡️ [Optimal Scheduling Algorithms for LLM Inference: Theory and Practice](https://arxiv.org/abs/2508.01002)
+- 🛡️ [[vLLM] LLM Inference Optimizations: Chunked Prefill and Decode-Maximal Batching](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEGZP1mRbGtEUjsM4e1m-vn7uoExT8py9YY1j--Rj_7YN-rOqB1l278jljSp3jfT66jFINzUDU2rtGSgqkWdMg8iO392ptEAKd1vGR1zpxV6ZI88bCuBgcoBeq5zadfRY9P2ijopaqDlMfKvoP3U7p4VBCoU7_USeHzOcPyv0NqSWwDhGz1Fn7bybmdv_W2kO0=)
+- 🏛️ [Efficient Memory Management for Large Language Model Serving with PagedAttention](https://arxiv.org/abs/2309.06180)
+- 🏛️ [Throughput-Optimal Scheduling Algorithms for LLM Inference and AI Agents](https://arxiv.org/abs/2504.10234)
+- 🏛️ [AI Is No Longer About Training Bigger Models — It's About Inference at Scale - SambaNova](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEjTu37SNfHm9BrKFGHgO3FlN9g_n9rv3Endv-tqkP2ZGp-utvD6ZLcmUzVASuipPrUSpByo1ShFUYcQloMfT-Xn_y0rCD1nzfbVgkhukunJB5x3c5tMMfzgjVKDU5Rk16gMYkCZP3w9fHbORXWw7fi2osypJq_cClxgIBrhLwon4R_ZyONq7GuKs4ttg5YFQlXWnaLW2qcJWa4PamamA==)
