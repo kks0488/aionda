@@ -1,0 +1,82 @@
+---
+title: 'Evolution of ASR: Conquering Long Form Audio and Hallucinations'
+slug: open-asr-benchmark-long-form-evolution
+date: '2026-01-15'
+locale: en
+description: >-
+  Explore how GPT 5.2 and Gemini 3 address long-form audio hallucinations in the
+  new Open ASR benchmark.
+tags:
+  - ASR
+  - GPT-5.2
+  - Long-form Audio
+  - Hugging Face
+  - DeepSeek-V4
+author: AI온다
+sourceId: huggingface-d2m86a
+sourceUrl: 'https://huggingface.co/blog/open-asr-leaderboard'
+verificationScore: 0.9499999999999998
+alternateLocale: /ko/posts/open-asr-benchmark-long-form-evolution
+coverImage: /images/posts/open-asr-benchmark-long-form-evolution.png
+---
+
+AI's 'ears' for transcribing human speech have finally begun to develop 'patience.' Speech recognition (ASR) models, which previously obsessed over short 30-second sentences, have now entered a new testing ground: conquering hour-long podcasts and complex, unscripted discussions. The major update to Hugging Face's 'Open ASR Benchmark' has moved beyond simply measuring accuracy; it has become a battlefield where AI must prove how long it can maintain focus without 'hallucinating.'
+
+## Targeting the Quagmire of Long-form Audio: Hallucinations and Timestamp Drift
+
+The core of this benchmark update is the introduction of the 'Long-form track' and the 'Multilingual expansion track.' While traditional evaluation methods focused solely on the Word Error Rate (WER) of clean, short audio files, the new system probes chronic flaws that occur in audio longer than 10 minutes.
+
+Open-source models currently considered industry standards, such as Whisper v3 and NVIDIA's Canary, have exposed fatal weaknesses in long-form processing. Whisper v3 adheres to a fixed-window approach, processing audio in 30-second segments. This method triggers 'hallucinations'—where the AI invents speech that doesn't exist—especially during heavy background noise or long silences. Furthermore, 'timestamp drift,' where the text fails to align with the actual audio timing, has been a persistent nightmare for video subtitle creators.
+
+In contrast, multimodal models leading the market in 2026, such as GPT 5.2 and Gemini 3, have actively adopted 'LLM-guided decoding' technology to solve these issues. Rather than analyzing audio signals in isolation, these models use a Large Language Model to infer context and select words. According to the benchmark results, models employing this hybrid approach have reduced hallucination rates in long-form recognition by more than 25% compared to the legacy Whisper models.
+
+## Does Korean Still Suffer from the 'Data Gap'?
+
+The results of the multilingual track offer both hope and challenges for Korean users. The 'real-world muscle' of Korean recognition has been strengthened by incorporating vast amounts of practical data from YouTube and podcasts. However, a distinct performance gap compared to English models remains.
+
+Research indicates that non-English languages, including Korean, experience hallucinations 1.8 times more frequently than English. Even GPT 5.2 commits subtle mistranslations in specialized medical or legal domains due to the proportional differences in its internal training data. In the case of the Canary model, a 'performance trade-off' has been observed where transcription accuracy for certain languages slightly declined as its multilingual support expanded.
+
+Nevertheless, technical progress is remarkable. Recent SOTA (state-of-the-art) models combining Conformer encoders with Qwen-based LLM decoders have recorded processing speeds exceeding 2,000x Real-Time Factor (2,000 RTFx). This speed allows an hour-long transcript to be generated in just 1.8 seconds. It is encouraging that these models aren't just fast; they maintain contextual consistency through 'Minimum Bayes Risk (MBR) decoding' techniques.
+
+## Analysis: Why 'Long-form Recognition' is Now the Core of Business
+
+Long-form audio processing capability is not just a technical metric; it is the gateway to monetizable data. When companies attempt to turn thousands of hours of meeting minutes, customer consultation data, and internal training videos into assets, the biggest obstacle has always been 'reliability.' From a business perspective, 95% accuracy—which still requires manual human review—is practically equivalent to 0%.
+
+This Open ASR Benchmark update poses two challenges for model developers. First, stop marketing based on accuracy figures for short sentences. Second, prove 'survivability' in 'Dirty Data' environments, such as noisy cafes or subways. As emerging players like DeepSeek-V4 release low-cost, high-efficiency long-form recognition models, established Big Tech companies are now forced to compete on the basis of more sophisticated timestamp precision.
+
+Limitations remain clear. It is still tricky to balance latency and accuracy for real-time broadcast subtitling services. Additionally, Korean dialects and 'spontaneous speech' from everyday conversations remain high ground that AI has yet to fully conquer.
+
+## Practical Application: What Should Developers and Enterprises Choose?
+
+If you need to build a speech recognition service today, relying on a single model is a risky strategy. As the benchmark data shows, while the general-purpose Whisper v3 remains cost-effective, additional algorithms to control hallucinations are essential for long-form content.
+
+1. **Adopt Hybrid Architectures**: Vectorize audio with fast Conformer-based encoders and connect them to an LLM decoder capable of runtime prompt adaptation to improve recognition rates for domain-specific terminology.
+2. **Automate Validation Processes**: Apply the 'MBR decoding' principles used in the benchmarks to implement logic at the service layer that selects the most statistically safe output from multiple candidate sentences generated by the model.
+3. **Integrate with RAG**: Moving beyond simple transcription, connecting a domain-specific proper noun dictionary via Retrieval-Augmented Generation (RAG) technology can drastically reduce mistranslations of specialized Korean terminology.
+
+## FAQ
+
+**Q: Is there a way for users to reduce hallucinations in Whisper v3?**
+**A:** There is no perfect solution, but using 'prompting' techniques—providing the topic and key keywords of the conversation beforehand—or applying noise-canceling preprocessing to the audio can significantly lower hallucination rates.
+
+**Q: Are multimodal models like GPT 5.2 or Gemini 3 superior to dedicated ASR models?**
+**A:** Multimodal models are overwhelming in their ability to grasp context and construct natural sentences. However, in terms of operational cost and inference speed, dedicated ASR models like Canary or the Whisper series remain more economical. The choice should depend on your specific objectives.
+
+**Q: When will Korean long-form recognition performance reach English levels?**
+**A:** Considering the expansion speed of Korean datasets observed in this benchmark, we expect it to reach approximately 90% of English performance for everyday conversation by the second half of 2026. However, handling dialects and slang will remain a challenge.
+
+## Conclusion
+
+The evolution of the Open ASR Benchmark demonstrates that AI is moving beyond 'mimicking listening' toward 'the realm of understanding.' The introduction of the long-form track demands a higher level of intellectual patience from models, which will lead to a quality revolution in the AI assistants and automated subtitling services we use. The focus of the technology is no longer on simple dictation, but on 'concentration'—the ability to capture the speaker's intent with the right words at the right time, even in a noisy world. Moving forward, the key point to watch is how much cheaper and faster this concentration can be integrated into our smartphones.
+---
+
+## 참고 자료
+
+- 🛡️ [Whisper-v3 Hallucinations on Real World Data](https://www.deepgram.com/blog/whisper-v3-hallucinations)
+- 🛡️ [NVIDIA Canary-1b-v2: Technical Specifications and Limitations](https://nvidia.github.io/NeMo/canary)
+- 🛡️ [Hallucination Benchmark for Speech Foundation Models (2025)](https://arxiv.org/abs/2510.18930)
+- 🛡️ [Best open source speech-to-text (STT) model in 2026 (with benchmarks)](https://northflank.com/blog/best-open-source-speech-to-text-stt-model-in-2026)
+- 🛡️ [Guiding an Automatic Speech Recognition Decoder using Large Language Models](https://arxiv.org/abs/2508.04321)
+- 🏛️ [Open ASR Leaderboard: Trends and Insights with New Multilingual & Long-Form Tracks](https://huggingface.co/blog/open-asr-leaderboard)
+- 🏛️ [Open ASR Leaderboard: Trends and Insights with New Multilingual & Long-Form Tracks](https://huggingface.co/spaces/hf-audio/open_asr_leaderboard)
+- 🏛️ [Open ASR Leaderboard: Towards Reproducible and Transparent Multilingual and Long-Form Speech Recognition Evaluation](https://arxiv.org/abs/2510.06961)
