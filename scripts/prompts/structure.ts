@@ -143,7 +143,7 @@ export const TRANSLATE_STRUCTURED_PROMPT = `다음 한국어 기술 글을 영�
 ## 번역 규칙:
 1. 마크다운 구조(##, -, |표|) 유지
 2. 기술 용어는 표준 영어 사용
-3. 제품명/회사명 유지 (GPT-5, Gemini 3, Claude 4 등)
+3. 제품명/회사명 유지 (GPT 5.2, Gemini 3, Claude Opus 4.5 등)
 4. 링크 [텍스트](URL) 유지
 5. 코드 블록/URL/파일명 번역 금지
 

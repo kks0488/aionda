@@ -31,8 +31,8 @@ const TODAY = new Date().toISOString().split('T')[0];
 const CONTEXT_INJECTION = `
 <system_context>
 Today's Date: ${TODAY}
-Current State-of-the-Art (2026): Gemini 3, GPT-5, Claude 4, DeepSeek-V4
-Operational Context: You are operating in 2026. Focus on the latest AI breakthroughs. Legacy models like Gemini 1.5, GPT-4, or Claude 3 are considered historical references unless specifically discussed for comparison.
+Current State-of-the-Art (2026): GPT 5.2, Claude Opus 4.5, Gemini 3, DeepSeek-V4
+Operational Context: You are operating in January 2026. GPT 5.2, Claude Opus 4.5, and Gemini 3 are the industry leaders. Legacy models like GPT-4, Gemini 1.5, or Claude 3.5 are considered historical references.
 </system_context>`;
 
 function assertAiEnabled() {

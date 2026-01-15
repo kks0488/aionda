@@ -21,6 +21,7 @@ interface RawPost {
 // Quality keywords that indicate valuable content
 const QUALITY_KEYWORDS = [
   'ai', 'gpt', 'llm', 'claude', 'openai', 'anthropic', 'deepseek', 'gemini',
+  'gpt-5', 'gpt 5.2', 'claude 4', 'opus 4.5', 'gemini 3',
   '딥러닝', '머신러닝', '인공지능', '언어모델', '챗봇', 'chatgpt',
   'nvidia', 'cuda', 'transformer', '트랜스포머',
   'agi', 'asi', '특이점', 'singularity',
