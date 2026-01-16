@@ -1,0 +1,79 @@
+---
+title: Google T5Gemma Redefining LLM Efficiency With Encoder-Decoder Architecture
+slug: google-t5gemma-encoder-decoder-efficiency
+date: '2026-01-16'
+locale: en
+description: >-
+  T5Gemma uses an asymmetric encoder-decoder architecture based on Gemma 2 to
+  optimize latency and context processing.
+tags:
+  - T5Gemma
+  - Google
+  - LLM
+  - Encoder-Decoder
+  - Gemma 2
+author: AI온다
+sourceId: deepmind-xnb3s2
+sourceUrl: >-
+  https://deepmind.google/blog/t5gemma-a-new-collection-of-encoder-decoder-gemma-models/
+verificationScore: 0.9499999999999998
+alternateLocale: /ko/posts/google-t5gemma-encoder-decoder-efficiency
+coverImage: /images/posts/google-t5gemma-encoder-decoder-efficiency.png
+---
+
+The dominance of the 'Decoder-only' architecture, which has long commanded the Large Language Model (LLM) market, is beginning to fracture. The era of trying to solve every problem with a single massive hammer is passing, and sophisticated tools optimized for specific tasks are regaining attention. The 'T5Gemma' model family released by Google is expected to serve as a milestone, demonstrating the efficiency that can be achieved when the encoder-decoder structure—which led the golden age of Natural Language Processing (NLP)—meets the modern Gemma architecture.
+
+## Current Status: A Victory for Architecture Proven by Numbers
+
+Google's T5Gemma is a new collection of encoder-decoder models designed based on its open model, Gemma. Moving beyond a simple reproduction of the past T5 models, it fully adopts the pre-trained weights of Gemma 2 and modern design techniques such as Grouped Query Attention (GQA) and Rotary Positional Embeddings (RoPE).
+
+The performance figures are quite specific. The instruction-tuned T5Gemma 2B-2B IT model shows significant growth compared to the existing decoder-only Gemma 2 model. It widened the score gap by approximately 12 points in the Massive Multitask Language Understanding (MMLU) benchmark and recorded a 12.7 percentage point performance improvement in GSM8K, which measures mathematical reasoning, rising from 58% to 70.7%.
+
+The technical highlight lies in its 'Unbalanced Architecture.' By combining a 9B-scale encoder with a 2B-scale decoder, Google maximized efficiency in tasks requiring a deep understanding of input data. This model successfully maintains the quality of a 9B-class model while suppressing inference latency to the level of a 2B-class model. Furthermore, by applying 'Merged Attention' technology, it reduced total parameters by approximately 6.5% while establishing a structure capable of processing a long context of up to 128K.
+
+## Analysis: Why Return to the Encoder-Decoder?
+
+Recently, the AI industry has been experiencing fatigue with decoder-only models that lean heavily toward generative capabilities. This is because decoder-only models often perform inefficient computations in sequence-to-sequence (Seq2Seq) tasks—such as summarization, translation, and complex passage extraction—where the context of input data must be perfectly understood. T5Gemma targets this specific point.
+
+A structure where the encoder sufficiently processes the input before the decoder generates results based on it allows for the optimal allocation of computational resources. In particular, the unbalanced structure proposed by Google adopts the strategy of "understanding input carefully while producing output quickly." This can be interpreted as a direct attempt to solve the "performance versus inference cost" problem, which is the biggest concern for companies when building actual services.
+
+However, there are not only advantages. Although Google has promised performance improvements in summarization and translation tasks, specific scores for industry-standard metrics like ROUGE (summarization) or BLEU (translation) have not yet been disclosed in detail. Additionally, a lack of 1:1 benchmark data against older models like T5-Base or T5-Large necessitates a cautious approach. Further verification is required to see if the efficiency gained during fine-tuning will manifest equally in general business domains beyond MMLU or GSM8K.
+
+## Practical Application: A New Standard for Long Context and Summarization
+
+For developers and service planners, T5Gemma offers a cost-effective alternative. If your service primarily involves summarizing documents with tens of thousands of words or translating professional technical documents into other languages, T5Gemma 2's 128K context processing capability becomes a powerful weapon.
+
+In a specific use case, the 9B-2B asymmetric model could be applied to a dashboard system that analyzes large-scale customer consultation logs to derive key issues. The encoder performs an in-depth analysis of hundreds of consultation records, and the decoder transforms them into short, clear reports. In this process, the user gains the insights of a 9B model while keeping server costs at the level of operating a 2B model.
+
+Furthermore, leveraging its sensitivity to instruction tuning is advantageous for building dedicated translators or document-writing assistants tailored to a specific company's tone and manner. The fact that high performance gains can be expected with relatively less data compared to decoder-only models is an attractive feature.
+
+## FAQ
+
+**Q1: What are the main differences compared to the existing T5 model?**
+
+A1: While it maintains a structural succession, the internal components have been completely modernized. It is based on the powerful pre-trained weights of Gemma 2 and incorporates the latest LLM technologies such as GQA and RoPE. As a result, it has a much higher performance threshold than the original T5, and the most significant difference is its ability to provide extensive context processing of up to 128K.
+
+**Q2: What are the criteria for choosing an 'Unbalanced Architecture' model?**
+
+A2: It is optimal for tasks where the input is very long and complex, but the output needs to be relatively short and clear. An example is reading a long legal document and extracting three key issues. Since the 9B-class encoder analyzes complex legal terminology and the 2B-class decoder generates results quickly, both speed and quality can be achieved simultaneously.
+
+**Q3: How much can inference costs be saved during actual service deployment?**
+
+A3: Specific savings in terms of dollars ($) have not been announced. However, due to the model design—which reduced parameters by 6.5% through merged attention and implemented latency levels comparable to a 2B model through an asymmetric structure—it is expected that hardware resource savings will be evident compared to the conventional method of using larger decoder-only models to achieve the same performance.
+
+## Conclusion
+
+The emergence of T5Gemma suggests that the AI architecture paradigm is evolving from a stage of simply increasing 'size' to a stage of finding 'structural suitability.' By combining the proven assets of Gemma with the efficiency of T5, Google is attempting to overcome the inherent limitations of decoder-only models, particularly in sequence-to-sequence tasks.
+
+The combination of 9B-class quality and 2B-class speed demonstrated by the asymmetric structure will play a key role in future service areas where on-device AI or real-time data processing is critical. Moving forward, it will be important to watch how T5Gemma redefines various benchmark metrics in industrial settings and what the 'specialized architecture' strategies of competitors responding to this will be.
+---
+
+## 참고 자료
+
+- 🛡️ [Encoder-Decoder or Decoder-Only? Revisiting Encoder-Decoder Large Language Model](https://arxiv.org/abs/2510.11111)
+- 🛡️ [Encoder–Decoder (T5)Gemma: Rethinking the Quality/Efficiency Trade-off Through Architectural Adaptation](https://medium.com/@bahadir-akdemir/encoder-decoder-t5-gemma-rethinking-the-quality-efficiency-trade-off-2025-11-23)
+- 🏛️ [T5Gemma: A new collection of encoder-decoder Gemma models](https://developers.googleblog.com/en/t5gemma-encoder-decoder-gemma-models/)
+- 🏛️ [T5Gemma 2: The next generation of encoder-decoder models](https://blog.google/technology/developers/t5gemma-2-encoder-decoder-models/)
+- 🏛️ [T5Gemma: A new collection of encoder-decoder Gemma models](https://blog.google/technology/developers/t5gemma-google-gemma-encoder-decoder-models/)
+- 🏛️ [T5Gemma - Google DeepMind](https://deepmind.google/technologies/t5gemma/)
+- 🏛️ [T5Gemma: A new collection of encoder-decoder Gemma models - Google Developers Blog](https://blog.google/technology/developers/t5gemma-encoder-decoder-models/)
