@@ -297,10 +297,7 @@ export default async function PostPage({
                     {locale === 'ko' ? '영감:' : 'Inspired by:'}
                   </span>
                   <a
-                    href={post.sourceId
-                      ? `https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=${post.sourceId}`
-                      : 'https://gall.dcinside.com/mgallery/board/lists/?id=thesingularity'
-                    }
+                    href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
