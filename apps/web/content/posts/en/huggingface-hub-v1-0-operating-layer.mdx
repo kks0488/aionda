@@ -1,0 +1,80 @@
+---
+title: Hugging Face Hub v1.0 Establishes a New AI Operating Layer
+slug: huggingface-hub-v1-0-operating-layer
+date: '2026-01-16'
+locale: en
+description: >-
+  Hugging Face Hub v1.0 introduces httpx and hf_xet for faster LLM deployment
+  and improved AI infrastructure stability.
+tags:
+  - Hugging Face
+  - huggingface_hub
+  - LLM
+  - AI Infrastructure
+author: AI온다
+sourceId: huggingface-wb48zh
+sourceUrl: 'https://huggingface.co/blog/huggingface-hub-v1'
+verificationScore: 0.9666666666666667
+alternateLocale: /ko/posts/huggingface-hub-v1-0-operating-layer
+coverImage: /images/posts/huggingface-hub-v1-0-operating-layer.png
+---
+
+In an era where Artificial Intelligence (AI) models are flooding the market, it is easy to overlook the evolution of the 'pipelines' that actually carry them. Hugging Face, often called the sanctuary of open-source machine learning, has officially released `huggingface_hub` v1.0, a core library of its ecosystem. This release marks its declaration to become a standard for AI infrastructure, moving beyond a simple repository. This signifies an entry into an 'Operating Layer' that possesses the stability and performance required by the enterprise market, concluding a five-year experimental phase.
+
+## Completing Five Years of Experimentation: The AI Operating Layer
+
+Hugging Face Hub is no longer just a website where developers share models. The release of v1.0 is an effort to clear the technical debt accumulated over the past five years and establish solid roots to support the machine learning ecosystem for the next decade. The most notable change is the complete replacement of the internal engine.
+
+The library has transitioned from the standard Python `requests` library to `httpx`, which is optimized for asynchronous processing, as its new HTTP backend. This is more than a simple library swap. By adopting `httpx`, it now fully supports the HTTP/2 protocol, which is a key factor in resolving bottlenecks when transferring massive Large Language Model (LLM) data that can reach hundreds of gigabytes.
+
+The command system has also been simplified. The previously long and complex `huggingface-cli` is now replaced by the short command `hf`. Furthermore, legacy classes that caused developer confusion, such as `Repository` and `InferenceApi`, have been boldly removed. This reflects Hugging Face's commitment to shifting from a startup's "move fast and break things" mantra toward a philosophy of "stable infrastructure" that remains robust once built.
+
+## A Game Changer for LLM Deployment: hf_xet and Delta Updates
+
+For engineers handling large-scale models, the most painful moments occur when re-downloading tens of gigabytes of model files. To solve this, Hugging Face introduced a new file transfer protocol called `hf_xet`. This technology manages model files by breaking them into very small 64KB chunks.
+
+By managing models like Lego blocks, even if a model is updated and some weights change, there is no need to download the entire file again. Only the changed parts, or the 'Delta,' need to be transferred. According to research, this new transfer optimization technology accelerates LLM deployment speeds by 10% to as much as 30%. For companies needing to reduce network bandwidth costs, this provides a practical benefit by directly increasing operational efficiency.
+
+Improvements to the cache management system are also noteworthy. As model parameters grow, the importance of local storage management increases, and v1.0 provides features for more sophisticated control. Developers can now more intuitively understand and manage which models occupy how much space and which versions should be maintained.
+
+## The Cost of Stability and Enterprise Trust
+
+Of course, every change comes with a cost. Version 1.0 includes several 'Breaking Changes.' First and foremost, support for Python versions below 3.9 has been discontinued, creating a requirement to maintain a modern environment. Additionally, if existing code relies on legacy classes, it may stop functioning upon upgrading to v1.0.
+
+Specifically, since the architecture has changed to use `HfHubHttpError` for exception handling, teams operating robust pipelines will inevitably need to modify their code. Verification of compatibility with v1.0 is also essential in environments using version 4 of the `transformers` library.
+
+However, the industry is focusing more on the value of a 'Stable API' than on these inconveniences. Previously, Hugging Face's rapid update speed was an advantage but also a factor that increased uncertainty in production environments. v1.0 is a promise that "this API will not change easily," serving as a mark of trust—the most important factor for conservative sectors like finance or manufacturing when adopting AI.
+
+## What Developers Need to Prepare Now
+
+For developers involved in the Hugging Face ecosystem, this is a time for action rather than choice. The first step is to ensure that your pipelines run on Python 3.9 or higher. Next, a migration plan should be established to transition existing `huggingface-cli` based scripts to the `hf` command.
+
+Environments that frequently update large-scale models or deploy models to multiple GPU clusters should actively consider the `hf_xet` protocol. Utilizing the delta update feature alone can significantly reduce infrastructure load.
+
+Error handling logic should also be inspected. Instead of general HTTP error handling, code should be refactored to apply the dedicated exception classes provided by `huggingface_hub` to enable more detailed debugging.
+
+## FAQ
+
+**Q: Will my existing code run immediately on v1.0?**
+**A:** No. If you are using old classes like `Repository` or `InferenceApi`, your code will not work. A Python 3.9+ environment is required, and a migration process reflecting the new `hf` command and `HfHubHttpError` exception handling is essential.
+
+**Q: Will model download speeds really increase?**
+**A:** Yes. Thanks to HTTP/2 support and the `hf_xet` protocol, you can expect a 10–30% speed improvement when deploying large-scale models. Efficiency is enhanced particularly through the delta update method, which avoids re-downloading the entire model when only parts are modified.
+
+**Q: What is the biggest benefit of the v1.0 release from a corporate perspective?**
+**A:** Securing API stability and enterprise-grade reliability. Companies can worry less about code breaking with every version update, reduce operational infrastructure costs through high-performance transfer technology, and increase management convenience.
+
+## Conclusion: Beyond a Repository to the Heart of AI
+
+`huggingface_hub` v1.0 is a milestone declaring that Hugging Face has evolved beyond being a manager of an open-source community into a software giant supporting the world's AI infrastructure. Asynchronous processing, efficient transfer protocols, and a stable API structure will serve as a bridge narrowing the gap between AI 'research' and 'actual services.'
+
+Over the next five years, Hugging Face is expected to accelerate its evolution into an integrated collaborative infrastructure where anyone can train and deploy AI easily and reliably. This update is the solid foundation required to realize that grand vision. Developers no longer need to worry about the instability of the pipeline; they can focus solely on what amazing models to build on top of it.
+---
+
+## 참고 자료
+
+- 🛡️ [Hugging Face Hub v1.0: What Five Years of Breaking Changes Mean for Your ML Workflow](https://medium.com/@suleiman-tawil/hugging-face-hub-v1-0-what-five-years-of-breaking-changes-mean-for-your-ml-workflow-9e0a6d5f4c4a)
+- 🛡️ [Hugging Face Complete Guide 2026: Models & Datasets](https://techaimag.com/huggingface-complete-guide-2026/)
+- 🏛️ [huggingface_hub v1.0: Five Years of Building the Foundation of Open Machine Learning](https://huggingface.co/blog/huggingface_hub-v1-0)
+- 🏛️ [Migrating to huggingface_hub v1.0](https://huggingface.co/docs/huggingface_hub/concepts/migration)
+- 🏛️ [huggingface_hub v1.0: Five Years of Building the Foundation of Open Machine Learning](https://huggingface.co/blog/huggingface-hub-v1)
