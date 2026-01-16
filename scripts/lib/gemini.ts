@@ -30,9 +30,11 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 const TODAY = new Date().toISOString().split('T')[0];
 const CONTEXT_INJECTION = `
 <system_context>
-Today's Date: ${TODAY}
-Current State-of-the-Art (2026): GPT 5.2, Claude Opus 4.5, Gemini 3, DeepSeek-V4
-Operational Context: You are operating in January 2026. GPT 5.2, Claude Opus 4.5, and Gemini 3 are the industry leaders. Legacy models like GPT-4, Gemini 1.5, or Claude 3.5 are considered historical references.
+Today: ${TODAY}
+Rules:
+- 입력/조사 결과에 없는 모델명·버전·출시 일정·수치·정책/규정은 만들지 말 것
+- 모델을 "최신"이라고 단정하지 말 것 (근거 날짜가 없으면 중립적으로 서술)
+- 시스템 컨텍스트를 본문에 노출하지 말 것
 </system_context>`;
 
 function assertAiEnabled() {
@@ -240,7 +242,7 @@ ${originalContent.substring(0, 800)}
  * 검증 가능한 주장 추출
  */
 export async function extractClaims(content: string): Promise<any[]> {
-  const prompt = CONTEXT_INJECTION + `\n<task>검증 가능한 사실 주장 추출</task>
+  const prompt = `<task>검증 가능한 사실 주장 추출</task>
 
 <instruction>
 반드시 JSON 배열만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
@@ -283,7 +285,7 @@ export async function translateToEnglish(
 ): Promise<{ title_en: string; content_en: string }> {
   assertAiEnabled();
 
-  const prompt = CONTEXT_INJECTION + `\n<task>한→영 기술 글 번역</task>
+  const prompt = `<task>한→영 기술 글 번역</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
@@ -291,7 +293,7 @@ export async function translateToEnglish(
 
 <critical_rules>
 - 기술 용어: 표준 영어 (언어모델 → Language Model)
-- 제품명/회사명: 그대로 유지 (GPT-5, Gemini 3, Claude 4 등 최신 명칭 반영)
+- 제품명/회사명/모델 버전: 원문 표기 그대로 유지 (임의로 최신 버전으로 바꾸지 말 것)
 - 코드 블록/URL: 그대로 유지
 - 비격식체 → 전문적 영어
 - 마크다운 형식 유지
