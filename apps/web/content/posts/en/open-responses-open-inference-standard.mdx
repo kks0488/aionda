@@ -14,11 +14,17 @@ author: AI온다
 sourceId: huggingface-open-responses
 sourceUrl: 'https://huggingface.co/blog/open-responses'
 alternateLocale: /ko/posts/open-responses-open-inference-standard
+coverImage: /images/posts/open-responses-open-inference-standard.png
 ---
 
-Once you start building agents, the first real bottleneck is rarely the model. It is the **interface**. Chat Completions were designed for turn-based conversations, but agents need tool calls, state changes, multimodal outputs, and a stream of intermediate events. When the format falls short, every team invents its own wrappers—and the ecosystem fragments.
+Agents are not “chatbots that talk well.” They are workflows that finish work. “Search docs, extract key numbers, summarize, then draft an email” is not a single chat turn—it is a loop of **tool calls → results → next actions**.
 
-Open Responses is an attempt to fix that. Hugging Face frames Open Responses as an **open inference standard** built for the agent era: moving the default mental model from “chat messages” to “responses + semantic events + tool loops”.
+The problem is that much of the ecosystem still leans on Chat Completions, an interface optimized for conversation rather than action. If you try to squeeze tool calls and state into chat messages, you end up with ad-hoc conventions that break interoperability.
+
+Open Responses is an attempt to fix that. Hugging Face frames Open Responses as an **open inference standard** designed for the agent era: moving the default model from “chat messages” to “responses + semantic events + tool loops”.
+
+> The naming is confusing at first.  
+> **Open Responses** refers to the open standard/spec, while `open-responses/open-responses` is a self-hosted server implementation that aims to be compatible with the Responses API.
 
 ## Why Chat Completions hit a wall
 
@@ -32,19 +38,32 @@ Forcing this into a chat-shaped API tends to create hacks instead of interoperab
 
 ## What Open Responses standardizes
 
-According to Hugging Face, Open Responses builds on the direction set by OpenAI’s Responses API (released in March 2025) and extends it into a more open, interoperable specification. Four ideas stand out.
+According to Hugging Face, Open Responses builds on the direction set by OpenAI’s Responses API (released in March 2025) and extends it into a more open, interoperable specification. In plain terms: it standardizes the “intermediate stuff” that agent workloads need.
+
+Four ideas stand out.
 
 1) **A standard way to expose reasoning**  
 Open Responses formalizes optional fields like `content` (raw traces), `encrypted_content` (provider-protected), and `summary` (sanitized). Providers and clients can choose what to emit and what to accept.
 
 2) **Streaming as semantic events, not raw deltas**  
-Instead of streaming “text chunks”, the API models streaming as an event sequence (for example, `response.reasoning.delta`). This helps observability, UI rendering, and debugging.
+Instead of streaming only “text chunks”, the API models streaming as an event sequence (for example, `response.reasoning.delta`). This makes it easier for UIs and logs to interpret what is happening.
 
 3) **Stateless by default, encrypted reasoning when needed**  
 The spec is stateless by default, while still supporting encrypted reasoning for providers that require it.
 
 4) **First-class routing concepts**  
 Open Responses distinguishes “Model Providers” from “Routers”, and allows clients to specify provider targets and provider-specific options in a standardized way.
+
+Hugging Face also emphasizes that client requests remain familiar. For example, `/v1/responses` calls can add an `OpenResponses-Version: latest` header.
+
+```bash
+curl https://evalstate-openresponses.hf.space/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $HF_TOKEN" \
+  -H "OpenResponses-Version: latest" \
+  -N \
+  -d '{ "model": "moonshotai/Kimi-K2-Thinking:nebius", "input": "explain the theory of life" }'
+```
 
 ## Tools and the agentic loop become first-class
 
