@@ -1,0 +1,103 @@
+---
+title: 'Open Responses: An Open Inference Standard for Agents'
+slug: open-responses-open-inference-standard
+date: '2026-01-16'
+locale: en
+description: 'Why Open Responses exists, what it standardizes beyond Chat Completions, and how a self-hosted drop-in server fits into the picture.'
+tags:
+  - agents
+  - openai
+  - huggingface
+  - api
+  - tools
+author: AI온다
+sourceId: huggingface-open-responses
+sourceUrl: 'https://huggingface.co/blog/open-responses'
+alternateLocale: /ko/posts/open-responses-open-inference-standard
+---
+
+Once you start building agents, the first real bottleneck is rarely the model. It is the **interface**. Chat Completions were designed for turn-based conversations, but agents need tool calls, state changes, multimodal outputs, and a stream of intermediate events. When the format falls short, every team invents its own wrappers—and the ecosystem fragments.
+
+Open Responses is an attempt to fix that. Hugging Face frames Open Responses as an **open inference standard** built for the agent era: moving the default mental model from “chat messages” to “responses + semantic events + tool loops”.
+
+## Why Chat Completions hit a wall
+
+Chat Completions are “message turn” first. Agents are not. In practice, agents often require:
+
+- Repeated **tool calls** and tool results inside a single task.
+- A loop of reasoning → tool execution → continued reasoning.
+- Streaming not only final text, but also **intermediate items** (tool calls/results/progress states).
+
+Forcing this into a chat-shaped API tends to create hacks instead of interoperability.
+
+## What Open Responses standardizes
+
+According to Hugging Face, Open Responses builds on the direction set by OpenAI’s Responses API (released in March 2025) and extends it into a more open, interoperable specification. Four ideas stand out.
+
+1) **A standard way to expose reasoning**  
+Open Responses formalizes optional fields like `content` (raw traces), `encrypted_content` (provider-protected), and `summary` (sanitized). Providers and clients can choose what to emit and what to accept.
+
+2) **Streaming as semantic events, not raw deltas**  
+Instead of streaming “text chunks”, the API models streaming as an event sequence (for example, `response.reasoning.delta`). This helps observability, UI rendering, and debugging.
+
+3) **Stateless by default, encrypted reasoning when needed**  
+The spec is stateless by default, while still supporting encrypted reasoning for providers that require it.
+
+4) **First-class routing concepts**  
+Open Responses distinguishes “Model Providers” from “Routers”, and allows clients to specify provider targets and provider-specific options in a standardized way.
+
+## Tools and the agentic loop become first-class
+
+Open Responses defines two tool categories:
+
+- **Internally-hosted tools**: executed within the provider’s infrastructure (for example, provider-managed file search).
+- **Externally-hosted tools**: executed outside the provider (client-side functions or MCP servers).
+
+It also formalizes the **agentic loop**: reasoning, emitting tool calls, executing tools, feeding results back, and repeating until completion—optionally constrained via `max_tool_calls` and `tool_choice`.
+
+## Standards need servers: the open-responses project
+
+Specs alone do not ship products. You need an endpoint that existing clients can call. `open-responses/open-responses` describes itself as a “self-hosted, open-source alternative to OpenAI’s Responses API”—a drop-in replacement intended to minimize client-side changes.
+
+The practical idea is simple: keep your OpenAI SDK (or Agents SDK) code, and point `base_url` to a locally hosted server.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8080/", api_key="RESPONSE_API_KEY")
+response = client.responses.create(model="...", input="Explain Open Responses in one paragraph.")
+print(response.output[0].content[0].text)
+```
+
+The project README highlights compatibility across multiple LLM providers (including Claude, Qwen, DeepSeek R1, and Ollama), positioning self-hosting as an option for teams that want tighter data control.
+
+## A quick adoption checklist
+
+1) **Streaming support**: can your UI/logging stack handle event-based streams?  
+2) **Reasoning policy**: do you want raw reasoning, summaries only, or encrypted-only outputs?  
+3) **Tool security**: if you attach external tools (including MCP), how do you sandbox and audit them?  
+4) **Routing needs**: do you benefit from standard provider/router separation?
+
+## FAQ
+
+**Q: Is Open Responses meant to replace Chat Completions?**  
+A: The intent is a shared format that better matches agent workloads. In the near term, expect bridging and gradual migration.
+
+**Q: Do providers have to expose raw reasoning traces?**  
+A: No. The spec supports multiple reasoning representations; what is emitted is optional and provider-dependent.
+
+**Q: Hosted Open Responses vs self-hosted—what should I pick?**  
+A: Hosted options optimize for speed and operational simplicity. Self-hosting prioritizes control and customization. Your security, compliance, and cost constraints will decide.
+
+## Closing
+
+As agents become the dominant inference workload, “model quality” is only half of the story. The other half is a stable, interoperable interface for tool loops, streaming, and routing. Open Responses pushes that interface toward an open standard—and projects like `open-responses` make it practical in today’s codebases.
+
+---
+
+## References
+
+- 🏛️ Open Responses: What you need to know (Hugging Face Blog, 2026-01-15) — https://huggingface.co/blog/open-responses
+- 🛡️ open-responses/open-responses (README) — https://github.com/open-responses/open-responses
+- 🏛️ Open Responses Specification — https://www.openresponses.org/
+- 🏛️ OpenAI Responses API docs — https://platform.openai.com/docs/api-reference/responses

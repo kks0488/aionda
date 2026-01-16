@@ -1,0 +1,105 @@
+---
+title: 'Open Responses: 에이전트 시대의 오픈 추론 표준'
+slug: open-responses-open-inference-standard
+date: '2026-01-16'
+locale: ko
+description: 'Chat Completions 이후의 에이전트 워크로드를 위해, Open Responses가 무엇을 표준화하고 어떻게 쓰이는지 정리합니다.'
+tags:
+  - agents
+  - openai
+  - huggingface
+  - api
+  - tools
+author: AI온다
+sourceId: huggingface-open-responses
+sourceUrl: 'https://huggingface.co/blog/open-responses'
+alternateLocale: /en/posts/open-responses-open-inference-standard
+---
+
+에이전트를 만들기 시작하면 가장 먼저 부딪히는 것은 모델이 아니라 **인터페이스**다. “대화”에 최적화된 Chat Completions로는, 도구 호출·상태 변화·멀티모달 출력·중간 산출물 스트리밍 같은 작업을 일관되게 다루기 어렵다. 결국 각 팀이 제각각의 래퍼와 규약을 만들고, 그 비용이 제품 속도를 갉아먹는다.
+
+Open Responses는 이 병목을 정면으로 겨냥한다. Hugging Face는 Open Responses를 **오픈 추론(inference) 표준**으로 소개하며, 에이전트 시대의 기본 포맷을 “채팅”에서 “응답 + 이벤트 + 도구 루프”로 옮기려는 시도라고 설명한다.
+
+## Chat Completions로 부족했던 것
+
+Chat Completions는 “메시지 턴” 중심이다. 하지만 에이전트는 보통 다음을 요구한다.
+
+- **도구 호출**과 결과 반환을 한 요청 흐름 안에서 반복한다.
+- 모델이 “생각(Reasoning) → 실행(Tool) → 이어서 생각”을 여러 번 수행한다.
+- 최종 텍스트만이 아니라, **중간 이벤트**(도구 호출/결과/진행 상태)를 스트림으로 보고 싶다.
+
+이걸 채팅 포맷에 억지로 맞추면, 호환성보다 편법이 늘어난다.
+
+## Open Responses가 표준화하는 핵심
+
+Hugging Face 글에 따르면 Open Responses는 OpenAI의 Responses API(2025년 3월 공개) 방향을 기반으로, 스펙을 더 개방적으로 확장한다. 정리하면 다음 네 가지가 크다.
+
+1) **Reasoning 노출 방식의 표준화**  
+`content`(원문 추론), `encrypted_content`(보호된 추론), `summary`(요약) 같은 필드를 옵션으로 정의해, 제공자/클라이언트가 “얼마나 보여줄지”를 선택할 수 있게 한다.
+
+2) **스트리밍을 ‘텍스트 델타’가 아니라 ‘의미 이벤트’로**  
+응답은 단순 문자열 조각이 아니라, `response.reasoning.delta` 같은 **이벤트 스트림**으로 모델 상태를 표현한다. 관측(Observability)과 UI 처리에 유리하다.
+
+3) **Stateless 기본, 필요하면 암호화 Reasoning**  
+상태를 API가 기본으로 들고 있지 않되, 제공자 요구에 따라 암호화된 추론을 유지할 수 있는 방향을 제시한다.
+
+4) **라우팅과 제공자 옵션의 구분**  
+스펙은 “Model Provider”와 “Router”를 구분하고, 클라이언트가 특정 Provider와 옵션을 지정할 수 있게 한다. 멀티 제공자 환경에서 표준화된 라우팅이 목표다.
+
+## 도구(Tools)와 ‘에이전트 루프’가 1급 시민이 된다
+
+Open Responses는 도구를 크게 두 범주로 나눈다.
+
+- **내부(Internally-hosted) 도구**: 제공자 인프라 내부에서 실행되는 도구(예: 제공자 파일 검색).
+- **외부(Externally-hosted) 도구**: 클라이언트 함수나 MCP 서버처럼, 제공자 밖에서 실행되는 도구.
+
+그리고 에이전트가 여러 번 도구를 호출하는 반복 과정을 **스펙 차원에서 공식화**한다. 예를 들어 `max_tool_calls`로 루프 횟수를 제한하고, `tool_choice`로 어떤 도구가 호출 가능한지 제약한다.
+
+## “표준”과 별개로, “서버”도 필요하다: open-responses 프로젝트
+
+현실에서는 스펙만으로는 부족하다. 실제로 호출할 엔드포인트가 필요하고, 기존 코드가 크게 안 바뀌어야 한다. `open-responses/open-responses`는 이를 “OpenAI Responses API의 셀프호스팅 드롭인 대체재”로 소개한다.
+
+핵심은 단순하다. OpenAI SDK(또는 Agents SDK)가 붙는 클라이언트에서 **base_url만 로컬로 바꾸면** 기존 코드를 최대한 유지할 수 있다는 것이다.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8080/", api_key="RESPONSE_API_KEY")
+response = client.responses.create(model="...", input="Explain Open Responses in one paragraph.")
+print(response.output[0].content[0].text)
+```
+
+README는 또한 Claude, Qwen, DeepSeek R1, Ollama 등 다양한 모델 제공자와의 호환을 강조한다. 데이터 통제(프라이버시) 관점에서 셀프호스팅이 필요한 팀에게는 매력적인 옵션이 될 수 있다.
+
+## 도입 체크리스트
+
+Open Responses로 “표준화”를 얻으려면, 다음을 먼저 점검하는 편이 안전하다.
+
+1) **스트리밍 처리 방식**: 텍스트 델타가 아니라 이벤트 스트림을 UI/로그/추적 시스템이 받아들일 수 있는가?  
+2) **Reasoning 정책**: 원문 추론을 받을지, 요약만 받을지, 암호화된 형태만 허용할지 팀 정책이 있는가?  
+3) **툴 실행 보안**: 외부 도구(MCP 포함)를 붙일 때 권한·격리·감사 로그를 설계했는가?  
+4) **라우팅 요구**: 멀티 제공자/멀티 모델 운영이면 Router/Provider 구분이 도움이 되는가?
+
+## FAQ
+
+**Q: Open Responses는 Chat Completions를 대체하나?**  
+A: 목표는 “에이전트 워크로드에 맞는 공통 포맷”을 만드는 것이다. 다만 생태계가 한 번에 움직이기는 어렵기 때문에, 당분간은 브릿지와 병행이 현실적이다.
+
+**Q: 추론(Reasoning)을 반드시 노출해야 하나?**  
+A: 아니다. 스펙은 원문 추론, 암호화된 추론, 요약 등 여러 표현을 옵션으로 두고 있다. 공개 수준은 제공자/클라이언트 선택에 달려 있다.
+
+**Q: 호스팅된 Open Responses와 셀프호스팅은 무엇이 다른가?**  
+A: 호스팅은 빠른 시작과 운영 단순화가 장점이고, 셀프호스팅은 데이터 통제와 커스터마이징이 강점이다. 조직의 보안·규제·비용 구조에 따라 선택이 갈린다.
+
+## 결론
+
+에이전트가 일반화될수록 “모델 성능”만큼 “호환 가능한 추론 인터페이스”가 중요해진다. Open Responses는 그 인터페이스를 오픈 표준으로 끌어올리려는 시도다. 그리고 `open-responses` 같은 구현체는, 그 표준을 지금의 코드베이스로 연결하는 실용적인 다리 역할을 한다.
+
+---
+
+## 참고 자료
+
+- 🏛️ Open Responses: What you need to know (Hugging Face Blog, 2026-01-15) — https://huggingface.co/blog/open-responses
+- 🛡️ open-responses/open-responses (README) — https://github.com/open-responses/open-responses
+- 🏛️ Open Responses Specification — https://www.openresponses.org/
+- 🏛️ OpenAI Responses API docs — https://platform.openai.com/docs/api-reference/responses
