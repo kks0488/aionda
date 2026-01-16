@@ -1,0 +1,75 @@
+---
+title: '구글 Gemma 3 공개: 온디바이스 멀티모달의 혁신'
+slug: google-gemma-3-on-device-multimodal-ai
+date: '2026-01-16'
+locale: ko
+description: 구글 Gemma 3는 128K 컨텍스트와 멀티모달 구조를 통해 스마트폰 등 로컬 환경에서 압도적인 효율성과 추론 성능을 제공합니다.
+tags:
+  - Gemma 3
+  - Google AI
+  - Multimodal
+  - On-device AI
+  - MatFormer
+author: AI온다
+sourceId: deepmind-182mjrl
+sourceUrl: 'https://deepmind.google/blog/introducing-gemma-3n-the-developer-guide/'
+verificationScore: 0.9666666666666667
+alternateLocale: /en/posts/google-gemma-3-on-device-multimodal-ai
+coverImage: /images/posts/google-gemma-3-on-device-multimodal-ai.png
+---
+
+이제 인공지능(AI)을 구동하기 위해 수천 대의 서버가 들어찬 데이터 센터의 허락을 기다릴 필요가 없습니다. 구글이 공개한 새로운 개방형 모델 Gemma 3는 클라우드와 온디바이스(On-device)의 경계를 허물며 개발자의 책상 위와 사용자의 주머니 속으로 직접 파고듭니다. 이번 출시는 단순히 파라미터 수를 늘리는 경쟁을 넘어, 한정된 자원 안에서 얼마나 영리하게 멀티모달(Multimodal) 추론을 구현할 수 있는지에 대한 구글의 기술적 답변입니다.
+
+## 아키텍처의 진화: 128K 컨텍스트와 멀티모달의 결합
+
+Gemma 3는 이전 세대인 Gemma 2와 비교해 설계 철학부터 궤를 달리합니다. 가장 눈에 띄는 변화는 텍스트와 이미지를 동시에 처리하는 네이티브 멀티모달 아키텍처로의 전환입니다. 구글은 SigLIP 비전 인코더를 모델 구조 내부에 통합하여 별도의 연결 고리 없이도 시각 정보를 이해하도록 설계했습니다. 이는 텍스트 중심이었던 기존 개방형 모델들이 가졌던 한계를 정면으로 돌파한 지점입니다.
+
+내부 구조를 들여다보면 효율성을 극대화하기 위한 고민이 고스란히 드러납니다. Gemma 3는 로컬 어텐션(Local Attention)과 글로벌 어텐션(Global Attention)을 5:1 비율로 섞은 인터리브(Interleaved) 구조를 채택했습니다. 이 방식은 모델이 처리해야 하는 KV 캐시 메모리 부하를 줄이면서도 최대 128K에 달하는 방대한 컨텍스트 윈도우를 안정적으로 지원하게 합니다. 기존의 소프트 캡핑(Soft-capping) 메커니즘을 QK-norm으로 대체한 점과 Gemini 2.0과 동일한 256k 어휘 사전의 토크나이저를 도입한 것도 주목할 만합니다. 덕분에 한국어를 포함한 다국어 처리 능력이 이전보다 훨씬 매끄러워졌습니다.
+
+## 엣지 컴퓨팅의 새로운 기준: 스마트폰에서 터지는 초당 2,500토큰
+
+Gemma 3의 진가는 전력과 연산 능력이 제한된 로컬 환경에서 발휘됩니다. 모델 라인업은 극소형인 270M부터 고성능 27B까지 폭넓게 구성되어 개발자의 선택지를 넓혔습니다. 특히 1B 모델의 성능 지표는 놀라운 수준입니다. 스마트폰 환경에서 초당 최대 2,585토큰의 프리필(Prefill) 속도를 기록하며, 이는 사실상 대기 시간 없는 실시간 응답이 가능함을 의미합니다.
+
+에너지 효율 측면에서도 인상적인 데이터를 제시합니다. 가장 작은 270M 모델은 Pixel 9 Pro 배터리의 단 0.75%만을 사용해 25회의 대화를 처리할 수 있습니다. 이는 전력 소모에 민감한 웨어러블 기기나 임베디드 시스템에서 AI를 상시 구동할 수 있는 가능성을 시사합니다. 하드웨어 진입 장벽도 낮췄습니다. 4B 모델의 경우, 고가의 엔터프라이즈 GPU가 아닌 GTX 1650급(VRAM 4GB)의 보급형 그래픽카드에서도 원활하게 작동합니다. 구글은 이를 위해 MatFormer(Matryoshka Transformer) 아키텍처와 4비트 양자화 기술을 적극적으로 활용했습니다.
+
+## 분석: 효율성이 주도하는 AI 민주화와 남은 과제
+
+Gemma 3의 등장은 업계에 중요한 메시지를 던집니다. 27B 모델은 LMArena 벤치마크 기준, 파라미터 수가 수십 배 더 많은 Llama 3-405B와 대등하거나 이를 능가하는 효율성을 보여주었습니다. 이는 거대 모델이 반드시 더 나은 사용자 경험을 보장하지 않는다는 사실을 증명합니다. 단일 GPU나 TPU 환경에서도 구동 가능한 고성능 모델의 등장은 중소 규모 개발사와 개인 창작자들에게 강력한 무기가 될 것입니다.
+
+하지만 장점만 존재하는 것은 아닙니다. 구글이 제시한 기술 보고서에서 텍스트와 이미지 추론 성능은 상세히 다루어졌으나, 실제 엣지 기기에서의 실시간 영상(Video) 추론 시 초당 프레임 수(FPS)와 같은 구체적인 지표는 여전히 불투명합니다. 또한 MatFormer 구조가 전체 라인업에 동일하게 적용되었는지, 그리고 일부 소스에서 제기된 1B 모델의 멀티모달 지원 여부에 대한 혼선은 개발자들이 실제 구현 단계에서 확인해야 할 대목입니다. NPU(신경망 처리 장치) 제조사별 전성비 데이터가 부족하다는 점도 최적화 가이드를 기다리는 이들에게는 아쉬운 부분입니다.
+
+## 개발자를 위한 실전 최적화 가이드
+
+지금 당장 Gemma 3를 활용하려는 개발자라면 자신의 타겟 하드웨어를 먼저 점검해야 합니다.
+
+1.  **온디바이스 모바일 앱 개발**: 270M이나 1B 모델을 선택하십시오. 구글이 제공하는 모바일 최적화 가이드를 통해 스마트폰 배터리 소모를 최소화하면서 텍스트 및 이미지 분석 기능을 통합할 수 있습니다.
+2.  **로컬 워크스테이션 구축**: RTX 3060이나 4060 수준의 일반 사용자용 GPU를 보유하고 있다면 4B 모델이 최적의 선택입니다. 4비트 양자화를 적용하면 대규모 데이터 세트 없이도 로컬 환경에서 강력한 개인용 AI 비서를 구축할 수 있습니다.
+3.  **고성능 분석 도구**: 27B 모델을 활용해 단일 GPU 환경에서 멀티모달 추론 서버를 운영할 수 있습니다. 128K의 컨텍스트를 활용해 수백 페이지의 문서와 이미지를 동시에 분석하는 워크플로우를 설계해 보십시오.
+
+## FAQ
+
+**Q1: Gemma 2와 비교했을 때 아키텍처 측면에서 가장 큰 변화는 무엇인가요?**
+A: 가장 큰 변화는 네이티브 멀티모달 지원과 어텐션 구조의 변경입니다. 텍스트와 이미지를 동시에 처리할 수 있는 SigLIP 비전 인코더가 통합되었으며, 5:1 비율의 인터리브 로컬/글로벌 어텐션을 통해 KV 캐시 부하를 줄이면서도 128K의 긴 컨텍스트를 처리할 수 있게 되었습니다.
+
+**Q2: 보급형 PC나 스마트폰에서도 원활하게 작동하나요?**
+A: 그렇습니다. 4B 모델은 VRAM 4GB 사양의 GTX 1650에서도 구동 가능하며, 1B 모델은 스마트폰에서 초당 2,500토큰 이상의 속도를 냅니다. 특히 270M 모델은 극히 적은 배터리 소모량으로 온디바이스 대화를 지원하도록 최적화되었습니다.
+
+**Q3: Llama 등 경쟁 모델과 비교해 어떤 우위가 있나요?**
+A: Gemma 3 27B 모델은 훨씬 더 큰 파라미터를 가진 모델(예: Llama 3-405B)과 비교해도 연산 효율성 면에서 우수한 성적을 거두었습니다. 특히 텍스트 전용인 경쟁 모델들과 달리 이미지 및 영상 분석이 가능한 네이티브 멀티모달 능력을 갖추고 있어 활용 범위가 훨씬 넓습니다.
+
+## 결론
+
+Gemma 3는 AI의 중심축이 거대 클라우드에서 사용자 곁의 로컬 환경으로 이동하고 있음을 보여주는 이정표입니다. 구글은 고성능 멀티모달 능력을 경량화된 패키지에 담아내며 개발자들에게 더 넓은 운동장을 제공했습니다. 앞으로 우리가 주목해야 할 지점은 이 작고 영리한 모델들이 실제 서비스 환경에서 얼마나 안정적인 시각적 추론 성능을 유지하느냐, 그리고 파편화된 하드웨어 시장에서 얼마나 일관된 최적화 성능을 보여주느냐에 달려 있습니다.
+---
+
+## 참고 자료
+
+- 🛡️ [Gemma 3 LLM compared to Gemma 2 LLM - Kaggle](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH3F1_q60MPAD0Pa9j15XUh15FqhAblrhsjhl1ajEcnllcszUajCp6h-ZrzE8Ri3A-26fNopb58GKndDhRn5Te14Yh6Zoi1XDNJul45u8iEUGJ8SVpEb5ZKrliT_lMVa9lmi0I-rLQuge1C7JI=)
+- 🛡️ [Running Gemma 3 Locally: A Step-by-Step Guide](https://dev.to/google/running-gemma-3-locally-a-step-by-step-guide-5e2h)
+- 🛡️ [Lightweight, Multimodal, Multilingual Gemma 3 Models Are Streamlined for Performance](https://developer.nvidia.com/blog/lightweight-multimodal-multilingual-gemma-3-models-streamlined-for-performance/)
+- 🛡️ [Google launches Gemma 3 - Elets CIO](https://eletsonline.com/google-launches-gemma-3/)
+- 🛡️ [Gemma 3 27B vs Llama 3.3 70B: Which model is right for you?](https://novita.ai/blog/gemma-3-27b-vs-llama-3-3-70b/)
+- 🏛️ [Gemma explained: What's new in Gemma 3 - Google Developers Blog](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHkm78EZmybPCU-TjfejWbJuCo3_67nQ-ie1Uwz2AFhkSYEot-1YiRKoFYTYrYrILIhRJBILG7XY_9pIq5Lc4HrQWZGx7AHBLkKjhOfrckgzfcJKVxfEB1bzPQXdv1R3_XEDmu3iIcIPmMu_Q6RlxDvA7pih0OJKCr1oaJlN3JeQhS9)
+- 🏛️ [Gemma 3 Technical Report - arXiv](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFqhuANBTTkzWkjWySMn-PVRKrh-tgujUtD05lJ4PPdiWJmWo-kzmWlR1Ko-5y69rOJRZliBUY8H10QqOR655x2gcqqyWNrrRLVIGo-UXJ_RsOK78VUa76H6Fx2km60)
+- 🏛️ [Introducing Gemma 3: The most capable model you can run on a single GPU or TPU](https://blog.google/technology/developers/gemma-3/)
+- 🏛️ [Introducing Gemma 3: The most capable model you can run on a single GPU or TPU](https://blog.google/technology/developers/gemma-3-announcement/)
