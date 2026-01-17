@@ -1,0 +1,65 @@
+---
+title: "인텔 가우디 보조 생성 기술로 LLM 추론 속도 3배 향상"
+slug: "intel-gaudi-assisted-generation-llm-inference"
+date: "2026-01-17"
+locale: "ko"
+description: "인텔 가우디 가속기의 보조 생성 기술과 투기적 디코딩을 통한 LLM 추론 성능 최적화 전략 및 지원 도구를 분석합니다."
+tags: ["인텔 가우디", "LLM 추론", "투기적 디코딩", "SynapseAI", "AI 가속기"]
+author: "AI온다"
+sourceId: "huggingface-5h5cmir"
+sourceUrl: "https://huggingface.co/blog/assisted-generation-support-gaudi"
+verificationScore: 0.9499999999999998
+alternateLocale: "/en/posts/intel-gaudi-assisted-generation-llm-inference"
+coverImage: "/images/posts/intel-gaudi-assisted-generation-llm-inference.jpeg"
+---
+
+거대한 언어 모델(LLM)이 토큰 하나를 생성할 때마다 수천억 개의 파라미터를 메모리에서 읽어와야 하는 비효율적인 연산 구조는 인공지능 업계의 고질적인 병목 현상이다. 인텔은 가우디(Gaudi) 가속기에 '보조 생성(Assisted Generation)' 기술을 도입하며 이 지루한 연산 싸움에 새로운 해법을 제시했다. 단순히 칩의 연산력을 높이는 것을 넘어, 추론 프로세스 자체를 영리하게 재설계하여 데이터 처리 속도를 끌어올리는 전략이다.
+
+## 소프트웨어가 하드웨어의 한계를 넘어서는 방법
+
+인텔 가우디 가속기에서 구현된 보조 생성 기술은 '투기적 디코딩(Speculative Decoding)'이라고도 불린다. 이 기술의 핵심은 상대적으로 가볍고 빠른 '드래프트 모델(Draft Model)'이 다음에 올 토큰들을 미리 예측하고, 실제 거대 모델인 '타겟 모델(Target Model)'이 이를 한꺼번에 검증하는 방식이다. 인텔의 조사 결과에 따르면, 이 방식을 적용할 경우 기존 추론 방식 대비 토큰 생성 속도(TPS)가 최소 2.8배에서 최대 3배까지 향상된다.
+
+성능 개선 효과는 작업의 성격에 따라 뚜렷한 차이를 보인다. 구조가 명확하고 예측 가능성이 높은 코드 완성(Code Completion) 작업에서는 최대 3배의 속도 향상을 기록했다. 반면 문맥의 유연성이 필요한 텍스트 요약 및 일반 생성 작업에서는 약 2배의 성능 개선을 보였다. 이는 메모리 대역폭의 한계로 인해 대기 시간이 길어지던 기존 LLM 추론 워크플로우를 소프트웨어 최적화로 돌파했음을 의미한다.
+
+이 기능을 활용하기 위해서는 인텔 가우디의 전용 소프트웨어 스택인 시냅스AI(SynapseAI)와 허깅페이스(Hugging Face)의 옵티멈 하바나(Optimum Habana) 라이브러리가 필요하다. 또한 가우디에 최적화된 파이토치(PyTorch) 환경과 하바나AI용으로 포팅된 딥스피드(DeepSpeed) 라이브러리가 뒷받침되어야 한다. 특히 기술적 제약 조건으로 드래프트 모델과 타겟 모델이 반드시 동일한 토크나이저(Tokenizer)를 공유해야 한다는 점이 운영상의 핵심이다.
+
+## 분석: 효율성의 시대, 깡성능보다 중요한 것
+
+인텔의 이번 행보는 하드웨어의 원시적인 연산 성능(TFLOPS) 경쟁에서 효율성 중심의 생태계 경쟁으로의 전환을 시사한다. 엔비디아(NVIDIA)가 지배하는 가속기 시장에서 인텔 가우디가 살아남기 위해서는 동일한 비용 대비 더 높은 추론 처리량을 증명해야 하며, 보조 생성은 이를 위한 가장 강력한 무기 중 하나다.
+
+하지만 보조 생성 기술이 모든 상황에서 만능인 것은 아니다. 드래프트 모델의 예측이 빗나갈 경우, 타겟 모델은 잘못된 토큰을 폐기하고 다시 생성해야 한다. 이 '검증 실패' 비용이 잦아지면 오히려 성능이 저하될 위험이 있다. 또한, 적절한 드래프트 모델을 선정하고 이를 메인 모델과 함께 메모리에 올리는 과정에서 추가적인 비디오 메모리(VRAM) 점유가 발생한다. 개발자는 속도 향상과 자원 소모 사이의 미묘한 균형점을 찾아야 하는 과제를 안게 된다.
+
+업계에서는 인텔이 오픈소스 커뮤니티와의 협력을 강화하고 있다는 점에 주목한다. vLLM 하드웨어 플러그인을 통해 Llama 2와 3, Mistral, Mixtral 등 업계 표준 아키텍처를 폭넓게 지원하는 것은 가우디의 범용성을 확보하려는 전략적 선택이다. 다만, 시냅스AI 1.18.0 버전 전후로 추정되는 초기 지원 단계의 안정성과 향후 vLLM v0.11.0 이상의 정식 버전에서 보여줄 최적화 수준은 여전히 검증의 영역으로 남아 있다.
+
+## 실전 적용: 가우디 환경에서의 추론 최적화
+
+가우디 가속기를 사용하는 개발자나 인프라 운영자는 지금 즉시 보조 생성 기능을 워크플로우에 통합할 수 있다. 먼저 사용 중인 모델 아키텍처가 인과적 언어 모델(Causal LM) 기반인지 확인해야 한다. Llama 시리즈나 Mixtral 같은 모델이 대표적이다.
+
+그다음 단계는 타겟 모델에 적합한 '작은 보조자'를 찾는 것이다. 예를 들어 Llama 3 70B 모델을 메인으로 사용한다면, 동일한 토크나이저를 사용하는 Llama 3 8B 모델을 드래프트 모델로 설정하는 식이다. 하이브리드 추론 워크플로우를 구성할 때 옵티멈 하바나 라이브러리에서 제공하는 추론 가이드를 준수하면, 복잡한 저수준 코딩 없이도 성능 향상을 체감할 수 있다.
+
+## FAQ
+
+**Q: 보조 생성 기술을 적용했을 때 정확도가 떨어질 우려가 있는가?**
+A: 아니요. 보조 생성 기술의 핵심은 드래프트 모델이 만든 결과를 타겟 모델이 수학적으로 검증하는 것입니다. 타겟 모델이 최종 승인한 토큰만 출력되므로, 기존 방식과 결과물(Accuracy)은 완전히 동일하며 오직 생성 속도만 빨라집니다.
+
+**Q: 모든 LLM 아키텍처에서 이 기능을 바로 쓸 수 있는가?**
+A: 현재는 Llama(2/3), Mistral, Mixtral 등 주요 인과적 언어 모델 아키텍처에서 호환됩니다. 또한 드래프트 모델과 타겟 모델이 동일한 토크나이저를 사용해야 한다는 기술적 전제 조건이 충족되어야 합니다.
+
+**Q: 가우디 가속기에서 이 기능을 사용하기 위한 필수 소프트웨어는 무엇인가?**
+A: 시냅스AI(SynapseAI)와 허깅페이스의 옵티멈 하바나(Optimum Habana) 라이브러리가 핵심입니다. 또한 가우디 전용 파이토치 및 딥스피드 환경이 구축되어 있어야 하며, vLLM 하드웨어 플러그인을 통한 지원 여부도 확인이 필요합니다.
+
+## 결론
+
+인텔 가우디의 보조 생성 지원은 대규모 언어 모델 운영 비용(TCO) 절감을 절실히 원하는 기업들에게 매력적인 제안이다. 최대 3배에 달하는 성능 향상은 동일한 하드웨어 자원으로 3배 더 많은 사용자 요청을 처리하거나, 응답 시간을 3분의 1로 줄일 수 있음을 의미한다.
+
+앞으로의 관전 포인트는 인텔이 이러한 소프트웨어 최적화 기술을 얼마나 더 공격적으로 확장하느냐에 달려 있다. 2026년 이후 등장할 차세대 아키텍처와의 호환성, 그리고 vLLM과 같은 메인스트림 추론 엔진과의 완전한 통합이 가우디 생태계의 성패를 가를 핵심 변수가 될 것이다. 하드웨어의 힘은 이제 칩 내부의 트랜지스터 개수가 아니라, 그 위에서 돌아가는 소프트웨어의 영리함에서 나온다.
+---
+
+## 참고 자료
+
+- 🛡️ [FastDraft: How to Train Your Draft](https://arxiv.org/abs/2411.11641)
+- 🛡️ [Support Matrix — Gaudi Documentation 1.23.0](https://docs.habana.ai/en/latest/Support_Matrix/Support_Matrix.html)
+- 🛡️ [Supported Features - vLLM Hardware Plugin for Intel Gaudi](https://docs.habana.ai/en/latest/vLLM_Hardware_Plugin_for_Intel_Gaudi/Supported_Features.html)
+- 🛡️ [Optimum for Intel Gaudi - Inference Guide](https://huggingface.co/docs/optimum/habana/usage_guides/inference)
+- 🏛️ [Intel and Weizmann Institute Speed AI with Speculative Decoding Advance](https://www.intel.com/content/www/us/en/newsroom/news/intel-weizmann-institute-speed-ai-speculative-decoding.html)
+- 🏛️ [Faster assisted generation support for Intel Gaudi - Hugging Face](https://huggingface.co/blog/habana-gaudi-2-assisted-generation)

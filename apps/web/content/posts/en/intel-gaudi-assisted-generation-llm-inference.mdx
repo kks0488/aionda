@@ -1,0 +1,65 @@
+---
+title: "Intel Gaudi Assisted Generation Accelerates LLM Inference Up to 3x"
+slug: "intel-gaudi-assisted-generation-llm-inference"
+date: "2026-01-17"
+locale: "en"
+description: "Explore how Intel Gaudi's Assisted Generation and speculative decoding optimize LLM inference speed by up to 3 times."
+tags: ["인텔 가우디", "LLM 추론", "투기적 디코딩", "SynapseAI", "AI 가속기"]
+author: "AI온다"
+sourceId: "huggingface-5h5cmir"
+sourceUrl: "https://huggingface.co/blog/assisted-generation-support-gaudi"
+verificationScore: 0.9499999999999998
+alternateLocale: "/ko/posts/intel-gaudi-assisted-generation-llm-inference"
+coverImage: "/images/posts/intel-gaudi-assisted-generation-llm-inference.jpeg"
+---
+
+The inefficient computational structure where a Large Language Model (LLM) must read hundreds of billions of parameters from memory to generate a single token is a chronic bottleneck in the AI industry. Intel has introduced "Assisted Generation" technology to its Gaudi accelerators, offering a new solution to this tedious computational battle. Rather than simply increasing the chip's raw computing power, the strategy focuses on intelligently redesigning the inference process itself to boost data processing speeds.
+
+## How Software Surpasses Hardware Limitations
+
+The Assisted Generation technology implemented in Intel Gaudi accelerators is also known as "Speculative Decoding." The core of this technology involves a relatively lightweight and fast "Draft Model" predicting subsequent tokens in advance, which the actual large "Target Model" then verifies all at once. According to Intel’s findings, applying this method results in a token generation speed (TPS) improvement of at least 2.8x and up to 3x compared to traditional inference methods.
+
+Performance improvement varies significantly depending on the nature of the task. In code completion tasks, which have a clear structure and high predictability, speed increases of up to 3x were recorded. In contrast, text summarization and general generation tasks requiring contextual flexibility showed a performance improvement of approximately 2x. This signifies a breakthrough in traditional LLM inference workflows, which previously suffered from long latency due to memory bandwidth limitations, through software optimization.
+
+Utilizing this feature requires SynapseAI, Intel Gaudi’s dedicated software stack, and the Optimum Habana library from Hugging Face. Additionally, a PyTorch environment optimized for Gaudi and the DeepSpeed library ported for Habana AI are necessary. A key operational requirement is that the Draft Model and the Target Model must share the same Tokenizer due to technical constraints.
+
+## Analysis: The Era of Efficiency, More Important Than Raw Performance
+
+Intel’s move suggests a shift from raw computational performance (TFLOPS) competition to ecosystem competition centered on efficiency. For Intel Gaudi to survive in an accelerator market dominated by NVIDIA, it must demonstrate higher inference throughput for the same cost, and Assisted Generation is one of its most powerful tools for doing so.
+
+However, Assisted Generation is not a panacea for all situations. If the Draft Model’s predictions are incorrect, the Target Model must discard the wrong tokens and regenerate them. If the cost of these "verification failures" becomes frequent, there is a risk that performance may actually decrease. Furthermore, selecting an appropriate Draft Model and loading it into memory alongside the main model results in additional Video Memory (VRAM) consumption. Developers face the challenge of finding a delicate balance between speed improvements and resource consumption.
+
+The industry is noting Intel's strengthening collaboration with the open-source community. Broadly supporting industry-standard architectures such as Llama 2 and 3, Mistral, and Mixtral through vLLM hardware plugins is a strategic choice to secure Gaudi’s versatility. However, the stability of early support stages—estimated around SynapseAI version 1.18.0—and the level of optimization in future official versions like vLLM v0.11.0 and above remain to be verified.
+
+## Practical Application: Optimizing Inference in Gaudi Environments
+
+Developers or infrastructure operators using Gaudi accelerators can integrate Assisted Generation features into their workflows immediately. First, it must be confirmed that the model architecture is based on a Causal Language Model (Causal LM). Models like the Llama series or Mixtral are representative examples.
+
+The next step is to find a suitable "small assistant" for the Target Model. For instance, if using Llama 3 70B as the main model, one might set Llama 3 8B, which uses the same tokenizer, as the Draft Model. By following the inference guide provided by the Optimum Habana library when configuring hybrid inference workflows, performance gains can be realized without complex low-level coding.
+
+## FAQ
+
+**Q: Is there a risk that accuracy will decrease when applying Assisted Generation?**
+A: No. The core of Assisted Generation is that the Target Model mathematically verifies the results produced by the Draft Model. Since only the tokens finally approved by the Target Model are output, the results (Accuracy) are identical to traditional methods; only the generation speed increases.
+
+**Q: Can this feature be used immediately for all LLM architectures?**
+A: Currently, it is compatible with major Causal Language Model architectures such as Llama (2/3), Mistral, and Mixtral. Additionally, the technical prerequisite that the Draft Model and Target Model use the same tokenizer must be met.
+
+**Q: What software is required to use this feature on Gaudi accelerators?**
+A: SynapseAI and Hugging Face’s Optimum Habana library are essential. Furthermore, a Gaudi-specific PyTorch and DeepSpeed environment must be established, and support via the vLLM hardware plugin should also be verified.
+
+## Conclusion
+
+Intel Gaudi’s support for Assisted Generation is an attractive proposition for companies seeking to reduce Large Language Model Total Cost of Ownership (TCO). A performance improvement of up to 3x means that the same hardware resources can handle three times as many user requests or reduce response times by two-thirds.
+
+The key point to watch moving forward is how aggressively Intel expands these software optimization technologies. Compatibility with next-generation architectures appearing after 2026 and full integration with mainstream inference engines like vLLM will be critical variables determining the success of the Gaudi ecosystem. The power of hardware now stems not just from the number of transistors inside a chip, but from the intelligence of the software running on top of it.
+---
+
+## 참고 자료
+
+- 🛡️ [FastDraft: How to Train Your Draft](https://arxiv.org/abs/2411.11641)
+- 🛡️ [Support Matrix — Gaudi Documentation 1.23.0](https://docs.habana.ai/en/latest/Support_Matrix/Support_Matrix.html)
+- 🛡️ [Supported Features - vLLM Hardware Plugin for Intel Gaudi](https://docs.habana.ai/en/latest/vLLM_Hardware_Plugin_for_Intel_Gaudi/Supported_Features.html)
+- 🛡️ [Optimum for Intel Gaudi - Inference Guide](https://huggingface.co/docs/optimum/habana/usage_guides/inference)
+- 🏛️ [Intel and Weizmann Institute Speed AI with Speculative Decoding Advance](https://www.intel.com/content/www/us/en/newsroom/news/intel-weizmann-institute-speed-ai-speculative-decoding.html)
+- 🏛️ [Faster assisted generation support for Intel Gaudi - Hugging Face](https://huggingface.co/blog/habana-gaudi-2-assisted-generation)
