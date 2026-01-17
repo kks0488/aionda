@@ -1,0 +1,70 @@
+---
+title: "DeepSpeed vs FSDP: Choosing Frameworks Based on Model Size"
+slug: "deepspeed-vs-fsdp-training-strategy"
+date: "2026-01-17"
+locale: "en"
+description: "Compare DeepSpeed and FSDP performance based on model size and explore strategies using Hugging Face Accelerate."
+tags: ["DeepSpeed", "FSDP", "Accelerate", "LLM", "Model Scaling"]
+author: "AI온다"
+sourceId: "huggingface-6zb2e2"
+sourceUrl: "https://huggingface.co/blog/deepspeed-to-fsdp-and-back"
+verificationScore: 0.9333333333333332
+alternateLocale: "/ko/posts/deepspeed-vs-fsdp-training-strategy"
+coverImage: "/images/posts/deepspeed-vs-fsdp-training-strategy.jpeg"
+---
+
+In the field of Large Language Model (LLM) training, GPU memory is a perpetually scarce resource. Engineers face a nightly dilemma, choosing between Microsoft’s DeepSpeed and Meta’s Fully Sharded Data Parallel (FSDP) to efficiently deploy hundreds of billions of parameters. Today, Hugging Face Accelerate provides an abstraction layer that allows switching between these two complex frameworks with a single line of code, rewriting the formula for training strategies based on infrastructure scale.
+
+## Framework Direction Determined by Model Size
+
+Benchmark data collected in the second half of 2025 clearly demonstrates a performance reversal based on model scale. In environments with small-to-medium models under 1B parameters, FSDP (FULL_SHARD) recorded iteration speeds up to five times faster than DeepSpeed ZeRO-3. This is the result of maximizing processing efficiency through the lightweight overhead provided by native PyTorch integration.
+
+As model size shifts to the 7B scale, the competition becomes neck-and-neck. In a benchmark based on four A100 GPUs, FSDP processed 3158.7 tokens per second, while DeepSpeed recorded 3094.5. This represents a range where the performance difference between the two frameworks narrows to within the margin of error. However, as model sizes enter the ultra-large territory of 70B or more, the scales tip back toward DeepSpeed.
+
+DeepSpeed maximizes the flexibility of memory offloading through ZeRO-Infinity technology. Even when GPU memory is exhausted, it demonstrates resilience by mobilizing CPU and NVMe memory to continue training. Conversely, while FSDP excels at maintaining high throughput in high-speed interconnect (NVLink) environments, it has shown limitations in matching DeepSpeed's management capabilities in scenarios where hardware resources are extremely constrained.
+
+## 10B Parameters: The Threshold for Strategy Formulation
+
+When is the optimal point for an engineer to switch from DeepSpeed to FSDP, or vice versa? Industry data points to the 10B (10 billion) parameter mark as the fork in the road. For those handling models under 10B or working in environments with high-bandwidth networks like NVLink, FSDP is often the right answer. This is because it can shorten training time by reducing unnecessary communication overhead.
+
+On the other hand, if a model exceeding 10B must be trained on limited GPU resources, DeepSpeed ZeRO-3 becomes an essential choice. Specifically, DeepSpeed still holds the upper hand in offloading capabilities to resolve Out-of-Memory (OOM) issues. As of January 2026, while specific comparative figures for next-generation accelerators like the NVIDIA B200 are still lacking, this "10B Rule" remains a valid guideline in existing infrastructure environments.
+
+Hugging Face Accelerate introduced the `save_state` and `load_state` unified APIs to respond to these environmental changes. In the past, DeepSpeed’s ZeRO partitioning and FSDP’s sharding methods differed, causing significant bottlenecks when attempting to make checkpoints compatible. Accelerate now abstracts the differences between these frameworks, helping developers easily consolidate distributed checkpoints into standard weight files (`safetensors`). By deploying DeepSpeed’s `zero_to_fp32.py` utility or FSDP-specific `merge_weights` tools where appropriate, it resolves the data inconsistency issues that arise during framework transitions.
+
+## Infrastructure Flexibility as a Competitive Edge
+
+A winner cannot be decided by performance metrics alone. The stability of FSDP v2 performance on trillion-scale models has not yet been sufficiently verified quantitatively. Additionally, fragmentation issues—such as certain DeepSpeed options only functioning correctly in specific Accelerate versions—remain a challenge to be addressed.
+
+Nevertheless, building a unified training environment based on Accelerate offers immense maintenance benefits to development teams. Instead of overhauling the entire training code every time the hardware configuration changes or the model scale grows, the optimal engine can be swapped via a single configuration file. This goes beyond simple technical convenience, directly impacting an organization's speed in responding to rapidly changing AI model trends.
+
+## Practical Implementation Guide
+
+Developers and infrastructure architects should immediately review the following strategies:
+
+1.  **Verify Model Scale**: For models under 10B, set FSDP as the default engine to secure training speed. FSDP’s efficiency shines even in typical cloud environments without high-speed networks.
+2.  **Evaluate Offloading Needs**: If training is interrupted due to GPU memory constraints, activate DeepSpeed ZeRO-Infinity. Expanding computation using CPU memory can be the only breakthrough for training large-scale models.
+3.  **Standardize Checkpoints**: Manage weights in the `safetensors` format rather than framework-dependent storage methods. This allows for the early liquidation of technical debt that might occur when migrating models to inference servers or switching to different training frameworks later.
+
+## FAQ
+
+**Q: Is FSDP more advantageous than DeepSpeed even in environments without NVLink?**
+A: Not necessarily. FSDP is sensitive to intra-node and inter-node communication bandwidth. In low-speed network environments, DeepSpeed’s communication cost reduction algorithms are likely to show more stable performance. While FSDP is advantageous for small models under 1B due to low network load, benchmarks based on the network environment should be prioritized as model scale increases.
+
+**Q: What is the biggest issue when loading a checkpoint saved in DeepSpeed into FSDP?**
+A: The main issue is that the partitioning methods used by each framework to split and store model weights are different. To resolve this, distributed weights must first be merged into one using tools like `zero_to_fp32.py`, and then re-sharded into a standard format recognizable by FSDP. Hugging Face Accelerate provides APIs to automate this process, but compatibility for specific versions must be verified in advance.
+
+**Q: Is it risky to use FSDP when training ultra-large models of 70B or more?**
+A: It is less a matter of risk and more a matter of efficiency. Models of 70B or larger do not fit into a single GPU's memory, making sophisticated memory offloading and communication optimization essential. DeepSpeed provides long-verified stability in this area. To train large-scale models with FSDP, hardware resources must be sufficient, and depending on infrastructure availability, DeepSpeed may be the safer choice.
+
+## Conclusion
+
+Optimizing distributed training through Hugging Face Accelerate is no longer an option but a necessity. Flexibility is required to strategically switch between FSDP's throughput and DeepSpeed's memory efficiency based on the 10B parameter threshold. Moving forward, it will be crucial to monitor how this threshold shifts with changes in hardware architecture and the responsiveness of each framework to trillion-scale models. Ultimately, the winners will be the teams that do not become entrenched in a specific technology but master training engines freely according to their infrastructure situation.
+---
+
+## 참고 자료
+
+- 🛡️ [FSDP vs DeepSpeed - Romeo Kienzler - Medium](https://medium.com/p/8525e89d5351)
+- 🛡️ [FSDP vs DeepSpeed - Parallel Framework Comparison](https://medium.com/@marksosman/fsdp-vs-deepspeed-parallel-framework-comparison-2025)
+- 🏛️ [From DeepSpeed to FSDP and Back Again with Hugging Face Accelerate](https://huggingface.co/blog/deepspeed-to-fsdp-and-back)
+- 🏛️ [FSDP vs DeepSpeed - Hugging Face](https://huggingface.co/docs/accelerate/usage_guides/fsdp_v_deepspeed)
+- 🏛️ [Fully Sharded Data Parallel - Hugging Face](https://huggingface.co/docs/accelerate/main/en/package_reference/fsdp)
