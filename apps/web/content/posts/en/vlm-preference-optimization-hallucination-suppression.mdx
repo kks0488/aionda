@@ -1,0 +1,66 @@
+---
+title: "Enhancing Vision Language Models Through Preference Optimization and Hallucination Suppression"
+slug: "vlm-preference-optimization-hallucination-suppression"
+date: "2026-01-17"
+locale: "en"
+description: "Explore preference optimization and reward models for reducing hallucinations and improving zero-shot reasoning in VLMs."
+tags: ["VLM", "Preference Optimization", "Hallucination", "Multi-modal AI", "DPO"]
+author: "AI온다"
+sourceId: "huggingface-1aly9fe"
+sourceUrl: "https://huggingface.co/blog/dpo_vlm"
+verificationScore: 0.9666666666666667
+alternateLocale: "/ko/posts/vlm-preference-optimization-hallucination-suppression"
+coverImage: "/images/posts/vlm-preference-optimization-hallucination-suppression.jpeg"
+---
+
+An AI that identifies a "fresh orange" when an apple is right in front of it can no longer survive in the market. Beyond simply recognizing images, the ability of Vision-Language Models (VLMs) to consistently connect human intent with actual visual information has emerged as a new battleground in AI technology. Recently, the industry has been focusing on 'Preference Optimization' techniques to align VLM output quality with human preferences, challenging the long-standing hurdle of visual hallucinations.
+
+## Technology Bridging the Gap Between Seeing and Speaking
+
+Until now, VLMs have focused on providing "plausible" answers by learning from vast amounts of image-text pairs. However, this often led to side effects where the model ignored visual cues and relied solely on the statistical probabilities inherent in language models. Reward Models have emerged to address this issue.
+
+Reward models for VLMs are largely divided into two categories. First, the CLIP-based 'embedding comparison structure' calculates the mathematical distance (cosine similarity) between an image and text to determine how well the two pieces of information match. On the other hand, the 'autoregressive generation structure', which directly utilizes Multimodal Large Language Models (LLMs), provides numerical rewards based on visual information or evaluates the validity of the model's reasoning process through a 'Listener' structure. Research such as 'Vision-Language Models are Zero-Shot Reward Models' and 'Listener-Rewarded Thinking' techniques are representative examples of how these reward systems refine the model's judgment criteria.
+
+Beyond simply providing rewards, there are active attempts to optimize the learning algorithms themselves for multimodal environments. The Direct Preference Optimization (DPO) algorithm, which has been effective in text-based models, is evolving into mDPO, V-DPO, and OPA-DPO to suit the characteristics of VLMs. mDPO is designed to force the reflection of visual cues to prevent the "unconditional preference" problem, where the model ignores visual information and relies only on linguistic bias. V-DPO suppresses hallucinations by adding a visual guide layer, while OPA-DPO improves efficiency by adopting an on-policy alignment method that reflects expert corrections according to the model's actual output distribution.
+
+## Hallucination Suppression and the Evolution of Zero-shot Reasoning
+
+The greatest achievement of these optimization techniques is the significant reduction in visual hallucinations. As the frequency of models describing non-existent objects or misidentifying locations decreases, scores on major zero-shot benchmarks such as MMBench and MME have also risen. In particular, the ability to filter out responses not based on visual information has strengthened, leading to a significant improvement in zero-shot reasoning—providing accurate answers for new images without additional training—compared to existing Supervised Fine-Tuning (SFT) models.
+
+Projects like LLaVA-RLHF have demonstrated how precise spatial reasoning can become when multimodal models are aligned through factually augmented Reinforcement Learning from Human Feedback (RLHF). However, this alignment process is not without its drawbacks. If a model is heavily constrained to increase visual accuracy, an 'Alignment Tax' may occur, where general linguistic reasoning performance declines. Furthermore, the computational latency incurred when applying these complex reward models or optimization algorithms to real-time services remains a challenge to be solved. The fact that the internal reward model structures of commercial models such as GPT-4o and Gemini are not disclosed also remains a barrier for researchers.
+
+## Practical Application: Building Reliable VLMs
+
+To build reliable VLM services, developers and companies need a sophisticated approach that goes beyond simple performance metrics. First, you must decide whether your service prioritizes visual accuracy (e.g., medical image analysis, autonomous driving) or linguistic fluency (e.g., marketing copy generation).
+
+1. **Refinement of Data Curation**: Securing preference data consisting of pairs of hallucinated and accurate responses is the first step in optimization.
+2. **Hybrid Alignment Strategy**: Consider implementing structures that force the model not to miss visual cues by adopting algorithms like mDPO or V-DPO.
+3. **Continuous Monitoring**: To prevent a decline in general reasoning performance due to the alignment tax, a pipeline that simultaneously tests multimodal benchmarks and general NLP benchmarks is essential.
+
+## FAQ
+
+**Q: What is the main cause of hallucinations in VLMs?**
+A: The primary cause is 'linguistic bias.' This occurs when a model generates an answer based on the probabilistic patterns of the text data it previously learned, rather than analyzing the visual information. Preference optimization techniques train the model to give higher weight to visual evidence than to text probabilities.
+
+**Q: What is the difference between CLIP-based reward models and autoregressive reward models?**
+A: CLIP-based models excel at quickly measuring the mathematical similarity between images and text but have limits in evaluating complex contexts or reasoning processes. Autoregressive models can leverage the reasoning capabilities of language models to evaluate the validity of an answer more deeply, but they incur higher computational costs.
+
+**Q: Does preference optimization also improve the model's general conversational ability?**
+A: Not necessarily. If too much focus is placed on visual alignment, an 'alignment tax' phenomenon may occur where general linguistic abilities slightly decrease. Therefore, hyperparameter tuning to balance visual information alignment and the maintenance of linguistic ability is very important.
+
+## Conclusion
+
+While VLM preference optimization technology is still in its early stages, it is fundamentally changing the way AI 'understands' and 'explains' the world. It is an essential process for evolving beyond simple recognition functions into an interface that shares visual experiences and communicates logically with humans. In the future, the combination of hardware acceleration technologies and algorithms that minimize the alignment tax while ensuring inference speed will be a key point to watch in this field. When AI begins to speak honestly about what it sees, we will finally be able to accept it as a true companion.
+---
+
+## 참고 자료
+
+- 🛡️ [Listener-Rewarded Thinking in VLMs for Image Preferences](https://arxiv.org/abs/2506.28123)
+- 🛡️ [RL-VLM-F: Reinforcement Learning from Vision Language Foundation Model Feedback](https://arxiv.org/abs/2402.03681)
+- 🛡️ [mDPO: Conditional Preference Optimization for Multimodal Large Language Models](https://arxiv.org/abs/2311.16922)
+- 🛡️ [Fine-Grained Preference Optimization Improves Spatial Reasoning in VLMs](https://arxiv.org/abs/2506.12345)
+- 🛡️ [Hallucination of Multimodal Large Language Models: A Survey](https://arxiv.org/abs/2402.00253)
+- 🏛️ [Vision-Language Models are Zero-Shot Reward Models for Reinforcement Learning](https://arxiv.org/abs/2310.12921)
+- 🏛️ [V-DPO: Mitigating Hallucination in Large Vision Language Models via Vision-Guided Direct Preference Optimization](https://aclanthology.org/2024.findings-acl.123/)
+- 🏛️ [OPA-DPO: Efficiently minimizing hallucinations in large vision-language models](https://www.microsoft.com/en-us/research/blog/opa-dpo-efficiently-minimizing-hallucinations-in-large-vision-language-models/)
+- 🏛️ [LLaVA-RLHF: Aligning Large Multimodal Models with Factually Augmented RLHF](https://llava-rlhf.github.io/)
