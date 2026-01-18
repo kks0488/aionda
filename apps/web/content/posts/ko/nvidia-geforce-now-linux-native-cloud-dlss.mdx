@@ -1,0 +1,84 @@
+---
+title: 'NVIDIA, GeForce NOW 리눅스 네이티브 지원 및 신기술 공개'
+slug: nvidia-geforce-now-linux-native-cloud-dlss
+date: '2026-01-18'
+locale: ko
+description: >-
+  NVIDIA가 GeForce NOW의 리눅스 커널 네이티브 지원과 클라우드 DLSS 4.5를 발표하며 초저지연 게이밍 환경 구축을
+  선언했습니다.
+tags:
+  - NVIDIA
+  - GeForce NOW
+  - Linux
+  - Cloud DLSS
+  - CES 2026
+author: AI온다
+sourceId: nvidia-2fk2x08
+sourceUrl: 'https://blogs.nvidia.com/blog/geforce-now-thursday-quarantine-zone/'
+verificationScore: 0.9499999999999998
+alternateLocale: /en/posts/nvidia-geforce-now-linux-native-cloud-dlss
+coverImage: /images/posts/nvidia-geforce-now-linux-native-cloud-dlss.png
+---
+
+비행 시뮬레이터의 조종간(HOTAS)을 잡고 구름 위를 날 때, 0.1초의 지연은 단순한 짜증을 넘어 기체의 추락과 생존을 결정하는 물리적 장벽이다. 그동안 클라우드 게이밍이 하드코어 시뮬레이션 마니아들의 선택을 받지 못했던 이유는 명확하다. 입력 장치의 미세한 떨림조차 데이터 패킷에 담아 왕복시키는 과정에서 발생하는 '레이턴시(지연 시간)'를 극복하지 못했기 때문이다. NVIDIA가 2026년 1월, 리눅스 커널의 심장부로 직접 파고들며 이 해묵은 숙제를 해결하겠다고 선언했다.
+
+## 리눅스 네이티브로 회항하는 NVIDIA의 승부수
+
+NVIDIA는 CES 2026을 통해 GeForce NOW의 리눅스 커널 네이티브 지원과 전용 앱 배포를 공식화했다. 이는 단순히 브라우저 기반 스트리밍을 넘어, 운영체제(OS) 수준에서 하드웨어 가속을 최적화하겠다는 의지다. 그 중심에는 'NVIDIA GSP(GPU System Processor) 아키텍처'가 있다.
+
+기존 방식에서는 호스트 CPU가 GPU의 관리와 초기화 작업을 도맡았다. 이 과정에서 발생하는 CPU와 GPU 간의 병목 현상은 실시간 반응성이 생명인 클라우드 환경에서 치명적인 약점이었다. NVIDIA는 이를 해결하기 위해 GPU 내부에 RISC-V 기반 전용 코프로세서를 탑재하고, GPU 관리 로직을 이쪽으로 오프로드했다. CPU의 간섭을 최소화한 이 아키텍처는 오픈소스 GPU 커널 모듈과 결합해 리눅스 환경에서 전례 없는 시스템 반응성을 끌어낸다.
+
+특히 이번 업데이트는 비행 제어 장치(Flight-control)와 같은 고정밀 주변기기 연동에 초점을 맞췄다. 리눅스 사용자는 이제 웹 브라우저의 샌드박스 제약에서 벗어나, 커널 수준에서 직접 제어되는 초저지연 컨트롤을 경험할 수 있게 됐다.
+
+## 패킷을 길들이는 기술: L4S와 Rivermax
+
+하드웨어 내부의 지연을 해결했다면, 다음은 네트워크라는 '야생'을 정복할 차례다. NVIDIA는 GeForce NOW의 인프라 고도화를 위해 L4S(Low Latency, Low Loss, Scalable Throughput) 프로토콜과 Rivermax 하드웨어 패킷 페이싱(Packet Pacing) 기술을 전면에 내세웠다.
+
+L4S는 네트워크 혼잡 상황에서도 데이터 손실 없이 지연 시간을 일정하게 유지하는 차세대 표준이다. 여기에 Rivermax 기술이 더해져 데이터 패킷이 네트워크로 나가는 간격을 하드웨어 수준에서 정밀하게 조절한다. 결과적으로 고성능 비행 제어 장치에서 발생하는 수많은 입력 신호가 뭉치거나 튀는 현상 없이 클라우드 서버로 전달된다. RTX 5080급 서버에서 처리된 비행 시뮬레이션의 정밀한 조작감이 안방의 리눅스 PC까지 거의 손실 없이 배달되는 셈이다.
+
+## 거실의 침공, Fire TV와 클라우드 DLSS의 마법
+
+NVIDIA의 확장은 리눅스 데스크톱에만 머물지 않는다. 아마존 Fire TV용 전용 앱 출시를 통해 거실 TV 시장을 직접 공략한다. 여기서 흥미로운 점은 저사양 기기의 한계를 돌파하는 방식이다.
+
+2026년 기준, 저사양 Fire TV 스틱은 실시간 AI 업스케일링을 수행할 자체 하드웨어 연산력이 부족하다. NVIDIA는 이를 '클라우드 DLSS 4.5'로 정면 돌파했다. 기기에서 연산하는 대신, 강력한 RTX 5080급 서버에서 이미 DLSS 4.5 처리가 완료된 고해상도 영상 결과물을 스트리밍한다. Fire TV 스틱은 그저 이 고품질 영상을 디코딩하여 화면에 뿌려주는 역할만 수행한다. 덕분에 사용자는 몇만 원짜리 스틱 하나로 수백만 원대 하이엔드 PC에서나 가능한 시각적 경험을 누릴 수 있다. 다만, Fire TV Cube(3세대)와 같은 상위 모델은 일부 로컬 가속 기능을 보조적으로 활용해 더 기민한 반응성을 보여줄 것으로 보인다.
+
+## 분석: 개방형 생태계가 클라우드의 표준이 될 것인가
+
+NVIDIA의 이번 행보는 독점적인 윈도우 생태계 의존도를 낮추고, 엣지 디바이스와 오픈소스 진영으로 클라우드 영토를 확장하려는 전략적 포석이다. 리눅스 커널 모듈을 오픈소스로 전환하며 GSP 아키텍처를 도입한 것은 커뮤니티와의 협력을 강화하는 동시에, 리눅스 기반 하드웨어 제조사들에게 NVIDIA 가속 솔루션을 채택할 명분을 제공한다.
+
+하지만 장밋빛 전망만 있는 것은 아니다. 리눅스 생태계는 우분투 외에도 수많은 배포판으로 파편화되어 있다. NVIDIA가 발표한 '네이티브 지원'이 모든 배포판에서 균일한 성능을 보장할지는 미지수다. 또한 L4S 프로토콜의 효과를 온전히 누리려면 인터넷 서비스 제공업체(ISP)의 인프라 지원이 뒷받침되어야 하므로, 지역별 체감 성능 격차가 발생할 우려가 크다.
+
+## 실전 적용: 리눅스 게이머와 시뮬레이터 마니아를 위한 가이드
+
+이제 리눅스 환경에서 GeForce NOW를 사용하려는 이들은 브라우저를 닫고 전용 앱을 설치해야 한다. NVIDIA GSP 기능이 활성화된 드라이버를 로드하면 시스템 레이턴시가 체감될 정도로 개선된다.
+
+1.  **드라이버 업데이트**: GSP 아키텍처를 지원하는 최신 오픈소스 GPU 커널 모듈을 설치한다.
+2.  **전용 앱 활용**: 브라우저 대신 전용 앱을 통해 접속하여 L4S 및 고정밀 주변기기 최적화 설정을 활성화한다.
+3.  **장치 보정**: HOTAS 등 비행 제어 장치를 연결한 후, 앱 내 장치 관리자에서 고정밀 입력 가속 모드를 확인한다.
+
+## FAQ
+
+**Q: 내 리눅스 배포판에서도 GSP 아키텍처의 혜택을 볼 수 있나?**
+A: NVIDIA는 우분투를 중심으로 공식 지원을 시작했다. 다만 GSP 기능 자체는 오픈소스 커널 모듈에 포함되어 있어, 최신 커널을 사용하는 대부분의 주요 배포판에서 기술적으로 구현 가능하다. 단, 배포판별 공식 앱 지원 일정은 추가 확인이 필요하다.
+
+**Q: Fire TV 스틱에서 DLSS 4.5를 쓰면 지연 시간이 더 늘어나지 않나?**
+A: 서버에서 업스케일링을 처리한 후 전송하기 때문에 기기 자체의 연산 지연은 거의 없다. 그러나 고해상도 데이터를 스트리밍해야 하므로 네트워크 대역폭 요구량이 늘어난다. 네트워크 환경이 불안정할 경우 입력 지연(Input Lag)이 발생할 수 있다.
+
+**Q: 비행 제어 장치 외에 레이싱 휠이나 격투 게임용 컨트롤러도 지원하나?**
+A: 이번 발표의 핵심은 고정밀 입력 장치의 레이턴시 해결이다. HOTAS가 우선 지원 대상으로 언급되었으나, L4S와 Rivermax 기술은 모든 USB HID(Human Interface Device) 장치에 공통적으로 적용되므로 레이싱 휠 등 다른 정밀 기기로의 확장 가능성이 매우 높다.
+
+## 결론: 하드웨어의 경계가 무너지는 시점
+
+NVIDIA가 리눅스 커널 수준에서 보여준 집착에 가까운 최적화는 클라우드 게이밍이 더 이상 '대안'이 아닌 '표준'이 될 준비를 마쳤음을 시사한다. 하이엔드 PC 없이도 리눅스 워크스테이션이나 소형 스트리밍 스틱에서 비행 시뮬레이션을 즐기는 시대가 열렸다. 이제 남은 과제는 이 고도화된 기술이 파편화된 리눅스 배포판과 전 세계의 다양한 네트워크 망에서 얼마나 일관된 신뢰성을 보여주느냐에 달려 있다. NVIDIA는 주사위를 던졌고, 그 결과는 게이머들의 조종간 끝에서 증명될 것이다.
+---
+
+## 참고 자료
+
+- 🛡️ [NVIDIA GeForce NOW, 리눅스 PC·아마존 파이어 TV로 지원 확대](https://www.nvidia.com/ko-kr/geforce-now/)
+- 🛡️ [NVIDIA Updates GeForce NOW with RTX 5080, New Low-Latency Tech](https://www.techpowerup.com/325732/nvidia-updates-geforce-now-with-rtx-5080-cinematic-streaming-new-low-latency-tech-and-more)
+- 🛡️ [NVIDIA Shows Off Significant Level Up of the GeForce NOW Experience](https://wccftech.com/nvidia-shows-off-significant-level-up-of-the-geforce-now-experience-at-gamescom-2025/)
+- 🛡️ [Nvidia GeForce Now Is Coming to Amazon Fire TV Sticks, Linux PCs](https://www.pcmag.com/news/nvidia-geforce-now-is-coming-to-amazon-fire-tv-sticks-linux-pcs)
+- 🏛️ [NVIDIA Transitions Fully Towards Open-Source Linux GPU Kernel Modules](https://developer.nvidia.com/blog/nvidia-transitions-fully-towards-open-source-gpu-kernel-modules/)
+- 🏛️ [Nvidia's GeForce Now gets an RTX 5080 upgrade](https://www.tomshardware.com/pc-components/gpus/nvidias-geforce-now-gets-an-rtx-5080-upgrade-ultimate-subscribers-now-get-blackwell-benefits-in-the-cloud)
+- 🏛️ [GeForce NOW at CES: Linux, Amazon Fire TV, Flight Controls](https://www.nvidia.com/en-us/geforce/news/geforce-now-ces-2026-linux-fire-tv-flight-controls/)
+- 🏛️ [GeForce NOW at CES: Linux, Amazon Fire TV | NVIDIA Blog](https://www.nvidia.com/en-us/geforce/news/geforce-now-ces-2026-announcements/)
