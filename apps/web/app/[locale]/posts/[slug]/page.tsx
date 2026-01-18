@@ -9,7 +9,6 @@ import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
 import PostNavigation from '@/components/PostNavigation';
-import NewsletterForm from '@/components/NewsletterForm';
 import type { Locale } from '@/i18n';
 
 export async function generateStaticParams() {
@@ -387,19 +386,6 @@ export default async function PostPage({
                 </div>
               </div>
             )}
-
-            {/* Newsletter */}
-            <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4">
-                {locale === 'ko' ? '뉴스레터' : 'Daily Digest'}
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                {locale === 'ko'
-                  ? '매일 아침 AI 뉴스를 받아보세요.'
-                  : 'Get the top AI news every morning.'}
-              </p>
-              <NewsletterForm locale={locale as Locale} variant="inline" />
-            </div>
 
             {/* Back to posts */}
             <Link

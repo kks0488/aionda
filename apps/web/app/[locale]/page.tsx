@@ -2,7 +2,6 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getPosts } from '@/lib/posts';
 import HomeContent from '@/components/HomeContent';
 import SearchDataSetter from '@/components/SearchDataSetter';
-import NewsletterForm from '@/components/NewsletterForm';
 import type { Locale } from '@/i18n';
 
 export async function generateMetadata({
@@ -51,9 +50,6 @@ export default function HomePage({
               ? 'AGI 시대를 향한 AI 인사이트. 한국 테크 커뮤니티에서 검증된 정보.'
               : 'Daily curated insights into the era of AGI. Tracking the asymptotic curve of human progress.'}
           </p>
-          <div className="pt-6 w-full max-w-md mx-auto">
-            <NewsletterForm locale={locale as Locale} variant="hero" />
-          </div>
         </div>
       </section>
 
