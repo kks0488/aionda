@@ -7,6 +7,19 @@ const LOCALE_HEADER = 'X-NEXT-INTL-LOCALE';
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Skip Next.js internals and common static assets
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/robots') ||
+    pathname.startsWith('/sitemap') ||
+    pathname.startsWith('/feed') ||
+    /\.[a-z0-9]+$/i.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
   const segments = pathname.split('/');
   const firstSegment = segments[1];
 
@@ -32,5 +45,5 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|.*\\..*).*)'],
+  matcher: ['/:path*'],
 };
