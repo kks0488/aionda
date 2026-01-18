@@ -13,6 +13,13 @@
  *   pnpm extract-topics --source=raw      # DC Inside only
  *   pnpm extract-topics --source=official # Official blogs only
  *   pnpm extract-topics --source=news     # News only
+ *   pnpm extract-topics --limit=1         # Process only 1 topic
+ *   pnpm extract-topics --since=today     # Only items published since local midnight
+ *   pnpm extract-topics --since=24h       # Only items from last 24 hours
+ *
+ * Default behavior:
+ *   - If --since is omitted, uses TOPICS_SINCE env var (default: 14d)
+ *   - Use --since=all to disable time filtering
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
@@ -33,6 +40,63 @@ const PUBLISHED_DIR = './data/published';
 // Configuration
 const MIN_CONTENT_LENGTH = parseInt(process.env.MIN_CONTENT_LENGTH || '100', 10);
 const MAX_TOPICS = parseInt(process.env.MAX_TOPICS || '5');
+const DEFAULT_SINCE = (process.env.TOPICS_SINCE || '14d').trim();
+
+function parseUnifiedPostDate(value: string): Date | null {
+  if (!value) return null;
+
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
+
+  // DC Inside format: "YYYY.MM.DD HH:MM:SS"
+  const match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return null;
+
+  const [, y, m, d, hh, mm, ss] = match;
+  const parsed = new Date(
+    Number(y),
+    Number(m) - 1,
+    Number(d),
+    Number(hh),
+    Number(mm),
+    Number(ss)
+  );
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getStartOfTodayLocal(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+function parseSinceArg(raw?: string): Date | null {
+  if (!raw) return null;
+  const value = raw.trim().toLowerCase();
+  if (!value) return null;
+
+  if (value === 'all') return null;
+  if (value === 'today') return getStartOfTodayLocal();
+
+  const relative = value.match(/^(\d+)\s*(h|d)$/);
+  if (relative) {
+    const amount = Number(relative[1]);
+    const unit = relative[2];
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+
+    const ms = unit === 'h' ? amount * 60 * 60 * 1000 : amount * 24 * 60 * 60 * 1000;
+    return new Date(Date.now() - ms);
+  }
+
+  const ymd = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const [, y, m, d] = ymd;
+    const parsed = new Date(Number(y), Number(m) - 1, Number(d), 0, 0, 0, 0);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 // Source types
 type SourceType = 'raw' | 'official' | 'news';
@@ -250,8 +314,8 @@ function sortByPriority(posts: UnifiedPost[]): UnifiedPost[] {
     if (tierDiff !== 0) return tierDiff;
 
     // Then by date (newest first)
-    const dateA = new Date(a.date || '2000-01-01');
-    const dateB = new Date(b.date || '2000-01-01');
+    const dateA = parseUnifiedPostDate(a.date || '') || new Date('2000-01-01');
+    const dateB = parseUnifiedPostDate(b.date || '') || new Date('2000-01-01');
     return dateB.getTime() - dateA.getTime();
   });
 }
@@ -266,6 +330,14 @@ async function main() {
   const args = process.argv.slice(2);
   const sourceArg = args.find(a => a.startsWith('--source='));
   const sourceFilter = sourceArg ? sourceArg.split('=')[1] as SourceType : undefined;
+  const limitArg = args.find(a => a.startsWith('--limit='));
+  const limitOverride = limitArg ? parseInt(limitArg.split('=')[1], 10) : undefined;
+  const maxTopics = Number.isFinite(limitOverride) && (limitOverride as number) > 0
+    ? (limitOverride as number)
+    : MAX_TOPICS;
+
+  const sinceArg = args.find(a => a.startsWith('--since='));
+  const since = parseSinceArg(sinceArg ? sinceArg.split('=')[1] : DEFAULT_SINCE);
 
   // Ensure directories exist
   if (!existsSync(TOPICS_DIR)) mkdirSync(TOPICS_DIR, { recursive: true });
@@ -300,20 +372,33 @@ async function main() {
   const unprocessedPosts = allPosts.filter(p => !processedIds.has(p.id));
   console.log(`\n📋 Unprocessed: ${unprocessedPosts.length} posts`);
 
-  if (unprocessedPosts.length === 0) {
+  const filteredPosts = since
+    ? unprocessedPosts.filter((p) => {
+        const parsed = parseUnifiedPostDate(p.date || '');
+        return parsed ? parsed.getTime() >= since.getTime() : false;
+      })
+    : unprocessedPosts;
+
+  if (since) {
+    console.log(`⏱️  Since: ${since.toISOString()} | Remaining: ${filteredPosts.length} posts`);
+  } else {
+    console.log(`⏱️  Since: (all time) | Remaining: ${filteredPosts.length} posts`);
+  }
+
+  if (filteredPosts.length === 0) {
     console.log('\n✅ No new posts to process.');
     process.exit(0);
   }
 
   // Sort by priority and limit
-  const sortedPosts = sortByPriority(unprocessedPosts);
-  console.log(`🎯 Processing up to ${MAX_TOPICS} topics (Priority: S > A > B > C)\n`);
+  const sortedPosts = sortByPriority(filteredPosts);
+  console.log(`🎯 Processing up to ${maxTopics} topics (Priority: S > A > B > C)\n`);
 
   let extracted = 0;
   const tierEmoji: Record<SourceTier, string> = { S: '🏛️', A: '🛡️', B: '📝', C: '💬' };
 
   for (const post of sortedPosts) {
-    if (extracted >= MAX_TOPICS) break;
+    if (extracted >= maxTopics) break;
 
     const emoji = tierEmoji[post.sourceTier];
     console.log(`${emoji} [${post.sourceTier}] ${post.sourceName}`);

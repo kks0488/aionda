@@ -4,6 +4,15 @@
  * Pipeline: crawl → extract-topics → research-topic → write-article
  *
  * Gemini Flash + Google Search로 실시간 웹 검색 기반 리서치
+ *
+ * Usage:
+ *   pnpm research-topic --limit=1
+ *   pnpm research-topic --id=topic-...            # topicId or sourceId
+ *   pnpm research-topic --id=topic-... --force    # re-run even if already researched
+ *
+ * Default behavior:
+ *   - If --since is omitted, uses TOPICS_SINCE env var (default: 14d)
+ *   - Use --since=all to disable time filtering
  */
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
@@ -18,12 +27,17 @@ const RESEARCHED_DIR = './data/researched';
 
 // Minimum confidence to consider research valid
 const MIN_CONFIDENCE = 0.6;
+const DEFAULT_SINCE = (process.env.TOPICS_SINCE || '14d').trim();
+const TIER_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
 
 interface ExtractedTopic {
   id: string;
   sourceId: string;
   sourceUrl: string;
   sourceDate: string;
+  sourceType?: string;
+  sourceTier?: string;
+  sourceName?: string;
   title: string;
   description: string;
   keyInsights: string[];
@@ -75,6 +89,62 @@ function getDomainFromUrl(url: string): string {
   } catch {
     return 'unknown';
   }
+}
+
+function parseTopicDate(value: string): Date | null {
+  if (!value) return null;
+
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
+
+  // DC Inside format: "YYYY.MM.DD HH:MM:SS"
+  const match = value.match(/^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return null;
+
+  const [, y, m, d, hh, mm, ss] = match;
+  const parsed = new Date(
+    Number(y),
+    Number(m) - 1,
+    Number(d),
+    Number(hh),
+    Number(mm),
+    Number(ss)
+  );
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getStartOfTodayLocal(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+function parseSinceArg(raw?: string): Date | null {
+  if (!raw) return null;
+  const value = raw.trim().toLowerCase();
+  if (!value) return null;
+
+  if (value === 'all') return null;
+  if (value === 'today') return getStartOfTodayLocal();
+
+  const relative = value.match(/^(\d+)\s*(h|d)$/);
+  if (relative) {
+    const amount = Number(relative[1]);
+    const unit = relative[2];
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+
+    const ms = unit === 'h' ? amount * 60 * 60 * 1000 : amount * 24 * 60 * 60 * 1000;
+    return new Date(Date.now() - ms);
+  }
+
+  const ymd = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) {
+    const [, y, m, d] = ymd;
+    const parsed = new Date(Number(y), Number(m) - 1, Number(d), 0, 0, 0, 0);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 async function researchQuestionWithGemini(
@@ -180,6 +250,17 @@ async function main() {
   const args = process.argv.slice(2);
   const limitArg = args.find(a => a.startsWith('--limit='));
   const maxTopics = limitArg ? parseInt(limitArg.split('=')[1]) : 5;
+  const idArg = args.find((a) => a.startsWith('--id='));
+  const targetIds = idArg
+    ? idArg
+        .split('=')[1]
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    : [];
+  const force = args.includes('--force');
+  const sinceArg = args.find((a) => a.startsWith('--since='));
+  const since = parseSinceArg(sinceArg ? sinceArg.split('=')[1] : DEFAULT_SINCE);
 
   console.log('\n' + '═'.repeat(60));
   console.log('  Research Pipeline (Gemini + Google Search)');
@@ -211,12 +292,47 @@ async function main() {
       const topic = JSON.parse(readFileSync(join(TOPICS_DIR, f), 'utf-8')) as ExtractedTopic;
       return { file: f, topic };
     })
-    .filter(({ topic }) => !researchedIds.has(topic.id))
+    .filter(({ topic }) => {
+      const matchesTarget =
+        targetIds.length === 0 ||
+        targetIds.includes(topic.id) ||
+        targetIds.includes(topic.sourceId);
+      if (!matchesTarget) return false;
+      if (!force && researchedIds.has(topic.id)) return false;
+
+      // Explicit IDs should not be blocked by time filtering.
+      if (targetIds.length > 0) return true;
+
+      if (!since) return true;
+
+      const topicDate = parseTopicDate(topic.sourceDate || '');
+      if (!topicDate) return false;
+      return topicDate.getTime() >= since.getTime();
+    })
+    .sort((a, b) => {
+      const tierA = TIER_ORDER[String(a.topic.sourceTier || 'C').toUpperCase()] ?? 3;
+      const tierB = TIER_ORDER[String(b.topic.sourceTier || 'C').toUpperCase()] ?? 3;
+      if (tierA !== tierB) return tierA - tierB;
+
+      const dateA = parseTopicDate(a.topic.sourceDate || '')?.getTime() || 0;
+      const dateB = parseTopicDate(b.topic.sourceDate || '')?.getTime() || 0;
+      if (dateA !== dateB) return dateB - dateA;
+
+      const extractedA = new Date(a.topic.extractedAt || '').getTime() || 0;
+      const extractedB = new Date(b.topic.extractedAt || '').getTime() || 0;
+      return extractedB - extractedA;
+    })
     .slice(0, maxTopics);
 
   if (topicFiles.length === 0) {
     console.log('✅ No new topics to research.');
     process.exit(0);
+  }
+
+  if (since && targetIds.length === 0) {
+    console.log(`⏱️  Since: ${since.toISOString()} (set --since=all to disable)`);
+  } else if (targetIds.length === 0) {
+    console.log('⏱️  Since: (all time)');
   }
 
   console.log(`📚 Found ${topicFiles.length} topic(s) to research\n`);

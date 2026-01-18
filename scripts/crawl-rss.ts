@@ -23,6 +23,13 @@ const parser = new Parser({
   },
 });
 
+// Keep RSS ingestion bounded (some feeds include years of history).
+const DEFAULT_RSS_SINCE = (process.env.RSS_SINCE || process.env.TOPICS_SINCE || '30d').trim();
+const MAX_ITEMS_PER_FEED = (() => {
+  const parsed = Number.parseInt(process.env.RSS_MAX_ITEMS || '200', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 200;
+})();
+
 // Data directories
 const OFFICIAL_DIR = './data/official';
 const NEWS_DIR = './data/news';
@@ -45,9 +52,9 @@ interface RSSSource {
 const RSS_SOURCES: RSSSource[] = [
   // Official AI Company Blogs (Tier S)
   // Anthropic: No official RSS - would need web scraping
-  // OpenAI: https://openai.com/news/rss.xml (often unreliable)
-  // Google AI Blog: No reliable RSS
-  // Meta AI: No official RSS
+  // Meta AI: No reliable RSS endpoint found
+  { id: 'openai', name: 'OpenAI News', url: 'https://openai.com/news/rss.xml', tier: 'S', type: 'official', enabled: true },
+  { id: 'google-ai-blog', name: 'Google AI Blog', url: 'https://blog.google/technology/ai/rss/', tier: 'S', type: 'official', enabled: true },
   { id: 'nvidia', name: 'Nvidia Blog', url: 'https://blogs.nvidia.com/feed/', tier: 'S', type: 'official', enabled: true },
   { id: 'deepmind', name: 'DeepMind Blog', url: 'https://deepmind.google/blog/rss.xml', tier: 'S', type: 'official', enabled: true },
   { id: 'microsoft-ai', name: 'Microsoft AI Blog', url: 'https://blogs.microsoft.com/ai/feed/', tier: 'S', type: 'official', enabled: true },
@@ -76,6 +83,39 @@ interface FeedItem {
   content?: string;
   categories?: string[];
   fetchedAt: string;
+}
+
+function getStartOfTodayLocal(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+function parseSinceArg(raw?: string): Date | null {
+  if (!raw) return null;
+  const value = raw.trim().toLowerCase();
+  if (!value) return null;
+
+  if (value === 'all') return null;
+  if (value === 'today') return getStartOfTodayLocal();
+
+  const relative = value.match(/^(\d+)\s*(h|d)$/);
+  if (relative) {
+    const amount = Number(relative[1]);
+    const unit = relative[2];
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+
+    const ms = unit === 'h' ? amount * 60 * 60 * 1000 : amount * 24 * 60 * 60 * 1000;
+    return new Date(Date.now() - ms);
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function parseItemDate(item: FeedItem): Date | null {
+  if (!item.pubDate) return null;
+  const parsed = new Date(item.pubDate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function generateItemId(sourceId: string, link: string): string {
@@ -116,8 +156,26 @@ async function fetchFeed(source: RSSSource): Promise<FeedItem[]> {
       fetchedAt: new Date().toISOString(),
     }));
 
-    console.log(`     ✅ Found ${items.length} items`);
-    return items;
+    const since = parseSinceArg(DEFAULT_RSS_SINCE);
+    const filtered = items
+      .filter((item) => Boolean(item.link))
+      .filter((item) => {
+        if (!since) return true;
+        const dt = parseItemDate(item);
+        return dt ? dt.getTime() >= since.getTime() : false;
+      })
+      .sort((a, b) => {
+        const dateA = parseItemDate(a)?.getTime() || 0;
+        const dateB = parseItemDate(b)?.getTime() || 0;
+        return dateB - dateA;
+      })
+      .slice(0, MAX_ITEMS_PER_FEED);
+
+    const dropped = items.length - filtered.length;
+    console.log(
+      `     ✅ Found ${items.length} items (kept ${filtered.length}${dropped > 0 ? `, dropped ${dropped}` : ''})`
+    );
+    return filtered;
   } catch (error: any) {
     console.log(`     ❌ Failed: ${error.message}`);
     return [];

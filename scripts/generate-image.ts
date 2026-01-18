@@ -8,6 +8,7 @@
  */
 
 import { config } from 'dotenv';
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
@@ -27,6 +28,7 @@ const SILICONFLOW_API_URL = 'https://api.siliconflow.com/v1/images/generations';
 
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
+const ENABLE_LOCAL_IMAGE_FALLBACK = process.env.ENABLE_LOCAL_IMAGE_FALLBACK !== 'false';
 
 if (AI_API_DISABLED) {
   console.log('AI API is disabled via AI_API_DISABLED=true.');
@@ -38,9 +40,13 @@ if (!ENABLE_COVER_IMAGES || !ENABLE_IMAGE_GENERATION) {
   process.exit(0);
 }
 
-if (!SILICONFLOW_API_KEY) {
-  console.error('SILICONFLOW_API_KEY not found');
+if (!SILICONFLOW_API_KEY && !ENABLE_LOCAL_IMAGE_FALLBACK) {
+  console.error('SILICONFLOW_API_KEY not found and local fallback disabled (ENABLE_LOCAL_IMAGE_FALLBACK=false)');
   process.exit(1);
+}
+
+if (!SILICONFLOW_API_KEY && ENABLE_LOCAL_IMAGE_FALLBACK) {
+  console.warn('SILICONFLOW_API_KEY not found. Falling back to local placeholder images.');
 }
 
 interface PostMeta {
@@ -52,13 +58,36 @@ interface PostMeta {
   filePath: string;
 }
 
+function parseCsvArg(raw?: string): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const slugArg = args.find((a) => a.startsWith('--slug='));
+  const limitArg = args.find((a) => a.startsWith('--limit='));
+
+  const slugs = parseCsvArg(slugArg ? slugArg.split('=')[1] : undefined);
+  const limit = limitArg ? Number.parseInt(limitArg.split('=')[1] || '', 10) : undefined;
+
+  return {
+    slugs: new Set(slugs),
+    limit: Number.isFinite(limit) && (limit as number) > 0 ? (limit as number) : undefined,
+  };
+}
+
 /**
  * Find posts that need cover images
  */
-function getPostsWithoutImages(): PostMeta[] {
+function getPostsWithoutImages(options?: { slugs?: Set<string> }): PostMeta[] {
   const postsDir = path.join(process.cwd(), 'apps/web/content/posts');
   const posts: PostMeta[] = [];
   const seenSlugs = new Set<string>();
+  const allowedSlugs = options?.slugs && options.slugs.size > 0 ? options.slugs : null;
 
   for (const locale of ['en', 'ko']) {
     const localeDir = path.join(postsDir, locale);
@@ -72,6 +101,8 @@ function getPostsWithoutImages(): PostMeta[] {
       const { data } = matter(content);
 
       const slug = file.replace(/\.mdx?$/, '');
+
+      if (allowedSlugs && !allowedSlugs.has(slug)) continue;
 
       let hasImage = false;
       if (data.coverImage) {
@@ -156,6 +187,47 @@ function generateFallbackPrompt(post: PostMeta): string {
   return `Cinematic digital art, ${visual}, deep blue and cyan color palette, dark gradient background, futuristic tech aesthetic, sophisticated mood, dramatic volumetric lighting, subtle glow effects, 16:9 composition, abstract conceptual visualization, ultra high quality render`;
 }
 
+function generateLocalFallbackImage(post: PostMeta): string | null {
+  const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const outputPath = path.join(outputDir, `${post.slug}.png`);
+  const scriptPath = path.join(process.cwd(), 'scripts/lib/local-cover-image.py');
+
+  try {
+    const result = spawnSync(
+      'python',
+      [
+        scriptPath,
+        '--slug',
+        post.slug,
+        '--output',
+        outputPath,
+      ],
+      { encoding: 'utf-8' }
+    );
+
+    if (result.status !== 0) {
+      const details = (result.stderr || result.stdout || '').trim();
+      console.error(`❌ Local image generation failed: ${details || `exit ${result.status}`}`);
+      return null;
+    }
+
+    if (!fs.existsSync(outputPath)) {
+      console.error('❌ Local image generation did not create output file');
+      return null;
+    }
+
+    console.log(`✅ Saved (local): ${outputPath}`);
+    return `/images/posts/${post.slug}.png`;
+  } catch (error: any) {
+    console.error('❌ Local image generation error:', error?.message || String(error));
+    return null;
+  }
+}
+
 /**
  * Generate image using SiliconFlow API
  */
@@ -168,6 +240,14 @@ async function generateImage(post: PostMeta): Promise<string | null> {
     console.log(`🤖 Generating prompt with AI...`);
     const prompt = await generateImagePromptWithAI(post);
     console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`);
+
+    if (!SILICONFLOW_API_KEY) {
+      if (!ENABLE_LOCAL_IMAGE_FALLBACK) {
+        console.error('❌ SILICONFLOW_API_KEY not configured');
+        return null;
+      }
+      return generateLocalFallbackImage(post);
+    }
 
     const response = await fetch(SILICONFLOW_API_URL, {
       method: 'POST',
@@ -188,6 +268,10 @@ async function generateImage(post: PostMeta): Promise<string | null> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`❌ API Error (${response.status}): ${errorText}`);
+      if (ENABLE_LOCAL_IMAGE_FALLBACK) {
+        console.log('↩️ Falling back to local placeholder image...');
+        return generateLocalFallbackImage(post);
+      }
       return null;
     }
 
@@ -222,10 +306,18 @@ async function generateImage(post: PostMeta): Promise<string | null> {
     }
 
     console.log(`❌ No images in response for: ${post.title}`);
+    if (ENABLE_LOCAL_IMAGE_FALLBACK) {
+      console.log('↩️ Falling back to local placeholder image...');
+      return generateLocalFallbackImage(post);
+    }
     return null;
 
   } catch (error: any) {
     console.error(`❌ Error generating image for ${post.title}:`, error.message);
+    if (ENABLE_LOCAL_IMAGE_FALLBACK) {
+      console.log('↩️ Falling back to local placeholder image...');
+      return generateLocalFallbackImage(post);
+    }
     return null;
   }
 }
@@ -257,21 +349,24 @@ async function main() {
   console.log(`🤖 Using AI for prompt generation`);
   console.log(`🌐 API: SiliconFlow\n`);
 
-  const posts = getPostsWithoutImages();
+  const { slugs, limit } = parseArgs();
+  const posts = getPostsWithoutImages({ slugs });
 
   if (posts.length === 0) {
     console.log('✨ All posts already have images!');
     return;
   }
 
-  console.log(`\n📋 Found ${posts.length} posts needing images:\n`);
-  posts.forEach((p, i) => console.log(`  ${i + 1}. ${p.title}`));
+  const limitedPosts = limit ? posts.slice(0, limit) : posts;
+
+  console.log(`\n📋 Found ${limitedPosts.length} posts needing images:\n`);
+  limitedPosts.forEach((p, i) => console.log(`  ${i + 1}. ${p.title}`));
 
   console.log('\n' + '='.repeat(60) + '\n');
 
-  for (let i = 0; i < posts.length; i++) {
-    const post = posts[i];
-    console.log(`[${i + 1}/${posts.length}] Processing...`);
+  for (let i = 0; i < limitedPosts.length; i++) {
+    const post = limitedPosts[i];
+    console.log(`[${i + 1}/${limitedPosts.length}] Processing...`);
 
     const imagePath = await generateImage(post);
 
@@ -282,7 +377,7 @@ async function main() {
     }
 
     // Rate limiting: wait between requests
-    if (i < posts.length - 1) {
+    if (i < limitedPosts.length - 1) {
       console.log('⏳ Waiting 3 seconds...');
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
