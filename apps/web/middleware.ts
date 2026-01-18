@@ -8,6 +8,6 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on all non-static routes
-  matcher: ['/((?!_next|.*\\..*).*)'],
+  // Keep matcher simple to avoid Edge runtime matcher parsing issues.
+  matcher: ['/:path*'],
 };
