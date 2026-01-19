@@ -1,0 +1,77 @@
+---
+title: >-
+  Mandiant Releases Rainbow Tables to Expose NTLMv1 Authentication
+  Vulnerabilities
+slug: mandiant-ntlmv1-rainbow-table-release
+date: '2026-01-19'
+locale: en
+description: >-
+  Mandiant releases rainbow tables cracking NTLMv1 in 12 hours, urging immediate
+  migration from legacy authentication.
+tags:
+  - Mandiant
+  - NTLMv1
+  - Rainbow Table
+  - Cybersecurity
+  - Google Cloud
+author: AI온다
+sourceId: arstechnica-9ievird
+sourceUrl: >-
+  https://arstechnica.com/security/2026/01/mandiant-releases-rainbow-table-that-cracks-weak-admin-password-in-12-hours/
+verificationScore: 0.9499999999999998
+alternateLocale: /ko/posts/mandiant-ntlmv1-rainbow-table-release
+coverImage: /images/posts/mandiant-ntlmv1-rainbow-table-release.png
+---
+
+The legacy locks that once fortified Windows administrative defenses have been rendered obsolete in just 12 hours. Mandiant, a cybersecurity firm under Google Cloud, has released "Rainbow Tables" that starkly expose the vulnerabilities of legacy authentication systems—weaknesses that many corporate security teams have overlooked for years. This announcement is more than a mere tool release; it serves as a powerful warning to completely phase out the antiquated NTLMv1 (New Technology LAN Manager version 1) protocol from infrastructure.
+
+### Collapsed Defenses: The End of 56-bit Encryption
+
+The rainbow tables distributed by Mandiant specifically target the Net-NTLMv1 hash specification. The core value of this release is speed and certainty. In the past, attackers had to invest significant time and resources to crack intercepted hashes. Now, using these sets of pre-computed values, decryption can be completed in under 12 hours.
+
+The true danger of this tool lies in its ability to render password complexity irrelevant. Even long passwords exceeding 20 characters—combining uppercase, lowercase, numbers, and special characters—are not protected in an NTLMv1 environment. This is because the tool targets the entire 56-bit DES encryption keyspace, a structural flaw inherent to NTLMv1. Rather than attempting to guess the original password string, Mandiant chose a method to recover the NT hash (key material) itself, which is the fundamental component of the authentication process.
+
+The technical prerequisites are specific. The environment must use a certain challenge value (1122334455667788) while Extended Session Security (ESS) is not applied. However, such configurations are not uncommon in corporate environments where legacy printers, scanners, or applications built decades ago are still in operation.
+
+### Why NTLMv1, and Why Now?
+
+The security industry has long warned of the risks associated with NTLMv1. Microsoft has also long recommended migrating to more robust authentication methods like Kerberos or NTLMv2. Despite this, many organizations have continued to use this outdated protocol under the guise of "compatibility."
+
+Mandiant’s move effectively provides a powerful asset to white-hat hackers and penetration testing professionals. It maximizes efficiency during the "privilege escalation" and "lateral movement" phases of a security assessment. If an attacker gains access to a single low-privileged account in a network where NTLMv1 is enabled, they now have the means to acquire administrative privileges in just half a day.
+
+From a critical perspective, this tool could also serve as a useful guide for malicious actors. However, Mandiant determined that visually demonstrating the actual threats faced by enterprises through penetration testing is the only way to improve security standards. Data showing that a system can be breached in 12 hours is far more effective at moving executive management than a general warning that a protocol "might be risky."
+
+### Security Protocols Enterprises Should Implement Immediately
+
+With the release of Mandiant's tool, maintaining NTLMv1 is essentially equivalent to leaving the front door open. Corporate security teams should immediately review the following step-by-step decommissioning procedures:
+
+1.  **Audit Phase:** Use Group Policy Objects (GPO) to monitor where NTLMv1 traffic is originating within the network. Identifying which legacy devices or software require this authentication method is the priority.
+2.  **Migration to Modern Authentication:** If it is difficult to block NTLMv1 immediately, at minimum, upgrade to NTLMv2 or set Kerberos-based authentication as the default in domain environments.
+3.  **Final Deactivation:** Once dependencies have been removed through monitoring, apply settings to deny NTLM traffic at the domain controller and server levels. Since Microsoft has not yet finalized a specific patch schedule to forcibly disable all versions of NTLM, proactive response from enterprises is essential.
+
+### FAQ: Frequently Asked Questions
+
+**Q: Are environments using NTLMv2 also threatened by these rainbow tables?**  
+A: No. The rainbow tables released are limited to demonstrating the vulnerabilities of NTLMv1. NTLMv2 uses more complex hashing algorithms, making direct decryption with this tool impossible. However, you may still be at risk if your system is configured to allow NTLMv1 for backward compatibility.
+
+**Q: Can I immediately see the plaintext password by using these rainbow tables?**  
+A: This tool focuses on recovering the NT hash value. While the hash alone can be used for "Pass-the-Hash" attacks to bypass authentication, discovering the actual plaintext password may require a separate dictionary attack or brute-force attack based on the recovered hash.
+
+**Q: My company only uses the latest Windows 11; are we safe?**  
+A: Even if the operating system is up to date, safety cannot be guaranteed if NTLMv1 is enabled in the domain controller settings or in communication configurations with legacy servers. You must verify whether the use of NTLMv1 is explicitly prohibited in the system settings (GPO).
+
+### Conclusion: Time to Say Goodbye to Legacy Systems
+
+The release of Mandiant's rainbow tables signals a shift in the security paradigm from "defense" to "proof." The specific figure of 12 hours serves as an ultimatum for companies to stop accumulating security debt under the pretext of compatibility.
+
+The ball is now in the court of IT decision-makers. Will they continue to carry a time bomb by maintaining an outdated authentication system, or will they accept temporary inconvenience and transition to modern security standards? The clock Mandiant has started is ticking even at this very moment.
+---
+
+## 참고 자료
+
+- 🛡️ [Mandiant Releases Rainbow Tables Enabling NTLMv1 Admin Password Hacking](https://cybersecuritynews.com/mandiant-rainbow-tables-ntlmv1-admin-password-hacking/)
+- 🛡️ [Disable NTLM authentication - RM Support](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGHtZrua0tWp-rgS_2SLttaFMBcOMybpqMr8gwqp9kMvH6JjP83QYjTjaxhAEOTvmnvC5byJW3vJcJ9XYHJ7hBjh15Oh3pEp5OwyLTeYmhKFV0wuIjAZu7I_F-BiwbRO-CK2TOQRWjIlHm6NAM-dPSxkDjnefC4lK2WK6T_P3AMeLCB1Ux2127LXxbaHw==)
+- 🛡️ [How to Disable NTLM Authentication in Windows Domain](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG0x70pN17sKr3ijuY_tM_a8wuCCXmU4ds3IxoH8D1-50xXzhDETe72zPdhkL1x6DNaq7dXr53Li-RU8iibJFhyBd3qxBFr0OKBHzsE0lSas3paG6svGN1Iq4-EDVx7QK1ta28Vs4v9NaCRsFUaF2_8K5g=)
+- 🏛️ [Releasing Rainbow Tables to Accelerate Protocol Deprecation | Google Cloud Blog](https://cloud.google.com/blog/topics/threat-intelligence/releasing-rainbow-tables-ntlmv1-deprecation)
+- 🏛️ [Releasing Rainbow Tables to Accelerate Protocol Deprecation | Google Cloud Blog](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG8kB1yTP3FC_9npX1cfNfLTbVJJgKTDCZXiMMuNzFYbifbZlpLp4iAcyiD8UHtXxRE2KS-KlURmVxpFgzqAXtEkDozL2P0K2G57mgQg4vob1hVGXyFe0Pt7mGHOFB80mp2AekNsn_TgQZrepj_WZQjAVqrn4XF5xxC0nthB3DvxzmITkbKwo3_TsYI7MW-2p_Tb18gHiXsGG4=)
+- 🏛️ [Cracking NTLM: Mandiant’s New Rainbow Tables](https://www.mandiant.com/resources/blog/cracking-ntlm-with-rainbow-tables)

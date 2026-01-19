@@ -1,0 +1,75 @@
+---
+title: '맨디언트, NTLMv1 무력화하는 레인보우 테이블 공개'
+slug: mandiant-ntlmv1-rainbow-table-release
+date: '2026-01-19'
+locale: ko
+description: 맨디언트가 NTLMv1을 12시간 내 해독하는 도구를 공개하며 레거시 인증 체계의 즉각적인 퇴출을 경고했습니다.
+tags:
+  - Mandiant
+  - NTLMv1
+  - Rainbow Table
+  - Cybersecurity
+  - Google Cloud
+author: AI온다
+sourceId: arstechnica-9ievird
+sourceUrl: >-
+  https://arstechnica.com/security/2026/01/mandiant-releases-rainbow-table-that-cracks-weak-admin-password-in-12-hours/
+verificationScore: 0.9499999999999998
+alternateLocale: /en/posts/mandiant-ntlmv1-rainbow-table-release
+coverImage: /images/posts/mandiant-ntlmv1-rainbow-table-release.png
+---
+
+윈도우 관리자의 성벽을 지탱하던 낡은 자물쇠가 단 12시간 만에 가루로 변했다. 구글 클라우드 산하의 보안 전문 기업 맨디언트(Mandiant)가 공개한 '레인보우 테이블'은 기업 보안 담당자들이 수년간 애써 외면해온 레거시 인증 체계의 취약성을 적나라하게 폭로한다. 이번 발표는 단순한 도구 공개를 넘어, 구시대의 유물인 NTLMv1(New Technology LAN Manager version 1)을 인프라에서 완전히 퇴출하라는 강력한 경고장이다.
+
+### 무너진 방어선: 56비트 암호화의 종말
+
+맨디언트가 배포한 레인보우 테이블은 Net-NTLMv1 해시 사양을 정조준한다. 핵심은 속도와 확실성이다. 과거에는 공격자가 탈취한 해시를 풀기 위해 수많은 자원과 시간을 투입해야 했지만, 이제는 미리 계산된 값의 집합인 레인보우 테이블을 통해 12시간 이내에 해독을 완료할 수 있다.
+
+이 도구의 무서움은 비밀번호의 복잡도를 무의미하게 만든다는 점에 있다. 대문자, 소문자, 숫자, 특수문자를 조합한 20자리 이상의 긴 비밀번호라도 NTLMv1 환경에서는 보호받지 못한다. NTLMv1의 구조적 결함인 56비트 DES 암호화 키스페이스 전체를 타겟으로 삼기 때문이다. 맨디언트는 원래의 비밀번호 문자열을 유추하는 대신, 인증의 핵심 재료인 NT 해시(Key material) 자체를 복원하는 방식을 택했다.
+
+기술적 전제 조건은 명확하다. 확장 세션 보안(ESS)이 적용되지 않은 상태에서 특정 챌린지 값(1122334455667788)을 사용하는 환경이어야 한다. 하지만 오래된 프린터, 스캐너, 혹은 십수 년 전 구축된 레거시 애플리케이션이 여전히 가동 중인 기업 환경에서 이러한 설정은 그리 드문 일이 아니다.
+
+### 왜 지금 NTLMv1인가?
+
+보안 업계는 오래전부터 NTLMv1의 위험성을 경고해왔다. 마이크로소프트조차 보다 강력한 인증 방식인 커버로스(Kerberos)나 NTLMv2로의 전환을 권고한 지 오래다. 그럼에도 불구하고 많은 기업이 '호환성'이라는 명목 아래 이 낡은 프로토콜을 숨겨왔다. 
+
+맨디언트의 이번 조치는 화이트해커와 침투 테스트 전문가들에게 강력한 무기를 쥐여준 셈이다. 모의 해킹 과정에서 '권한 상승'과 '횡적 이동(Lateral Movement)' 단계의 효율성이 극대화된다. 공격자가 낮은 권한의 계정을 하나라도 확보하고 해당 네트워크에 NTLMv1이 활성화되어 있다면, 반나절 만에 관리자 권한을 획득할 수 있는 근거가 마련된 것이다.
+
+비판적인 시각에서 보면, 이 도구는 공격자들에게도 유용한 가이드가 될 수 있다. 하지만 맨디언트는 침투 테스트를 통해 기업이 직면한 실질적인 위협을 시각적으로 증명하는 것이 보안 수준을 높이는 유일한 길이라고 판단했다. "위험할 수 있다"는 경고보다 "12시간이면 뚫린다"는 데이터가 경영진을 움직이는 데 훨씬 효과적이기 때문이다.
+
+### 기업이 지금 즉시 실행해야 할 보안 프로토콜
+
+맨디언트의 도구 공개로 인해 NTLMv1을 유지하는 것은 사실상 현관문을 열어두는 것과 다름없게 되었다. 기업 보안 팀은 다음의 단계적 폐기 절차를 즉시 검토해야 한다.
+
+첫째, 감사(Audit) 단계다. 그룹 정책 객체(GPO)를 활용해 네트워크 내에서 NTLMv1 트래픽이 어디서 발생하는지 모니터링해야 한다. 어떤 구형 장비나 소프트웨어가 이 인증 방식을 요구하는지 파악하는 것이 우선이다.
+
+둘째, 현대적 인증 방식으로의 마이그레이션이다. NTLMv1을 즉시 차단하기 어렵다면 최소한 NTLMv2로 업그레이드하거나, 도메인 환경에서는 커버로스 기반 인증을 기본으로 설정해야 한다. 
+
+셋째, 최종 차단이다. 모니터링을 통해 의존성을 제거했다면 도메인 컨트롤러 및 서버 단위에서 NTLM 트래픽 거부 설정을 적용해야 한다. 마이크로소프트가 모든 버전의 NTLM을 강제로 비활성화할 구체적인 패치 일정을 아직 확정하지 않은 상황에서, 기업의 선제적 대응은 필수적이다.
+
+### FAQ: 자주 묻는 질문
+
+**Q: NTLMv2를 사용하는 환경도 이번 레인보우 테이블의 위협을 받나요?**
+A: 아니요. 이번에 공개된 레인보우 테이블은 NTLMv1의 취약점 증명에 한정되어 있습니다. NTLMv2는 더 복잡한 해싱 알고리즘을 사용하므로 이번 도구로는 직접적인 해독이 불가능합니다. 다만, 하위 호환성을 위해 NTLMv1을 허용하도록 설정되어 있다면 위험에 노출될 수 있습니다.
+
+**Q: 레인보우 테이블을 사용하면 비밀번호의 평문(Plaintext)을 바로 알 수 있나요?**
+A: 이 도구는 NT 해시 값을 복원하는 데 초점이 맞춰져 있습니다. 해시 자체만으로도 인증을 통과하는 'Pass-the-Hash' 공격이 가능하지만, 실제 평문 비밀번호를 알아내려면 복원된 해시를 바탕으로 별도의 사전 공격(Dictionary Attack)이나 무차별 대입 공격이 필요할 수 있습니다.
+
+**Q: 우리 회사는 최신 윈도우 11만 사용하는데 안전한가요?**
+A: 운영체제가 최신이더라도 내부 네트워크의 도메인 컨트롤러 설정이나 레거시 서버와의 통신 설정에서 NTLMv1이 활성화되어 있다면 안전을 보장할 수 없습니다. 시스템 설정(GPO)에서 NTLMv1 사용이 명시적으로 금지되어 있는지 확인해야 합니다.
+
+### 결론: 레거시와의 작별을 고할 시간
+
+맨디언트의 레인보우 테이블 공개는 보안의 패러다임이 '방어'에서 '증명'으로 옮겨가고 있음을 보여준다. 12시간이라는 구체적인 수치는 기업들에게 더 이상 호환성을 핑계로 보안 부채를 쌓아두지 말라는 최후통첩이다. 
+
+이제 공은 기업의 IT 의사결정권자들에게 넘어갔다. 낡은 인증 체계를 유지하며 시한폭탄을 안고 갈 것인가, 아니면 일시적인 불편함을 감수하고 현대적인 보안 표준으로 전환할 것인가. 맨디언트가 공개한 시계는 지금 이 순간에도 돌아가고 있다.
+---
+
+## 참고 자료
+
+- 🛡️ [Mandiant Releases Rainbow Tables Enabling NTLMv1 Admin Password Hacking](https://cybersecuritynews.com/mandiant-rainbow-tables-ntlmv1-admin-password-hacking/)
+- 🛡️ [Disable NTLM authentication - RM Support](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGHtZrua0tWp-rgS_2SLttaFMBcOMybpqMr8gwqp9kMvH6JjP83QYjTjaxhAEOTvmnvC5byJW3vJcJ9XYHJ7hBjh15Oh3pEp5OwyLTeYmhKFV0wuIjAZu7I_F-BiwbRO-CK2TOQRWjIlHm6NAM-dPSxkDjnefC4lK2WK6T_P3AMeLCB1Ux2127LXxbaHw==)
+- 🛡️ [How to Disable NTLM Authentication in Windows Domain](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG0x70pN17sKr3ijuY_tM_a8wuCCXmU4ds3IxoH8D1-50xXzhDETe72zPdhkL1x6DNaq7dXr53Li-RU8iibJFhyBd3qxBFr0OKBHzsE0lSas3paG6svGN1Iq4-EDVx7QK1ta28Vs4v9NaCRsFUaF2_8K5g=)
+- 🏛️ [Releasing Rainbow Tables to Accelerate Protocol Deprecation | Google Cloud Blog](https://cloud.google.com/blog/topics/threat-intelligence/releasing-rainbow-tables-ntlmv1-deprecation)
+- 🏛️ [Releasing Rainbow Tables to Accelerate Protocol Deprecation | Google Cloud Blog](https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG8kB1yTP3FC_9npX1cfNfLTbVJJgKTDCZXiMMuNzFYbifbZlpLp4iAcyiD8UHtXxRE2KS-KlURmVxpFgzqAXtEkDozL2P0K2G57mgQg4vob1hVGXyFe0Pt7mGHOFB80mp2AekNsn_TgQZrepj_WZQjAVqrn4XF5xxC0nthB3DvxzmITkbKwo3_TsYI7MW-2p_Tb18gHiXsGG4=)
+- 🏛️ [Cracking NTLM: Mandiant’s New Rainbow Tables](https://www.mandiant.com/resources/blog/cracking-ntlm-with-rainbow-tables)
