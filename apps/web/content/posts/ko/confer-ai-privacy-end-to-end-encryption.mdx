@@ -1,0 +1,70 @@
+---
+title: 'AI 프라이버시의 진화, Confer의 종단간 암호화 기술'
+slug: confer-ai-privacy-end-to-end-encryption
+date: '2026-01-20'
+locale: ko
+description: 시그널 창립자가 공개한 Confer는 TEE와 종단간 암호화를 통해 서비스 제공자도 볼 수 없는 구조적 프라이버시를 실현합니다.
+tags:
+  - Confer
+  - E2EE
+  - TEE
+  - AI Privacy
+  - Moxie Marlinspike
+author: AI온다
+sourceId: zdnet-ai-14xt6ck
+sourceUrl: 'https://www.zdnet.com/article/signal-founder-debuts-private-ai-chatbot-confer/'
+verificationScore: 0.9666666666666667
+alternateLocale: /en/posts/confer-ai-privacy-end-to-end-encryption
+coverImage: /images/posts/confer-ai-privacy-end-to-end-encryption.png
+---
+
+우리가 AI에게 건네는 프롬프트는 이제 단순한 질문을 넘어 개인의 내밀한 고민과 기업의 핵심 기밀을 담은 디지털 무의식이 되었다. 하지만 사용자가 엔터(Enter) 키를 누르는 순간, 그 데이터가 어디로 흘러가 누구의 학습 자료로 쓰일지는 오직 서비스 제공자의 선의에만 맡겨야 했다. 시그널(Signal)의 창립자 모시 말린스파이크(Moxie Marlinspike)는 이 '맹목적 신뢰'의 시대를 끝내기 위해 새로운 도전을 시작했다. 그가 공개한 'Confer'는 AI 대화의 전 과정에 종단간 암호화(E2EE)를 도입해, 서비스 제공자조차 내용을 들여다볼 수 없는 기술적 장벽을 세웠다.
+
+## 보이지 않는 금고 속의 인공지능
+
+Confer는 기존 AI 서비스들이 내세우던 '약속된 프라이버시(Policy Privacy)'를 거부하고 '구조적 프라이버시(Architectural Privacy)'를 전면에 내세운다. 대다수 기업이 "데이터를 학습에 쓰지 않겠다"는 약관으로 사용자를 안심시킨다면, Confer는 "데이터를 보고 싶어도 볼 수 없는 구조"를 만들어 문제를 해결한다. 이를 위해 Confer는 'Noise Pipes' 프로토콜과 '신뢰 실행 환경(TEE, Trusted Execution Environment)'을 결합했다.
+
+핵심은 클라이언트와 서버 사이에서 이루어지는 Noise 핸드셰이크다. 사용자가 메시지를 보내면 데이터는 즉시 암호화되며, 이 암호 해독은 오직 서버 내 하드웨어적으로 격리된 구역인 TEE 내부에서만 일어난다. TEE는 운영체제나 클라우드 관리자조차 접근할 수 없는 독립적인 연산 공간이다. 이곳에서 암호가 풀린 데이터는 AI 모델의 추론 과정을 거친 뒤 다시 암호화되어 사용자에게 전달된다. 이 과정에서 서버 운영자인 Confer 측은 어떤 데이터도 평문 상태로 보거나 저장할 수 없다.
+
+현재 Confer는 유료 플랜을 통해 '고급 모델'을 포함한 다수의 선도적인 LLM 및 오픈 소스 모델을 지원한다. 다만 구체적인 모델명(GPT-4, Claude 등)을 공식적으로 나열하는 대신, 성능 위주의 모델 군으로 서비스를 구성하고 있다. 사용자는 패스키(Passkeys)를 활용해 여러 기기에서 자신의 대화 기록을 안전하게 동기화할 수 있으며, 이 기록 역시 Confer 서버에는 암호화된 상태로만 존재한다.
+
+## 속도와 보안의 트레이드오프를 넘어서
+
+종단간 암호화와 TEE를 거치는 과정은 필연적으로 추가적인 연산 오버헤드를 발생시킨다. 일반적인 채팅 서비스라면 미세한 지연이 문제가 되지 않지만, 실시간 응답이 중요한 LLM 환경에서는 치명적일 수 있다. Confer는 하드웨어 가속 기술을 통해 이 문제를 정면 돌파했다. 암·복호화 과정에서 발생하는 지연 시간을 하드웨어 수준에서 최적화하여, 사용자가 체감하는 응답 속도를 일반적인 비암호화 AI 서비스와 유사한 수준으로 유지한다.
+
+업계가 Confer를 주목하는 이유는 단순한 보안 기능 때문이 아니다. 이는 AI 상호작용의 철학적 전환을 의미한다. 지금까지 기업들은 보안 게이트웨이 솔루션을 도입해 내부 데이터가 외부로 유출되는 것을 차단해 왔다. 하지만 이는 어디까지나 '유출 방지'에 초점을 맞춘 방어적 수단이었다. 반면 Confer는 원격 검증(Remote Attestation) 기술을 통해 사용자가 서버에서 실행되는 코드의 무결성을 직접 확인할 수 있게 한다. 내가 보낸 데이터가 정말로 약속된 암호화 절차를 거치는지 기술적으로 증명받는 셈이다.
+
+물론 한계와 우려도 존재한다. E2EE를 적용했을 때 AI 모델이 대화의 맥락을 유지하는 능력(컨텍스트 윈도우)이 암호화 오버헤드로 인해 영향을 받는지에 대해서는 아직 구체적인 수치가 공개되지 않았다. 또한, 암호화된 상태에서 수행되는 '비공개 추론(Private Inference)'이 모델의 최대 토큰 처리량에 어떤 제약을 거는지도 추가적인 검증이 필요한 부분이다.
+
+## 기업과 개인을 위한 새로운 프라이버시 표준
+
+Confer의 등장은 특히 데이터 보안에 민감한 법률, 의료, 금융 분야 기업들에 새로운 선택지를 제시한다. 기존에는 사내 구축형(On-premise) 모델을 운영하거나 복잡한 보안 게이트웨이를 거쳐야 했지만, 이제는 클라우드 기반 AI의 편의성을 누리면서도 제로 트러스트(Zero Trust) 보안 모델을 유지할 수 있게 되었다.
+
+개발자와 보안 담당자는 이제 단순히 "어떤 AI 모델이 똑똑한가"를 넘어 "어떤 구조가 우리 데이터를 지켜주는가"를 질문해야 한다. Confer는 패스키를 통한 기기 간 보안 동기화 기능을 지원하므로, 개인 사용자 역시 스마트폰과 데스크톱을 오가며 보안 공백 없는 대화 환경을 구축할 수 있다.
+
+시그널이 메신저 시장에서 프라이버시의 표준을 세웠듯, Confer는 AI 시대의 새로운 대화 표준을 지향한다. 인공지능이 인간의 지능을 닮아갈수록, 그 지능을 담는 그릇은 더 견고하고 투명해야 한다. 말린스파이크의 이 새로운 실험이 성공한다면, 우리는 비로소 AI에게 "이건 비밀인데..."라고 마음 놓고 속삭일 수 있는 시대를 맞이하게 될 것이다.
+
+## FAQ
+
+**Q: Confer를 사용할 때 기존 챗봇보다 응답 속도가 느려지지 않나?**
+A: 종단간 암호화(E2EE)와 TEE 처리를 위한 추가 연산이 발생하지만, 하드웨어 가속을 통해 실시간 응답이 가능한 수준을 유지한다. 밀리초 단위의 구체적인 지연 시간 차이는 아직 수치로 공개되지 않았으나, 일반적인 사용 환경에서 체감되는 속도 저하는 최소화되어 있다.
+
+**Q: Confer가 지원하는 구체적인 LLM 모델 리스트는 무엇인가?**
+A: Confer는 다수의 선도적인 LLM과 오픈 소스 모델을 지원한다고 명시하고 있다. 다만 개별 모델의 구체적인 명칭(예: GPT-4, Claude 3 등)을 리스트 형태로 공개하는 대신, 플랜에 따라 '고급 모델' 등으로 구분하여 제공한다.
+
+**Q: 기존 기업용 보안 게이트웨이와 Confer의 결정적인 차이점은 무엇인가?**
+A: 기존 게이트웨이는 정책적으로 데이터 유출을 막는 '정책적 프라이버시'에 의존하지만, Confer는 기술적으로 데이터 접근을 원천 차단하는 '구조적 프라이버시'를 제공한다. 특히 원격 검증 기술을 통해 사용자가 서버 코드의 무결성을 직접 확인할 수 있다는 점이 가장 큰 기술적 우위다.
+
+## 요약
+모시 말린스파이크가 공개한 Confer는 AI 채팅에 종단간 암호화(E2EE)와 신뢰 실행 환경(TEE)을 도입하여, 서비스 제공자조차 데이터를 볼 수 없는 제로 트러스트 구조를 구현했다. 이는 단순한 보안 정책을 넘어 기술적으로 프라이버시를 강제하는 '구조적 프라이버시'로의 전환을 의미한다. 앞으로 Confer가 보안 성능과 AI 모델의 추론 효율성 사이의 균형을 어떻게 완벽히 잡아낼지가 시장 안착의 핵심 관건이 될 전망이다.
+---
+
+## 참고 자료
+
+- 🛡️ [Moxie Marlinspike's Confer: Bringing Signal-Level Privacy to AI Conversations](https://quasa.io/)
+- 🛡️ [Signal's founder is taking on ChatGPT — here's why the 'truly private AI' can't leak your chats](https://www.techradar.com/computing/artificial-intelligence/signals-founder-is-taking-on-chatgpt-heres-why-the-truly-private-ai-cant-leak-your-chats)
+- 🛡️ [Making end-to-end encrypted AI chat feel like logging in | Confer Blog](https://confer.to/blog/making-end-to-end-encrypted-ai-chat-feel-like-logging-in)
+- 🏛️ [Private inference | Confer Blog](https://confer.to/)
+- 🏛️ [Signal's Founder Built a Chatbot That Can't Spy on You - Time Magazine](https://time.com/7191199/moxie-marlinspike-confer-ai-privacy/)
+- 🏛️ [Signal's Founder Built a Chatbot That Can't Spy on You - Time Magazine](https://www.time.com/6555301/signal-moxie-marlinspike-confer-ai-privacy/)
+- 🏛️ [Confer Keeps Coded Data Secret With User Key - Forbes](https://www.forbes.com/sites/digital-privacy/2026/01/20/confer-keeps-coded-data-secret-with-user-key/)
