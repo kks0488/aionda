@@ -1,0 +1,69 @@
+---
+title: How OpenAI Scales PostgreSQL to Handle Millions of Requests
+slug: openai-postgresql-scaling-millions-requests
+date: '2026-01-22'
+locale: en
+description: >-
+  Learn how OpenAI scales PostgreSQL to handle millions of QPS and 800 million
+  users using replicas, caching, and workload isolation.
+tags:
+  - postgresql
+  - openai
+  - infrastructure
+  - llm
+  - database
+  - agi
+author: AI온다
+sourceId: openai-oldwdq
+sourceUrl: 'https://openai.com/index/scaling-postgresql'
+verificationScore: 0.75
+alternateLocale: /ko/posts/openai-postgresql-scaling-millions-requests
+coverImage: /images/posts/openai-postgresql-scaling-millions-requests.png
+---
+
+# How to Sustain Millions of Requests Per Second: OpenAI’s PostgreSQL Breakthrough
+
+Example: Warning lights flicker on the control center screen. As access requests surge, the graph representing the data storage load spikes upward. Engineers manage the system by opening and closing virtual pathways to shard the data flow.
+
+## TL;DR
+- **Maximizing Data Throughput**: Handled millions of queries per second (QPS) by leveraging replicas and building strategic caching layers.
+- **Ensuring System Stability**: Prevented the load of specific services from cascading to the entire system through workload isolation and rate limiting.
+- **Overcoming Scalability Limits**: Accommodated a user base of over 200 million weekly active users by designing PostgreSQL, a relational database, into a distributed architecture.
+
+## Current Status
+The infrastructure architecture disclosed by OpenAI has addressed the scalability limits of PostgreSQL. They utilized replication technology to stably process millions of queries per second. Read requests were distributed across multiple replicas, while write requests were concentrated on the primary database to manage bottlenecks.
+
+A key pillar of performance is the caching layer. Data that is frequently queried is designed to be handled in a high-speed memory layer before reaching the main database. This reduces the direct load on the database while providing fast response times to users. This was combined with rate-limiting functionality, setting caps to prevent abnormal traffic or specific API calls from monopolizing overall system resources.
+
+Another component for service stability is workload isolation. OpenAI separated data paths based on the nature of the service. Logical and physical barriers were established to ensure that general chat requests and internal management queries do not compete for resources. This architecture serves as the foundation for managing the data of hundreds of millions of ChatGPT users.
+
+## Analysis
+OpenAI’s case presents a significant example to the database industry. It demonstrated that large-scale services can be operated using PostgreSQL, a proven tool, instead of opting for NoSQL or distributed databases from the beginning. This suggests that layering and isolation are more essential in infrastructure design than the type of tool used.
+
+However, this approach is not suitable for all situations. In the process of managing replicas to handle millions of QPS, "replication lag" can occur, which causes data inconsistency. Additionally, as the caching layer becomes more complex, the management cost for the entire system increases. The architecture built by OpenAI is efficient but requires high-level operational capabilities.
+
+## Practical Application
+If you are considering database expansion, it is worth reviewing "workload isolation" among OpenAI’s strategies. Introducing read-only replicas can lead to performance improvements depending on the service characteristics.
+
+**Checklist for Today:**
+- Analyze the current system's ratio of read and write queries to review the timing for introducing read-only replicas.
+- Check if appropriate rate-limiting policies are set for each API endpoint to reduce database load.
+- Inspect whether low-priority background tasks are occupying resources for real-time user requests and attempt isolation.
+
+## FAQ
+**Q: Why was PostgreSQL chosen instead of NoSQL?**
+A: PostgreSQL offers high data consistency and a rich ecosystem. OpenAI chose the direction of increasing reliability by optimizing a well-known tool rather than introducing new technology.
+
+**Q: Does rate limiting affect the user experience?**
+A: Excessive restrictions can be a hindrance, but they are protective measures that prevent total system paralysis. They help distribute resources and block failures caused by abnormal traffic.
+
+**Q: Are replicas and caching necessary for small to medium-sized services?**
+A: They are not essential if traffic is not high. However, a design that separates database connections at the application level in preparation for user growth is useful.
+
+## Conclusion
+OpenAI’s PostgreSQL scaling strategy demonstrates a practical approach to infrastructure operation. By applying the principles of replication, caching, and isolation, they built an environment for 800 million users. As the AI industry expands, the importance of database architecture will continue. Technical organizations should prepare efficient data flow control measures along with software optimization.
+---
+
+## References
+
+- 🛡️ [Source](https://openai.com/index/scaling-postgresql)
