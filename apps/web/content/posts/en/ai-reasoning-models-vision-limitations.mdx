@@ -1,0 +1,69 @@
+---
+title: The Tradeoff Between Chain of Thought and Vision in Models
+slug: ai-reasoning-models-vision-limitations
+date: '2026-01-22'
+locale: en
+description: >-
+  Analyzing how resource competition between reasoning tokens and vision data
+  causes information loss in reasoning models such as o1.
+tags:
+  - llm
+  - o1
+  - visual-reasoning
+  - chain-of-thought
+  - hardware
+author: AI온다
+sourceId: '941639'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=941639'
+verificationScore: 0.8833333333333333
+alternateLocale: /ko/posts/ai-reasoning-models-vision-limitations
+coverImage: /images/posts/ai-reasoning-models-vision-limitations.png
+---
+
+## TL;DR
+- Models like o1 can support vision but face spatial awareness limits.
+- Internal reasoning tokens compete with image tokens for context window space.
+- Models may prioritize logic over visual details when resources are limited.
+
+Example: A scholar ponders a complex riddle while walking through a garden. Their mind explores many logical paths. They fail to notice the vibrant colors of the blooming flowers. Deep internal focus can sometimes limit external awareness.
+
+A similar situation occurs in Artificial Intelligence during deep thinking. Models building a logical flow may miss clues from input images. Reasoning models such as o1 can integrate text and vision data. However, deep Chain of Thought processing can reduce the efficiency of visual data processing.
+
+## Conflict Between Visual Data and Logic
+Reasoning models decompose problems into step-by-step stages. OpenAI documentation states o1 integrates text and images into reasoning. Models generate internal tokens that are not visible to users. Resource allocation issues can arise during this process. High-resolution images are tiled and resized during processing. Fine details like small text can be lost during this procedure. Spatial reasoning limits appear when identifying positions on a chessboard.
+
+## Resource Pressure on the Context Window
+Token allocation remains hidden from the user. OpenAI suggests reserving 25,000 tokens for reasoning and output. If reasoning tokens fill the context window, responses may stop. The model could omit information or fail to complete the answer. The model might ignore image tokens during resource shortages. Vision data is often treated as a static initial context. Models may fail to reference image data when focusing on logic. Research (arXiv:2511.19432) indicates that deep reasoning can increase costs. It may also lower general-purpose capabilities. DeepSeek-R1 shows strong text reasoning performance. Its support for native vision-integrated reasoning requires more verification.
+
+## Analysis: Why Reasoning Precedes Vision
+Models convert images into interpreted symbols for the thinking process. The system often prioritizes logical consistency over visual data. Answers might rely on safe generalities if image data is ambiguous. OpenAI states these models are inappropriate for medical image analysis. Loss of information and misrecognition of characters remain challenges.
+
+## Practical Application: How to Use Vision in Reasoning Models
+Users can guide the model to understand images more clearly. Describing key image elements in text can be an effective strategy.
+
+**Checklist for Today:**
+- Crop high-resolution images to include only the most relevant parts.
+- Include important text or values from the image directly in the prompt.
+- Monitor the context window while considering the volume of reasoning tokens.
+
+## FAQ
+**Q: How does a reasoning model respond when it fails to analyze an image?**
+A: It often provides defensive answers or general knowledge.
+
+**Q: Does high resolution help improve reasoning performance?**
+A: Not necessarily, as more image tokens occupy the context window.
+
+**Q: Why do errors occur in chess notation or mathematical graph analysis?**
+A: Identifying precise coordinates is harder than performing text reasoning.
+
+## Conclusion
+Reasoning models provide deep thinking but can disperse visual focus. Efficient resource allocation matters when a model balances reasoning tokens with vision tokens. Future technologies may provide real-time visual feedback during reasoning.
+---
+
+## References
+
+- 🛡️ [o1 Model | OpenAI API](https://openai.com/index/o1-model-guide/)
+- 🛡️ [Images and vision | OpenAI API](https://openai.com/index/vision-limitations/)
+- 🛡️ [Reasoning models | OpenAI API](https://platform.openai.com/docs/guides/reasoning)
+- 🏛️ [Trade-offs in Large Reasoning Models: An Empirical Analysis](https://arxiv.org/abs/2511.19432)
+- 🏛️ [Perception Tokens Enhance Visual Reasoning in Multimodal Language Models](https://arxiv.org/abs/2412.04444)
