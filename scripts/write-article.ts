@@ -10,6 +10,7 @@ import { config } from 'dotenv';
 import { generateContent, translateToEnglish } from './lib/gemini';
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
+import { classifySource, createVerifiedSource, SourceTier } from './lib/search-mode.js';
 import matter from 'gray-matter';
 
 config({ path: '.env.local' });
@@ -17,7 +18,62 @@ config({ path: '.env.local' });
 const RESEARCHED_DIR = './data/researched';
 const PUBLISHED_DIR = './data/published';
 const POSTS_DIR = './apps/web/content/posts';
+const VC_DIR = './.vc';
+const LAST_WRITTEN_PATH = join(VC_DIR, 'last-written.json');
 const MIN_CONFIDENCE = 0.6;
+const CORE_TAGS = ['agi', 'llm', 'robotics', 'hardware'] as const;
+const CORE_TAG_PATTERNS: Array<{ tag: (typeof CORE_TAGS)[number]; regex: RegExp }> = [
+  { tag: 'agi', regex: /agi|artificial general intelligence|superintelligence|초지능|범용.*인공지능/i },
+  { tag: 'robotics', regex: /robot|로봇|humanoid|휴머노이드|boston dynamics|figure|drone|드론|자율주행/i },
+  { tag: 'hardware', regex: /hardware|하드웨어|gpu|tpu|nvidia|chip|반도체|칩|blackwell|h100|b200|rubin|cuda|hbm/i },
+  { tag: 'llm', regex: /llm|language model|언어.*모델|대형언어|transformer|트랜스포머|gpt|chatgpt|claude|gemini|llama/i },
+];
+
+function stripHtml(value: string): string {
+  return String(value || '').replace(/<[^>]*>/g, '');
+}
+
+function decodeHtmlEntities(value: string): string {
+  return String(value || '')
+    .replace(/&#8230;/g, '…')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function loadPrimarySourceExcerpt(sourceId: string): { title: string; excerpt: string; url?: string } | null {
+  if (!sourceId) return null;
+  const candidates = [
+    join(process.cwd(), 'data', 'news', `${sourceId}.json`),
+    join(process.cwd(), 'data', 'official', `${sourceId}.json`),
+  ];
+
+  for (const path of candidates) {
+    if (!existsSync(path)) continue;
+    try {
+      const raw = readFileSync(path, 'utf-8');
+      const parsed = JSON.parse(raw) as {
+        title?: string;
+        link?: string;
+        contentSnippet?: string;
+        content?: string;
+      };
+      const title = String(parsed.title || '').trim();
+      const excerptRaw = parsed.contentSnippet || parsed.content || '';
+      const excerpt = decodeHtmlEntities(stripHtml(String(excerptRaw))).slice(0, 1400);
+      if (!title && !excerpt) return null;
+      return { title, excerpt, url: parsed.link };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
 
 interface VerifiedSource {
   url: string;
@@ -25,6 +81,7 @@ interface VerifiedSource {
   tier: string;
   domain: string;
   icon: string;
+  snippet?: string;
 }
 
 interface ResearchFinding {
@@ -58,7 +115,12 @@ interface ArticleMetadata {
 }
 
 function formatFindings(findings: ResearchFinding[]): string {
-  const usableFindings = findings.filter((finding) => finding.sources.length > 0);
+  const usableFindings = findings
+    .map((finding) => ({
+      ...finding,
+      sources: (finding.sources || []).filter((source) => source.tier === 'S' || source.tier === 'A'),
+    }))
+    .filter((finding) => finding.sources.length > 0);
   if (usableFindings.length === 0) return '';
 
   const lines: string[] = [];
@@ -66,12 +128,16 @@ function formatFindings(findings: ResearchFinding[]): string {
   for (const finding of usableFindings) {
     lines.push(`### Q: ${finding.question}`);
     lines.push(`**A:** ${finding.answer}`);
-    lines.push(`**Confidence:** ${Math.round(finding.confidence * 100)}%`);
 
     if (finding.sources.length > 0) {
       lines.push('**Sources:**');
       for (const src of finding.sources) {
-        lines.push(`- ${src.icon} [${src.title}](${src.url})`);
+        const snippet = String(src.snippet || '')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 220);
+        const suffix = snippet ? ` — ${snippet}` : '';
+        lines.push(`- ${src.icon} [${src.title}](${src.url})${suffix}`);
       }
     }
 
@@ -89,14 +155,22 @@ function isPublishable(topic: ResearchedTopic): boolean {
   const hasTrustedOverall = topic.findings.some((finding) =>
     finding.sources.some((source) => source.tier === 'S' || source.tier === 'A')
   );
-  return topic.overallConfidence >= MIN_CONFIDENCE && hasTrustedOverall;
+  const primaryTier = classifySource(topic.sourceUrl || '');
+  const hasTrustedPrimary = primaryTier === SourceTier.S || primaryTier === SourceTier.A;
+  return topic.overallConfidence >= MIN_CONFIDENCE && (hasTrustedOverall || hasTrustedPrimary);
 }
 
 async function writeArticle(topic: ResearchedTopic): Promise<string> {
   const findingsText = formatFindings(topic.findings);
+  const primaryExcerpt = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
+  const primaryTitle = primaryExcerpt?.title || '';
+  const primaryText = primaryExcerpt?.excerpt || 'N/A';
 
   const prompt = WRITE_ARTICLE_PROMPT
     .replace('{topic}', `${topic.title}\n${topic.description}\n\nKey Insights:\n${topic.keyInsights.map(i => `- ${i}`).join('\n')}`)
+    .replace('{sourceTitle}', primaryTitle)
+    .replace('{sourceUrl}', String(topic.sourceUrl || primaryExcerpt?.url || ''))
+    .replace('{sourceExcerpt}', primaryText)
     .replace('{findings}', findingsText);
 
   try {
@@ -134,11 +208,65 @@ async function generateMetadata(content: string): Promise<ArticleMetadata> {
   }
 }
 
+async function polishArticleMarkdown(locale: 'ko' | 'en', markdown: string): Promise<string> {
+  const rules = locale === 'en'
+    ? [
+        'Ensure every sentence is ≤ 20 words (split aggressively if needed).',
+        'Do not use absolute or overconfident language (avoid: proven, guarantee, always, never, must).',
+        'Replace "must" with "should" or "can" where possible.',
+        'Avoid hype words (e.g., revolutionary, groundbreaking, massive).',
+        'Ensure a "## TL;DR" section exists near the top with exactly 3 bullet points summarizing existing content.',
+        'Include exactly one clearly labeled hypothetical scene paragraph near the top starting with "Example:" (do not present it as real).',
+        'The "Example:" paragraph must not contain any numeric digits (0-9) or specific counts.',
+        'Avoid relative date words like "today/yesterday/tomorrow" outside the checklist; keep explicit dates as dates.',
+        'Under "## Practical Application", include "**Checklist for Today:**" with exactly 3 bullet points (one sentence each). Merge or rewrite if needed.',
+        'Do NOT introduce new factual claims, numbers, dates, names, or sources. You may add/adjust the labeled hypothetical example and checklist items.',
+      ].join('\n- ')
+    : [
+        '문장을 너무 길게 늘이지 말고, 필요하면 쪼개서 명확하게 쓴다.',
+        '근거 없는 단정/과장 표현을 제거한다.',
+        '금지 표현을 피한다: "매우", "다양한", "혁신적", "획기적", "완벽", "절대".',
+        '"## TL;DR" 섹션을 상단에 추가하고, 기존 본문만 바탕으로 3개 불릿으로 요약한다.',
+        '도입부에 가상의 장면 1개를 넣되, 반드시 "예:"로 시작하는 별도 문단으로 작성한다.',
+        '"예:" 문단에는 숫자(0-9)를 쓰지 않는다. (사실처럼 보이기 때문)',
+        '체크리스트를 제외하고 "오늘/어제/내일/이번 주" 같은 상대적 날짜 표현을 쓰지 말고, 본문에 있는 날짜를 그대로 쓴다.',
+        '"## 실전 적용"에 "**오늘 바로 할 일:**" 체크리스트를 넣고, 정확히 3개 불릿(각 1문장)로 쓴다.',
+        '새로운 사실 주장(수치/날짜/출처/고유명사)을 절대 추가하지 않는다. 다만 예시/체크리스트는 일반론으로만 보완할 수 있다.',
+      ].join('\n- ');
+
+  const prompt = `You are a careful technical editor.
+
+Rewrite the following Markdown for clarity and intellectual honesty.
+
+Rules:
+- Preserve meaning and overall structure (headings, lists).
+- ${rules}
+
+Output:
+- Return ONLY the revised Markdown body.
+
+Markdown:
+${markdown.substring(0, 9000)}`;
+
+  try {
+    const response = await generateContent(prompt);
+    return response
+      .replace(/^```markdown\n?/i, '')
+      .replace(/^```md\n?/i, '')
+      .replace(/\n?```$/i, '')
+      .trim();
+  } catch {
+    return markdown;
+  }
+}
+
 function generateFrontmatter(
   metadata: ArticleMetadata,
   topic: ResearchedTopic,
   locale: 'ko' | 'en',
-  slug: string
+  slug: string,
+  content: string,
+  coverImagePath?: string
 ): string {
   const isEnglish = locale === 'en';
   const title = isEnglish ? metadata.title_en : metadata.title_ko;
@@ -149,20 +277,71 @@ function generateFrontmatter(
   const allSources = topic.findings.flatMap(f => f.sources);
   const uniqueSources = [...new Map(allSources.map(s => [s.url, s])).values()];
 
+  const normalizeTag = (value: string) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+
+  const baseTags = (metadata.tags || []).map(normalizeTag).filter(Boolean);
+  const combinedText = `${title}\n${description}\n${baseTags.join(' ')}\n${content}`.toLowerCase();
+
+  const derivedCore = CORE_TAG_PATTERNS.filter(({ regex }) => regex.test(combinedText)).map(
+    ({ tag }) => tag
+  );
+
+  const finalTags = [...new Set([...baseTags, ...(derivedCore.length ? derivedCore : ['llm'])])];
+
 return `---
 title: "${title.replace(/"/g, '\\"')}"
 slug: "${slug}"
 date: "${new Date().toISOString().split('T')[0]}"
 locale: "${locale}"
 description: "${description.replace(/"/g, '\\"')}"
-tags: [${metadata.tags.map(t => `"${t}"`).join(', ')}]
+tags: [${finalTags.map((t) => `"${t}"`).join(', ')}]
 author: "AI온다"
 sourceId: "${topic.sourceId}"
 sourceUrl: "${topic.sourceUrl}"
 verificationScore: ${topic.overallConfidence}
 alternateLocale: "/${otherLocale}/posts/${slug}"
-coverImage: "/images/posts/${slug}.jpeg"
+coverImage: "${coverImagePath || `/images/posts/${slug}.png`}"
 ---`;
+}
+
+function getExistingCoverImage(slug: string): string | null {
+  const direct = [
+    `/images/posts/${slug}.png`,
+    `/images/posts/${slug}.jpeg`,
+    `/images/posts/${slug}.jpg`,
+  ];
+  for (const coverImage of direct) {
+    const imagePathRel = coverImage.startsWith('/') ? coverImage.slice(1) : coverImage;
+    const absolutePath = join(process.cwd(), 'apps/web/public', imagePathRel);
+    if (existsSync(absolutePath)) return coverImage;
+  }
+
+  const candidates = [
+    join(POSTS_DIR, 'en', `${slug}.mdx`),
+    join(POSTS_DIR, 'en', `${slug}.md`),
+    join(POSTS_DIR, 'ko', `${slug}.mdx`),
+    join(POSTS_DIR, 'ko', `${slug}.md`),
+  ];
+
+  for (const filePath of candidates) {
+    if (!existsSync(filePath)) continue;
+    try {
+      const raw = readFileSync(filePath, 'utf-8');
+      const { data } = matter(raw);
+      const coverImage = data.coverImage ? String(data.coverImage) : '';
+      if (!coverImage) continue;
+      const imagePathRel = coverImage.startsWith('/') ? coverImage.slice(1) : coverImage;
+      const absolutePath = join(process.cwd(), 'apps/web/public', imagePathRel);
+      if (existsSync(absolutePath)) return coverImage;
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 function findExistingSlugBySourceId(localeDir: string, sourceId: string): string | null {
@@ -238,10 +417,20 @@ function stripInlineReferences(content: string): string {
   return content.slice(0, start).trim();
 }
 
-function appendSources(content: string, topic: ResearchedTopic): string {
+function appendSources(locale: 'ko' | 'en', content: string, topic: ResearchedTopic): string {
   const cleaned = stripInlineReferences(content);
   const allSources = topic.findings.flatMap(f => f.sources);
-  const uniqueSources = [...new Map(allSources.map(s => [s.url, s])).values()];
+  const primarySource = topic.sourceUrl
+    ? createVerifiedSource(topic.sourceUrl, topic.sourceName || 'Source')
+    : null;
+  const uniqueSources = [
+    ...new Map(
+      [
+        ...allSources,
+        ...(primarySource ? [primarySource] : []),
+      ].map((s) => [s.url, s])
+    ).values(),
+  ];
   const trustedSources = uniqueSources.filter((s) => s.tier === 'S' || s.tier === 'A');
 
   if (trustedSources.length === 0) return cleaned;
@@ -254,7 +443,7 @@ function appendSources(content: string, topic: ResearchedTopic): string {
     '',
     '---',
     '',
-    '## 참고 자료',
+    locale === 'en' ? '## References' : '## 참고 자료',
     '',
     ...trustedSources.map(s => `- ${s.icon} [${s.title}](${s.url})`),
   ].join('\n');
@@ -290,6 +479,7 @@ async function main() {
   if (!existsSync(enDir)) mkdirSync(enDir, { recursive: true });
   if (!existsSync(koDir)) mkdirSync(koDir, { recursive: true });
   if (!existsSync(PUBLISHED_DIR)) mkdirSync(PUBLISHED_DIR, { recursive: true });
+  if (!existsSync(VC_DIR)) mkdirSync(VC_DIR, { recursive: true });
 
   // Get already published topic IDs
   const publishedIds = new Set<string>();
@@ -320,12 +510,35 @@ async function main() {
 
   if (researchedFiles.length === 0) {
     console.log('✅ No publishable topics to write.');
+    if (!existsSync(VC_DIR)) mkdirSync(VC_DIR, { recursive: true });
+    writeFileSync(
+      LAST_WRITTEN_PATH,
+      JSON.stringify(
+        {
+          generatedAt: new Date().toISOString(),
+          writtenCount: 0,
+          files: [],
+          entries: [],
+        },
+        null,
+        2
+      )
+    );
+    console.log(`Wrote ${LAST_WRITTEN_PATH}`);
     process.exit(0);
   }
 
   console.log(`📚 Found ${researchedFiles.length} publishable topic(s)\n`);
 
   let written = 0;
+  const writtenFiles: string[] = [];
+  const writtenEntries: Array<{
+    topicId: string;
+    sourceId: string;
+    slug: string;
+    files: string[];
+    writtenAt: string;
+  }> = [];
 
   for (const { file, topic } of researchedFiles) {
     console.log(`📋 Topic: "${topic.title}"`);
@@ -348,7 +561,8 @@ async function main() {
       // Write Korean article
       console.log('   📝 Writing Korean article...');
       let articleKo = await writeArticle(topic);
-      articleKo = appendSources(articleKo, topic);
+      articleKo = await polishArticleMarkdown('ko', articleKo);
+      articleKo = appendSources('ko', articleKo, topic);
 
       // Generate metadata
       console.log('   📰 Generating metadata...');
@@ -358,17 +572,19 @@ async function main() {
       console.log('   🌐 Translating to English...');
       const translated = await translateToEnglish(metadata.title_ko, articleKo);
       let articleEn = translated.content_en;
-      articleEn = appendSources(articleEn, topic);
+      articleEn = await polishArticleMarkdown('en', articleEn);
+      articleEn = appendSources('en', articleEn, topic);
 
       const sourceId = String(topic.sourceId || '');
       const existingSlug =
         (sourceId ? findExistingSlugBySourceId(koDir, sourceId) : null) ||
         (sourceId ? findExistingSlugBySourceId(enDir, sourceId) : null);
       const slug = existingSlug || metadata.slug;
+      const coverImagePath = getExistingCoverImage(slug);
 
       // Generate frontmatter
-      const frontmatterKo = generateFrontmatter(metadata, topic, 'ko', slug);
-      const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug);
+      const frontmatterKo = generateFrontmatter(metadata, topic, 'ko', slug, articleKo, coverImagePath || undefined);
+      const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug, articleEn, coverImagePath || undefined);
 
       // Write files
       const koFile = join(koDir, `${slug}.mdx`);
@@ -378,6 +594,7 @@ async function main() {
       writeFileSync(enFile, `${frontmatterEn}\n\n${articleEn}\n`);
 
       console.log(`   ✅ Created: ${slug}.mdx`);
+      writtenFiles.push(koFile, enFile);
 
       if (sourceId) {
         removeDuplicatePostsBySourceId(enDir, sourceId, slug);
@@ -401,6 +618,13 @@ async function main() {
       }
 
       written++;
+      writtenEntries.push({
+        topicId: String(topic.topicId || ''),
+        sourceId: sourceId,
+        slug,
+        files: [koFile, enFile],
+        writtenAt: new Date().toISOString(),
+      });
     } catch (error) {
       console.error(`   ❌ Error writing article:`, error);
     }
@@ -415,6 +639,22 @@ async function main() {
   console.log(`✨ Done! Written: ${written} article(s)`);
   console.log('Next step: Run `pnpm generate-image` to create cover images.');
   console.log('═'.repeat(60));
+
+  // SSOT for downstream gates (verify only newly written files).
+  writeFileSync(
+    LAST_WRITTEN_PATH,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        writtenCount: written,
+        files: writtenFiles,
+        entries: writtenEntries,
+      },
+      null,
+      2
+    )
+  );
+  console.log(`Wrote ${LAST_WRITTEN_PATH}`);
 }
 
 main().catch(console.error);

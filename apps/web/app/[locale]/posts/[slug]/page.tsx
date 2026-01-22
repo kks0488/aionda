@@ -27,7 +27,51 @@ export async function generateMetadata({
   params: { locale: string; slug: string };
 }) {
   const post = getPostBySlug(slug, locale as Locale);
-  if (!post) return { title: 'Not Found' };
+
+  // If the post doesn't exist in the requested locale but exists in the other locale,
+  // return metadata that points to the existing canonical version (and noindex the bridge page).
+  if (!post) {
+    const otherLocale = locale === 'en' ? 'ko' : 'en';
+    const otherPost = getPostBySlug(slug, otherLocale as Locale);
+    if (!otherPost) return { title: 'Not Found' };
+
+    const otherUrl = `${BASE_URL}/${otherLocale}/posts/${slug}`;
+    const ogImageUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(otherPost.title)}&date=${otherPost.date}`;
+
+    return {
+      title: otherPost.title,
+      description: otherPost.description,
+      robots: { index: false, follow: true },
+      alternates: {
+        canonical: otherUrl,
+        languages: { [otherLocale]: otherUrl },
+      },
+      openGraph: {
+        title: otherPost.title,
+        description: otherPost.description,
+        url: otherUrl,
+        siteName: 'AI온다',
+        type: 'article',
+        publishedTime: otherPost.date,
+        tags: otherPost.tags,
+        locale: otherLocale === 'ko' ? 'ko_KR' : 'en_US',
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: otherPost.title,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: otherPost.title,
+        description: otherPost.description,
+        images: [ogImageUrl],
+      },
+    };
+  }
 
   const url = `${BASE_URL}/${locale}/posts/${slug}`;
   const ogImageUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(post.title)}&date=${post.date}`;
@@ -100,12 +144,42 @@ export default async function PostPage({
 }) {
   setRequestLocale(locale);
 
-  const post = getPostBySlug(slug, locale as Locale);
   const t = await getTranslations({ locale, namespace: 'post' });
+  const post = getPostBySlug(slug, locale as Locale);
   const allPosts = getPosts(locale as Locale);
 
   if (!post) {
-    notFound();
+    const otherLocale = locale === 'en' ? 'ko' : 'en';
+    const otherPost = getPostBySlug(slug, otherLocale as Locale);
+    if (!otherPost) {
+      notFound();
+    }
+
+    return (
+      <main className="w-full max-w-3xl mx-auto px-6 py-24">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+          {t('translationUnavailableTitle')}
+        </h1>
+        <p className="mt-4 text-slate-600 dark:text-slate-300 leading-relaxed">
+          {t('translationUnavailableBody')}
+        </p>
+
+        <div className="mt-10 flex flex-wrap gap-3">
+          <Link
+            href={`/${otherLocale}/posts/${slug}`}
+            className="px-5 py-2.5 rounded-lg bg-primary text-white font-bold text-sm hover:opacity-95 transition-opacity"
+          >
+            {t('viewOtherLanguage')}
+          </Link>
+          <Link
+            href={`/${locale}/posts`}
+            className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-900 dark:text-white font-bold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+          >
+            {t('backToPosts')}
+          </Link>
+        </div>
+      </main>
+    );
   }
 
   // Get related posts (same tag, excluding current)

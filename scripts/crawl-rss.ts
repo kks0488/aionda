@@ -256,4 +256,12 @@ async function main() {
   console.log('═'.repeat(60) + '\n');
 }
 
-main().catch(console.error);
+main()
+  .then(() => {
+    // Some RSS libraries leave keep-alive sockets open; ensure the pipeline can continue.
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

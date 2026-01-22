@@ -70,14 +70,48 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const slugArg = args.find((a) => a.startsWith('--slug='));
   const limitArg = args.find((a) => a.startsWith('--limit='));
+  const all = args.includes('--all');
 
   const slugs = parseCsvArg(slugArg ? slugArg.split('=')[1] : undefined);
   const limit = limitArg ? Number.parseInt(limitArg.split('=')[1] || '', 10) : undefined;
 
   return {
     slugs: new Set(slugs),
+    all,
     limit: Number.isFinite(limit) && (limit as number) > 0 ? (limit as number) : undefined,
   };
+}
+
+function readLastWrittenSlugs(): string[] {
+  const repoRoot = process.cwd();
+  const lastWrittenPath = path.join(repoRoot, '.vc', 'last-written.json');
+  if (!fs.existsSync(lastWrittenPath)) return [];
+
+  try {
+    const raw = fs.readFileSync(lastWrittenPath, 'utf8');
+    const parsed = JSON.parse(raw) as any;
+
+    const slugs: string[] = [];
+    if (Array.isArray(parsed?.entries)) {
+      for (const entry of parsed.entries) {
+        if (entry && typeof entry.slug === 'string' && entry.slug.trim().length > 0) {
+          slugs.push(entry.slug.trim());
+        }
+      }
+    }
+
+    if (slugs.length === 0 && Array.isArray(parsed?.files)) {
+      for (const file of parsed.files) {
+        if (!file || typeof file !== 'string') continue;
+        const base = path.basename(file).replace(/\.mdx?$/, '');
+        if (base) slugs.push(base);
+      }
+    }
+
+    return Array.from(new Set(slugs));
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -349,8 +383,25 @@ async function main() {
   console.log(`🤖 Using AI for prompt generation`);
   console.log(`🌐 API: SiliconFlow\n`);
 
-  const { slugs, limit } = parseArgs();
-  const posts = getPostsWithoutImages({ slugs });
+  const { slugs, limit, all } = parseArgs();
+
+  const effectiveSlugs =
+    slugs.size > 0
+      ? slugs
+      : all
+        ? undefined
+        : (() => {
+            const lastWritten = readLastWrittenSlugs();
+            return lastWritten.length > 0 ? new Set(lastWritten) : undefined;
+          })();
+
+  if (effectiveSlugs && effectiveSlugs.size > 0) {
+    console.log(`🎯 Target slugs: ${Array.from(effectiveSlugs).join(', ')}`);
+  } else {
+    console.log(`🎯 Target slugs: (all missing images)${all ? ' [--all]' : ''}`);
+  }
+
+  const posts = getPostsWithoutImages({ slugs: effectiveSlugs });
 
   if (posts.length === 0) {
     console.log('✨ All posts already have images!');

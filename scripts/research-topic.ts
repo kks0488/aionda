@@ -19,11 +19,14 @@ import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 
 import { join } from 'path';
 import { config } from 'dotenv';
 import { searchAndVerify } from './lib/gemini';
+import { classifySource, SourceTier } from './lib/search-mode.js';
 
 config({ path: '.env.local' });
 
 const TOPICS_DIR = './data/topics';
 const RESEARCHED_DIR = './data/researched';
+const VC_DIR = './.vc';
+const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 
 // Minimum confidence to consider research valid
 const MIN_CONFIDENCE = 0.6;
@@ -51,6 +54,7 @@ interface VerifiedSource {
   tier: string;
   domain: string;
   icon: string;
+  snippet?: string;
 }
 
 interface ResearchFinding {
@@ -147,6 +151,20 @@ function parseSinceArg(raw?: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function readLastExtractedTopicIds(): Set<string> | null {
+  if (!existsSync(LAST_EXTRACTED_TOPICS_PATH)) return null;
+  try {
+    const raw = readFileSync(LAST_EXTRACTED_TOPICS_PATH, 'utf-8');
+    const parsed = JSON.parse(raw) as { topics?: Array<{ id?: string }> };
+    const ids = (parsed.topics || [])
+      .map((t) => String(t?.id || '').trim())
+      .filter(Boolean);
+    return ids.length > 0 ? new Set(ids) : new Set();
+  } catch {
+    return null;
+  }
+}
+
 async function researchQuestionWithGemini(
   question: string,
   context: string
@@ -163,6 +181,7 @@ async function researchQuestionWithGemini(
       tier: s.tier || 'C',
       domain: getDomainFromUrl(s.url),
       icon: getTierIcon(s.tier || 'C'),
+      snippet: s.snippet,
     }));
 
     const tierCounts = sources.reduce((acc, s) => {
@@ -217,7 +236,11 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
     f.sources.some(s => s.tier === 'S' || s.tier === 'A')
   );
 
-  const hasVerifiedContent = hasTrustedSources || avgConfidence >= MIN_CONFIDENCE;
+  const primaryTier = classifySource(topic.sourceUrl || '');
+  const hasTrustedPrimary = primaryTier === SourceTier.S || primaryTier === SourceTier.A;
+  const hasTrustedEvidence = hasTrustedSources || hasTrustedPrimary;
+
+  const hasVerifiedContent = avgConfidence >= MIN_CONFIDENCE && hasTrustedEvidence;
 
   // 전체 출처 통계
   const allSources = findings.flatMap(f => f.sources);
@@ -229,7 +252,7 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   console.log(`\n   📊 Summary:`);
   console.log(`      Average Confidence: ${Math.round(avgConfidence * 100)}%`);
   console.log(`      Total Sources: ${allSources.length} (S:${tierStats['S'] || 0} A:${tierStats['A'] || 0} B:${tierStats['B'] || 0})`);
-  console.log(`      Has Trusted Sources: ${hasTrustedSources ? '✅' : '❌'}`);
+  console.log(`      Has Trusted Evidence: ${(hasTrustedEvidence) ? '✅' : '❌'}`);
   console.log(`      Can Publish: ${hasVerifiedContent ? '✅' : '❌'}`);
 
   return {
@@ -259,6 +282,7 @@ async function main() {
         .filter(Boolean)
     : [];
   const force = args.includes('--force');
+  const fromLastExtract = args.includes('--from-last-extract');
   const sinceArg = args.find((a) => a.startsWith('--since='));
   const since = parseSinceArg(sinceArg ? sinceArg.split('=')[1] : DEFAULT_SINCE);
 
@@ -286,6 +310,7 @@ async function main() {
   }
 
   // Get topics to research
+  const lastExtractedIds = fromLastExtract ? readLastExtractedTopicIds() : null;
   const topicFiles = readdirSync(TOPICS_DIR)
     .filter(f => f.endsWith('.json') && !f.startsWith('._'))
     .map(f => {
@@ -293,6 +318,7 @@ async function main() {
       return { file: f, topic };
     })
     .filter(({ topic }) => {
+      if (lastExtractedIds && !lastExtractedIds.has(topic.id)) return false;
       const matchesTarget =
         targetIds.length === 0 ||
         targetIds.includes(topic.id) ||

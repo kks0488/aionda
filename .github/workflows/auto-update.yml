@@ -149,6 +149,14 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
 
+      # Phase 4b: Content gate (publish)
+      - name: Content gate (strict + verify)
+        if: steps.check_topics.outputs.has_topics == 'true'
+        id: gate
+        run: pnpm content:gate:publish
+        env:
+          GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+
       # Phase 5: Generate Images
       - name: Generate cover images
         if: steps.check_topics.outputs.has_topics == 'true'

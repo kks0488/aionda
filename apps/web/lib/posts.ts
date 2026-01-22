@@ -56,13 +56,21 @@ const TAG_ALIASES: Record<string, string> = {
   'chat-gpt': 'chatgpt',
   '챗gpt': 'chatgpt',
   '챗지피티': 'chatgpt',
+  'hugging face': 'huggingface',
+  'huggingface': 'huggingface',
   '젬나이': 'gemini',
   '제미나이': 'gemini',
 };
 
 function normalizeTagValue(value: string): string {
-  const normalized = value.trim().toLowerCase();
-  return TAG_ALIASES[normalized] || normalized;
+  const compact = value.trim().toLowerCase().replace(/\s+/g, ' ');
+  const aliased = TAG_ALIASES[compact] || compact;
+
+  // Normalize common model/version formatting (e.g., "gpt 5.2" -> "gpt-5.2")
+  if (/^gpt\s+\d/.test(aliased)) return aliased.replace(/^gpt\s+/, 'gpt-');
+  if (/^gemini\s+\d/.test(aliased)) return aliased.replace(/^gemini\s+/, 'gemini-');
+
+  return aliased;
 }
 
 function normalizeTags(rawTags: unknown): string[] {
@@ -85,6 +93,34 @@ function normalizeTags(rawTags: unknown): string[] {
   }
 
   return normalizedTags;
+}
+
+const CORE_TAG_PATTERNS: Array<{ tag: string; regex: RegExp }> = [
+  { tag: 'agi', regex: /agi|artificial general intelligence|superintelligence|초지능|범용.*인공지능/i },
+  { tag: 'robotics', regex: /robot|로봇|humanoid|휴머노이드|boston dynamics|figure|drone|드론|자율주행/i },
+  { tag: 'hardware', regex: /hardware|하드웨어|gpu|tpu|nvidia|chip|반도체|칩|blackwell|h100|b200|rubin|cuda|hbm/i },
+  { tag: 'llm', regex: /llm|language model|언어.*모델|대형언어|transformer|트랜스포머|gpt|chatgpt|claude|gemini|llama/i },
+];
+
+function deriveCoreTags(title: string, content: string, tags: string[]): string[] {
+  const combined = `${title}\n${tags.join(' ')}\n${content}`.toLowerCase();
+  const derived = CORE_TAG_PATTERNS.filter(({ regex }) => regex.test(combined)).map(({ tag }) => tag);
+  return derived.length > 0 ? derived : ['llm'];
+}
+
+function mergeTags(base: string[], extra: string[]): string[] {
+  if (extra.length === 0) return base;
+  const seen = new Set(base);
+  const merged = [...base];
+
+  for (const tag of extra) {
+    const normalized = normalizeTagValue(tag);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    merged.push(normalized);
+  }
+
+  return merged;
 }
 
 const postsDirectory = path.join(process.cwd(), 'content/posts');
@@ -181,13 +217,15 @@ function parsePostFile(
 ): Post {
   const fileContents = fs.readFileSync(fullPath, 'utf8');
   const { data, content } = matter(fileContents);
+  const normalizedTags = normalizeTags(data.tags);
+  const coreTags = deriveCoreTags(String(data.title || slug), content, normalizedTags);
 
   return {
     slug,
     title: data.title || slug,
     description: data.description || data.excerpt || content.slice(0, 160),
     date: parseDate(data.date),
-    tags: normalizeTags(data.tags),
+    tags: mergeTags(normalizedTags, coreTags),
     content,
     locale,
     verificationScore: data.verificationScore,

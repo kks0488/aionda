@@ -8,10 +8,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from 'dotenv';
 import {
   buildSearchStrategy,
+  classifySource,
   createVerifiedSource,
   type VerifiedSource,
   type SearchStrategy,
 } from './search-mode.js';
+import { normalizeSourceUrl } from './url-normalize.js';
 
 config({ path: '.env.local' });
 
@@ -37,6 +39,109 @@ Rules:
 - 시스템 컨텍스트를 본문에 노출하지 말 것
 </system_context>`;
 
+const URL_VALIDATE_TIMEOUT_MS = Number.parseInt(
+  process.env.URL_VALIDATE_TIMEOUT_MS || '7000',
+  10
+);
+
+const GEMINI_TIMEOUT_MS = Number.parseInt(
+  process.env.GEMINI_TIMEOUT_MS || '45000',
+  10
+);
+
+const GEMINI_SEARCH_TIMEOUT_MS = Number.parseInt(
+  process.env.GEMINI_SEARCH_TIMEOUT_MS || '120000',
+  10
+);
+
+const URL_VALIDATION_CACHE = new Map<string, boolean>();
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return 'name' in error && (error as { name?: unknown }).name === 'AbortError';
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function generateWithRetry<T>(
+  fn: () => Promise<T>,
+  { label, retries = 1 }: { label: string; retries?: number }
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (isAbortError(error) && attempt < retries) {
+        const base = Math.min(30_000, 1500 * 2 ** attempt);
+        const jitter = Math.floor(Math.random() * 400);
+        const backoffMs = base + jitter;
+        console.warn(
+          `[Gemini] ${label} timed out (AbortError). Retrying after ${backoffMs}ms... (${attempt + 1}/${retries})`
+        );
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function isUrlReachable(url: string): Promise<boolean> {
+  if (!url) return false;
+  const cached = URL_VALIDATION_CACHE.get(url);
+  if (typeof cached === 'boolean') return cached;
+
+  const headers = {
+    'User-Agent': 'AIOnda/1.0 (Content Pipeline)',
+    Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  };
+
+  const ok = await (async () => {
+    try {
+      const head = await fetchWithTimeout(
+        url,
+        { method: 'HEAD', redirect: 'follow', headers },
+        URL_VALIDATE_TIMEOUT_MS
+      );
+      if (head.ok) return true;
+      if ([401, 403, 429].includes(head.status)) return true;
+      if ([404, 410].includes(head.status)) return false;
+      if (head.status === 405) {
+        const get = await fetchWithTimeout(
+          url,
+          { method: 'GET', redirect: 'follow', headers: { ...headers, Range: 'bytes=0-2047' } },
+          URL_VALIDATE_TIMEOUT_MS
+        );
+        if (get.ok) return true;
+        if ([401, 403, 429].includes(get.status)) return true;
+        if ([404, 410].includes(get.status)) return false;
+        return get.status < 500;
+      }
+      return head.status < 500;
+    } catch {
+      return false;
+    }
+  })();
+
+  URL_VALIDATION_CACHE.set(url, ok);
+  return ok;
+}
+
 function assertAiEnabled() {
   if (AI_API_DISABLED) {
     const error = new Error('AI API disabled (AI_API_DISABLED=true)');
@@ -48,15 +153,49 @@ function assertAiEnabled() {
   }
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  const workers = new Array(Math.max(1, concurrency)).fill(null).map(async () => {
+    while (index < items.length) {
+      const currentIndex = index++;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+}
+
+function dedupeByUrl<T extends { url: string }>(sources: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const source of sources) {
+    const url = source.url || '';
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    out.push(source);
+  }
+  return out;
+}
+
 /**
  * 텍스트 생성 (Gemini Flash)
  */
 export async function generateContent(prompt: string): Promise<string> {
   assertAiEnabled();
   try {
-    const model = genAI.getGenerativeModel({ model: MODEL });
+    const model = genAI.getGenerativeModel({ model: MODEL }, { timeout: GEMINI_TIMEOUT_MS });
     const fullPrompt = CONTEXT_INJECTION + '\n' + prompt;
-    const result = await model.generateContent(fullPrompt);
+    const result = await generateWithRetry(
+      () => model.generateContent(fullPrompt, { timeout: GEMINI_TIMEOUT_MS }),
+      { label: 'generateContent', retries: 1 }
+    );
     const response = await result.response;
     return response.text();
   } catch (error) {
@@ -88,6 +227,7 @@ export async function searchAndVerify(question: string, context?: string): Promi
 - 검색 결과에서 확인된 정보만 사용
 - 추측/가정 금지 - 확인 안 되면 "확인되지 않음"으로 명시
 - 가짜 URL 생성 절대 금지
+- 숫자/날짜/퍼센트/가격을 언급하면 sources.snippet에 그 숫자가 포함된 근거 문구를 넣어라. 근거가 없으면 숫자를 빼고 서술하라.
 - 출처 모르면 sources: []
 - 확신도 90% 미만이면 솔직하게 표시
 </critical_rules>
@@ -110,9 +250,13 @@ ${question}
   try {
     const model = genAI.getGenerativeModel({
       model: MODEL,
+      generationConfig: { temperature: 0 },
       tools: [{ googleSearch: {} } as any],
-    });
-    const result = await model.generateContent(prompt);
+    }, { timeout: GEMINI_SEARCH_TIMEOUT_MS });
+    const result = await generateWithRetry(
+      () => model.generateContent(prompt, { timeout: GEMINI_SEARCH_TIMEOUT_MS }),
+      { label: 'searchAndVerify', retries: 6 }
+    );
     const response = await result.response;
     const text = response.text();
 
@@ -120,10 +264,36 @@ ${question}
 
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+
+      const rawSources = (parsed.sources || [])
+        .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
+        .map((s: any) => ({
+          url: String(s.url),
+          title: String(s.title || 'Unknown'),
+          snippet: typeof s.snippet === 'string' ? s.snippet : undefined,
+        }));
+
+      const normalized = await mapWithConcurrency(rawSources, 3, async (source) => {
+        const url = await normalizeSourceUrl(source.url);
+        const tier = classifySource(url);
+        return { ...source, url, tier };
+      });
+
+      const validated = await mapWithConcurrency(normalized, 3, async (source) => {
+        const ok = await isUrlReachable(source.url);
+        return ok ? source : null;
+      });
+
+      const finalSources = dedupeByUrl(validated.filter((s): s is NonNullable<typeof s> => s !== null));
+      const hasTrusted = finalSources.some((s) => s.tier === 'S' || s.tier === 'A');
+      let confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0.5;
+      if (finalSources.length === 0) confidence = Math.min(confidence, 0.2);
+      if (finalSources.length > 0 && !hasTrusted) confidence = Math.min(confidence, 0.75);
+
       return {
         answer: parsed.answer || 'No answer found',
-        confidence: parsed.confidence || 0.5,
-        sources: (parsed.sources || []).filter((s: any) => s.url && s.url.startsWith('http')),
+        confidence,
+        sources: finalSources,
         unverified: parsed.unverified || [],
       };
     }
@@ -150,7 +320,8 @@ ${question}
  */
 export async function verifyClaim(
   claim: any,
-  originalContent: string
+  originalContent: string,
+  preferredSources: string[] = []
 ): Promise<{
   verified: boolean;
   confidence: number;
@@ -161,6 +332,14 @@ export async function verifyClaim(
 }> {
   assertAiEnabled();
   const strategy = buildSearchStrategy(claim);
+
+  const preferredSection = preferredSources.length > 0
+    ? `\n<preferred_sources>\n${preferredSources.slice(0, 8).map((u) => `- ${u}`).join('\n')}\n</preferred_sources>`
+    : '\n<preferred_sources>\nN/A\n</preferred_sources>';
+
+  const head = originalContent.substring(0, 800);
+  const tail = originalContent.length > 1400 ? originalContent.substring(originalContent.length - 600) : '';
+  const contextSnippet = tail ? `${head}\n...\n${tail}` : head;
 
   const prompt = CONTEXT_INJECTION + `\n<task>사실 주장 검증</task>
 
@@ -173,7 +352,11 @@ export async function verifyClaim(
 - 가짜 URL 생성 절대 금지
 - 출처 모르면 sources: []
 - Tier S(학술) > A(공식) > B(SNS) > C(일반)
+- preferred_sources에 포함된 URL(특히 1차/공식/원문)이 있으면, 먼저 확인하고 가능하면 sources에 포함해라.
 - 2026년 현재 시점에서 더 이상 유효하지 않은 정보(구식 모델 성능 등)는 허위 정보로 간주하여 verified: false 처리
+- correctedText는 **claim.text와 같은 언어**로 작성한다. (영문 claim이면 correctedText도 영어)
+- correctedText는 원문에 끼워 넣을 수 있는 1~2문장짜리 “드롭인 교체 문장”이어야 한다.
+- 수정안이 안전하지 않거나 근거를 특정하기 어렵다면 correctedText를 비워라.
 </critical_rules>
 
 <claim>
@@ -182,8 +365,10 @@ export async function verifyClaim(
 엔티티: ${claim.entities?.join(', ') || 'N/A'}
 </claim>
 
+${preferredSection}
+
 <context>
-${originalContent.substring(0, 800)}
+${contextSnippet}
 </context>
 
 <output_format>
@@ -193,9 +378,13 @@ ${originalContent.substring(0, 800)}
   try {
     const model = genAI.getGenerativeModel({
       model: MODEL,
+      generationConfig: { temperature: 0 },
       tools: [{ googleSearch: {} } as any],
-    });
-    const result = await model.generateContent(prompt);
+    }, { timeout: GEMINI_SEARCH_TIMEOUT_MS });
+    const result = await generateWithRetry(
+      () => model.generateContent(prompt, { timeout: GEMINI_SEARCH_TIMEOUT_MS }),
+      { label: 'verifyClaim', retries: 6 }
+    );
     const response = await result.response;
     const text = response.text();
 
@@ -203,9 +392,22 @@ ${originalContent.substring(0, 800)}
 
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      const sources: VerifiedSource[] = (parsed.sources || [])
-        .filter((s: any) => s.url && s.url.startsWith('http'))
-        .map((s: any) => createVerifiedSource(s.url, s.title || 'Unknown'));
+
+      const rawSources = (parsed.sources || [])
+        .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
+        .map((s: any) => ({
+          url: String(s.url),
+          title: String(s.title || 'Unknown'),
+        }));
+
+      const normalized = await mapWithConcurrency(rawSources, 3, async (source) => ({
+        ...source,
+        url: await normalizeSourceUrl(source.url),
+      }));
+
+      const sources: VerifiedSource[] = dedupeByUrl(normalized).map((s) =>
+        createVerifiedSource(s.url, s.title)
+      );
 
       const meetsThreshold = parsed.confidence >= 0.9;
 
@@ -249,6 +451,9 @@ export async function extractClaims(content: string): Promise<any[]> {
 </instruction>
 
 <critical_rules>
+- text는 반드시 <content> 안에 **그대로 존재하는 문장/구절을 복사한 것(Exact quote)** 이어야 합니다. 번역/의역/요약/재작성 금지.
+- 원문이 영어면 text도 영어(원문 그대로)로 출력합니다. 원문이 한국어면 한국어 그대로 출력합니다.
+- "예:" 또는 "Example:"로 시작하는 가상 시나리오 문단의 문장은 주장으로 추출하지 마세요.
 - 검증 가능한 사실적 주장만 추출
 - 추측/의견 제외 ("~인 것 같다", "아마도")
 - 구체적 데이터 있는 주장만 (날짜, 수치, 벤치마크)
@@ -264,7 +469,17 @@ ${content.substring(0, 3000)}
 </output_format>`;
 
   try {
-    const response = await generateContent(prompt);
+    assertAiEnabled();
+    const model = genAI.getGenerativeModel(
+      { model: MODEL, generationConfig: { temperature: 0 } },
+      { timeout: GEMINI_TIMEOUT_MS }
+    );
+    const fullPrompt = CONTEXT_INJECTION + '\n' + prompt;
+    const result = await generateWithRetry(
+      () => model.generateContent(fullPrompt, { timeout: GEMINI_TIMEOUT_MS }),
+      { label: 'extractClaims', retries: 1 }
+    );
+    const response = (await result.response).text();
     const jsonMatch = response.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);

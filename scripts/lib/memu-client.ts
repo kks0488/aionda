@@ -6,7 +6,8 @@
  */
 
 const MEMU_API_URL = process.env.MEMU_API_URL || 'http://localhost:8100';
-const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 15000);
+const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 30000);
+const MEMU_HEALTH_TIMEOUT_MS = Number(process.env.MEMU_HEALTH_TIMEOUT_MS || 2000);
 
 async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEMU_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -74,7 +75,7 @@ interface RetrieveResponse {
  */
 export async function checkMemuHealth(): Promise<boolean> {
   try {
-    const response = await fetchWithTimeout(`${MEMU_API_URL}/health`);
+    const response = await fetchWithTimeout(`${MEMU_API_URL}/health`, undefined, MEMU_HEALTH_TIMEOUT_MS);
     const data = await response.json();
     return data.status === 'ok';
   } catch {
@@ -201,6 +202,13 @@ export async function checkBeforePublish(
   const isHealthy = await checkMemuHealth();
   if (!isHealthy) {
     console.warn('[memU] Server not available, skipping duplicate check');
+    const requireMemu = ['true', '1'].includes(
+      String(process.env.REQUIRE_MEMU_FOR_PUBLISH || '').toLowerCase()
+    );
+    if (requireMemu) {
+      console.warn('[memU] REQUIRE_MEMU_FOR_PUBLISH=true -> skipping publish to avoid duplicates');
+      return { isDuplicate: true, shouldPublish: false, similarItems: [] };
+    }
     return { isDuplicate: false, shouldPublish: true, similarItems: [] };
   }
 

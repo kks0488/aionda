@@ -36,6 +36,8 @@ const OFFICIAL_DIR = './data/official';
 const NEWS_DIR = './data/news';
 const TOPICS_DIR = './data/topics';
 const PUBLISHED_DIR = './data/published';
+const VC_DIR = './.vc';
+const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 
 // Configuration
 const MIN_CONTENT_LENGTH = parseInt(process.env.MIN_CONTENT_LENGTH || '100', 10);
@@ -129,6 +131,59 @@ interface ExtractedTopic {
   keyInsights: string[];
   researchQuestions: string[];
   extractedAt: string;
+}
+
+const AI_RELEVANCE_PATTERN =
+  /(?:\bai\b|artificial intelligence|machine learning|\bml\b|deep learning|neural|llm|language model|foundation model|transformer|gpt|chatgpt|claude|gemini|llama|mistral|mixtral|diffusion|multimodal|agent|robot|robotics|humanoid|npu|neural engine|gpu|tpu|cuda|hbm|nvidia|openai|anthropic|deepmind|hugging\s*face|vertex\s*ai|copilot|pytorch|tensorflow|jax|inference|fine[-\s]?tune|finetune|quantization|rag|retrieval|\bbci\b|brain[-\s]?computer interface|neuralink|synchron|인공지능|머신러닝|딥러닝|신경망|언어\s*모델|대형\s*언어\s*모델|로봇|휴머노이드|온디바이스\s*ai|온디바이스|추론|파인\s*튜닝|파인튜닝|검색\s*증강|반도체|gpu|tpu|npu|bci|뇌[-\s]?컴퓨터|뉴럴링크|싱크론)/i;
+
+function isLikelyAiRelated(post: UnifiedPost): boolean {
+  const text = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 5000);
+  return AI_RELEVANCE_PATTERN.test(text);
+}
+
+// Avoid "consumer/how-to/buying guide" drift from general tech feeds.
+// We still allow high-signal technical/policy items even if they contain some consumer keywords.
+const CONSUMER_DRIFT_PATTERNS: RegExp[] = [
+  /\bhow to\b/i,
+  /\bbest\b/i,
+  /\breview\b/i,
+  /\bexpert tested\b/i,
+  /\bi (?:tested|tried)\b/i,
+  /\bshortcuts?\b/i,
+  /\bsettings?\b/i,
+  /\bfix\b/i,
+  /\bminutes?\b/i,
+  /\bstep\b/i,
+  /\bprice\b|\bdeal\b|\bdiscount\b|\bon sale\b|\bbundle\b|\bcoupon\b/i,
+  /\biphone\b|\bipad\b|\bmac\b|\bapple watch\b|\broku\b|\bfire tv\b|\bsmartwatch\b|\bearbuds?\b|\bheadphones?\b|\bsoundbar\b|\brouter\b|\blaptop\b|\btablet\b|\bpower bank\b/i,
+  /\bchrome\b|\bedge\b|\bfirefox\b|\bbrowser\b|\bwindows\b|\bmacos\b|\bios\b|\bandroid\b/i,
+  /\btodoist\b|\bnotion\b|\bto[-\s]?do\b|\bto do list\b|\btask management\b|\bproductivity app\b|\breminders?\b|\bcalendar\b/i,
+  /캐시|단축키|설정|정리|추천|리뷰|후기|비교|테스트|할인|쿠폰|번들|구매|가격|최고의|속도|느려|방법|하는\s*법/i,
+  /투두이스트|todoist|노션|notion|할\s*일\s*목록|태스크\s*관리|미리\s*알림|리마인더|캘린더|생산성\s*앱/i,
+];
+
+const HIGH_SIGNAL_PATTERNS: RegExp[] = [
+  /\bbenchmark\b|\bpaper\b|\bmodel\b|\brelease\b|\blaunch\b|\bannounce(?:ment)?\b|\barchitecture\b|\bweights?\b|\bdataset\b/i,
+  /\bapi\b|\bsdk\b|\bspec\b|\bstandard\b|\bregulation\b|\bpolicy\b|\bact\b|\blaw\b|\bgovernance\b|\bsafety\b|\balignment\b/i,
+  /\bchip\b|\bgpu\b|\bnpu\b|\btpu\b|\bcuda\b|\brocm\b|\bhbm\b|\binference\b|\btraining\b/i,
+  /\bworkplace\b|\bemployment\b|\blabor\b|\bworkforce\b|\breskilling\b|\bupskilling\b|\boecd\b|\bimf\b|\bworld bank\b|\bwef\b/i,
+  /\bbci\b|brain[-\s]?computer interface|neuralink|synchron/i,
+  /\bw3c\b|\bwebnn\b/i,
+  /논문|벤치마크|모델|출시|발표|아키텍처|가중치|데이터셋|표준|규제|정책|법|가이드라인|칩|반도체|gpu|npu|tpu|cuda|rocm|hbm|추론|학습|정렬|안전|고용|노동|일자리|임금|재교육|직무|노사|자동화|oecd|imf|bci|뇌[-\s]?컴퓨터|뉴럴링크|싱크론/i,
+];
+
+function hasHighSignal(post: UnifiedPost): boolean {
+  const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 2000);
+  return HIGH_SIGNAL_PATTERNS.some((re) => re.test(sample));
+}
+
+function isLikelyConsumerDrift(post: UnifiedPost): boolean {
+  if (post.sourceType === 'raw') return false;
+  if (post.sourceTier === 'S') return false; // official sources can have legitimately useful "how-to" posts
+
+  if (hasHighSignal(post)) return false;
+  const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 2000);
+  return CONSUMER_DRIFT_PATTERNS.some((re) => re.test(sample));
 }
 
 /**
@@ -342,6 +397,7 @@ async function main() {
   // Ensure directories exist
   if (!existsSync(TOPICS_DIR)) mkdirSync(TOPICS_DIR, { recursive: true });
   if (!existsSync(PUBLISHED_DIR)) mkdirSync(PUBLISHED_DIR, { recursive: true });
+  if (!existsSync(VC_DIR)) mkdirSync(VC_DIR, { recursive: true });
 
   // Get already processed IDs
   const processedIds = getProcessedIds();
@@ -396,6 +452,12 @@ async function main() {
 
   let extracted = 0;
   const tierEmoji: Record<SourceTier, string> = { S: '🏛️', A: '🛡️', B: '📝', C: '💬' };
+  const skipCounts = {
+    consumerDrift: 0,
+    notAiRelated: 0,
+    lowSignal: 0,
+  };
+  const extractedTopics: Array<{ id: string; file: string; sourceId: string; sourceType: SourceType; sourceTier: SourceTier }> = [];
 
   for (const post of sortedPosts) {
     if (extracted >= maxTopics) break;
@@ -403,6 +465,37 @@ async function main() {
     const emoji = tierEmoji[post.sourceTier];
     console.log(`${emoji} [${post.sourceTier}] ${post.sourceName}`);
     console.log(`   📋 "${post.title.substring(0, 50)}..."`);
+
+    const isNewsOrOfficial = post.sourceType !== 'raw';
+    if (isNewsOrOfficial && isLikelyConsumerDrift(post)) {
+      console.log('    ⏭️ Skipping: consumer/how-to/review drift');
+      skipCounts.consumerDrift++;
+      console.log('');
+      continue;
+    }
+    if (!isLikelyAiRelated(post)) {
+      console.log('    ⏭️ Skipping: not AI-related (keyword filter)');
+      skipCounts.notAiRelated++;
+      console.log('');
+      continue;
+    }
+
+    const highSignal = hasHighSignal(post);
+    if (post.sourceType === 'news' && post.sourceTier !== 'S' && !highSignal) {
+      console.log('    ⏭️ Skipping: low-signal news (no model/api/policy/hardware/workforce signal)');
+      skipCounts.lowSignal++;
+      console.log('');
+      continue;
+    }
+    if (post.sourceType === 'raw' && !highSignal) {
+      const sample = `${post.title}\n${post.content || ''}`.slice(0, 2000);
+      if (CONSUMER_DRIFT_PATTERNS.some((re) => re.test(sample))) {
+        console.log('    ⏭️ Skipping: low-signal community tip/review drift');
+        skipCounts.lowSignal++;
+        console.log('');
+        continue;
+      }
+    }
 
     const topic = await extractTopicFromPost(post);
 
@@ -413,16 +506,39 @@ async function main() {
       console.log(`   ✅ Topic: "${topic.title}"`);
       console.log(`   📝 Research questions: ${topic.researchQuestions.length}`);
       extracted++;
+      extractedTopics.push({
+        id: topic.id,
+        file: join(TOPICS_DIR, topicFile).replace(/\\/g, '/'),
+        sourceId: topic.sourceId,
+        sourceType: topic.sourceType,
+        sourceTier: topic.sourceTier,
+      });
     }
 
     console.log('');
 
-    // Rate limiting
+    // Rate limiting (avoid sleeping on pure skips)
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   console.log('═'.repeat(60));
   console.log(`✨ Done! Extracted ${extracted} topic(s)`);
+  console.log(
+    `   Skipped: consumer=${skipCounts.consumerDrift}, not-ai=${skipCounts.notAiRelated}, low-signal=${skipCounts.lowSignal}`
+  );
+  writeFileSync(
+    LAST_EXTRACTED_TOPICS_PATH,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        extractedCount: extracted,
+        topics: extractedTopics,
+      },
+      null,
+      2
+    )
+  );
+  console.log(`Wrote ${LAST_EXTRACTED_TOPICS_PATH}`);
   console.log('Next step: Run `pnpm research-topic` to research the topics.');
   console.log('═'.repeat(60));
 }

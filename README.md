@@ -107,6 +107,15 @@ pnpm generate-post
 # 이미지 생성
 pnpm generate-image
 
+# 전체 파이프라인(품질 게이트 포함)
+pnpm pipeline
+
+# 더 엄격한 파이프라인(경고도 실패)
+pnpm pipeline:strict
+
+# 풀오토 발행용(엄격 + 사실 검증 + 1토픽 중심)
+pnpm pipeline:publish
+
 # 빌드
 cd apps/web && pnpm build
 ```
@@ -115,6 +124,7 @@ cd apps/web && pnpm build
 
 - [Vision](./docs/VISION.md) - 블로그 철학과 방향
 - [Architecture](./docs/ARCHITECTURE.md) - 시스템 아키텍처
+- [Content Quality](./docs/CONTENT_QUALITY.md) - 콘텐츠 품질 도구/규칙/운영
 - [Claude Context](./.claude/CLAUDE.md) - Claude Code 컨텍스트
 
 ## 우리가 하지 않는 것

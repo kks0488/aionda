@@ -40,9 +40,22 @@ pnpm research-topic --limit=1 || echo "Research warning"
 echo "[$(date '+%H:%M:%S')] Step 4: Writing article..."
 pnpm write-article || echo "Write warning"
 
+# 4b. 품질 게이트(엄격 + 사실 검증)
+echo "[$(date '+%H:%M:%S')] Step 4b: Content gate (publish)..."
+if ! pnpm content:gate:publish; then
+    echo "❌ Gate failed. Aborting publish."
+    exit 1
+fi
+
 # 5. 이미지 생성
 echo "[$(date '+%H:%M:%S')] Step 5: Generating images..."
 ENABLE_IMAGE_GENERATION=true pnpm generate-image || echo "Image warning"
+
+# 5b. 빌드(옵션)
+if [ "${AUTO_PUBLISH_SKIP_BUILD}" != "true" ]; then
+    echo "[$(date '+%H:%M:%S')] Step 5b: Building site..."
+    pnpm build || { echo "❌ Build failed. Aborting publish."; exit 1; }
+fi
 
 # 6. 변경사항 확인 및 커밋
 echo "[$(date '+%H:%M:%S')] Step 6: Checking for changes..."
