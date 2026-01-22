@@ -120,9 +120,65 @@ function readLastWrittenSlugs(): string[] {
 function getPostsWithoutImages(options?: { slugs?: Set<string> }): PostMeta[] {
   const postsDir = path.join(process.cwd(), 'apps/web/content/posts');
   const posts: PostMeta[] = [];
-  const seenSlugs = new Set<string>();
   const allowedSlugs = options?.slugs && options.slugs.size > 0 ? options.slugs : null;
 
+  const publicDir = path.join(process.cwd(), 'apps/web/public');
+  const imagesDir = path.join(publicDir, 'images', 'posts');
+
+  const hasImageForSlug = (slug: string, coverImage?: unknown) => {
+    const candidates = [
+      path.join(imagesDir, `${slug}.png`),
+      path.join(imagesDir, `${slug}.jpg`),
+      path.join(imagesDir, `${slug}.jpeg`),
+      path.join(imagesDir, `${slug}.webp`),
+      path.join(imagesDir, `${slug}.avif`),
+    ];
+    if (candidates.some((p) => fs.existsSync(p))) return true;
+    if (typeof coverImage !== 'string' || !coverImage.trim()) return false;
+    const rel = coverImage.startsWith('/') ? coverImage.slice(1) : coverImage;
+    return fs.existsSync(path.join(publicDir, rel));
+  };
+
+  const readPostMeta = (locale: string, slug: string): { meta: PostMeta | null; coverImage?: unknown } => {
+    for (const ext of ['.mdx', '.md']) {
+      const filePath = path.join(postsDir, locale, `${slug}${ext}`);
+      if (!fs.existsSync(filePath)) continue;
+      const content = fs.readFileSync(filePath, 'utf8');
+      const { data } = matter(content);
+      return {
+        meta: {
+          slug,
+          title: data.title || slug,
+          excerpt: data.excerpt || data.description || '',
+          tags: data.tags || [],
+          locale,
+          filePath,
+        },
+        coverImage: data.coverImage,
+      };
+    }
+    return { meta: null };
+  };
+
+  // Deterministic ordering for explicitly provided slugs.
+  if (allowedSlugs) {
+    const ordered = Array.from(allowedSlugs);
+    for (const slug of ordered) {
+      const en = readPostMeta('en', slug);
+      const ko = readPostMeta('ko', slug);
+      const chosen = en.meta || ko.meta;
+      const cover = en.coverImage || ko.coverImage;
+      if (!chosen) continue;
+      if (hasImageForSlug(slug, cover)) {
+        console.log(`⏭️ Skip (image exists): ${slug}`);
+        continue;
+      }
+      posts.push(chosen);
+    }
+    return posts;
+  }
+
+  const seenSlugs = new Set<string>();
   for (const locale of ['en', 'ko']) {
     const localeDir = path.join(postsDir, locale);
     if (!fs.existsSync(localeDir)) continue;
@@ -135,8 +191,6 @@ function getPostsWithoutImages(options?: { slugs?: Set<string> }): PostMeta[] {
       const { data } = matter(content);
 
       const slug = file.replace(/\.mdx?$/, '');
-
-      if (allowedSlugs && !allowedSlugs.has(slug)) continue;
 
       let hasImage = false;
       if (data.coverImage) {
