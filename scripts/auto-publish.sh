@@ -11,6 +11,8 @@ mkdir -p /home/kkaemo/projects/aionda/logs
 
 exec >> "$LOG_FILE" 2>&1
 
+QUARANTINE_ROOT="/home/kkaemo/aionda-quarantine"
+
 echo ""
 echo "=========================================="
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-publish started"
@@ -27,13 +29,31 @@ fi
 date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/aionda-auto-publish-last-run.txt
 echo "running" > /tmp/aionda-auto-publish-status.txt
 
+# If a previous run failed mid-way, it can leave untracked MDX/images in tracked
+# directories, which would permanently block future runs due to the "dirty worktree"
+# safety check. Quarantine these leftovers outside the repo (keep them for debugging).
+UNTRACKED_OUTPUTS="$(git ls-files --others --exclude-standard -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true)"
+if [ -n "$UNTRACKED_OUTPUTS" ]; then
+    TS="$(date +%Y%m%d-%H%M%S)"
+    DEST="$QUARANTINE_ROOT/$TS"
+    echo "[$(date '+%H:%M:%S')] Found leftover untracked outputs. Quarantining to: $DEST"
+    mkdir -p "$DEST"
+    echo "$UNTRACKED_OUTPUTS" | while IFS= read -r f; do
+        [ -z "$f" ] && continue
+        mkdir -p "$DEST/$(dirname "$f")"
+        mv "$f" "$DEST/$f"
+    done
+fi
+
 # Ignore known timestamp noise.
 git restore --staged docker-compose.yml >/dev/null 2>&1 || true
 git checkout -- docker-compose.yml >/dev/null 2>&1 || true
 
 # 개발 중인 변경사항이 섞이면 콘텐츠 린트/게이트가 예상치 못하게 실패할 수 있으므로
 # 워크트리가 더럽다면(unstaged/staged/untracked) 안전하게 이번 실행은 스킵합니다.
-if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+if ! git diff --quiet -- . ':(exclude)docker-compose.yml' \
+  || ! git diff --cached --quiet -- . ':(exclude)docker-compose.yml' \
+  || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     echo "[$(date '+%H:%M:%S')] Worktree is dirty. Skipping auto-publish to avoid mixing dev changes."
     echo "skipped: dirty worktree" > /tmp/aionda-auto-publish-status.txt
     exit 0
