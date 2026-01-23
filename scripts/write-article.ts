@@ -45,6 +45,48 @@ function decodeHtmlEntities(value: string): string {
     .trim();
 }
 
+function normalizeEnTldr(markdown: string): string {
+  const lines = String(markdown || '').split('\n');
+  const legacyHeading = /^##\s*Three[- ]Line Summary\s*$/i;
+  const tldrHeading = /^##\s*TL;DR\s*$/i;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (legacyHeading.test(lines[i])) lines[i] = '## TL;DR';
+  }
+
+  const headingIndex = lines.findIndex((line) => tldrHeading.test(line));
+  if (headingIndex === -1) return lines.join('\n');
+
+  let endIndex = lines.length;
+  for (let i = headingIndex + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  const fixed: string[] = [];
+  fixed.push(...lines.slice(0, headingIndex + 1));
+
+  for (let i = headingIndex + 1; i < endIndex; i++) {
+    const line = lines[i];
+    if (/^\s*-\s+/.test(line) || line.trim() === '') {
+      fixed.push(line);
+      continue;
+    }
+
+    const lastIndex = fixed.length - 1;
+    if (lastIndex >= 0 && /^\s*-\s+/.test(fixed[lastIndex])) {
+      fixed[lastIndex] = `${fixed[lastIndex].trimEnd()} ${line.trim()}`;
+    } else {
+      fixed.push(line);
+    }
+  }
+
+  fixed.push(...lines.slice(endIndex));
+  return fixed.join('\n');
+}
+
 function loadPrimarySourceExcerpt(sourceId: string): { title: string; excerpt: string; url?: string } | null {
   if (!sourceId) return null;
   const candidates = [
@@ -573,6 +615,7 @@ async function main() {
       const translated = await translateToEnglish(metadata.title_ko, articleKo);
       let articleEn = translated.content_en;
       articleEn = await polishArticleMarkdown('en', articleEn);
+      articleEn = normalizeEnTldr(articleEn);
       articleEn = appendSources('en', articleEn, topic);
 
       const sourceId = String(topic.sourceId || '');

@@ -386,6 +386,14 @@ async function main() {
   console.log(`✨ Done! Researched: ${researched} | Publishable: ${publishable}`);
   console.log('Next step: Run `pnpm write-article` to generate articles.');
   console.log('═'.repeat(60));
+
+  // Some HTTP clients can keep sockets open and prevent the process from
+  // exiting naturally. This script is intended for cron/CI usage, so exit
+  // explicitly once all outputs are written.
+  process.exit(0);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

@@ -72,6 +72,11 @@ const VAGUE_WORDS = [
   '다양한',
 ];
 
+function stripSourcesSection(markdown: string): string {
+  const idx = markdown.search(SOURCES_HEADING);
+  return idx === -1 ? markdown : markdown.slice(0, idx);
+}
+
 function isPostFile(file: string): boolean {
   return (
     file.includes(POSTS_PREFIX) &&
@@ -200,7 +205,10 @@ function main() {
     }
 
     const content = parsed.content || '';
-    const text = stripMarkdown(content);
+    // Exclude the Sources/References section from stylistic checks to avoid
+    // false positives from paper titles (e.g., "Talk Isn't Always Cheap").
+    const lintableContent = stripSourcesSection(content);
+    const text = stripMarkdown(lintableContent);
     const textLower = text.toLowerCase();
 
     if (!TLDR_HEADING.test(content)) {
