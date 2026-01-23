@@ -191,6 +191,45 @@ function processMarkdownBody(markdown: string): { next: string; changed: boolean
   return { next: rebuilt, changed, stats: { softened, split } };
 }
 
+function normalizeKoTldrHeading(markdown: string): { next: string; changed: boolean } {
+  const parts = markdown.split(/```[\s\S]*?```/g);
+  const codeBlocks = markdown.match(/```[\s\S]*?```/g) || [];
+
+  const processed = parts.map((part) => {
+    const lines = part.split('\n');
+    const out: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!/^##\s*TL;DR\s*$/i.test(line.trim())) {
+        out.push(line);
+        continue;
+      }
+
+      // Count bullets until next heading/blank-line boundary.
+      let bullets = 0;
+      for (let j = i + 1; j < lines.length; j++) {
+        const next = lines[j];
+        if (/^\s*#{1,6}\s+/.test(next)) break;
+        if (next.trim() === '') break;
+        if (/^\s*[-*]\s+/.test(next)) bullets += 1;
+      }
+
+      out.push(bullets === 3 ? '## 세 줄 요약' : '## 간단 요약');
+    }
+
+    return out.join('\n');
+  });
+
+  let rebuilt = '';
+  for (let i = 0; i < processed.length; i++) {
+    rebuilt += processed[i];
+    if (i < codeBlocks.length) rebuilt += codeBlocks[i];
+  }
+
+  return { next: rebuilt, changed: rebuilt !== markdown };
+}
+
 function isPostFile(file: string): boolean {
   const normalized = file.replace(/\//g, path.sep);
   return (
@@ -226,15 +265,20 @@ function main() {
     const parsed = matter(raw);
     const originalBody = parsed.content || '';
 
-    const { next, changed, stats } = processMarkdownBody(originalBody);
+    const locale = String(parsed.data?.locale || '').toLowerCase();
+    const isKo = locale === 'ko' || normalizedRel.includes(`${path.sep}ko${path.sep}`);
+    const tldrNormalized = isKo ? normalizeKoTldrHeading(originalBody) : { next: originalBody, changed: false };
+
+    const processed = processMarkdownBody(tldrNormalized.next);
+    const changed = tldrNormalized.changed || processed.changed;
     if (!changed) continue;
 
     touched += 1;
-    totalSoftened += stats.softened;
-    totalSplit += stats.split;
+    totalSoftened += processed.stats.softened;
+    totalSplit += processed.stats.split;
 
     if (!dryRun) {
-      const rebuilt = matter.stringify(next, parsed.data);
+      const rebuilt = matter.stringify(processed.next, parsed.data);
       fs.writeFileSync(fullPath, rebuilt);
     }
   }

@@ -24,7 +24,7 @@ interface LintIssue {
 const POSTS_PREFIX = `${['apps', 'web', 'content', 'posts'].join(path.sep)}${path.sep}`;
 const ABSOLUTE_PATTERN =
   /\b(guarantee|guarantees|100%|perfectly|impossible|completely|always|never|must)\b/i;
-const TLDR_HEADING = /^##\s*TL;DR\s*$/im;
+const TLDR_HEADING = /^##\s*(TL;DR|세\s*줄\s*요약|세줄\s*요약|간단\s*요약)\s*$/im;
 const SOURCES_HEADING = /^##\s*(참고\s*자료|References|Sources)\s*$/im;
 
 const HYPE_WORDS = [
@@ -208,7 +208,7 @@ function main() {
         file: rel,
         severity: 'warning',
         rule: 'missing_tldr',
-        message: 'Add a "## TL;DR" section near the top with 3 bullet points.',
+        message: 'Add a TL;DR section near the top (e.g., "## TL;DR" or "## 세 줄 요약") with 3 bullet points.',
       });
     } else {
       const bullets = countBulletsInSection(content, TLDR_HEADING);
