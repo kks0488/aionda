@@ -27,7 +27,11 @@ fi
 
 # Heartbeat/status (quick way to tell cron is running without reading logs)
 date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/aionda-auto-publish-last-run.txt
-echo "running" > /tmp/aionda-auto-publish-status.txt
+STATUS_FILE="/tmp/aionda-auto-publish-status.txt"
+echo "running" > "$STATUS_FILE"
+
+# If we exit non-zero at any point, mark the run as failed for quick diagnosis.
+trap 'code=$?; if [ "$code" -ne 0 ]; then echo "failed: exit=$code" > "$STATUS_FILE"; fi' EXIT
 
 # If a previous run failed mid-way, it can leave untracked MDX/images in tracked
 # directories, which would permanently block future runs due to the "dirty worktree"
@@ -110,6 +114,7 @@ echo "[$(date '+%H:%M:%S')] Step 6: Checking for changes..."
 
 if git diff --quiet && git diff --cached --quiet; then
     echo "No changes to commit"
+    echo "completed: no changes" > "$STATUS_FILE"
 else
     # 새 글만 커밋
     git add apps/web/content/posts/ apps/web/public/images/posts/
@@ -126,10 +131,13 @@ $(date '+%Y-%m-%d %H:%M')"
         git push
 
         echo "[$(date '+%H:%M:%S')] SUCCESS: Published $SLUG"
+        echo "published: $SLUG" > "$STATUS_FILE"
     else
         echo "No new articles to publish"
+        echo "completed: no new articles" > "$STATUS_FILE"
     fi
 fi
 
 echo "[$(date '+%H:%M:%S')] Auto-publish completed"
+echo "completed" > "$STATUS_FILE"
 echo ""
