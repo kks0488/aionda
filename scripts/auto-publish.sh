@@ -16,6 +16,17 @@ echo "=========================================="
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-publish started"
 echo "=========================================="
 
+# Prevent overlapping runs (cron can overlap if a run takes > 1h).
+exec 9>/tmp/aionda-auto-publish.lock
+if ! flock -n 9; then
+    echo "[$(date '+%H:%M:%S')] Another auto-publish is running. Exiting."
+    exit 0
+fi
+
+# Ignore known timestamp noise.
+git restore --staged docker-compose.yml >/dev/null 2>&1 || true
+git checkout -- docker-compose.yml >/dev/null 2>&1 || true
+
 # 개발 중인 변경사항이 섞이면 콘텐츠 린트/게이트가 예상치 못하게 실패할 수 있으므로
 # 워크트리가 더럽다면(unstaged/staged/untracked) 안전하게 이번 실행은 스킵합니다.
 if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
@@ -26,6 +37,9 @@ fi
 # 원격 최신 상태로 동기화(깨끗한 상태에서만 수행)
 git fetch origin main >/dev/null 2>&1 || true
 git reset --hard origin/main >/dev/null 2>&1 || true
+
+# Heartbeat (quick way to tell it's running without reading logs)
+date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/aionda-auto-publish-last-run.txt
 
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"

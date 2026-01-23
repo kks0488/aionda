@@ -10,6 +10,11 @@
 
 - `/home/kkaemo/projects/aionda/logs/auto-publish-YYYYMMDD.log`
 
+## 실행 상태 확인(로컬)
+
+- 마지막 실행 시각: `/tmp/aionda-auto-publish-last-run.txt`
+- 중복 실행 방지 락: `/tmp/aionda-auto-publish.lock`
+
 ## “파이프라인이 안 도는 것 같다” 체크리스트
 
 1. **GitHub에서 자동 실행을 기대했다면**
