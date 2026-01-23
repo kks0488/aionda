@@ -23,6 +23,10 @@ if ! flock -n 9; then
     exit 0
 fi
 
+# Heartbeat/status (quick way to tell cron is running without reading logs)
+date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/aionda-auto-publish-last-run.txt
+echo "running" > /tmp/aionda-auto-publish-status.txt
+
 # Ignore known timestamp noise.
 git restore --staged docker-compose.yml >/dev/null 2>&1 || true
 git checkout -- docker-compose.yml >/dev/null 2>&1 || true
@@ -31,15 +35,14 @@ git checkout -- docker-compose.yml >/dev/null 2>&1 || true
 # 워크트리가 더럽다면(unstaged/staged/untracked) 안전하게 이번 실행은 스킵합니다.
 if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     echo "[$(date '+%H:%M:%S')] Worktree is dirty. Skipping auto-publish to avoid mixing dev changes."
+    echo "skipped: dirty worktree" > /tmp/aionda-auto-publish-status.txt
     exit 0
 fi
 
 # 원격 최신 상태로 동기화(깨끗한 상태에서만 수행)
 git fetch origin main >/dev/null 2>&1 || true
 git reset --hard origin/main >/dev/null 2>&1 || true
-
-# Heartbeat (quick way to tell it's running without reading logs)
-date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/aionda-auto-publish-last-run.txt
+echo "synced: origin/main" > /tmp/aionda-auto-publish-status.txt
 
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
