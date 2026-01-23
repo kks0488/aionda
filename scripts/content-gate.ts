@@ -12,9 +12,58 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+const POSTS_PREFIX = `${['apps', 'web', 'content', 'posts'].join(path.sep)}${path.sep}`;
+
 function run(cmd: string) {
   console.log(`\n$ ${cmd}`);
   execSync(cmd, { stdio: 'inherit' });
+}
+
+function isPostFile(file: string): boolean {
+  return (
+    file.includes(POSTS_PREFIX) &&
+    (file.endsWith('.mdx') || file.endsWith('.md'))
+  );
+}
+
+function listChangedPostFiles(): string[] {
+  const seen = new Set<string>();
+
+  const read = (cmd: string): string => {
+    try {
+      return execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    } catch {
+      return '';
+    }
+  };
+
+  const add = (output: string) => {
+    for (const raw of output.split('\n')) {
+      const trimmed = raw.trim();
+      if (!trimmed) continue;
+      seen.add(trimmed.replace(/\//g, path.sep));
+    }
+  };
+
+  // Unstaged + staged changes, plus untracked new files.
+  add(read('git diff --name-only --diff-filter=ACMR'));
+  add(read('git diff --name-only --diff-filter=ACMR --cached'));
+  add(read('git ls-files --others --exclude-standard'));
+
+  return Array.from(seen).filter(isPostFile);
+}
+
+function unionFiles(a: string[], b: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of [...a, ...b]) {
+    const normalized = item.replace(/\//g, path.sep);
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
 }
 
 function readLastWrittenPostFiles(): { exists: boolean; files: string[] } {
@@ -80,6 +129,8 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
   const reportPath = findLatestVerifyReportPath();
   if (!reportPath) return { quarantined: [] as string[], remaining: lastWrittenFiles };
 
+  const last = readLastWrittenEntries();
+
   let report: any;
   try {
     report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
@@ -95,6 +146,18 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
       if (typeof r?.file === 'string' && r.file.trim().length > 0) {
         failedRelFiles.add(r.file.replace(/\//g, path.sep));
       }
+    }
+  }
+
+  // Keep ko/en (alternateLocale) pairs consistent:
+  // if any file in a last-written entry failed verification, quarantine the whole entry.
+  if (last) {
+    for (const entry of last.entries) {
+      const entryFiles = Array.isArray(entry?.files) ? entry.files.map((x: any) => String(x)) : [];
+      const normalized = entryFiles.map((f) => f.replace(/\//g, path.sep));
+      const anyFailed = normalized.some((f) => failedRelFiles.has(f));
+      if (!anyFailed) continue;
+      for (const f of normalized) failedRelFiles.add(f);
     }
   }
 
@@ -134,14 +197,16 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
 
   if (quarantined.length === 0) return { quarantined, remaining: lastWrittenFiles };
 
-  const last = readLastWrittenEntries();
   if (last) {
     const keep = new Set(remaining.map((f) => f.replace(/\//g, path.sep)));
     const nextFiles = last.files.filter((f) => keep.has(f.replace(/\//g, path.sep)));
-    const nextEntries = last.entries.filter((e) => {
-      const entryFiles = Array.isArray(e?.files) ? e.files.map((x: any) => String(x)) : [];
-      return entryFiles.some((f: string) => keep.has(f.replace(/\//g, path.sep)));
-    });
+    const nextEntries = last.entries
+      .map((e) => {
+        const entryFiles = Array.isArray(e?.files) ? e.files.map((x: any) => String(x)) : [];
+        const filteredFiles = entryFiles.filter((f: string) => keep.has(f.replace(/\//g, path.sep)));
+        return { ...e, files: filteredFiles };
+      })
+      .filter((e) => Array.isArray(e?.files) && e.files.length > 0);
     const next = {
       ...last.parsed,
       files: nextFiles,
@@ -167,17 +232,20 @@ function main() {
   run('pnpm content:fix-redirects');
 
   const lastWritten = readLastWrittenPostFiles();
-  if (strict && lastWritten.files.length > 0) {
-    const filesArg = lastWritten.files.join(',');
+  const changedPostFiles = listChangedPostFiles();
+  const styleFixTargets = strict ? unionFiles(lastWritten.files, changedPostFiles) : [];
+
+  if (strict && styleFixTargets.length > 0) {
+    const filesArg = styleFixTargets.join(',');
     run(`pnpm content:style-fix -- --files=${filesArg}`);
   }
 
   try {
     run(`pnpm content:lint${strict ? ' -- --strict' : ''}`);
   } catch (error) {
-    if (!strict || lastWritten.files.length === 0) throw error;
+    if (!strict || styleFixTargets.length === 0) throw error;
     console.log('\n⚠️ Strict lint failed. Attempting deterministic style fix + retry...');
-    const filesArg = lastWritten.files.join(',');
+    const filesArg = styleFixTargets.join(',');
     run(`pnpm content:style-fix -- --files=${filesArg}`);
     run('pnpm content:lint -- --strict');
   }

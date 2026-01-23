@@ -51,6 +51,22 @@ function softenAbsoluteLanguage(line: string): string {
     [/\bcompletely\b/gi, 'largely'],
     [/\bguarantee(s)?\b/gi, 'help ensure'],
     [/\b100%\b/g, 'a high degree'],
+    // De-hype common adjectives (lint uses warning-level "hype").
+    [/\bunprecedented\b/gi, 'notable'],
+    [/\bgroundbreaking\b/gi, 'notable'],
+    [/\brevolutionary\b/gi, 'significant'],
+    [/\bgame-?changer\b/gi, 'meaningful shift'],
+    [/\bmind-?blowing\b/gi, 'remarkable'],
+    [/\bincredible\b/gi, 'notable'],
+    [/\bamazing\b/gi, 'notable'],
+    [/\btremendous\b/gi, 'substantial'],
+    [/\bmassive\b/gi, 'large'],
+    [/\benormous\b/gi, 'large'],
+    [/\b혁명적\b/g, '의미 있는'],
+    [/\b게임체인저\b/g, '변수'],
+    [/\b엄청난\b/g, '주목할 만한'],
+    [/\b대단한\b/g, '주목할 만한'],
+    [/\b놀라운\b/g, '주목할 만한'],
   ];
 
   let out = line;

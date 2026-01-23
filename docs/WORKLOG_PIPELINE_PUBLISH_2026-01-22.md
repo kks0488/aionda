@@ -130,3 +130,15 @@
    - `pnpm generate-image -- --slug=<slug> --limit=1`
    - `apps/web/public/images/posts/<slug>.png` 존재 확인
 
+---
+
+## 2026-01-23 후속: “자동 발행이 안 도는 것 같다” 대응
+
+- 원인 1) GitHub Actions 자동 스케줄은 꺼져 있음: `.github/workflows/auto-update.yml`의 schedule이 주석 처리되어 있고, 수동 실행(`workflow_dispatch`)만 활성.
+- 원인 2) 로컬 cron은 도는데 게이트에서 실패:
+  - strict lint 경고(예: hype 단어)가 exit=1로 이어져 `content:gate:publish`에서 중단될 수 있음.
+- 개선:
+  - `scripts/content-style-fix.ts`에서 hype 단어를 보수적으로 완화하는 규칙 추가(예: `unprecedented` 등).
+  - `scripts/content-gate.ts`에서 strict 린트 실패 시 “마지막 생성 글”뿐 아니라 “변경된 글”까지 style-fix 대상으로 포함.
+  - `scripts/auto-publish.sh`에서 워크트리가 dirty면 이번 실행을 스킵하여 개발 중 변경사항이 자동 발행에 섞이지 않도록 보호.
+  - 검증 실패 시 ko/en 페어 일관성을 유지하도록 quarantine 로직 보강.

@@ -16,6 +16,17 @@ echo "=========================================="
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-publish started"
 echo "=========================================="
 
+# 개발 중인 변경사항이 섞이면 콘텐츠 린트/게이트가 예상치 못하게 실패할 수 있으므로
+# 워크트리가 더럽다면(unstaged/staged/untracked) 안전하게 이번 실행은 스킵합니다.
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+    echo "[$(date '+%H:%M:%S')] Worktree is dirty. Skipping auto-publish to avoid mixing dev changes."
+    exit 0
+fi
+
+# 원격 최신 상태로 동기화(깨끗한 상태에서만 수행)
+git fetch origin main >/dev/null 2>&1 || true
+git reset --hard origin/main >/dev/null 2>&1 || true
+
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
 source /home/kkaemo/.bashrc 2>/dev/null || true
