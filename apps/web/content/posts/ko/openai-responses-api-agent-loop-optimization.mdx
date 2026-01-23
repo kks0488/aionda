@@ -1,0 +1,70 @@
+---
+title: Responses API 기반 에이전트 루프 및 성능 최적화
+slug: openai-responses-api-agent-loop-optimization
+date: '2026-01-23'
+locale: ko
+description: >-
+  Responses API의 상태 관리와 MCP를 활용하여 AI 에이전트의 지연 시간을 단축하고 캐시 효율을 개선하는 기술적 방안을
+  살펴봅니다.
+tags:
+  - llm
+  - agent
+  - openai
+  - mcp
+author: AI온다
+sourceId: openai-e5ewfx
+sourceUrl: 'https://openai.com/index/unrolling-the-codex-agent-loop'
+verificationScore: 0.8166666666666668
+alternateLocale: /en/posts/openai-responses-api-agent-loop-optimization
+coverImage: /images/posts/openai-responses-api-agent-loop-optimization.png
+---
+
+## 세 줄 요약
+- Responses API는 단일 요청 내 다중 도구 호출을 지원해 에이전트 루프의 왕복 횟수를 조절한다.
+- 상태 유지(`store: true`)와 컨텍스트 체이닝 기술을 통해 기존 방식 대비 캐시 활용도를 개선했다.
+
+터미널 창에서 커서가 깜빡인다. 인공지능 에이전트가 코드를 작성하고, 스스로 테스트를 수행하며, 오류를 수정한다. 이제 에이전트는 답변을 제공하는 단계를 지나 복잡한 태스크를 스스로 완결하는 실행 엔진으로 변화하고 있다. OpenAI의 Codex CLI 아키텍처는 Responses API를 통해 에이전트 루프의 지연 시간과 추론 비용 문제를 다루는 방법을 제시한다.
+
+예: 개발자가 소프트웨어 프로젝트 구조를 분석하라는 명령을 내린다. 에이전트는 여러 파일을 읽고 코드를 수정하며 검증 과정을 수행한다. 사용자는 중간 단계마다 개입하여 승인하는 과정 없이 결과물을 확인한다.
+
+## 현황: '대화'에서 '실행'으로의 전환
+기존 에이전트 구현 방식은 모델이 도구 호출을 제안하면 클라이언트가 이를 실행하고 결과를 다시 전달하는 구조였다. 이 방식은 네트워크 왕복이 반복될수록 지연 시간이 늘어나는 한계가 있었다. Codex CLI는 이를 해결하기 위해 OpenAI의 Responses API를 아키텍처로 채택했다.
+
+Responses API의 특징은 `store: true` 옵션과 `responseId`를 활용한 상태 관리다. 이전 대화 맥락을 서버 측에서 유지하므로 클라이언트가 매번 전체 컨텍스트를 다시 전송할 필요가 없다. 내부 테스트 결과에 따르면, 이 방식은 기존 Chat Completions API를 사용할 때보다 캐시 활용도를 40%에서 80% 사이로 높여 추론 효율을 관리한다.
+
+도구 호출 오케스트레이션 방식도 변화했다. 모델이 도구 사용을 지시하는 단계에서 나아가, MCP를 활용해 도구를 코드 API 형태로 정의한다. 이는 모델이 복잡한 논리를 직접 계산하는 대신 실행 환경에 위임하는 것을 가능하게 하여 첫 번째 토큰 생성 시간(TTFT)을 단축시킨다.
+
+## 분석: 지연 시간 문제 해결
+에이전틱(Agentic) 설계의 성패는 루프의 효율에 달려 있다. Codex CLI가 보여준 Responses API 기반 아키텍처는 에이전트 루프를 펼쳐서 실행 속도를 높였다. 이는 에이전트가 복잡한 작업을 수행할 수 있는 구조를 갖췄음을 의미한다.
+
+다만 이 방식은 기술적 복잡성을 동반한다. `responseId` 기반의 컨텍스트 체이닝은 세션이 길어질수록 관리 난이도가 높아진다. 에이전트가 잘못된 판단을 내렸을 때 서버에 저장된 컨텍스트를 수정하거나 되돌리는 운영적 고민이 필요하다. 또한 캐시 활용도가 높아지면 모델 출력이 고정될 가능성이 있으므로, 추론의 범위와 정확성 사이의 균형을 맞추는 장치가 필요하다.
+
+업계에서는 Anthropic의 MCP와 OpenAI의 Responses API가 에이전트 최적화라는 목표를 향해 서로 다른 경로로 접근하고 있다. OpenAI는 서버 측 상태 유지와 API 통합에 집중하며, MCP 진영은 실행 환경과의 통신 표준화에 무게를 둔다. Codex CLI는 이 흐름 속에서 에이전트 루프 성능을 관리하는 사례를 보여준다.
+
+## 실전 적용: 에이전트 성능 최적화 전략
+개발자는 프롬프트 구성을 넘어 루프 설계에 집중해야 한다. 에이전트가 도구를 호출할 때 발생하는 지연 시간을 관리해야 실무적인 서비스 제공이 가능하다.
+
+**오늘 바로 할 일:**
+- Responses API를 활용한 서버 측 상태 관리 도입을 검토한다.
+- 도구 정의를 MCP 형태의 코드 API로 구조화하여 모델의 연산 부담을 줄인다.
+- `store: true` 옵션을 활성화하고 입력 토큰 캐싱 효율을 점검하여 운영 비용 절감 가능성을 확인한다.
+
+## FAQ
+**Q: Responses API를 사용하면 속도가 어느 정도 개선되나?**
+A: 내부 테스트 데이터에 따르면 캐시 활용도가 40%에서 80% 수준으로 개선된다. 이는 네트워크 왕복 횟수 감소와 결합되어 전체 작업 완료 시간을 줄이는 데 기여한다. 다만 실제 속도는 도구 호출의 복잡도에 따라 차이가 있을 수 있다.
+
+**Q: MCP와 Responses API의 차이점은 무엇인가?**
+A: Responses API는 OpenAI 플랫폼 내에서 에이전트의 상태와 도구 호출을 관리하는 인터페이스다. MCP는 모델이 실행 환경과 통신하는 표준 프로토콜이다. Codex CLI는 이 두 개념을 결합해 모델의 판단을 실행 환경의 동작으로 연결한다.
+
+**Q: 컨텍스트 체이닝 중에 오류가 발생하면 어떻게 되나?**
+A: `responseId` 기반 상태 관리는 이전 상태를 참조하므로, 오류 발생 시 해당 ID 이전 상태로 돌아가거나 컨텍스트를 다시 구성해야 한다. 상태 유지의 효율성이 높은 만큼 정교한 예외 처리 로직 구현이 요구된다.
+
+## 결론
+Codex CLI의 에이전트 루프 분석은 AI 에이전트가 답변을 주는 도구에서 작업을 수행하는 도구로 변화했음을 보여준다. Responses API를 통한 상태 관리와 도구 오케스트레이션은 에이전트 기술의 지연 시간과 비용 문제를 다루고 있다. 개발자에게 요구되는 역량은 모델 호출을 넘어 에이전트 루프를 유기적으로 설계하는 능력이 될 것이다. 에이전트의 성능은 모델의 규모뿐만 아니라 루프를 얼마나 효율적으로 처리하느냐에 따라 결정된다.
+---
+
+## 참고 자료
+
+- 🛡️ [Migrate to the Responses API - OpenAI Platform](https://platform.openai.com/docs/guides/migrate-to-responses)
+- 🛡️ [Code execution with MCP: building more efficient AI agents - Anthropic](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- 🛡️ [Source](https://openai.com/index/unrolling-the-codex-agent-loop)

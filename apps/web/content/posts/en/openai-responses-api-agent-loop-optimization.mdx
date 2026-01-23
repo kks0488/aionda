@@ -1,0 +1,73 @@
+---
+title: Optimizing AI Agent Loops via OpenAI Responses API Architecture
+slug: openai-responses-api-agent-loop-optimization
+date: '2026-01-23'
+locale: en
+description: >-
+  Analyze how OpenAI's Responses API and MCP reduce AI agent latency and improve
+  cache efficiency through server-side state management.
+tags:
+  - llm
+  - agent
+  - openai
+  - mcp
+  - agi
+  - robotics
+  - hardware
+author: AI온다
+sourceId: openai-e5ewfx
+sourceUrl: 'https://openai.com/index/unrolling-the-codex-agent-loop'
+verificationScore: 0.8166666666666668
+alternateLocale: /ko/posts/openai-responses-api-agent-loop-optimization
+coverImage: /images/posts/openai-responses-api-agent-loop-optimization.png
+---
+
+## TL;DR
+- The Responses API supports multiple tool calls per request.
+- State retention and context chaining can improve cache utilization over previous methods.
+
+Example: A programmer enters a prompt to check a software project. The assistant scans files and suggests some edits. The user observes the results without needing to confirm each step individually.
+
+A cursor blinks in the terminal window. An AI agent writes code and performs tests. It fixes errors on its own. Agents are becoming execution engines that complete complex tasks independently. OpenAI's Codex CLI architecture addresses latency and inference cost issues in agent loops. It uses the Responses API to manage these factors.
+
+## Current Status: Transition from 'Conversation' to 'Execution'
+Previous agent methods used a specific structure. The model suggested a tool call. The client executed it and returned the result. This approach had limitations. Latency increased with repeated network round trips. 
+
+Codex CLI adopted OpenAI's Responses API as its architecture to solve this. A key feature of this API is state management. It uses the `store: true` option and `responseId`. The server maintains previous conversation context. The client avoids retransmitting the entire context every time. 
+
+Internal tests show this method manages inference efficiency. Cache utilization can increase from 40% to 80% over older APIs. The tool call orchestration method has also changed. Tools are now defined as code APIs using MCP. This lets models delegate logic to the environment instead of calculating it directly. This can shorten the Time to First Token (TTFT).
+
+## Analysis: Resolving Latency Issues
+The success of agentic design depends on the efficiency of the loop. The Responses API-based architecture speeds up execution by unrolling the agent loop. This structure handles complex tasks effectively.
+
+However, this approach comes with technical complexity. Context chaining based on `responseId` increases management difficulty as sessions grow longer. Operators should consider how to modify server context if an agent makes an incorrect judgment. Higher cache utilization might cause fixed model outputs. Systems should balance the inference range with accuracy. 
+
+Anthropic’s MCP and OpenAI’s Responses API optimize agents through different paths. OpenAI focuses on server-side state retention. The MCP camp emphasizes standardizing communication with execution environments. Codex CLI serves as a case study for managing agent loop performance.
+
+## Practical Application: Strategies for Agent Performance Optimization
+Developers should focus on loop design beyond just prompt construction. Managing the latency from tool calls is essential for practical services.
+
+**Checklist for Today:**
+- Review how to implement server-side state management using the Responses API.
+- Structure tool definitions as code APIs to reduce the computational burden on the model.
+- Enable the storage option to check caching efficiency and potential cost savings.
+
+## FAQ
+**Q: How much does speed improve when using the Responses API?**
+A: Internal data shows cache utilization improves from 40% to 80%. This helps reduce the total task completion time. Actual speeds can vary depending on tool call complexity.
+
+**Q: What is the difference between MCP and the Responses API?**
+A: The Responses API manages agent states within the OpenAI platform. MCP is a standard protocol for model and environment communication. Codex CLI links model judgment to environment actions.
+
+**Q: What happens if an error occurs during context chaining?**
+A: Developers can return to a state prior to that specific ID. They can also reconfigure the context. Sophisticated exception handling logic is often helpful.
+
+## Conclusion
+Codex CLI analysis shows agents are evolving to perform tasks. State management and tool orchestration through the Responses API address latency and cost issues. Developer skills will shift toward designing organic agent loops. Agent performance depends on both the model scale and loop efficiency.
+---
+
+## References
+
+- 🛡️ [Migrate to the Responses API - OpenAI Platform](https://platform.openai.com/docs/guides/migrate-to-responses)
+- 🛡️ [Code execution with MCP: building more efficient AI agents - Anthropic](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- 🛡️ [Source](https://openai.com/index/unrolling-the-codex-agent-loop)
