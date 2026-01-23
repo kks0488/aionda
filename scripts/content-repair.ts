@@ -85,6 +85,22 @@ function replaceAllExact(haystack: string, needle: string, replacement: string):
   return haystack.split(needle).join(replacement);
 }
 
+function shouldReplaceClaim(claimText: string, correctedText: string): boolean {
+  const claim = String(claimText || '').trim();
+  const corrected = String(correctedText || '').trim();
+  if (!claim || !corrected) return false;
+
+  // Prefer removing risky comparative/absolute rewrites rather than swapping in
+  // a new sentence that may still be unverifiable (self-healing > completeness).
+  const risky = /(대신|후순위|밀려|압도|지배|supplant|replace|replaced|dominat|always|never|impossible|guarantee|100%)/i;
+  if (risky.test(corrected)) return false;
+
+  // Avoid "corrections" that expand the claim substantially (often adds new facts).
+  if (corrected.length > claim.length * 1.1) return false;
+
+  return true;
+}
+
 function removeLineContaining(haystack: string, needle: string): { next: string; removed: boolean } {
   const idx = haystack.indexOf(needle);
   if (idx === -1) return { next: haystack, removed: false };
@@ -150,7 +166,7 @@ async function main() {
 
       const corrected = typeof result.correctedText === 'string' ? result.correctedText.trim() : '';
 
-      if (corrected) {
+      if (corrected && shouldReplaceClaim(claimText, corrected)) {
         updated = replaceAllExact(updated, claimText, corrected);
         fileFixes += 1;
         continue;
@@ -183,4 +199,3 @@ main().catch((error) => {
   console.error('❌ content repair crashed:', error);
   process.exit(1);
 });
-
