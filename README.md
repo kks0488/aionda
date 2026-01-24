@@ -125,6 +125,7 @@ cd apps/web && pnpm build
 - [Vision](./docs/VISION.md) - 블로그 철학과 방향
 - [Architecture](./docs/ARCHITECTURE.md) - 시스템 아키텍처
 - [Content Quality](./docs/CONTENT_QUALITY.md) - 콘텐츠 품질 도구/규칙/운영
+- [Automation](./docs/AUTOMATION.md) - 자동 발행(로컬 cron) 운영/후보 풀
 - [Claude Context](./.claude/CLAUDE.md) - Claude Code 컨텍스트
 
 ## 우리가 하지 않는 것
