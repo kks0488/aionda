@@ -124,7 +124,7 @@ function findLatestVerifyReportPath(): string | null {
   return candidates[0] || null;
 }
 
-function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
+function moveFailedNewPostsToCandidatePool(lastWrittenFiles: string[]) {
   const repoRoot = process.cwd();
   const reportPath = findLatestVerifyReportPath();
   if (!reportPath) return { quarantined: [] as string[], remaining: lastWrittenFiles };
@@ -139,18 +139,29 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
   }
 
   const failedRelFiles = new Set<string>();
+  const failureDetails: Record<
+    string,
+    { failedHighPriority: number; claimsChecked: number; verifiedClaims: number; avgConfidence: number }
+  > = {};
   for (const r of report?.reports || []) {
     const failedHigh = Number(r?.failedHighPriority || 0) > 0;
     const noVerified = Number(r?.claimsChecked || 0) > 0 && Number(r?.verifiedClaims || 0) === 0;
     if (failedHigh || noVerified) {
       if (typeof r?.file === 'string' && r.file.trim().length > 0) {
-        failedRelFiles.add(r.file.replace(/\//g, path.sep));
+        const rel = r.file.replace(/\//g, path.sep);
+        failedRelFiles.add(rel);
+        failureDetails[rel] = {
+          failedHighPriority: Number(r?.failedHighPriority || 0),
+          claimsChecked: Number(r?.claimsChecked || 0),
+          verifiedClaims: Number(r?.verifiedClaims || 0),
+          avgConfidence: Number(r?.avgConfidence || 0),
+        };
       }
     }
   }
 
   // Keep ko/en (alternateLocale) pairs consistent:
-  // if any file in a last-written entry failed verification, quarantine the whole entry.
+  // if any file in a last-written entry failed verification, move the whole entry.
   if (last) {
     for (const entry of last.entries) {
       const entryFiles = Array.isArray(entry?.files) ? entry.files.map((x: any) => String(x)) : [];
@@ -163,10 +174,10 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
 
   const now = new Date();
   const stamp = now.toISOString().replace(/[:.]/g, '-');
-  const quarantineRoot = path.join(repoRoot, '.vc', 'quarantine', stamp);
-  fs.mkdirSync(quarantineRoot, { recursive: true });
+  const candidatePoolRoot = path.join(repoRoot, '.vc', 'candidate-pool', stamp);
+  fs.mkdirSync(candidatePoolRoot, { recursive: true });
 
-  const quarantined: string[] = [];
+  const moved: string[] = [];
   const remaining: string[] = [];
 
   for (const rel of lastWrittenFiles.map((f) => f.replace(/\//g, path.sep))) {
@@ -189,13 +200,27 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
       // untracked => ok to quarantine
     }
 
-    const dest = path.join(quarantineRoot, normalizedRel);
+    const dest = path.join(candidatePoolRoot, normalizedRel);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.renameSync(abs, dest);
-    quarantined.push(rel);
+    moved.push(rel);
   }
 
-  if (quarantined.length === 0) return { quarantined, remaining: lastWrittenFiles };
+  if (moved.length === 0) return { quarantined: [], remaining: lastWrittenFiles };
+
+  // Write a small manifest for the candidate pool entry.
+  const manifest = {
+    generatedAt: new Date().toISOString(),
+    reason: 'verify_failed',
+    report: path.relative(repoRoot, reportPath),
+    files: moved.map((f) => f.replace(/\//g, path.sep)),
+    details: Object.fromEntries(
+      moved
+        .map((f) => f.replace(/\//g, path.sep))
+        .map((f) => [f, failureDetails[f] || null])
+    ),
+  };
+  fs.writeFileSync(path.join(candidatePoolRoot, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
   if (last) {
     const keep = new Set(remaining.map((f) => f.replace(/\//g, path.sep)));
@@ -215,11 +240,11 @@ function quarantineFailedNewPosts(lastWrittenFiles: string[]) {
     fs.writeFileSync(last.path, JSON.stringify(next, null, 2));
   }
 
-  console.log(`\n⚠️ Quarantined ${quarantined.length} newly written post file(s) due to verification failure.`);
+  console.log(`\n⚠️ Moved ${moved.length} newly written post file(s) to the candidate pool due to verification failure.`);
   console.log(`   Report: ${path.relative(repoRoot, reportPath)}`);
-  console.log(`   Quarantine: ${path.relative(repoRoot, quarantineRoot)}`);
+  console.log(`   Candidate pool: ${path.relative(repoRoot, candidatePoolRoot)}`);
 
-  return { quarantined, remaining };
+  return { quarantined: moved, remaining };
 }
 
 function main() {
@@ -264,7 +289,7 @@ function main() {
           run(verifyCmd);
         } catch {
           console.log('\n❌ Verification still failed. Quarantining failed newly written posts and continuing...');
-          const { remaining } = quarantineFailedNewPosts(lastWritten.files);
+          const { remaining } = moveFailedNewPostsToCandidatePool(lastWritten.files);
           if (remaining.length === 0) {
             console.log('\n(no remaining newly written posts) Skipping content verification.');
           } else {

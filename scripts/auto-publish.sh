@@ -11,7 +11,10 @@ mkdir -p /home/kkaemo/projects/aionda/logs
 
 exec >> "$LOG_FILE" 2>&1
 
-QUARANTINE_ROOT="/home/kkaemo/aionda-quarantine"
+# Candidate pool: leftover untracked outputs from failed runs are preserved here.
+# (Keeps the repo clean so cron can continue.)
+CANDIDATE_POOL_ROOT="/home/kkaemo/aionda-candidate-pool"
+LEGACY_QUARANTINE_ROOT="/home/kkaemo/aionda-quarantine"
 
 echo ""
 echo "=========================================="
@@ -39,8 +42,13 @@ trap 'code=$?; if [ "$code" -ne 0 ]; then echo "failed: exit=$code" > "$STATUS_F
 UNTRACKED_OUTPUTS="$(git ls-files --others --exclude-standard -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true)"
 if [ -n "$UNTRACKED_OUTPUTS" ]; then
     TS="$(date +%Y%m%d-%H%M%S)"
-    DEST="$QUARANTINE_ROOT/$TS"
-    echo "[$(date '+%H:%M:%S')] Found leftover untracked outputs. Quarantining to: $DEST"
+    ROOT="$CANDIDATE_POOL_ROOT"
+    # Keep backward compatibility if user already relies on the old path.
+    if [ -d "$LEGACY_QUARANTINE_ROOT" ] && [ ! -d "$CANDIDATE_POOL_ROOT" ]; then
+        ROOT="$LEGACY_QUARANTINE_ROOT"
+    fi
+    DEST="$ROOT/$TS"
+    echo "[$(date '+%H:%M:%S')] Found leftover untracked outputs. Moving to candidate pool: $DEST"
     mkdir -p "$DEST"
     echo "$UNTRACKED_OUTPUTS" | while IFS= read -r f; do
         [ -z "$f" ] && continue
