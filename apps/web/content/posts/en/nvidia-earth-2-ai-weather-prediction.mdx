@@ -1,0 +1,73 @@
+---
+title: NVIDIA Releases Earth-2 Models for High Resolution Weather Prediction
+slug: nvidia-earth-2-ai-weather-prediction
+date: '2026-01-26'
+locale: en
+description: >-
+  NVIDIA releases Earth-2 models, improving weather prediction speed by 1,000x
+  with high-performance GPU infrastructure.
+tags:
+  - earth-2
+  - nvidia
+  - weather-prediction
+  - hardware
+  - generative-ai
+  - robotics
+author: AI온다
+sourceId: huggingface-1264kcw
+sourceUrl: 'https://huggingface.co/blog/nvidia/earth-2-open-models'
+verificationScore: 0.8833333333333333
+alternateLocale: /ko/posts/nvidia-earth-2-ai-weather-prediction
+coverImage: /images/posts/nvidia-earth-2-ai-weather-prediction.png
+---
+
+## TL;DR
+- NVIDIA has open-sourced the Earth-2 weather stack, featuring the generative AI-based CorrDiff and FourCastNet models.
+- By downscaling 25km data from existing Numerical Weather Prediction (NWP) models to a 2km high-resolution.
+It improves prediction speed by 1,000x and energy efficiency by 3,000x.
+- Running these models requires high-performance GPU infrastructure, such as H100 or A100, equipped with at least 40GB of VRAM.
+
+Example: Sitting at a lab desk, you simulate thousands of possible paths for a typhoon. A task that once took days unfolds on the screen in the time it takes to drink a cup of coffee. Instead of blunt cloud masses, the flow of wind sweeping through local neighborhood alleys is depicted in vivid detail.
+
+## Current Status: Opening Large Models and Shifting Analytical Environments
+The core of the Earth-2 open models released by NVIDIA are CorrDiff and FourCastNet. These models adopt a hybrid approach to supplement the limitations of traditional Numerical Weather Prediction (NWP) models. The key involves taking low-resolution 25km data as input and refining it to a 2km high-resolution using CorrDiff, a generative AI model.
+
+This hybrid approach has demonstrated significantly enhanced efficiency. According to NVIDIA’s announcement, prediction speeds are 1,000x faster and energy efficiency has improved 3,000x compared to traditional methods. This means that generating thousands of ensemble scenarios, which previously took months, can now be completed within hours.
+
+Infrastructure requirements for running the models are specific. Based on the NVIDIA Modulus framework, GPUs with Ampere or Hopper architectures possessing at least 40GB of VRAM are required. Specifically, recommended specifications include the H100 (80GB), A100 (40/80GB), RTX A6000 (48GB), and L40S (48GB). Regarding datasets, ERA5 data from the European Centre for Medium-Range Weather Forecasts (ECMWF) is used as the standard, and up to 40TB of storage space may be necessary for total data management.
+
+## Analysis: Combining Speed and Accuracy
+Open-sourcing Earth-2 shifts the economic structure of weather forecasting. Traditional physics-based simulations were costly and time-consuming because they required numerical calculations of physical laws at the molecular level. In contrast, Earth-2 takes an approach where an AI that has learned physical laws infers the results. This is an attempt to combine two critical factors: physical accuracy and computational speed.
+
+However, there are considerations. Dependence on high-performance hardware remains high. Specifications requiring at least 40GB of VRAM may act as a barrier to entry for general research environments or small-to-medium-sized enterprises. Furthermore, as the models are optimized for specific datasets like ERA5, generalized standards for the required training data duration for fine-tuning to reflect other regional characteristics still need to be established. Network bandwidth for real-time weather data transmission can also be a variable depending on the actual operational environment.
+
+The success of Earth-2 utilization depends on the ability to tune it for specific fields. Much like the CorrDiff Taiwan model optimized for the Taiwan region, the key process involves effectively applying unique observational data held by each country and region to these open models.
+
+## Practical Application: Model Utilization Steps
+Climate analysts and developers can access these models through the NVIDIA NGC catalog and the Modulus framework. The first step is to configure a prediction model using 20 to 26 atmospheric variables from the ERA5 dataset.
+
+**Checklist for Today:**
+- Verify if your existing GPUs are Ampere or Hopper architectures and ensure at least 40GB of VRAM is available.
+- Secure the 0.25-degree resolution data from the ECMWF ERA5 dataset and prepare 40TB of storage space.
+- Install the NVIDIA Modulus framework, load the released CorrDiff checkpoints, and run a sample inference.
+
+## FAQ
+**Q: Is this intended to replace existing Numerical Weather Prediction (NWP) models?**
+A: No. It is a hybrid approach that takes 25km low-resolution data from NWP as input and uses AI to refine it to 2km. It is a structure that combines basic data from physics-based models with the refinement capabilities of AI.
+
+**Q: Can these models be run on consumer GPUs?**
+A: At least 40GB of VRAM is required for precision inference and training. Professional GPUs like the RTX A6000 (48GB) or enterprise GPUs like the A100/H100 are suitable.
+
+**Q: What data is needed for fine-tuning?**
+A: The ECMWF ERA5 dataset is primarily used. Depending on the model, configurations including 20 to 26 atmospheric variables are recommended, and data from 1979 to 2015 can be utilized for training.
+
+## Conclusion
+The release of the NVIDIA Earth-2 open models has expanded weather forecasting into the realm of computable generation. The 1,000x faster speed allows for the review of numerous probabilistic scenarios that were difficult to perform in the past. The remaining challenge is to use these tools to find answers tailored to the climate characteristics of each region. It is worth watching whether AI-powered weather forecasting can become the new standard for responding to the climate crisis.
+---
+
+## References
+
+- 🛡️ [NVIDIA Announces Earth-2 Digital Twin to Help Predict Climate Change](https://nvidianews.nvidia.com/news/nvidia-announces-earth-2-digital-twin-to-help-predict-climate-change)
+- 🛡️ [Modulus Checkpoints: FourCastNet - NGC Catalog](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/modulus/models/modulus_fcn)
+- 🛡️ [Prerequisites for NVIDIA Earth-2 Correction Diffusion NIM](https://docs.nvidia.com/nim/earth-2/corrdiff/latest/prerequisites.html)
+- 🛡️ [Source](https://huggingface.co/blog/nvidia/earth-2-open-models)
