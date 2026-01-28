@@ -92,9 +92,9 @@ pnpm crawl-rss || echo "RSS crawl warning"
 echo "[$(date '+%H:%M:%S')] Step 2: Extracting topics..."
 pnpm extract-topics --limit=3 || echo "Extract warning"
 
-# 3. 리서치
+# 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
 echo "[$(date '+%H:%M:%S')] Step 3: Researching topics..."
-pnpm research-topic --limit=1 || echo "Research warning"
+pnpm research-topic --limit=3 || echo "Research warning"
 
 # 4. 글 작성 (memU 중복체크 포함)
 echo "[$(date '+%H:%M:%S')] Step 4: Writing article..."

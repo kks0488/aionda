@@ -85,6 +85,33 @@ function replaceAllExact(haystack: string, needle: string, replacement: string):
   return haystack.split(needle).join(replacement);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function buildLooseWhitespaceRegex(text: string): RegExp | null {
+  const tokens = String(text || '').trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+  const pattern = tokens.map(escapeRegExp).join('\\s+');
+  try {
+    return new RegExp(pattern, 'g');
+  } catch {
+    return null;
+  }
+}
+
+function replaceAllLooseWhitespace(
+  haystack: string,
+  needle: string,
+  replacement: string
+): { next: string; replaced: boolean } {
+  if (!needle) return { next: haystack, replaced: false };
+  const re = buildLooseWhitespaceRegex(needle);
+  if (!re) return { next: haystack, replaced: false };
+  if (!re.test(haystack)) return { next: haystack, replaced: false };
+  return { next: haystack.replace(re, replacement), replaced: true };
+}
+
 function shouldReplaceClaim(claimText: string, correctedText: string): boolean {
   const claim = String(claimText || '').trim();
   const corrected = String(correctedText || '').trim();
@@ -95,8 +122,9 @@ function shouldReplaceClaim(claimText: string, correctedText: string): boolean {
   const risky = /(대신|후순위|밀려|압도|지배|supplant|replace|replaced|dominat|always|never|impossible|guarantee|100%)/i;
   if (risky.test(corrected)) return false;
 
-  // Avoid "corrections" that expand the claim substantially (often adds new facts).
-  if (corrected.length > claim.length * 1.1) return false;
+  // Avoid "corrections" that expand the claim substantially (often adds new facts),
+  // but allow moderate expansion for safer, more conservative phrasing.
+  if (corrected.length > claim.length * 1.5) return false;
 
   return true;
 }
@@ -110,6 +138,18 @@ function removeLineContaining(haystack: string, needle: string): { next: string;
   const lineEnd = haystack.indexOf('\n', idx + needle.length);
   const end = lineEnd === -1 ? haystack.length : lineEnd + 1;
 
+  const next = haystack.slice(0, start) + haystack.slice(end);
+  return { next, removed: true };
+}
+
+function removeLineAtIndex(haystack: string, idx: number): { next: string; removed: boolean } {
+  if (!Number.isFinite(idx) || idx < 0 || idx >= haystack.length) {
+    return { next: haystack, removed: false };
+  }
+  const lineStart = haystack.lastIndexOf('\n', idx);
+  const start = lineStart === -1 ? 0 : lineStart + 1;
+  const lineEnd = haystack.indexOf('\n', idx);
+  const end = lineEnd === -1 ? haystack.length : lineEnd + 1;
   const next = haystack.slice(0, start) + haystack.slice(end);
   return { next, removed: true };
 }
@@ -162,20 +202,42 @@ async function main() {
       const claimText = String(result.text || '').trim();
       if (!claimText) continue;
 
-      if (!updated.includes(claimText)) continue;
-
       const corrected = typeof result.correctedText === 'string' ? result.correctedText.trim() : '';
 
       if (corrected && shouldReplaceClaim(claimText, corrected)) {
-        updated = replaceAllExact(updated, claimText, corrected);
-        fileFixes += 1;
+        if (updated.includes(claimText)) {
+          updated = replaceAllExact(updated, claimText, corrected);
+          fileFixes += 1;
+          continue;
+        }
+
+        const loose = replaceAllLooseWhitespace(updated, claimText, corrected);
+        if (loose.replaced) {
+          updated = loose.next;
+          fileFixes += 1;
+          continue;
+        }
+      }
+
+      if (updated.includes(claimText)) {
+        const removed = removeLineContaining(updated, claimText);
+        if (removed.removed) {
+          updated = removed.next;
+          fileFixes += 1;
+        }
         continue;
       }
 
-      const removed = removeLineContaining(updated, claimText);
-      if (removed.removed) {
-        updated = removed.next;
-        fileFixes += 1;
+      const re = buildLooseWhitespaceRegex(claimText);
+      if (re) {
+        const m = re.exec(updated);
+        if (m && typeof m.index === 'number') {
+          const removed = removeLineAtIndex(updated, m.index);
+          if (removed.removed) {
+            updated = removed.next;
+            fileFixes += 1;
+          }
+        }
       }
     }
 

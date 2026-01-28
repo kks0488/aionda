@@ -13,6 +13,13 @@ import fs from 'fs';
 import path from 'path';
 
 const POSTS_PREFIX = `${['apps', 'web', 'content', 'posts'].join(path.sep)}${path.sep}`;
+const TRANSIENT_VERIFY_NOTE_PATTERN = /(verification failed due to error|aborterror|timed out|parsing failed|unable to verify|search failed)/i;
+
+function sleepMs(ms: number) {
+  if (ms <= 0) return;
+  // Synchronous sleep to keep this script simple (execSync-based).
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
 
 function run(cmd: string) {
   console.log(`\n$ ${cmd}`);
@@ -122,6 +129,135 @@ function findLatestVerifyReportPath(): string | null {
     .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
 
   return candidates[0] || null;
+}
+
+function isTransientVerifyNote(note: unknown): boolean {
+  return TRANSIENT_VERIFY_NOTE_PATTERN.test(String(note || ''));
+}
+
+function normalizePath(value: string): string {
+  return value.replace(/\//g, path.sep);
+}
+
+function readVerifyReport(reportPath: string): any | null {
+  try {
+    return JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function analyzeVerifyReport(report: any, targets: string[]) {
+  const targetSet = new Set(targets.map((t) => normalizePath(t)));
+  const normalizedReports = Array.isArray(report?.reports) ? report.reports : [];
+
+  const failingFiles: string[] = [];
+  const hardRepairFiles: string[] = [];
+  const transientOnlyFiles: string[] = [];
+  const nonActionableFiles: string[] = [];
+
+  for (const r of normalizedReports) {
+    const file = typeof r?.file === 'string' ? normalizePath(r.file) : '';
+    if (!file || !targetSet.has(file)) continue;
+
+    const claimsChecked = Number(r?.claimsChecked || 0);
+    const verifiedClaims = Number(r?.verifiedClaims || 0);
+    const failedHigh = Number(r?.failedHighPriority || 0);
+    const ok = failedHigh === 0 && (claimsChecked === 0 || verifiedClaims > 0);
+    if (ok) continue;
+
+    failingFiles.push(file);
+
+    const results = Array.isArray(r?.results) ? r.results : [];
+    const failedHighResults = results.filter((x: any) => x?.priority === 'high' && x?.verified === false);
+    const transientHigh = failedHighResults.filter((x: any) => isTransientVerifyNote(x?.notes));
+    const hardHigh = failedHighResults.filter((x: any) => !isTransientVerifyNote(x?.notes));
+
+    if (hardHigh.length > 0) {
+      hardRepairFiles.push(file);
+      continue;
+    }
+
+    if (failedHighResults.length > 0 && transientHigh.length === failedHighResults.length) {
+      transientOnlyFiles.push(file);
+      continue;
+    }
+
+    // Example: verifiedClaims==0 but no high failures => nothing the current repair script can fix.
+    nonActionableFiles.push(file);
+  }
+
+  return {
+    failingFiles: Array.from(new Set(failingFiles)),
+    hardRepairFiles: Array.from(new Set(hardRepairFiles)),
+    transientOnlyFiles: Array.from(new Set(transientOnlyFiles)),
+    nonActionableFiles: Array.from(new Set(nonActionableFiles)),
+  };
+}
+
+function verifyWithSelfHeal(files: string[]) {
+  const repoRoot = process.cwd();
+  const normalized = files.map((f) => normalizePath(f));
+  const filesArg = normalized.join(',');
+  const verifyCmd = `pnpm content:verify -- --files=${filesArg}`;
+
+  const MAX_REPAIR_PASSES = 3;
+  const MAX_TRANSIENT_RETRIES = 2;
+
+  let repairPasses = 0;
+  let transientRetries = 0;
+
+  while (true) {
+    try {
+      run(verifyCmd);
+      return;
+    } catch {
+      // continue
+    }
+
+    const reportPath = findLatestVerifyReportPath();
+    if (!reportPath) {
+      throw new Error('Verification failed but no content-verify report was found.');
+    }
+    const report = readVerifyReport(reportPath);
+    if (!report) {
+      throw new Error(`Verification failed and report could not be parsed: ${path.relative(repoRoot, reportPath)}`);
+    }
+
+    const analysis = analyzeVerifyReport(report, normalized);
+
+    if (analysis.hardRepairFiles.length > 0 && repairPasses < MAX_REPAIR_PASSES) {
+      repairPasses += 1;
+      transientRetries = 0;
+      const relReport = path.relative(repoRoot, reportPath);
+      const repairFilesArg = analysis.hardRepairFiles.join(',');
+      console.log(
+        `\n❌ Verification failed (hard). Attempting auto-repair pass ${repairPasses}/${MAX_REPAIR_PASSES}...`
+      );
+      run(`pnpm content:repair -- --report=${relReport} --files=${repairFilesArg}`);
+      continue;
+    }
+
+    const onlyTransient =
+      analysis.failingFiles.length > 0 &&
+      analysis.transientOnlyFiles.length === analysis.failingFiles.length &&
+      analysis.nonActionableFiles.length === 0 &&
+      analysis.hardRepairFiles.length === 0;
+
+    if (onlyTransient && transientRetries < MAX_TRANSIENT_RETRIES) {
+      transientRetries += 1;
+      const backoffMs = 2000 * transientRetries;
+      console.log(
+        `\n⚠️ Verification failed due to transient errors only. Retrying (${transientRetries}/${MAX_TRANSIENT_RETRIES}) after ${backoffMs}ms...`
+      );
+      sleepMs(backoffMs);
+      continue;
+    }
+
+    throw new Error(
+      `Verification still failing after self-heal (repairs=${repairPasses}, transientRetries=${transientRetries}).`
+    );
+  }
 }
 
 function moveFailedNewPostsToCandidatePool(lastWrittenFiles: string[]) {
@@ -277,25 +413,15 @@ function main() {
 
   if (verify) {
     if (lastWritten.files.length > 0) {
-      const verifyCmd = `pnpm content:verify -- --files=${lastWritten.files.join(',')}`;
-      const repairCmd = `pnpm content:repair -- --files=${lastWritten.files.join(',')}`;
-
       try {
-        run(verifyCmd);
+        verifyWithSelfHeal(lastWritten.files);
       } catch {
-        console.log('\n❌ Verification failed. Attempting auto-repair (high-priority claims only)...');
-        run(repairCmd);
-        try {
-          run(verifyCmd);
-        } catch {
-          console.log('\n❌ Verification still failed. Quarantining failed newly written posts and continuing...');
-          const { remaining } = moveFailedNewPostsToCandidatePool(lastWritten.files);
-          if (remaining.length === 0) {
-            console.log('\n(no remaining newly written posts) Skipping content verification.');
-          } else {
-            const remainingVerifyCmd = `pnpm content:verify -- --files=${remaining.join(',')}`;
-            run(remainingVerifyCmd);
-          }
+        console.log('\n❌ Verification still failed. Quarantining failed newly written posts and continuing...');
+        const { remaining } = moveFailedNewPostsToCandidatePool(lastWritten.files);
+        if (remaining.length === 0) {
+          console.log('\n(no remaining newly written posts) Skipping content verification.');
+        } else {
+          verifyWithSelfHeal(remaining);
         }
       }
     } else if (lastWritten.exists) {
