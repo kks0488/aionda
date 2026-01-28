@@ -8,6 +8,7 @@ import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, unlink
 import { join } from 'path';
 import { config } from 'dotenv';
 import { generateContent, translateToEnglish } from './lib/gemini';
+import { selectEditorialSeries, formatSeriesForPrompt, type EditorialSeries } from './lib/editorial-series.js';
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import { classifySource, createVerifiedSource, SourceTier } from './lib/search-mode.js';
@@ -156,8 +157,6 @@ interface ArticleMetadata {
   tags: string[];
 }
 
-type EditorialSeries = 'k-ai-pulse' | 'explainer' | 'deep-dive';
-
 function formatFindings(findings: ResearchFinding[]): string {
   const usableFindings = findings
     .map((finding) => ({
@@ -202,36 +201,6 @@ function isPublishable(topic: ResearchedTopic): boolean {
   const primaryTier = classifySource(topic.sourceUrl || '');
   const hasTrustedPrimary = primaryTier === SourceTier.S || primaryTier === SourceTier.A;
   return topic.overallConfidence >= MIN_CONFIDENCE && (hasTrustedOverall || hasTrustedPrimary);
-}
-
-function selectEditorialSeries(topic: ResearchedTopic): EditorialSeries {
-  const combined = [
-    topic.title,
-    topic.description,
-    ...(topic.keyInsights || []),
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  const pulseSignals = [
-    /발표|출시|업데이트|공개|런칭|릴리즈|패치|버전|정책|규제|법|표준/i,
-    /\b(announce|release|launch|update|policy|regulat|ban|standard|api|sdk|pricing)\b/i,
-  ];
-
-  const explainerSignals = [
-    /개념|정리|설명|원리|가이드|입문|튜토리얼/i,
-    /\b(how to|what is|explained|primer|guide|why)\b/i,
-  ];
-
-  if (pulseSignals.some((re) => re.test(combined))) return 'k-ai-pulse';
-  if (explainerSignals.some((re) => re.test(combined))) return 'explainer';
-  return 'deep-dive';
-}
-
-function formatSeriesForPrompt(series: EditorialSeries): string {
-  if (series === 'k-ai-pulse') return 'K‑AI Pulse (Signal Brief)';
-  if (series === 'explainer') return 'Explainer (Pillar/Evergreen)';
-  return 'Deep Dive (Decision Memo)';
 }
 
 async function writeArticle(topic: ResearchedTopic, series: EditorialSeries): Promise<string> {

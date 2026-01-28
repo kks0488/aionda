@@ -479,7 +479,7 @@ ${contextSnippet}
 
     return {
       verified: false,
-      confidence: 0.5,
+      confidence: 0,
       notes: 'Unable to verify - response parsing failed',
       sources: [],
       strategy,
@@ -488,8 +488,8 @@ ${contextSnippet}
     console.error('Error verifying claim:', error);
     return {
       verified: false,
-      confidence: 0.5,
-      notes: 'Verification failed due to error',
+      confidence: 0,
+      notes: `Verification failed due to error: ${extractErrorText(error)}`.slice(0, 500),
       sources: [],
       strategy,
     };

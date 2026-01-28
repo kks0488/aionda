@@ -58,6 +58,12 @@ ENABLE_IMAGE_GENERATION=true pnpm generate-image
 pnpm build
 ```
 
+### Optional: series heuristic sanity-check (no AI calls)
+
+```bash
+pnpm -s tsx scripts/series-simulate.ts --limit=60
+```
+
 ## Outputs (key locations)
 
 ```text
