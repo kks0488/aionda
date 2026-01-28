@@ -4,6 +4,7 @@
  * Default: lint only changed post files.
  * Options:
  *   --all        Lint all posts
+ *   --files=a,b  Lint specific post files (comma-separated, repo-relative)
  *   --strict     Fail on warnings (not just errors)
  */
 
@@ -26,6 +27,10 @@ const ABSOLUTE_PATTERN =
   /\b(guarantee|guarantees|100%|perfectly|impossible|completely|always|never|must)\b/i;
 const TLDR_HEADING = /^##\s*(TL;DR|세\s*줄\s*요약|세줄\s*요약|간단\s*요약)\s*$/im;
 const SOURCES_HEADING = /^##\s*(참고\s*자료|References|Sources)\s*$/im;
+const KO_EXAMPLE_MARKER = /^\s*예:\s/m;
+const EN_EXAMPLE_MARKER = /^\s*Example:\s/m;
+const KO_CHECKLIST_MARKER = /\*\*오늘\s*바로\s*할\s*일:\*\*/i;
+const EN_CHECKLIST_MARKER = /\*\*Checklist\s+for\s+Today:\*\*/i;
 
 const HYPE_WORDS = [
   'revolutionary',
@@ -111,6 +116,20 @@ function listChangedPostFiles(): string[] {
   return Array.from(seen).filter(isPostFile);
 }
 
+function parseFilesArg(args: string[]): string[] {
+  const filesArgs = args.filter((a) => a.startsWith('--files='));
+  if (filesArgs.length === 0) return [];
+
+  const values = filesArgs
+    .map((a) => a.split('=')[1] || '')
+    .flatMap((v) => v.split(','))
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .map((v) => v.replace(/\//g, path.sep));
+
+  return Array.from(new Set(values));
+}
+
 function walkAllPosts(rootDir: string): string[] {
   if (!fs.existsSync(rootDir)) return [];
   const out: string[] = [];
@@ -161,6 +180,15 @@ function countBulletsInSection(markdown: string, heading: RegExp): number {
   return section.split('\n').filter((line) => /^\s*-\s+/.test(line)).length;
 }
 
+function countBulletsAfterMarker(markdown: string, marker: RegExp): number {
+  const match = marker.exec(markdown);
+  if (!match || typeof match.index !== 'number') return 0;
+  const after = markdown.slice(match.index + match[0].length);
+  const nextHeadingIndex = after.search(/^##\s+/m);
+  const section = nextHeadingIndex === -1 ? after : after.slice(0, nextHeadingIndex);
+  return section.split('\n').filter((line) => /^\s*-\s+/.test(line)).length;
+}
+
 function includesAny(textLower: string, terms: string[]): string | null {
   for (const term of terms) {
     if (!term) continue;
@@ -173,14 +201,27 @@ function main() {
   const args = process.argv.slice(2);
   const lintAll = args.includes('--all');
   const strict = args.includes('--strict');
+  const filesOverride = parseFilesArg(args);
 
   const repoRoot = process.cwd();
   const allPostFiles = walkAllPosts(path.join(repoRoot, 'apps', 'web', 'content', 'posts'));
   const changedPostFiles = listChangedPostFiles();
-  const targets = lintAll ? allPostFiles : changedPostFiles;
+  const targets =
+    filesOverride.length > 0
+      ? filesOverride
+          .map((f) => (path.isAbsolute(f) ? f : path.join(repoRoot, f)))
+          .filter((f) => fs.existsSync(f))
+          .filter(isPostFile)
+      : lintAll
+        ? allPostFiles
+        : changedPostFiles;
 
   if (targets.length === 0) {
-    console.log(lintAll ? 'No posts found.' : 'No changed post files to lint.');
+    if (filesOverride.length > 0) {
+      console.log('No matching post files found for --files.');
+    } else {
+      console.log(lintAll ? 'No posts found.' : 'No changed post files to lint.');
+    }
     process.exit(0);
   }
 
@@ -220,13 +261,73 @@ function main() {
       });
     } else {
       const bullets = countBulletsInSection(content, TLDR_HEADING);
-      if (bullets < 2) {
+      if (bullets !== 3) {
         issues.push({
           file: rel,
           severity: 'suggestion',
           rule: 'tldr_bullets',
-          message: `TL;DR section has only ${bullets} bullet(s). Aim for 3.`,
+          message: `TL;DR section has ${bullets} bullet(s). Aim for exactly 3.`,
         });
+      }
+    }
+
+    if (locale === 'ko' && !KO_EXAMPLE_MARKER.test(content)) {
+      issues.push({
+        file: rel,
+        severity: 'suggestion',
+        rule: 'example_missing',
+        message: 'Add exactly one clearly labeled hypothetical scene paragraph near the top starting with "예:"',
+      });
+    }
+
+    if (locale === 'en' && !EN_EXAMPLE_MARKER.test(content)) {
+      issues.push({
+        file: rel,
+        severity: 'suggestion',
+        rule: 'example_missing',
+        message: 'Add exactly one clearly labeled hypothetical scene paragraph near the top starting with "Example:"',
+      });
+    }
+
+    if (locale === 'ko') {
+      if (!KO_CHECKLIST_MARKER.test(content)) {
+        issues.push({
+          file: rel,
+          severity: 'suggestion',
+          rule: 'checklist_missing',
+          message: 'Under "## 실전 적용", include "**오늘 바로 할 일:**" with exactly 3 bullet points.',
+        });
+      } else {
+        const bullets = countBulletsAfterMarker(content, KO_CHECKLIST_MARKER);
+        if (bullets !== 3) {
+          issues.push({
+            file: rel,
+            severity: 'suggestion',
+            rule: 'checklist_bullets',
+            message: `Checklist has ${bullets} bullet(s). Aim for exactly 3.`,
+          });
+        }
+      }
+    }
+
+    if (locale === 'en') {
+      if (!EN_CHECKLIST_MARKER.test(content)) {
+        issues.push({
+          file: rel,
+          severity: 'suggestion',
+          rule: 'checklist_missing',
+          message: 'Under "## Practical Application", include "**Checklist for Today:**" with exactly 3 bullet points.',
+        });
+      } else {
+        const bullets = countBulletsAfterMarker(content, EN_CHECKLIST_MARKER);
+        if (bullets !== 3) {
+          issues.push({
+            file: rel,
+            severity: 'suggestion',
+            rule: 'checklist_bullets',
+            message: `Checklist has ${bullets} bullet(s). Aim for exactly 3.`,
+          });
+        }
       }
     }
 

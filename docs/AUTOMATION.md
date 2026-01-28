@@ -69,6 +69,9 @@
 cd /home/kkaemo/projects/aionda
 AUTO_PUBLISH_SKIP_BUILD=true bash scripts/auto-publish.sh
 
+# 최근 N일 발행/스킵/게이트 실패 지표(로그 기반, AI 호출 없음)
+pnpm -s tsx scripts/publish-metrics.ts --days=7
+
 # 상태/마지막 실행
 cat /tmp/aionda-auto-publish-status.txt
 cat /tmp/aionda-auto-publish-last-run.txt
