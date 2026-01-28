@@ -1,444 +1,105 @@
-# Deployment Guide
+# Deployment (aionda.blog)
 
-This document describes how to deploy the Singularity Blog to production.
+이 문서는 aionda를 프로덕션에 배포하는 방법을 정리합니다. 배포 관련 문서의 SSOT는 이 파일입니다.
 
-## Overview
+## 배포 방식
 
-The blog is deployed to Vercel with automatic deployments triggered by Git pushes.
+- **Vercel (권장)**: `main` 브랜치 push → 자동 배포
+- **Coolify (Dockerfile)**: Docker 빌드/배포 기반 운영
 
-## Prerequisites
+> 자동 글 발행/운영(크론, 상태 파일, 후보 풀)은 `docs/AUTOMATION.md`를 참고하세요.
 
-- Node.js 18+ installed
-- pnpm installed (`npm install -g pnpm`)
-- GitHub account
-- Vercel account (free tier works)
-- (Optional) Custom domain
+## 사전 준비
 
-## Initial Setup
+- Node.js **20+** (Vercel/도커 기준)
+- pnpm (repo는 `package.json`의 `packageManager`를 따름)
+- GitHub 저장소
 
-### 1. Create GitHub Repository
+## Vercel 배포
+
+### 1) 프로젝트 Import
+
+1. Vercel → **Add New Project** → GitHub 저장소 선택
+2. **Root Directory**: repo root (모노레포)
+3. Build/Install:
+   - Install Command: `pnpm install --frozen-lockfile`
+   - Build Command: `pnpm build` (root의 `pnpm --filter web build`를 사용)
+
+### 2) 환경변수
+
+Vercel Dashboard → Project → Settings → Environment Variables
+
+| 변수 | 설명 | 필수 |
+|------|------|------|
+| `NEXT_PUBLIC_SITE_URL` | 사이트 URL (예: `https://aionda.blog`) | 권장 |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics 측정 ID | 선택 |
+| `NEXT_PUBLIC_ADSENSE_ID` | AdSense 게시자 ID | 선택 |
+
+### 3) 도메인 연결(선택)
+
+Vercel Dashboard → Project → Settings → Domains에서 도메인을 추가한 뒤,
+도메인 등록업체(DNS)에 아래처럼 설정합니다.
+
+```text
+# Apex 도메인
+A     @    76.76.21.21
+
+# www 서브도메인
+CNAME www  cname.vercel-dns.com
+```
+
+### 4) Search Console (권장)
+
+- 속성 추가 후 사이트맵 제출: `https://aionda.blog/sitemap.xml`
+- 필요하면 `apps/web/app/layout.tsx`에 Google verification 메타를 추가합니다.
+
+#### Admin API (선택)
+
+Admin 기능을 쓰는 경우에만 설정하세요.
+
+| 변수 | 설명 |
+|------|------|
+| `ADMIN_API_KEY` | Admin API 인증 키 (요청 헤더 `x-api-key`) |
+| `ADMIN_LOCAL_ONLY` | 기본 `true`(로컬/사설망만). 외부에서 쓰려면 `false` + 보안 강화 필요 |
+| `ADMIN_PUBLISH_ENABLED` | `true`일 때만 publish 엔드포인트 활성 |
+| `GITHUB_OWNER` / `GITHUB_REPO` / `GITHUB_TOKEN` | GitHub 콘텐츠 수정/PR/머지 자동화용 |
+| `GITHUB_AUTO_MERGE` | `false`면 자동 머지 비활성 |
+| `GITHUB_MERGE_METHOD` | `SQUASH`(기본) / `MERGE` / `REBASE` |
+
+## Coolify 배포 (Dockerfile)
+
+### 1) 애플리케이션 생성
+
+- Build Pack: **Dockerfile**
+- Dockerfile Location: `Dockerfile`
+- Build Context: `.`
+- Exposed Port: `3000`
+- Health Check Path(선택): `/ko`
+
+> Next.js 빌드는 메모리를 많이 사용합니다. 서버 RAM이 부족하면 Swap을 추가하거나(예: 4GB) 빌드 리소스를 늘리세요.
+
+### 2) 환경변수
+
+`docker-compose.yml`의 `web.environment`와 동일한 값을 Coolify에서 설정하세요.
+
+## 도메인 / SEO
+
+- 사이트맵: `/sitemap.xml`
+- RSS: `/feed.xml`
+
+Vercel/Coolify 모두 도메인 연결 후 Google Search Console에 사이트맵을 제출하면 됩니다.
+
+## 배포 전 로컬 체크(권장)
 
 ```bash
-# Initialize git repository
-cd /home/kkaemo/projects/singularity-blog
-git init
-
-# Create .gitignore
-cat > .gitignore << 'EOF'
-# Dependencies
-node_modules/
-.pnpm-store/
-
-# Build
-.next/
-out/
-dist/
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Data (optional - keep if you want version control)
-# data/raw/
-# data/selected/
-# data/verified/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-
-# Vercel
-.vercel
-EOF
-
-# Initial commit
-git add .
-git commit -m "Initial commit: Singularity Blog"
-
-# Push to GitHub
-git remote add origin https://github.com/YOUR_USERNAME/singularity-blog.git
-git branch -M main
-git push -u origin main
+pnpm -s tsc --noEmit
+pnpm -s build
 ```
 
-### 2. Connect to Vercel
-
-#### Option A: Vercel CLI
+Docker 배포라면:
 
 ```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Login
-vercel login
-
-# Deploy (first time)
-cd apps/web
-vercel
-
-# Follow prompts:
-# - Set up and deploy? Yes
-# - Which scope? Select your account
-# - Link to existing project? No
-# - Project name: singularity-blog
-# - Directory: ./
-# - Override settings? No
-```
-
-#### Option B: Vercel Dashboard
-
-1. Go to [vercel.com](https://vercel.com)
-2. Click "Add New Project"
-3. Import Git Repository → Select `singularity-blog`
-4. Configure Project:
-   - Framework Preset: Next.js
-   - Root Directory: `apps/web`
-   - Build Command: `pnpm build`
-   - Output Directory: `.next`
-5. Click "Deploy"
-
-### 3. Environment Variables
-
-Set these in Vercel Dashboard → Project → Settings → Environment Variables:
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `ANTHROPIC_API_KEY` | Claude API key for verification/translation | Yes |
-| `NEXT_PUBLIC_SITE_URL` | Your site URL (e.g., https://singularity-blog.vercel.app) | Yes |
-| `NEXT_PUBLIC_GA_ID` | Google Analytics ID | No |
-
-```bash
-# Or via CLI
-vercel env add ANTHROPIC_API_KEY production
-vercel env add NEXT_PUBLIC_SITE_URL production
-```
-
-## Deployment Workflow
-
-### Automatic Deployments
-
-Every push to `main` branch triggers automatic deployment:
-
-```
-Push to main → Vercel Build → Deploy to Production
-```
-
-### Preview Deployments
-
-Pull requests get preview deployments:
-
-```
-Create PR → Vercel Preview Build → Unique Preview URL
-```
-
-### Manual Deployment
-
-```bash
-# Deploy current state
-vercel
-
-# Deploy to production
-vercel --prod
-```
-
-## Build Configuration
-
-### `vercel.json`
-
-```json
-{
-  "buildCommand": "pnpm build",
-  "outputDirectory": ".next",
-  "framework": "nextjs",
-  "regions": ["icn1"],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### `next.config.js`
-
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  output: 'standalone',
-  images: {
-    domains: ['gall.dcinside.com'],
-  },
-  experimental: {
-    mdxRs: true,
-  },
-};
-
-module.exports = nextConfig;
-```
-
-## GitHub Actions
-
-### Auto-Deploy on Push
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build
-        run: pnpm build
-        working-directory: apps/web
-
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-```
-
-### Manual Crawl Workflow
-
-```yaml
-# .github/workflows/crawl.yml
-name: Manual Crawl
-
-on:
-  workflow_dispatch:  # Manual trigger
-
-jobs:
-  crawl:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run crawler
-        run: pnpm crawl --pages=3
-
-      - name: Commit new posts
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git add data/raw/
-          git diff --staged --quiet || git commit -m "chore: daily crawl $(date +%Y-%m-%d)"
-          git push
-```
-
-## Custom Domain
-
-### Setup
-
-1. Go to Vercel Dashboard → Project → Settings → Domains
-2. Add your domain (e.g., `singularity.yourdomain.com`)
-3. Configure DNS:
-
-| Type | Name | Value |
-|------|------|-------|
-| CNAME | singularity | cname.vercel-dns.com |
-
-Or for apex domain:
-| Type | Name | Value |
-|------|------|-------|
-| A | @ | 76.76.21.21 |
-
-### SSL Certificate
-
-Vercel automatically provisions SSL certificates for custom domains.
-
-## Monitoring
-
-### Vercel Analytics
-
-Enable in Vercel Dashboard → Project → Analytics:
-
-```typescript
-// apps/web/app/layout.tsx
-import { Analytics } from '@vercel/analytics/react';
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <body>
-        {children}
-        <Analytics />
-      </body>
-    </html>
-  );
-}
-```
-
-### Speed Insights
-
-```typescript
-import { SpeedInsights } from '@vercel/speed-insights/next';
-
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <body>
-        {children}
-        <SpeedInsights />
-      </body>
-    </html>
-  );
-}
-```
-
-## Rollback
-
-### Via Dashboard
-
-1. Go to Vercel Dashboard → Project → Deployments
-2. Find the deployment to rollback to
-3. Click "..." → "Promote to Production"
-
-### Via CLI
-
-```bash
-# List deployments
-vercel ls
-
-# Rollback to specific deployment
-vercel rollback [deployment-url]
-```
-
-## Troubleshooting
-
-### Build Failures
-
-**Problem**: pnpm install fails
-```bash
-# Solution: Check pnpm version
-pnpm --version
-
-# Update lockfile if needed
-pnpm install --no-frozen-lockfile
-```
-
-**Problem**: MDX build errors
-```bash
-# Solution: Check MDX syntax in content files
-pnpm build 2>&1 | grep -A 5 "Error"
-```
-
-### Runtime Errors
-
-**Problem**: API routes returning 500
-```bash
-# Check Vercel function logs
-vercel logs [deployment-url]
-```
-
-**Problem**: Missing environment variables
-```bash
-# List env vars
-vercel env ls
-
-# Pull env vars locally for testing
-vercel env pull .env.local
-```
-
-### Performance Issues
-
-1. Enable Vercel Analytics to identify slow pages
-2. Check image optimization settings
-3. Review API route cold starts
-4. Consider ISR (Incremental Static Regeneration) for frequently updated pages
-
-## Security
-
-### Secrets Management
-
-- Never commit API keys to Git
-- Use Vercel environment variables
-- Rotate keys periodically
-
-### Headers
-
-Security headers are configured in `vercel.json`:
-- X-Content-Type-Options
-- X-Frame-Options
-- X-XSS-Protection
-
-### API Protection
-
-For sensitive API routes:
-
-```typescript
-// apps/web/app/api/admin/route.ts
-import { headers } from 'next/headers';
-
-export async function POST(request: Request) {
-  const headersList = headers();
-  const apiKey = headersList.get('x-api-key');
-
-  if (apiKey !== process.env.ADMIN_API_KEY) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Handle request
-}
+docker build -t aionda .
+docker run -p 3000:3000 -e NEXT_PUBLIC_SITE_URL=http://localhost:3000 aionda
+curl -I http://localhost:3000/ko
 ```

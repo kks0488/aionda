@@ -17,7 +17,12 @@
 - 마지막 실행 시각: `/tmp/aionda-auto-publish-last-run.txt`
 - 중복 실행 방지 락: `/tmp/aionda-auto-publish.lock`
 - 상태: `/tmp/aionda-auto-publish-status.txt`
-  - 예: `published: <slug>` / `completed` / `completed: no changes` / `skipped: dirty worktree` / `failed: ...` / `blocked: ...`
+  - 예:
+    - `running` / `running: <stage>` (예: `running: syncing`, `running: content gate`, `running: build`)
+    - `published: <slug>` / `completed` / `completed: no changes` / `completed: no new articles`
+    - `skipped: dirty worktree` / `skipped: not on main`
+    - `blocked: ...` (예: `blocked: push failed`, `blocked: local ahead=<n> push failed`)
+    - `failed: ...` (예: `failed: exit=1 line=123 cmd=...`, `failed: signal=TERM`)
   - `blocked:`는 **데이터 유실 방지용 보호 상태**입니다. (예: `git push` 실패 시 로컬 커밋을 유지하고 이번 실행만 스킵)
 
 ## “파이프라인이 안 도는 것 같다” 체크리스트
@@ -36,6 +41,8 @@
 
 - `scripts/auto-publish.sh`는 **워크트리가 dirty(unstaged/staged/untracked)**이면, 개발 중 변경사항이 자동 발행에 섞이는 것을 막기 위해 해당 실행을 스킵합니다.
 - 다만 “이전 실패 실행이 남긴 untracked 산출물(MDX/이미지)” 때문에 계속 스킵되는 문제가 있었고, 이제는 아래 후보 풀로 자동 이동시켜 cron이 계속 진행됩니다.
+- `git push`가 실패하더라도 **로컬 커밋을 지우지 않도록** 보호합니다(`blocked:` 상태로 종료).
+- `git fetch/push`는 비대화형으로 실행되며(`GIT_TERMINAL_PROMPT=0`), 가능하면 `timeout`으로 상한을 둡니다(크론 무한 대기 방지).
 
 ## 후보 풀(Candidate Pool)
 
@@ -68,6 +75,10 @@ cat /tmp/aionda-auto-publish-last-run.txt
 
 # 로그 확인
 tail -200 logs/auto-publish-$(date +%Y%m%d).log
+
+# push/동기화 상태(문제 상황에서 빠른 확인)
+git status -sb
+git rev-list --left-right --count HEAD...origin/main
 
 # 후보 풀 리포트
 pnpm -s tsx scripts/candidate-pool-report.ts

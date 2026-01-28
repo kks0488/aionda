@@ -91,6 +91,26 @@ pnpm content:gate:publish
 
 자동 발행은 `pnpm pipeline:publish`를 사용하세요(토픽 1개 중심으로 제한 + publish gate 포함).
 
+## Publish Gate의 자동 복구(Self-heal)
+
+`content:gate:publish`는 “한 번 실패하면 cron이 계속 막히는 문제”를 피하기 위해, 검증 단계에서 **제한적 자동 복구**를 수행합니다.
+
+- 대상 파일: 기본적으로 변경/신규 포스트 + `.vc/last-written.json`의 “방금 생성된 포스트”
+- 검증 실패 시:
+  - **Hard failure(우선순위 high + verified=false)**는 `pnpm content:repair`로 최대 몇 번(제한된 횟수) 자동 보정 후 재검증합니다.
+  - **Transient failure(타임아웃/검색 실패 등)**로만 실패하면 짧은 backoff 후 제한된 횟수 재시도합니다.
+- 그래도 실패하면:
+  - 새로 생성된(untracked) 글은 `.vc/candidate-pool/<timestamp>/`로 이동하고 `manifest.json`에 이유/리포트 경로를 남깁니다.
+  - 남아있는 글만 다시 검증하여, 자동화가 “영구 실패”로 굳지 않게 합니다.
+
+## 네트워크 내구성(타임아웃/재시도)
+
+프로덕션 자동화는 외부 API(Gemini/Google Search, 이미지 생성, memU)를 호출하므로, 기본적으로 **타임아웃 + 제한적 재시도**가 적용되어 있습니다.
+
+- Gemini 호출: 타임아웃/Abort, 429(rate limit), 5xx, 네트워크 오류는 backoff 재시도합니다.
+- 이미지 생성(SiliconFlow): 요청/다운로드에 타임아웃을 두고, 429/5xx/네트워크 오류는 제한적으로 재시도합니다(실패 시 로컬 fallback 가능).
+- memU: 짧은 재시도(1회) + 타임아웃으로 “일시 장애”에 덜 민감하게 동작합니다.
+
 ## 구현 포인트 (코드 위치)
 
 - 카테고리 태깅(런타임 파생): `apps/web/lib/posts.ts`

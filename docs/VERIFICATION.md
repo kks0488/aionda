@@ -10,6 +10,25 @@ The verification system:
 3. Compares claims with authoritative sources
 4. Generates a verification report with confidence scores
 
+## Production Entry Points (Current)
+
+For production publishing, use the **content gate** pipeline:
+
+- `pnpm content:verify` — factual verification for changed/new posts
+- `pnpm content:gate:publish` — strict lint + factual verification (with limited self-heal)
+- `pnpm research-topic` — pre-writing research with SearchMode (Google Search tool)
+
+Operational notes (cron, status files, candidate pool) live in `docs/AUTOMATION.md` and `docs/CONTENT_QUALITY.md`.
+
+Legacy scripts (`pnpm verify` for `data/selected/`) remain for compatibility, but are not the primary publish path.
+
+## SearchMode Rules (How “Verified” Is Decided)
+
+- **90% rule**: confidence < 0.9 → treat as `verified: false` (be honest, no “latest” claims without proof)
+- **No fabricated sources**: sources must be real URLs; if sources are unclear → `sources: []`
+- **Tiered sources**: prefer Tier S/A (academic/official) over B/C (social/general)
+- **Network resilience**: transient timeouts / rate limits are retried with bounded backoff (no infinite loops)
+
 ## Verification Flow
 
 ```

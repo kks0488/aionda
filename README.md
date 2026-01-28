@@ -56,9 +56,9 @@ Vercel Auto-Deploy
 | **i18n** | next-intl (ko primary, en secondary) |
 | **Styling** | Tailwind CSS |
 | **Crawling** | Cheerio (axios, 1초 딜레이) |
-| **AI** | Gemini API (검증, 번역, 이미지) |
-| **Automation** | GitHub Actions (수동 실행, PR 승인 후 배포) |
-| **Deployment** | Vercel (자동 배포) |
+| **AI** | Gemini (리서치/작성/검증) + SiliconFlow (커버 이미지, 로컬 fallback 지원) |
+| **Automation** | 로컬 cron (`scripts/auto-publish.sh`) + (선택) GitHub Actions 수동 실행 |
+| **Deployment** | Vercel 또는 Coolify(Dockerfile) |
 
 ## Project Structure
 
@@ -116,6 +116,9 @@ pnpm pipeline:strict
 # 풀오토 발행용(엄격 + 사실 검증 + 1토픽 중심)
 pnpm pipeline:publish
 
+# (운영) 크론용 스크립트를 지금 한 번 실행
+bash scripts/auto-publish.sh
+
 # 빌드
 cd apps/web && pnpm build
 ```
@@ -124,8 +127,10 @@ cd apps/web && pnpm build
 
 - [Vision](./docs/VISION.md) - 블로그 철학과 방향
 - [Architecture](./docs/ARCHITECTURE.md) - 시스템 아키텍처
+- [Workflow](./docs/WORKFLOW.md) - 프로덕션 파이프라인 흐름
 - [Content Quality](./docs/CONTENT_QUALITY.md) - 콘텐츠 품질 도구/규칙/운영
 - [Automation](./docs/AUTOMATION.md) - 자동 발행(로컬 cron) 운영/후보 풀
+- [Deployment](./docs/DEPLOYMENT.md) - Vercel/Coolify 배포
 - [Claude Context](./.claude/CLAUDE.md) - Claude Code 컨텍스트
 
 ## 우리가 하지 않는 것
