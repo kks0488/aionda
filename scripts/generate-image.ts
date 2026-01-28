@@ -30,6 +30,10 @@ const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
 const ENABLE_LOCAL_IMAGE_FALLBACK = process.env.ENABLE_LOCAL_IMAGE_FALLBACK !== 'false';
 
+const SILICONFLOW_REQUEST_TIMEOUT_MS = 120_000;
+const SILICONFLOW_DOWNLOAD_TIMEOUT_MS = 30_000;
+const SILICONFLOW_MAX_RETRIES = 2;
+
 if (AI_API_DISABLED) {
   console.log('AI API is disabled via AI_API_DISABLED=true.');
   process.exit(0);
@@ -56,6 +60,131 @@ interface PostMeta {
   tags: string[];
   locale: string;
   filePath: string;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isAbortError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return 'name' in error && (error as { name?: unknown }).name === 'AbortError';
+}
+
+function extractErrorText(error: unknown): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (isAbortError(error)) return true;
+  const msg = extractErrorText(error).toLowerCase();
+  return /(fetch failed|socket hang up|econnreset|etimedout|eai_again|enotfound|econnrefused)/i.test(msg);
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchJsonWithRetry<T>(
+  url: string,
+  init: RequestInit,
+  options: { label: string; timeoutMs: number; retries: number }
+): Promise<{ response: Response; json: T | null; text: string }> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= options.retries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, init, options.timeoutMs);
+      const text = await response.text();
+
+      if (!response.ok && isRetryableStatus(response.status) && attempt < options.retries) {
+        const backoffMs = Math.min(30_000, 1500 * 2 ** attempt) + Math.floor(Math.random() * 600);
+        console.warn(
+          `[SiliconFlow] ${options.label} HTTP ${response.status}. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+        );
+        await sleep(backoffMs);
+        continue;
+      }
+
+      let json: T | null = null;
+      if (text.trim().length > 0) {
+        try {
+          json = JSON.parse(text) as T;
+        } catch {
+          json = null;
+        }
+      }
+
+      return { response, json, text };
+    } catch (error) {
+      lastError = error;
+      if (isRetryableNetworkError(error) && attempt < options.retries) {
+        const backoffMs = Math.min(30_000, 1500 * 2 ** attempt) + Math.floor(Math.random() * 600);
+        console.warn(
+          `[SiliconFlow] ${options.label} network error. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+        );
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
+async function fetchBufferWithRetry(url: string, options: { timeoutMs: number; retries: number; label: string }): Promise<Buffer> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= options.retries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, { method: 'GET' }, options.timeoutMs);
+      if (!response.ok) {
+        const body = (await response.text()).slice(0, 500);
+        if (isRetryableStatus(response.status) && attempt < options.retries) {
+          const backoffMs = Math.min(20_000, 1200 * 2 ** attempt) + Math.floor(Math.random() * 600);
+          console.warn(
+            `[SiliconFlow] ${options.label} download HTTP ${response.status}. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+          );
+          await sleep(backoffMs);
+          continue;
+        }
+        throw new Error(`Download failed (HTTP ${response.status}): ${body}`);
+      }
+
+      const buf = Buffer.from(await response.arrayBuffer());
+      if (buf.length < 1024) {
+        throw new Error(`Downloaded image too small (${buf.length} bytes)`);
+      }
+      return buf;
+    } catch (error) {
+      lastError = error;
+      if (isRetryableNetworkError(error) && attempt < options.retries) {
+        const backoffMs = Math.min(20_000, 1200 * 2 ** attempt) + Math.floor(Math.random() * 600);
+        console.warn(
+          `[SiliconFlow] ${options.label} download network error. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+        );
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError;
 }
 
 function parseCsvArg(raw?: string): string[] {
@@ -283,23 +412,35 @@ function generateLocalFallbackImage(post: PostMeta): string | null {
 
   const outputPath = path.join(outputDir, `${post.slug}.png`);
   const scriptPath = path.join(process.cwd(), 'scripts/lib/local-cover-image.py');
+  const timeoutMs = 30_000;
+
+  if (!fs.existsSync(scriptPath)) {
+    console.error(`❌ Local image generator script not found: ${scriptPath}`);
+    return null;
+  }
 
   try {
-    const result = spawnSync(
-      'python',
-      [
-        scriptPath,
-        '--slug',
-        post.slug,
-        '--output',
-        outputPath,
-      ],
-      { encoding: 'utf-8' }
-    );
+    const args = [scriptPath, '--slug', post.slug, '--output', outputPath];
+
+    const runPython = (cmd: string) =>
+      spawnSync(cmd, args, { encoding: 'utf-8', timeout: timeoutMs });
+
+    let result = runPython('python');
+    const errCode = (result.error as any)?.code;
+    if (errCode === 'ENOENT') {
+      result = runPython('python3');
+    }
+
+    if (result.error) {
+      const details = extractErrorText(result.error);
+      console.error(`❌ Local image generation failed to start: ${details}`);
+      return null;
+    }
 
     if (result.status !== 0) {
       const details = (result.stderr || result.stdout || '').trim();
-      console.error(`❌ Local image generation failed: ${details || `exit ${result.status}`}`);
+      const exitHint = result.signal ? `signal ${result.signal}` : `exit ${result.status}`;
+      console.error(`❌ Local image generation failed: ${details || exitHint}`);
       return null;
     }
 
@@ -337,24 +478,29 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       return generateLocalFallbackImage(post);
     }
 
-    const response = await fetch(SILICONFLOW_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SILICONFLOW_API_KEY}`,
+    const { response, json, text } = await fetchJsonWithRetry<{ images?: Array<{ url?: string; b64_json?: string }> }>(
+      SILICONFLOW_API_URL,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SILICONFLOW_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: IMAGE_MODEL,
+          prompt: prompt,
+          negative_prompt:
+            'text, letters, words, numbers, watermark, logo, signature, label, caption, title, subtitle, writing, font, typography, alphabet, characters, symbols, icons with text, blurry, low quality',
+          image_size: '1024x576', // 16:9 aspect ratio
+          num_inference_steps: 8,
+          batch_size: 1,
+        }),
       },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        prompt: prompt,
-        negative_prompt: 'text, letters, words, numbers, watermark, logo, signature, label, caption, title, subtitle, writing, font, typography, alphabet, characters, symbols, icons with text, blurry, low quality',
-        image_size: '1024x576', // 16:9 aspect ratio
-        num_inference_steps: 8,
-        batch_size: 1,
-      }),
-    });
+      { label: 'generate', timeoutMs: SILICONFLOW_REQUEST_TIMEOUT_MS, retries: SILICONFLOW_MAX_RETRIES }
+    );
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = (text || '').trim().slice(0, 800);
       console.error(`❌ API Error (${response.status}): ${errorText}`);
       if (ENABLE_LOCAL_IMAGE_FALLBACK) {
         console.log('↩️ Falling back to local placeholder image...');
@@ -363,7 +509,15 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       return null;
     }
 
-    const data = await response.json() as { images?: Array<{ url?: string; b64_json?: string }> };
+    const data = json;
+    if (!data) {
+      console.error(`❌ API returned non-JSON response`);
+      if (ENABLE_LOCAL_IMAGE_FALLBACK) {
+        console.log('↩️ Falling back to local placeholder image...');
+        return generateLocalFallbackImage(post);
+      }
+      return null;
+    }
 
     // SiliconFlow returns images in data.images array with url or b64_json
     if (data.images && data.images.length > 0) {
@@ -378,8 +532,11 @@ async function generateImage(post: PostMeta): Promise<string | null> {
 
       if (imageInfo.url) {
         // Download from URL
-        const imageResponse = await fetch(imageInfo.url);
-        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const imageBuffer = await fetchBufferWithRetry(imageInfo.url, {
+          label: 'image',
+          timeoutMs: SILICONFLOW_DOWNLOAD_TIMEOUT_MS,
+          retries: 2,
+        });
         fs.writeFileSync(outputPath, imageBuffer);
       } else if (imageInfo.b64_json) {
         // Decode base64

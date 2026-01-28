@@ -2,7 +2,10 @@
 # auto-publish.sh - 매시간 자동 글 발행
 # Usage: 0 * * * * /home/kkaemo/projects/aionda/scripts/auto-publish.sh
 
-set -e
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+export HOME="/home/kkaemo"
 
 cd /home/kkaemo/projects/aionda
 
@@ -11,6 +14,24 @@ mkdir -p /home/kkaemo/projects/aionda/logs
 
 exec >> "$LOG_FILE" 2>&1
 
+# Status files (quick diagnosis for cron runs)
+LAST_RUN_FILE="/tmp/aionda-auto-publish-last-run.txt"
+STATUS_FILE="/tmp/aionda-auto-publish-status.txt"
+
+timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
+log() { echo "[$(timestamp)] $*"; }
+set_status() { echo "$*" > "$STATUS_FILE"; }
+
+run_timeout() {
+  local seconds="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout --preserve-status "$seconds" "$@"
+  else
+    "$@"
+  fi
+}
+
 # Candidate pool: leftover untracked outputs from failed runs are preserved here.
 # (Keeps the repo clean so cron can continue.)
 CANDIDATE_POOL_ROOT="/home/kkaemo/aionda-candidate-pool"
@@ -18,23 +39,51 @@ LEGACY_QUARANTINE_ROOT="/home/kkaemo/aionda-quarantine"
 
 echo ""
 echo "=========================================="
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Auto-publish started"
+log "Auto-publish started"
 echo "=========================================="
 
 # Prevent overlapping runs (cron can overlap if a run takes > 1h).
 exec 9>/tmp/aionda-auto-publish.lock
 if ! flock -n 9; then
-    echo "[$(date '+%H:%M:%S')] Another auto-publish is running. Exiting."
+    log "Another auto-publish is running. Exiting."
     exit 0
 fi
 
 # Heartbeat/status (quick way to tell cron is running without reading logs)
-date -u +"%Y-%m-%dT%H:%M:%SZ" > /tmp/aionda-auto-publish-last-run.txt
-STATUS_FILE="/tmp/aionda-auto-publish-status.txt"
-echo "running" > "$STATUS_FILE"
+date -u +"%Y-%m-%dT%H:%M:%SZ" > "$LAST_RUN_FILE"
+set_status "running"
 
-# If we exit non-zero at any point, mark the run as failed for quick diagnosis.
-trap 'code=$?; if [ "$code" -ne 0 ]; then echo "failed: exit=$code" > "$STATUS_FILE"; fi' EXIT
+FAIL_LINE=""
+FAIL_CMD=""
+on_err() {
+  FAIL_LINE="${1:-}"
+  FAIL_CMD="${2:-}"
+}
+on_exit() {
+  local code="$?"
+  if [ "$code" -ne 0 ]; then
+    local current=""
+    current="$(cat "$STATUS_FILE" 2>/dev/null || true)"
+    if [ "$current" = "running" ] || [[ "$current" == running:* ]]; then
+      local cmd_preview
+      cmd_preview="$(echo "${FAIL_CMD:-unknown}" | tr '\n' ' ' | cut -c 1-200)"
+      set_status "failed: exit=$code line=${FAIL_LINE:-?} cmd=${cmd_preview}"
+    fi
+  fi
+}
+trap 'on_err "$LINENO" "$BASH_COMMAND"' ERR
+trap 'on_exit' EXIT
+on_signal() {
+  local sig="$1"
+  local code=1
+  if [ "$sig" = "INT" ]; then code=130; fi
+  if [ "$sig" = "TERM" ]; then code=143; fi
+  log "Received signal $sig. Exiting."
+  set_status "failed: signal=$sig"
+  exit "$code"
+}
+trap 'on_signal INT' INT
+trap 'on_signal TERM' TERM
 
 # If a previous run failed mid-way, it can leave untracked MDX/images in tracked
 # directories, which would permanently block future runs due to the "dirty worktree"
@@ -48,13 +97,13 @@ if [ -n "$UNTRACKED_OUTPUTS" ]; then
         ROOT="$LEGACY_QUARANTINE_ROOT"
     fi
     DEST="$ROOT/$TS"
-    echo "[$(date '+%H:%M:%S')] Found leftover untracked outputs. Moving to candidate pool: $DEST"
+    log "Found leftover untracked outputs. Moving to candidate pool: $DEST"
     mkdir -p "$DEST"
-    echo "$UNTRACKED_OUTPUTS" | while IFS= read -r f; do
+    while IFS= read -r f; do
         [ -z "$f" ] && continue
         mkdir -p "$DEST/$(dirname "$f")"
         mv "$f" "$DEST/$f"
-    done
+    done <<< "$UNTRACKED_OUTPUTS"
 fi
 
 # Ignore known timestamp noise.
@@ -66,15 +115,55 @@ git checkout -- docker-compose.yml >/dev/null 2>&1 || true
 if ! git diff --quiet -- . ':(exclude)docker-compose.yml' \
   || ! git diff --cached --quiet -- . ':(exclude)docker-compose.yml' \
   || [ -n "$(git ls-files --others --exclude-standard)" ]; then
-    echo "[$(date '+%H:%M:%S')] Worktree is dirty. Skipping auto-publish to avoid mixing dev changes."
-    echo "skipped: dirty worktree" > /tmp/aionda-auto-publish-status.txt
+    log "Worktree is dirty. Skipping auto-publish to avoid mixing dev changes."
+    set_status "skipped: dirty worktree"
     exit 0
 fi
 
 # 원격 최신 상태로 동기화(깨끗한 상태에서만 수행)
-git fetch origin main >/dev/null 2>&1 || true
-git reset --hard origin/main >/dev/null 2>&1 || true
-echo "synced: origin/main" > /tmp/aionda-auto-publish-status.txt
+export GIT_TERMINAL_PROMPT=0
+
+branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+if [ "$branch" != "main" ]; then
+  log "Not on branch 'main' (current: ${branch:-unknown}). Skipping."
+  set_status "skipped: not on main"
+  exit 0
+fi
+
+log "Syncing with origin/main..."
+set_status "running: syncing"
+
+if ! run_timeout 180 git fetch origin main; then
+  log "❌ git fetch failed"
+  set_status "failed: git fetch"
+  exit 1
+fi
+
+read -r ahead behind < <(git rev-list --left-right --count HEAD...origin/main 2>/dev/null || echo "0 0")
+
+if [ "${ahead:-0}" -gt 0 ]; then
+  log "Local branch is ahead of origin/main by ${ahead} commit(s). Attempting push first..."
+  set_status "running: pushing pending commits"
+  if ! run_timeout 300 git push; then
+    log "❌ Push failed. Leaving local commits intact; skipping this run."
+    set_status "blocked: local ahead=${ahead} push failed"
+    exit 0
+  fi
+  log "Push succeeded."
+  if ! run_timeout 180 git fetch origin main; then
+    log "❌ git fetch failed after push"
+    set_status "failed: git fetch (post-push)"
+    exit 1
+  fi
+  read -r ahead behind < <(git rev-list --left-right --count HEAD...origin/main 2>/dev/null || echo "0 0")
+fi
+
+if [ "${ahead:-0}" -eq 0 ] && [ "${behind:-0}" -gt 0 ]; then
+  log "Fast-forwarding to origin/main (behind=${behind})..."
+  git reset --hard origin/main >/dev/null 2>&1
+fi
+
+set_status "synced: origin/main"
 
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -82,47 +171,56 @@ source /home/kkaemo/.bashrc 2>/dev/null || true
 source /home/kkaemo/projects/aionda/.env.local 2>/dev/null || true
 
 # 1. 크롤링 (DC Inside + RSS)
-echo "[$(date '+%H:%M:%S')] Step 1a: Crawling DC Inside..."
+set_status "running: crawl dc"
+log "Step 1a: Crawling DC Inside..."
 pnpm crawl --pages=2 || echo "DC crawl warning (might be empty)"
 
-echo "[$(date '+%H:%M:%S')] Step 1b: Crawling RSS feeds..."
+set_status "running: crawl rss"
+log "Step 1b: Crawling RSS feeds..."
 pnpm crawl-rss || echo "RSS crawl warning"
 
 # 2. 토픽 추출
-echo "[$(date '+%H:%M:%S')] Step 2: Extracting topics..."
+set_status "running: extract topics"
+log "Step 2: Extracting topics..."
 pnpm extract-topics --limit=3 || echo "Extract warning"
 
 # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
-echo "[$(date '+%H:%M:%S')] Step 3: Researching topics..."
+set_status "running: research topics"
+log "Step 3: Researching topics..."
 pnpm research-topic --limit=3 || echo "Research warning"
 
 # 4. 글 작성 (memU 중복체크 포함)
-echo "[$(date '+%H:%M:%S')] Step 4: Writing article..."
+set_status "running: write article"
+log "Step 4: Writing article..."
 pnpm write-article || echo "Write warning"
 
 # 4b. 품질 게이트(엄격 + 사실 검증)
-echo "[$(date '+%H:%M:%S')] Step 4b: Content gate (publish)..."
+set_status "running: content gate"
+log "Step 4b: Content gate (publish)..."
 if ! pnpm content:gate:publish; then
     echo "❌ Gate failed. Aborting publish."
     exit 1
 fi
 
 # 5. 이미지 생성
-echo "[$(date '+%H:%M:%S')] Step 5: Generating images..."
+set_status "running: generate images"
+log "Step 5: Generating images..."
 ENABLE_IMAGE_GENERATION=true pnpm generate-image || echo "Image warning"
 
 # 5b. 빌드(옵션)
-if [ "${AUTO_PUBLISH_SKIP_BUILD}" != "true" ]; then
-    echo "[$(date '+%H:%M:%S')] Step 5b: Building site..."
+if [ "${AUTO_PUBLISH_SKIP_BUILD:-}" != "true" ]; then
+    set_status "running: build"
+    log "Step 5b: Building site..."
     pnpm build || { echo "❌ Build failed. Aborting publish."; exit 1; }
 fi
 
 # 6. 변경사항 확인 및 커밋
-echo "[$(date '+%H:%M:%S')] Step 6: Checking for changes..."
+set_status "running: commit/push"
+log "Step 6: Checking for changes..."
 
 if git diff --quiet && git diff --cached --quiet; then
     echo "No changes to commit"
-    echo "completed: no changes" > "$STATUS_FILE"
+    set_status "completed: no changes"
 else
     # 새 글만 커밋
     git add apps/web/content/posts/ apps/web/public/images/posts/
@@ -135,17 +233,21 @@ else
 Automated publish by auto-publish.sh
 $(date '+%Y-%m-%d %H:%M')"
 
-        echo "[$(date '+%H:%M:%S')] Step 7: Pushing to remote..."
-        git push
+        log "Step 7: Pushing to remote..."
+        if ! run_timeout 300 git push; then
+          log "❌ Push failed (commit preserved locally)."
+          set_status "blocked: push failed"
+          exit 0
+        fi
 
-        echo "[$(date '+%H:%M:%S')] SUCCESS: Published $SLUG"
-        echo "published: $SLUG" > "$STATUS_FILE"
+        log "SUCCESS: Published $SLUG"
+        set_status "published: $SLUG"
     else
         echo "No new articles to publish"
-        echo "completed: no new articles" > "$STATUS_FILE"
+        set_status "completed: no new articles"
     fi
 fi
 
-echo "[$(date '+%H:%M:%S')] Auto-publish completed"
-echo "completed" > "$STATUS_FILE"
+log "Auto-publish completed"
+set_status "completed"
 echo ""

@@ -462,8 +462,15 @@ function stripInlineReferences(content: string): string {
 function appendSources(locale: 'ko' | 'en', content: string, topic: ResearchedTopic): string {
   const cleaned = stripInlineReferences(content);
   const allSources = topic.findings.flatMap(f => f.sources);
+  const primarySourceTitle = (() => {
+    try {
+      return new URL(topic.sourceUrl).hostname.replace(/^www\./, '');
+    } catch {
+      return 'Source';
+    }
+  })();
   const primarySource = topic.sourceUrl
-    ? createVerifiedSource(topic.sourceUrl, topic.sourceName || 'Source')
+    ? createVerifiedSource(topic.sourceUrl, primarySourceTitle)
     : null;
   const uniqueSources = [
     ...new Map(

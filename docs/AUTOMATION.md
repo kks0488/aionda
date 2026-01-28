@@ -17,7 +17,8 @@
 - 마지막 실행 시각: `/tmp/aionda-auto-publish-last-run.txt`
 - 중복 실행 방지 락: `/tmp/aionda-auto-publish.lock`
 - 상태: `/tmp/aionda-auto-publish-status.txt`
-  - 예: `published: <slug>` / `completed` / `completed: no changes` / `skipped: dirty worktree` / `failed: exit=<code>`
+  - 예: `published: <slug>` / `completed` / `completed: no changes` / `skipped: dirty worktree` / `failed: ...` / `blocked: ...`
+  - `blocked:`는 **데이터 유실 방지용 보호 상태**입니다. (예: `git push` 실패 시 로컬 커밋을 유지하고 이번 실행만 스킵)
 
 ## “파이프라인이 안 도는 것 같다” 체크리스트
 

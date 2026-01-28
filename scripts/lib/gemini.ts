@@ -56,9 +56,52 @@ const GEMINI_SEARCH_TIMEOUT_MS = Number.parseInt(
 
 const URL_VALIDATION_CACHE = new Map<string, boolean>();
 
+type SearchSource = { url: string; title: string; snippet?: string; tier?: string };
+type UrlTitle = { url: string; title: string };
+
 function isAbortError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   return 'name' in error && (error as { name?: unknown }).name === 'AbortError';
+}
+
+function extractErrorText(error: unknown): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isRetryableGeminiError(error: unknown): { retryable: boolean; reason: string } {
+  if (isAbortError(error)) return { retryable: true, reason: 'timeout' };
+
+  const text = extractErrorText(error);
+  const lower = text.toLowerCase();
+
+  // Do not retry obvious auth/config mistakes.
+  if (/\b401\b|\b403\b|api key|unauthorized|permission|forbidden|invalid api key/i.test(lower)) {
+    return { retryable: false, reason: 'auth/config' };
+  }
+
+  // Retry: rate limits / quota.
+  if (/\b429\b|too many requests|rate limit|quota|resource_exhausted/i.test(lower)) {
+    return { retryable: true, reason: 'rate_limit' };
+  }
+
+  // Retry: transient network-ish failures.
+  if (/(fetch failed|socket hang up|econnreset|etimedout|eai_again|enotfound|econnrefused)/i.test(lower)) {
+    return { retryable: true, reason: 'network' };
+  }
+
+  // Retry: transient server errors.
+  if (/\b5\d\d\b|service unavailable|internal|unavailable|backend error|temporar/i.test(lower)) {
+    return { retryable: true, reason: 'server' };
+  }
+
+  return { retryable: false, reason: 'non_retryable' };
 }
 
 function sleep(ms: number) {
@@ -75,13 +118,16 @@ async function generateWithRetry<T>(
       return await fn();
     } catch (error) {
       lastError = error;
-      if (isAbortError(error) && attempt < retries) {
-        const base = Math.min(30_000, 1500 * 2 ** attempt);
-        const jitter = Math.floor(Math.random() * 400);
+      const verdict = isRetryableGeminiError(error);
+      if (verdict.retryable && attempt < retries) {
+        const base = Math.min(60_000, 1500 * 2 ** attempt);
+        const jitter = Math.floor(Math.random() * 600);
         const backoffMs = base + jitter;
+        const message = error instanceof Error ? error.message : extractErrorText(error);
         console.warn(
-          `[Gemini] ${label} timed out (AbortError). Retrying after ${backoffMs}ms... (${attempt + 1}/${retries})`
+          `[Gemini] ${label} failed (${verdict.reason}). Retrying after ${backoffMs}ms... (${attempt + 1}/${retries})`
         );
+        if (message) console.warn(`[Gemini] ${label} error: ${message}`.slice(0, 500));
         await sleep(backoffMs);
         continue;
       }
@@ -265,7 +311,7 @@ ${question}
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
 
-      const rawSources = (parsed.sources || [])
+      const rawSources: SearchSource[] = (parsed.sources || [])
         .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
         .map((s: any) => ({
           url: String(s.url),
@@ -273,13 +319,13 @@ ${question}
           snippet: typeof s.snippet === 'string' ? s.snippet : undefined,
         }));
 
-      const normalized = await mapWithConcurrency(rawSources, 3, async (source) => {
+      const normalized = await mapWithConcurrency<SearchSource, SearchSource>(rawSources, 3, async (source) => {
         const url = await normalizeSourceUrl(source.url);
         const tier = classifySource(url);
         return { ...source, url, tier };
       });
 
-      const validated = await mapWithConcurrency(normalized, 3, async (source) => {
+      const validated = await mapWithConcurrency<SearchSource, SearchSource | null>(normalized, 3, async (source) => {
         const ok = await isUrlReachable(source.url);
         return ok ? source : null;
       });
@@ -289,12 +335,14 @@ ${question}
       let confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0.5;
       if (finalSources.length === 0) confidence = Math.min(confidence, 0.2);
       if (finalSources.length > 0 && !hasTrusted) confidence = Math.min(confidence, 0.75);
+      if (!Number.isFinite(confidence)) confidence = 0;
+      confidence = Math.max(0, Math.min(1, confidence));
 
       return {
-        answer: parsed.answer || 'No answer found',
+        answer: String(parsed.answer || 'No answer found'),
         confidence,
         sources: finalSources,
-        unverified: parsed.unverified || [],
+        unverified: Array.isArray(parsed.unverified) ? parsed.unverified.map(String) : [],
       };
     }
 
@@ -393,14 +441,14 @@ ${contextSnippet}
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
 
-      const rawSources = (parsed.sources || [])
+      const rawSources: UrlTitle[] = (parsed.sources || [])
         .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
         .map((s: any) => ({
           url: String(s.url),
           title: String(s.title || 'Unknown'),
         }));
 
-      const normalized = await mapWithConcurrency(rawSources, 3, async (source) => ({
+      const normalized = await mapWithConcurrency<UrlTitle, UrlTitle>(rawSources, 3, async (source) => ({
         ...source,
         url: await normalizeSourceUrl(source.url),
       }));
@@ -409,13 +457,21 @@ ${contextSnippet}
         createVerifiedSource(s.url, s.title)
       );
 
-      const meetsThreshold = parsed.confidence >= 0.9;
+      let confidence = typeof parsed.confidence === 'number' ? parsed.confidence : Number(parsed.confidence);
+      if (!Number.isFinite(confidence)) confidence = 0.5;
+      confidence = Math.max(0, Math.min(1, confidence));
+      const meetsThreshold = confidence >= 0.9;
+      const verified = Boolean(parsed.verified) && meetsThreshold;
+      const correctedText =
+        typeof parsed.correctedText === 'string' && parsed.correctedText.trim().length > 0
+          ? parsed.correctedText.trim()
+          : undefined;
 
       return {
-        verified: meetsThreshold ? parsed.verified : false,
-        confidence: parsed.confidence,
-        notes: parsed.notes || '',
-        correctedText: parsed.correctedText,
+        verified,
+        confidence,
+        notes: String(parsed.notes || ''),
+        correctedText,
         sources,
         strategy,
       };

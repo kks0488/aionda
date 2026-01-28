@@ -194,7 +194,7 @@ function loadRawPosts(): UnifiedPost[] {
 
   return readdirSync(RAW_DIR)
     .filter(f => f.endsWith('.json') && !f.startsWith('._'))
-    .map(f => {
+    .map((f): UnifiedPost | null => {
       try {
         const data = JSON.parse(readFileSync(join(RAW_DIR, f), 'utf-8'));
         return {

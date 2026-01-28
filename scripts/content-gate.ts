@@ -81,10 +81,13 @@ function readLastWrittenPostFiles(): { exists: boolean; files: string[] } {
   try {
     const raw = fs.readFileSync(lastWrittenPath, 'utf8');
     const parsed = JSON.parse(raw);
-    const files = Array.isArray(parsed?.files) ? parsed.files.map(String) : [];
+    const files: string[] = Array.isArray(parsed?.files)
+      ? (parsed.files as unknown[]).map(String)
+      : [];
     const existing = files
-      .filter((f) => typeof f === 'string' && f.trim().length > 0)
-      .filter((f) => {
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0)
+      .filter((f: string) => {
         const abs = path.isAbsolute(f) ? f : path.join(repoRoot, f);
         return fs.existsSync(abs);
       });

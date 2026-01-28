@@ -8,6 +8,7 @@
 const MEMU_API_URL = process.env.MEMU_API_URL || 'http://localhost:8100';
 const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 30000);
 const MEMU_HEALTH_TIMEOUT_MS = Number(process.env.MEMU_HEALTH_TIMEOUT_MS || 2000);
+const MEMU_MAX_RETRIES = 1;
 
 async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEMU_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -22,6 +23,79 @@ async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEM
 function isAbortError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   return 'name' in error && (error as { name?: unknown }).name === 'AbortError';
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function extractErrorText(error: unknown): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (isAbortError(error)) return true;
+  const msg = extractErrorText(error).toLowerCase();
+  return /(fetch failed|socket hang up|econnreset|etimedout|eai_again|enotfound|econnrefused)/i.test(msg);
+}
+
+async function fetchJsonWithRetry<T>(
+  url: string,
+  init: RequestInit | undefined,
+  {
+    timeoutMs,
+    retries,
+    label,
+  }: { timeoutMs: number; retries: number; label: string }
+): Promise<T | null> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, init, timeoutMs);
+      const text = await response.text();
+
+      if (!response.ok) {
+        if (isRetryableStatus(response.status) && attempt < retries) {
+          const backoffMs = Math.min(10_000, 400 * 2 ** attempt) + Math.floor(Math.random() * 250);
+          await sleep(backoffMs);
+          continue;
+        }
+        console.error(`[memU] ${label} failed: HTTP ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      if (!text.trim()) return null;
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        console.error(`[memU] ${label} returned invalid JSON`);
+        return null;
+      }
+    } catch (error) {
+      lastError = error;
+      if (isRetryableNetworkError(error) && attempt < retries) {
+        const backoffMs = Math.min(10_000, 400 * 2 ** attempt) + Math.floor(Math.random() * 250);
+        await sleep(backoffMs);
+        continue;
+      }
+      console.error(`[memU] ${label} error:`, error);
+      return null;
+    }
+  }
+
+  if (lastError) console.error(`[memU] ${label} failed after retries:`, lastError);
+  return null;
 }
 
 interface MemorizeRequest {
@@ -75,9 +149,12 @@ interface RetrieveResponse {
  */
 export async function checkMemuHealth(): Promise<boolean> {
   try {
-    const response = await fetchWithTimeout(`${MEMU_API_URL}/health`, undefined, MEMU_HEALTH_TIMEOUT_MS);
-    const data = await response.json();
-    return data.status === 'ok';
+    const data = await fetchJsonWithRetry<{ status?: string }>(
+      `${MEMU_API_URL}/health`,
+      undefined,
+      { timeoutMs: MEMU_HEALTH_TIMEOUT_MS, retries: 0, label: 'health' }
+    );
+    return data?.status === 'ok';
   } catch {
     console.warn('[memU] Server not available');
     return false;
@@ -89,23 +166,20 @@ export async function checkMemuHealth(): Promise<boolean> {
  */
 export async function memorize(request: MemorizeRequest): Promise<MemorizeResponse | null> {
   try {
-    const response = await fetchWithTimeout(`${MEMU_API_URL}/memorize`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: request.content,
-        content_type: request.content_type || 'document',
-        user_id: request.user_id || 'aionda',
-        metadata: request.metadata || {},
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('[memU] Memorize failed:', response.statusText);
-      return null;
-    }
-
-    return await response.json();
+    return await fetchJsonWithRetry<MemorizeResponse>(
+      `${MEMU_API_URL}/memorize`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: request.content,
+          content_type: request.content_type || 'document',
+          user_id: request.user_id || 'aionda',
+          metadata: request.metadata || {},
+        }),
+      },
+      { timeoutMs: MEMU_TIMEOUT_MS, retries: MEMU_MAX_RETRIES, label: 'memorize' }
+    );
   } catch (error) {
     if (isAbortError(error)) {
       console.warn(`[memU] Memorize timed out after ${MEMU_TIMEOUT_MS}ms`);
@@ -125,22 +199,19 @@ export async function memorize(request: MemorizeRequest): Promise<MemorizeRespon
  */
 export async function checkSimilar(request: CheckSimilarRequest): Promise<CheckSimilarResponse | null> {
   try {
-    const response = await fetchWithTimeout(`${MEMU_API_URL}/check-similar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: request.content,
-        user_id: request.user_id || 'aionda',
-        threshold: request.threshold || 0.85,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('[memU] Check similar failed:', response.statusText);
-      return null;
-    }
-
-    return await response.json();
+    return await fetchJsonWithRetry<CheckSimilarResponse>(
+      `${MEMU_API_URL}/check-similar`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: request.content,
+          user_id: request.user_id || 'aionda',
+          threshold: request.threshold || 0.85,
+        }),
+      },
+      { timeoutMs: MEMU_TIMEOUT_MS, retries: MEMU_MAX_RETRIES, label: 'check-similar' }
+    );
   } catch (error) {
     if (isAbortError(error)) {
       console.warn(`[memU] Check-similar timed out after ${MEMU_TIMEOUT_MS}ms`);
@@ -156,22 +227,19 @@ export async function checkSimilar(request: CheckSimilarRequest): Promise<CheckS
  */
 export async function retrieve(request: RetrieveRequest): Promise<RetrieveResponse | null> {
   try {
-    const response = await fetchWithTimeout(`${MEMU_API_URL}/retrieve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: request.query,
-        user_id: request.user_id || 'aionda',
-        top_k: request.top_k || 5,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('[memU] Retrieve failed:', response.statusText);
-      return null;
-    }
-
-    return await response.json();
+    return await fetchJsonWithRetry<RetrieveResponse>(
+      `${MEMU_API_URL}/retrieve`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: request.query,
+          user_id: request.user_id || 'aionda',
+          top_k: request.top_k || 5,
+        }),
+      },
+      { timeoutMs: MEMU_TIMEOUT_MS, retries: MEMU_MAX_RETRIES, label: 'retrieve' }
+    );
   } catch (error) {
     if (isAbortError(error)) {
       console.warn(`[memU] Retrieve timed out after ${MEMU_TIMEOUT_MS}ms`);
