@@ -291,10 +291,12 @@ async function polishArticleMarkdown(locale: 'ko' | 'en', markdown: string): Pro
         'Replace "must" with "should" or "can" where possible.',
         'Avoid hype words (e.g., revolutionary, groundbreaking, massive).',
         'Ensure a "## TL;DR" section exists near the top with exactly 3 bullet points summarizing existing content.',
+        'Ensure TL;DR bullets answer: (1) what changed / what this is, (2) why it matters, (3) what the reader should do next.',
         'Include exactly one clearly labeled hypothetical scene paragraph near the top starting with "Example:" (do not present it as real).',
         'The "Example:" paragraph must not contain any numeric digits (0-9) or specific counts.',
         'Avoid relative date words like "today/yesterday/tomorrow" outside the checklist; keep explicit dates as dates.',
         'Under "## Practical Application", include "**Checklist for Today:**" with exactly 3 bullet points (one sentence each). Merge or rewrite if needed.',
+        'Avoid starting the first narrative sentence after TL;DR with "X announced/released/updated". Start with the user-visible change or implication instead.',
         'Do NOT introduce new factual claims, numbers, dates, names, or sources. You may add/adjust the labeled hypothetical example and checklist items.',
       ].join('\n- ')
     : [
@@ -302,10 +304,12 @@ async function polishArticleMarkdown(locale: 'ko' | 'en', markdown: string): Pro
         '근거 없는 단정/과장 표현을 제거한다.',
         '금지 표현을 피한다: "매우", "다양한", "혁신적", "획기적", "완벽", "절대".',
         '"## 세 줄 요약" 섹션을 상단에 추가하고, 기존 본문만 바탕으로 3개 불릿으로 요약한다.',
+        '세 줄 요약 3개 불릿은 (1) 무슨 변화/핵심이슈인가, (2) 왜 중요한가, (3) 독자는 뭘 하면 되나 순서로 쓴다.',
         '도입부에 가상의 장면 1개를 넣되, 반드시 "예:"로 시작하는 별도 문단으로 작성한다.',
         '"예:" 문단에는 숫자(0-9)를 쓰지 않는다. (사실처럼 보이기 때문)',
         '체크리스트를 제외하고 "오늘/어제/내일/이번 주" 같은 상대적 날짜 표현을 쓰지 말고, 본문에 있는 날짜를 그대로 쓴다.',
         '"## 실전 적용"에 "**오늘 바로 할 일:**" 체크리스트를 넣고, 정확히 3개 불릿(각 1문장)로 쓴다.',
+        '"## 현황"의 첫 문장을 "~가 발표했다"로 시작하지 말고, 변화/영향을 먼저 말한다.',
         '새로운 사실 주장(수치/날짜/출처/고유명사)을 절대 추가하지 않는다. 다만 예시/체크리스트는 일반론으로만 보완할 수 있다.',
       ].join('\n- ');
 
