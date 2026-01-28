@@ -110,6 +110,14 @@ JSON만 응답하세요.`;
 
 export const WRITE_ARTICLE_PROMPT = `당신은 최고의 AI 기술 기자입니다. The Verge, TechCrunch 수준의 글을 씁니다.
 
+## 에디토리얼 시리즈:
+{series}
+
+## 시리즈 가이드 (출력에는 라벨을 쓰지 마라):
+- K‑AI Pulse (Signal Brief): 빠르게 읽히는 “신호” 전달. 문단을 짧게, 변화/의미/행동을 선명하게.
+- Explainer (Pillar/Evergreen): 처음 읽는 사람 기준으로 정의→맥락→오해→실전. 검색 유입을 염두에 둔다.
+- Deep Dive (Decision Memo): 조건(If/Then)과 트레이드오프를 명확히. 찬반/한계를 균형 있게.
+
 ## 토픽:
 {topic}
 

@@ -156,6 +156,8 @@ interface ArticleMetadata {
   tags: string[];
 }
 
+type EditorialSeries = 'k-ai-pulse' | 'explainer' | 'deep-dive';
+
 function formatFindings(findings: ResearchFinding[]): string {
   const usableFindings = findings
     .map((finding) => ({
@@ -202,13 +204,44 @@ function isPublishable(topic: ResearchedTopic): boolean {
   return topic.overallConfidence >= MIN_CONFIDENCE && (hasTrustedOverall || hasTrustedPrimary);
 }
 
-async function writeArticle(topic: ResearchedTopic): Promise<string> {
+function selectEditorialSeries(topic: ResearchedTopic): EditorialSeries {
+  const combined = [
+    topic.title,
+    topic.description,
+    ...(topic.keyInsights || []),
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const pulseSignals = [
+    /발표|출시|업데이트|공개|런칭|릴리즈|패치|버전|정책|규제|법|표준/i,
+    /\b(announce|release|launch|update|policy|regulat|ban|standard|api|sdk|pricing)\b/i,
+  ];
+
+  const explainerSignals = [
+    /개념|정리|설명|원리|가이드|입문|튜토리얼/i,
+    /\b(how to|what is|explained|primer|guide|why)\b/i,
+  ];
+
+  if (pulseSignals.some((re) => re.test(combined))) return 'k-ai-pulse';
+  if (explainerSignals.some((re) => re.test(combined))) return 'explainer';
+  return 'deep-dive';
+}
+
+function formatSeriesForPrompt(series: EditorialSeries): string {
+  if (series === 'k-ai-pulse') return 'K‑AI Pulse (Signal Brief)';
+  if (series === 'explainer') return 'Explainer (Pillar/Evergreen)';
+  return 'Deep Dive (Decision Memo)';
+}
+
+async function writeArticle(topic: ResearchedTopic, series: EditorialSeries): Promise<string> {
   const findingsText = formatFindings(topic.findings);
   const primaryExcerpt = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
   const primaryTitle = primaryExcerpt?.title || '';
   const primaryText = primaryExcerpt?.excerpt || 'N/A';
 
   const prompt = WRITE_ARTICLE_PROMPT
+    .replace('{series}', formatSeriesForPrompt(series))
     .replace('{topic}', `${topic.title}\n${topic.description}\n\nKey Insights:\n${topic.keyInsights.map(i => `- ${i}`).join('\n')}`)
     .replace('{sourceTitle}', primaryTitle)
     .replace('{sourceUrl}', String(topic.sourceUrl || primaryExcerpt?.url || ''))
@@ -594,6 +627,9 @@ async function main() {
     console.log(`   Confidence: ${Math.round(topic.overallConfidence * 100)}%`);
 
     try {
+      const series = selectEditorialSeries(topic);
+      console.log(`   🧭 Series: ${series}`);
+
       // memU 중복 체크
       console.log('   🔍 Checking for duplicates (memU)...');
       const duplicateCheck = await checkBeforePublish(
@@ -609,13 +645,15 @@ async function main() {
 
       // Write Korean article
       console.log('   📝 Writing Korean article...');
-      let articleKo = await writeArticle(topic);
+      let articleKo = await writeArticle(topic, series);
       articleKo = await polishArticleMarkdown('ko', articleKo);
       articleKo = appendSources('ko', articleKo, topic);
 
       // Generate metadata
       console.log('   📰 Generating metadata...');
       const metadata = await generateMetadata(articleKo);
+      const seriesTag = series;
+      metadata.tags = Array.from(new Set([...(metadata.tags || []), seriesTag]));
 
       // Translate to English
       console.log('   🌐 Translating to English...');
