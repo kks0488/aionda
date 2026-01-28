@@ -21,6 +21,13 @@ STATUS_FILE="/tmp/aionda-auto-publish-status.txt"
 timestamp() { date '+%Y-%m-%d %H:%M:%S'; }
 log() { echo "[$(timestamp)] $*"; }
 set_status() { echo "$*" > "$STATUS_FILE"; }
+set_ready() {
+  if [ "$#" -eq 0 ]; then
+    set_status "ready"
+  else
+    set_status "ready: $*"
+  fi
+}
 
 run_timeout() {
   local seconds="$1"
@@ -116,7 +123,7 @@ if ! git diff --quiet -- . ':(exclude)docker-compose.yml' \
   || ! git diff --cached --quiet -- . ':(exclude)docker-compose.yml' \
   || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     log "Worktree is dirty. Skipping auto-publish to avoid mixing dev changes."
-    set_status "skipped: dirty worktree"
+    set_ready "last=skipped: dirty worktree"
     exit 0
 fi
 
@@ -126,7 +133,7 @@ export GIT_TERMINAL_PROMPT=0
 branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
 if [ "$branch" != "main" ]; then
   log "Not on branch 'main' (current: ${branch:-unknown}). Skipping."
-  set_status "skipped: not on main"
+  set_ready "last=skipped: not on main"
   exit 0
 fi
 
@@ -163,7 +170,7 @@ if [ "${ahead:-0}" -eq 0 ] && [ "${behind:-0}" -gt 0 ]; then
   git reset --hard origin/main >/dev/null 2>&1
 fi
 
-set_status "synced: origin/main"
+set_status "running: synced origin/main"
 
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -220,7 +227,7 @@ log "Step 6: Checking for changes..."
 
 if git diff --quiet && git diff --cached --quiet; then
     echo "No changes to commit"
-    set_status "completed: no changes"
+    set_ready "last=no changes"
 else
     # 새 글만 커밋
     git add apps/web/content/posts/ apps/web/public/images/posts/
@@ -241,13 +248,16 @@ $(date '+%Y-%m-%d %H:%M')"
         fi
 
         log "SUCCESS: Published $SLUG"
-        set_status "published: $SLUG"
+        set_ready "last=published: $SLUG"
     else
         echo "No new articles to publish"
-        set_status "completed: no new articles"
+        set_ready "last=no new articles"
     fi
 fi
 
 log "Auto-publish completed"
-set_status "completed"
+current="$(cat "$STATUS_FILE" 2>/dev/null || true)"
+if [ "$current" = "running" ] || [[ "$current" == running:* ]]; then
+  set_ready "last=completed"
+fi
 echo ""

@@ -19,8 +19,8 @@
 - 상태: `/tmp/aionda-auto-publish-status.txt`
   - 예:
     - `running` / `running: <stage>` (예: `running: syncing`, `running: content gate`, `running: build`)
-    - `published: <slug>` / `completed` / `completed: no changes` / `completed: no new articles`
-    - `skipped: dirty worktree` / `skipped: not on main`
+    - `ready` / `ready: last=<result>` (예: `ready: last=published: <slug>`, `ready: last=no changes`, `ready: last=no new articles`)
+    - `ready: last=skipped: dirty worktree` / `ready: last=skipped: not on main`
     - `blocked: ...` (예: `blocked: push failed`, `blocked: local ahead=<n> push failed`)
     - `failed: ...` (예: `failed: exit=1 line=123 cmd=...`, `failed: signal=TERM`)
   - `blocked:`는 **데이터 유실 방지용 보호 상태**입니다. (예: `git push` 실패 시 로컬 커밋을 유지하고 이번 실행만 스킵)
