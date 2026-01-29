@@ -25,6 +25,17 @@
    - Install Command: `pnpm install --frozen-lockfile`
    - Build Command: `pnpm build` (root의 `pnpm --filter web build`를 사용)
 
+### GitHub 저장소 Private 전환 (운영 영향)
+
+결론: **Vercel은 GitHub Private repo에서도 정상 배포가 가능**합니다. 다만 전제 조건이 있습니다.
+
+- **필수 전제**: Vercel의 GitHub Integration(“Vercel” GitHub App)이 해당 repo에 접근 권한을 유지해야 합니다.
+- **전환 후 체크**: Private로 전환한 뒤 `main`에 커밋을 1개 푸시해서 자동 배포가 트리거되는지 확인하세요.
+- **실패 시 대응**: Vercel Dashboard → Project → Settings → Git에서 연결 상태를 확인하고, GitHub App 권한(Selected repositories/All) 범위를 재승인합니다.
+
+주의:
+- GitHub Organization 소유의 private repo를 Vercel에서 운영할 때는 **플랜/권한/커밋 작성자 권한** 조합에 따라 제약이 생길 수 있습니다. (개인 계정 소유 repo는 영향이 상대적으로 적습니다.)
+
 ### 2) 환경변수
 
 Vercel Dashboard → Project → Settings → Environment Variables
@@ -85,6 +96,7 @@ Admin 기능을 쓰는 경우에만 설정하세요.
 ## 도메인 / SEO
 
 - 사이트맵: `/sitemap.xml`
+- robots.txt: `/robots.txt`
 - RSS: `/feed.xml`
 
 Vercel/Coolify 모두 도메인 연결 후 Google Search Console에 사이트맵을 제출하면 됩니다.

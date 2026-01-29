@@ -28,22 +28,22 @@ export async function GET() {
     </image>
     ${allPosts.slice(0, 50).map(post => `
     <item>
-      <title><![CDATA[${post.title}]]></title>
+      <title><![CDATA[${cdata(post.title)}]]></title>
       <link>${BASE_URL}/${post.locale}/posts/${post.slug}</link>
       <guid isPermaLink="true">${BASE_URL}/${post.locale}/posts/${post.slug}</guid>
-      <description><![CDATA[${post.description}]]></description>
+      <description><![CDATA[${cdata(post.description)}]]></description>
       <pubDate>${new Date(post.date).toUTCString()}</pubDate>
       <dc:creator><![CDATA[${cdata(post.byline || post.author || 'AI온다')}]]></dc:creator>
-      <category>${post.locale === 'ko' ? '한국어' : 'English'}</category>
-      ${post.tags.map(tag => `<category>${tag}</category>`).join('\n      ')}
+      <category><![CDATA[${post.locale === 'ko' ? '한국어' : 'English'}]]></category>
+      ${post.tags.map(tag => `<category><![CDATA[${cdata(tag)}]]></category>`).join('\n      ')}
     </item>`).join('')}
   </channel>
 </rss>`;
 
   return new Response(feed, {
     headers: {
-      'Content-Type': 'application/xml',
-      'Cache-Control': 's-maxage=3600, stale-while-revalidate',
+      'Content-Type': 'application/rss+xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
     },
   });
 }

@@ -5,12 +5,36 @@ import { BASE_URL } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
+  const allPosts = [...getPosts('en'), ...getPosts('ko')];
+  const siteLastModified =
+    allPosts.length > 0
+      ? new Date(
+          Math.max(
+            ...allPosts.map((post) => {
+              const t = new Date(post.date).getTime();
+              return Number.isNaN(t) ? 0 : t;
+            })
+          )
+        )
+      : new Date();
 
   // Home pages for each locale
   for (const locale of locales) {
+    const localePosts = getPosts(locale as Locale);
+    const localeLastModified =
+      localePosts.length > 0
+        ? new Date(
+            Math.max(
+              ...localePosts.map((post) => {
+                const t = new Date(post.date).getTime();
+                return Number.isNaN(t) ? 0 : t;
+              })
+            )
+          )
+        : siteLastModified;
     entries.push({
       url: `${BASE_URL}/${locale}`,
-      lastModified: new Date(),
+      lastModified: localeLastModified,
       changeFrequency: 'daily',
       priority: 1.0,
     });
@@ -18,14 +42,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Posts archive page
     entries.push({
       url: `${BASE_URL}/${locale}/posts`,
-      lastModified: new Date(),
+      lastModified: localeLastModified,
       changeFrequency: 'daily',
       priority: 0.8,
     });
 
     // Individual posts
-    const posts = getPosts(locale as Locale);
-    for (const post of posts) {
+    for (const post of localePosts) {
       entries.push({
         url: `${BASE_URL}/${locale}/posts/${post.slug}`,
         lastModified: new Date(post.date),
@@ -41,7 +64,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     for (const locale of locales) {
       entries.push({
         url: `${BASE_URL}/${locale}/${page}`,
-        lastModified: new Date(),
+        lastModified: siteLastModified,
         changeFrequency: 'monthly',
         priority: 0.5,
       });
