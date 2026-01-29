@@ -508,6 +508,15 @@ function appendSources(locale: 'ko' | 'en', content: string, topic: ResearchedTo
 
 async function main() {
   const args = process.argv.slice(2);
+  const limitArg = args.find((a) => a.startsWith('--limit='));
+  const limitFromCli = limitArg ? parseInt(limitArg.split('=')[1], 10) : undefined;
+  const limitFromEnv = process.env.WRITE_ARTICLE_LIMIT ? parseInt(process.env.WRITE_ARTICLE_LIMIT, 10) : undefined;
+  const maxArticlesRaw = Number.isFinite(limitFromCli)
+    ? (limitFromCli as number)
+    : Number.isFinite(limitFromEnv)
+      ? (limitFromEnv as number)
+      : undefined;
+  const maxArticles = Number.isFinite(maxArticlesRaw) && (maxArticlesRaw as number) > 0 ? (maxArticlesRaw as number) : undefined;
   const idArg = args.find((a) => a.startsWith('--id='));
   const targetIds = idArg
     ? idArg
@@ -527,6 +536,10 @@ async function main() {
   if (!existsSync(RESEARCHED_DIR)) {
     console.log('❌ No researched topics found. Run `pnpm research-topic` first.');
     process.exit(1);
+  }
+
+  if (maxArticles) {
+    console.log(`📌 Write limit: ${maxArticles} article(s)\n`);
   }
 
   const enDir = join(POSTS_DIR, 'en');
@@ -596,6 +609,8 @@ async function main() {
   }> = [];
 
   for (const { file, topic } of researchedFiles) {
+    if (maxArticles && written >= maxArticles) break;
+
     console.log(`📋 Topic: "${topic.title}"`);
     console.log(`   Confidence: ${Math.round(topic.overallConfidence * 100)}%`);
 

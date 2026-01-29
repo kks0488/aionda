@@ -315,6 +315,67 @@ export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/sh
 source /home/kkaemo/.bashrc 2>/dev/null || true
 source "$REPO_ROOT/.env.local" 2>/dev/null || true
 
+# Publish slot state (outside the repo)
+STATE_ROOT="$(pick_candidate_root)"
+AUTO_PUBLISH_STATE_DIR="${AUTO_PUBLISH_STATE_DIR:-$STATE_ROOT/state}"
+PUBLISH_SLOT_FILE="$AUTO_PUBLISH_STATE_DIR/publish-slot.txt"
+mkdir -p "$AUTO_PUBLISH_STATE_DIR"
+
+read_int_file() {
+  local path="$1"
+  local fallback="${2:-0}"
+  if [ ! -f "$path" ]; then
+    echo "$fallback"
+    return 0
+  fi
+  local raw
+  raw="$(cat "$path" 2>/dev/null | tr -d '[:space:]' || true)"
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    echo "$raw"
+  else
+    echo "$fallback"
+  fi
+}
+
+write_int_file() {
+  local path="$1"
+  local value="$2"
+  printf '%s\n' "$value" > "$path"
+}
+
+read_last_extracted_count() {
+  local path="$REPO_ROOT/.vc/last-extracted-topics.json"
+  if [ ! -f "$path" ]; then
+    echo 0
+    return 0
+  fi
+
+  node - <<'NODE' "$path" 2>/dev/null || echo 0
+const fs = require('fs');
+const p = process.argv[1];
+try {
+  const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+  const n = Number(j && j.extractedCount);
+  console.log(Number.isFinite(n) ? n : 0);
+} catch {
+  console.log(0);
+}
+NODE
+}
+
+slot="$(read_int_file "$PUBLISH_SLOT_FILE" 0)"
+trend_every="${AUTO_PUBLISH_TREND_EVERY:-3}"
+if ! [[ "$trend_every" =~ ^[0-9]+$ ]] || [ "$trend_every" -le 0 ]; then
+  trend_every=3
+fi
+
+publish_mode="standard"
+if [ $((slot % trend_every)) -eq 0 ]; then
+  publish_mode="trend"
+fi
+
+log "Publish mode: ${publish_mode} (slot=${slot}, every=${trend_every})"
+
 # 1. 크롤링 (DC Inside + RSS)
 set_status "running: crawl dc"
 log "Step 1a: Crawling DC Inside..."
@@ -329,18 +390,47 @@ pnpm crawl-rss || echo "RSS crawl warning"
 set_status "running: extract topics"
 log "Step 2: Extracting topics..."
 EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
-pnpm extract-topics --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-24h}"
+
+if [ "$publish_mode" = "trend" ]; then
+  TREND_LIMIT="${AUTO_PUBLISH_TREND_EXTRACT_LIMIT:-$EXTRACT_LIMIT}"
+  TREND_SINCE="${AUTO_PUBLISH_TREND_SINCE:-2h}"
+  TREND_FALLBACK_SINCE="${AUTO_PUBLISH_TREND_FALLBACK_SINCE:-24h}"
+
+  log "Trend extraction: source=raw since=${TREND_SINCE} limit=${TREND_LIMIT}"
+  pnpm extract-topics --source=raw --since="${TREND_SINCE}" --limit="${TREND_LIMIT}" || echo "Extract warning"
+  extracted_count="$(read_last_extracted_count)"
+  log "Trend extractedCount=${extracted_count}"
+
+  if [ "${extracted_count:-0}" -eq 0 ]; then
+    log "No trend topics in ${TREND_SINCE}. Retrying with since=${TREND_FALLBACK_SINCE}..."
+    pnpm extract-topics --source=raw --since="${TREND_FALLBACK_SINCE}" --limit="${TREND_LIMIT}" || echo "Extract warning"
+    extracted_count="$(read_last_extracted_count)"
+    log "Trend extractedCount=${extracted_count} (fallback)"
+  fi
+
+  if [ "${extracted_count:-0}" -eq 0 ]; then
+    log "No trend topics found. Falling back to standard extraction (since=${STANDARD_SINCE})..."
+    publish_mode="standard_fallback"
+  fi
+fi
+
+if [ "$publish_mode" != "trend" ]; then
+  log "Standard extraction: since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
+  pnpm extract-topics --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+fi
 
 # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
 set_status "running: research topics"
 log "Step 3: Researching topics..."
 RESEARCH_LIMIT="${AUTO_PUBLISH_RESEARCH_LIMIT:-6}"
-pnpm research-topic --limit="${RESEARCH_LIMIT}" || echo "Research warning"
+pnpm research-topic --from-last-extract --limit="${RESEARCH_LIMIT}" || echo "Research warning"
 
 # 4. 글 작성 (memU 중복체크 포함)
 set_status "running: write article"
 log "Step 4: Writing article..."
-pnpm write-article || echo "Write warning"
+WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-1}"
+pnpm write-article --limit="${WRITE_LIMIT}" || echo "Write warning"
 
 # 4b. 품질 게이트(엄격 + 사실 검증)
 set_status "running: content gate"
@@ -385,6 +475,7 @@ else
         git commit -m "auto: 새 글 발행 - ${FIRST_SLUG}${SUFFIX}
 
 Automated publish by auto-publish.sh
+mode=${publish_mode}
 $(date '+%Y-%m-%d %H:%M')"
 
         log "Step 7: Pushing to remote..."
@@ -395,6 +486,9 @@ $(date '+%Y-%m-%d %H:%M')"
         fi
 
         log "SUCCESS: Published ${FIRST_SLUG}${SUFFIX}"
+        next_slot="$((slot + 1))"
+        write_int_file "$PUBLISH_SLOT_FILE" "$next_slot"
+        log "Advanced publish slot: ${slot} -> ${next_slot}"
         set_ready "last=published: ${FIRST_SLUG}${SUFFIX}"
     else
         echo "No new articles to publish"

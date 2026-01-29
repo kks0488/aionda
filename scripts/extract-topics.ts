@@ -116,6 +116,7 @@ interface UnifiedPost {
   // DC Inside specific
   views?: number;
   likes?: number;
+  comments?: number;
 }
 
 interface ExtractedTopic {
@@ -208,6 +209,7 @@ function loadRawPosts(): UnifiedPost[] {
           date: data.date || '',
           views: data.views || 0,
           likes: data.likes || 0,
+          comments: data.comments || 0,
         };
       } catch {
         return null;
@@ -368,6 +370,17 @@ function sortByPriority(posts: UnifiedPost[]): UnifiedPost[] {
     const tierDiff = tierOrder[a.sourceTier] - tierOrder[b.sourceTier];
     if (tierDiff !== 0) return tierDiff;
 
+    // When both are community posts, prioritize "hot" signals (comments/likes/views),
+    // then fall back to recency.
+    if (a.sourceType === 'raw' && b.sourceType === 'raw') {
+      const cDiff = (b.comments || 0) - (a.comments || 0);
+      if (cDiff !== 0) return cDiff;
+      const lDiff = (b.likes || 0) - (a.likes || 0);
+      if (lDiff !== 0) return lDiff;
+      const vDiff = (b.views || 0) - (a.views || 0);
+      if (vDiff !== 0) return vDiff;
+    }
+
     // Then by date (newest first)
     const dateA = parseUnifiedPostDate(a.date || '') || new Date('2000-01-01');
     const dateB = parseUnifiedPostDate(b.date || '') || new Date('2000-01-01');
@@ -489,7 +502,11 @@ async function main() {
     }
     if (post.sourceType === 'raw' && !highSignal) {
       const sample = `${post.title}\n${post.content || ''}`.slice(0, 2000);
-      if (CONSUMER_DRIFT_PATTERNS.some((re) => re.test(sample))) {
+      const highEngagementRaw =
+        Number(post.views || 0) >= 200 ||
+        Number(post.likes || 0) >= 10 ||
+        Number(post.comments || 0) >= 10;
+      if (!highEngagementRaw && CONSUMER_DRIFT_PATTERNS.some((re) => re.test(sample))) {
         console.log('    ⏭️ Skipping: low-signal community tip/review drift');
         skipCounts.lowSignal++;
         console.log('');
