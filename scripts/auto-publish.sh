@@ -42,6 +42,26 @@ run_timeout() {
   fi
 }
 
+push_with_rebase() {
+  if run_timeout 300 git push; then
+    return 0
+  fi
+
+  log "❌ git push failed. Trying fetch+rebase then retry..."
+  if ! run_timeout 180 git fetch origin main; then
+    log "❌ git fetch failed during push recovery"
+    return 1
+  fi
+
+  if ! run_timeout 180 git rebase origin/main; then
+    log "❌ git rebase failed during push recovery"
+    git rebase --abort >/dev/null 2>&1 || true
+    return 1
+  fi
+
+  run_timeout 300 git push
+}
+
 # Candidate pool: leftover untracked outputs from failed runs are preserved here.
 # (Keeps the repo clean so cron can continue.)
 CANDIDATE_POOL_ROOT="/home/kkaemo/aionda-candidate-pool"
@@ -154,7 +174,7 @@ read -r ahead behind < <(git rev-list --left-right --count HEAD...origin/main 2>
 if [ "${ahead:-0}" -gt 0 ]; then
   log "Local branch is ahead of origin/main by ${ahead} commit(s). Attempting push first..."
   set_status "running: pushing pending commits"
-  if ! run_timeout 300 git push; then
+  if ! push_with_rebase; then
     log "❌ Push failed. Leaving local commits intact; skipping this run."
     set_status "blocked: local ahead=${ahead} push failed"
     exit 0
@@ -253,7 +273,7 @@ Automated publish by auto-publish.sh
 $(date '+%Y-%m-%d %H:%M')"
 
         log "Step 7: Pushing to remote..."
-        if ! run_timeout 300 git push; then
+        if ! push_with_rebase; then
           log "❌ Push failed (commit preserved locally)."
           set_status "blocked: push failed"
           exit 0

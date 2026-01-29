@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get('date') || '';
   const tags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
   const score = searchParams.get('score');
+  const bylineRaw = searchParams.get('byline') || '';
+  const byline = bylineRaw.trim().length > 90 ? `${bylineRaw.trim().slice(0, 87)}…` : bylineRaw.trim();
 
   return new ImageResponse(
     (
@@ -86,6 +88,17 @@ export async function GET(request: NextRequest) {
           >
             {title}
           </h1>
+          {byline && (
+            <div
+              style={{
+                color: '#94a3b8',
+                fontSize: 24,
+                marginTop: 24,
+              }}
+            >
+              {byline}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

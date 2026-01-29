@@ -27,6 +27,8 @@ const TAG_ICONS: Record<string, string> = {
   agi: 'psychology',
   llm: 'chat',
   robotics: 'precision_manufacturing',
+  'field-notes': 'sticky_note_2',
+  review: 'rate_review',
   'ai-tools': 'build',
   tutorial: 'school',
   research: 'science',

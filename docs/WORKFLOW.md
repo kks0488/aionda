@@ -9,6 +9,16 @@ Two modes are supported:
 1. **Automatic publishing (production)**: hourly cron runs `scripts/auto-publish.sh`
 2. **Manual run**: run the publish pipeline by hand (recommended for debugging)
 
+## Field Notes (사용기/리뷰)
+
+Field Notes는 “현장 사용기/워크플로우 회고”를 위한 운영 방식입니다.
+
+- 분류: 시리즈 3종(`k-ai-pulse|explainer|deep-dive`) 중 1개 + `field-notes` 태그
+- 표기: `byline`(작성/편집) + `## 공개`(Disclosure) + `## 환경` 섹션 권장
+- 외부 글은 “가공해서 재게시”하지 않고 요약+링크(+짧은 인용)로만 활용
+
+상세 규칙: `docs/FIELD_NOTES.md`
+
 Production pipeline (publish mode):
 
 ```

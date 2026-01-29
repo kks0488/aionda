@@ -11,6 +11,33 @@ import ShareButtons from '@/components/ShareButtons';
 import PostNavigation from '@/components/PostNavigation';
 import type { Locale } from '@/i18n';
 
+function buildOgImageUrl(post: {
+  title: string;
+  date?: string;
+  tags?: string[];
+  verificationScore?: number;
+  byline?: string;
+}): string {
+  const params = new URLSearchParams();
+  params.set('title', post.title);
+
+  const dateValue = typeof post.date === 'string' ? post.date : '';
+  const dateOnly = dateValue.includes('T') ? dateValue.split('T')[0] : dateValue;
+  if (dateOnly) params.set('date', dateOnly);
+
+  const tags = Array.isArray(post.tags) ? post.tags.filter(Boolean).slice(0, 4) : [];
+  if (tags.length > 0) params.set('tags', tags.join(','));
+
+  if (typeof post.verificationScore === 'number' && !Number.isNaN(post.verificationScore)) {
+    params.set('score', String(Math.round(post.verificationScore * 100)));
+  }
+
+  const byline = typeof post.byline === 'string' ? post.byline.trim() : '';
+  if (byline) params.set('byline', byline);
+
+  return `${BASE_URL}/api/og?${params.toString()}`;
+}
+
 export async function generateStaticParams() {
   const enPosts = getPosts('en');
   const koPosts = getPosts('ko');
@@ -36,7 +63,7 @@ export async function generateMetadata({
     if (!otherPost) return { title: 'Not Found' };
 
     const otherUrl = `${BASE_URL}/${otherLocale}/posts/${slug}`;
-    const ogImageUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(otherPost.title)}&date=${otherPost.date}`;
+    const ogImageUrl = buildOgImageUrl(otherPost);
 
     return {
       title: otherPost.title,
@@ -74,7 +101,7 @@ export async function generateMetadata({
   }
 
   const url = `${BASE_URL}/${locale}/posts/${slug}`;
-  const ogImageUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(post.title)}&date=${post.date}`;
+  const ogImageUrl = buildOgImageUrl(post);
   const languageAlternates: Record<string, string> = { [locale]: url };
 
   if (post.alternateLocale) {
@@ -221,7 +248,7 @@ export default async function PostPage({
     datePublished: post.date,
     dateModified: post.date,
     url: `${BASE_URL}/${locale}/posts/${slug}`,
-    image: post.coverImage || `${BASE_URL}/api/og?title=${encodeURIComponent(post.title)}&date=${post.date}`,
+    image: post.coverImage || buildOgImageUrl(post),
     author: {
       '@type': 'Organization',
       name: 'AI온다',
