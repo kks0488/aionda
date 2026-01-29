@@ -456,7 +456,8 @@ fi
 set_status "running: commit/push"
 log "Step 6: Checking for changes..."
 
-if git diff --quiet && git diff --cached --quiet; then
+UNTRACKED_NEW="$(git ls-files --others --exclude-standard -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true)"
+if git diff --quiet && git diff --cached --quiet && [ -z "$UNTRACKED_NEW" ]; then
     echo "No changes to commit"
     set_ready "last=no changes"
 else
