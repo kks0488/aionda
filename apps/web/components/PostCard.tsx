@@ -70,8 +70,14 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
         </div>
 
         <Link href={postHref} className="mt-5 block space-y-3">
-          <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
             <span>{formattedDate}</span>
+            {post.byline && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="truncate">{post.byline}</span>
+              </>
+            )}
             {post.verificationScore !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
@@ -123,8 +129,14 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
         </div>
 
         <Link href={postHref} className="mt-4 block space-y-2">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
             <span>{formattedDate}</span>
+            {post.byline && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="truncate">{post.byline}</span>
+              </>
+            )}
             {post.verificationScore !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
@@ -177,8 +189,14 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
       </div>
 
       <Link href={postHref} className="mt-4 block space-y-2">
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
           <span>{formattedDate}</span>
+          {post.byline && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="truncate">{post.byline}</span>
+            </>
+          )}
           {post.verificationScore !== undefined && (
             <>
               <span className="w-1 h-1 rounded-full bg-slate-300" />

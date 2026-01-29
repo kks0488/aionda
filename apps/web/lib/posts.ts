@@ -12,6 +12,8 @@ export interface Post {
   content: string;
   locale: Locale;
   verificationScore?: number;
+  author?: string;
+  byline?: string;
   sourceUrl?: string;
   sourceId?: string;
   alternateLocale?: string;
@@ -219,6 +221,8 @@ function parsePostFile(
   const { data, content } = matter(fileContents);
   const normalizedTags = normalizeTags(data.tags);
   const coreTags = deriveCoreTags(String(data.title || slug), content, normalizedTags);
+  const author = typeof data.author === 'string' ? data.author.trim() : '';
+  const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
 
   return {
     slug,
@@ -229,6 +233,8 @@ function parsePostFile(
     content,
     locale,
     verificationScore: data.verificationScore,
+    author: author || undefined,
+    byline: byline || undefined,
     sourceUrl: data.sourceUrl,
     sourceId: data.sourceId,
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),

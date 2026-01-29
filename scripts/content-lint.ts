@@ -28,6 +28,9 @@ const ABSOLUTE_PATTERN =
 const TLDR_HEADING = /^##\s*(TL;DR|세\s*줄\s*요약|세줄\s*요약|간단\s*요약)\s*$/im;
 const SOURCES_HEADING = /^##\s*(참고\s*자료|References|Sources)\s*$/im;
 const SERIES_TAGS = ['k-ai-pulse', 'explainer', 'deep-dive'] as const;
+const FIELD_NOTES_TAG = 'field-notes';
+const FIELD_NOTES_DISCLOSURE_HEADING = /^##\s*(Disclosure|공개|면책)\s*$/im;
+const FIELD_NOTES_ENV_HEADING = /^##\s*(환경|Environment|Setup)\s*$/im;
 const KO_EXAMPLE_MARKER = /^\s*예:\s/m;
 const EN_EXAMPLE_MARKER = /^\s*Example:\s/m;
 const KO_CHECKLIST_MARKER = /\*\*오늘\s*바로\s*할\s*일:\*\*/i;
@@ -313,6 +316,7 @@ function main() {
     const frontmatter = (parsed as unknown as { data?: Record<string, unknown> }).data || {};
     const tags = normalizeTags(frontmatter.tags);
     const seriesTags = tags.filter((t) => (SERIES_TAGS as readonly string[]).includes(t));
+    const isFieldNotes = tags.includes(FIELD_NOTES_TAG);
     if (seriesTags.length === 0) {
       issues.push({
         file: rel,
@@ -327,6 +331,39 @@ function main() {
         rule: 'series_tag',
         message: `Multiple series tags found (${seriesTags.join(', ')}). Keep exactly one.`,
       });
+    }
+
+    if (isFieldNotes) {
+      const byline = typeof frontmatter.byline === 'string' ? frontmatter.byline.trim() : '';
+      if (!byline) {
+        issues.push({
+          file: rel,
+          severity: 'warning',
+          rule: 'field_notes_byline',
+          message:
+            'Field Notes requires a transparent byline. Add `byline` in frontmatter (e.g., "작성: 홍길동(대리) · 편집: AI온다").',
+        });
+      }
+
+      if (!FIELD_NOTES_DISCLOSURE_HEADING.test(content)) {
+        issues.push({
+          file: rel,
+          severity: 'suggestion',
+          rule: 'field_notes_disclosure',
+          message:
+            'Field Notes: add a short disclosure section (e.g., "## 공개" or "## Disclosure") to clarify sponsorship/relationship/purchase context.',
+        });
+      }
+
+      if (!FIELD_NOTES_ENV_HEADING.test(content)) {
+        issues.push({
+          file: rel,
+          severity: 'suggestion',
+          rule: 'field_notes_environment',
+          message:
+            'Field Notes: add an environment/setup section (e.g., "## 환경" or "## Environment") so readers can reproduce your context.',
+        });
+      }
     }
 
     // Exclude the Sources/References section from stylistic checks to avoid

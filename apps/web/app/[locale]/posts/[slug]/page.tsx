@@ -288,7 +288,7 @@ export default async function PostPage({
             {/* Header */}
             <div className="mb-8 md:mb-12">
               {/* Meta info */}
-              <div className="flex items-center gap-3 text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
+              <div className="flex items-center gap-3 text-sm font-medium text-slate-500 dark:text-slate-400 mb-4 min-w-0">
                 {post.tags[0] && (
                   <>
                     <Link
@@ -301,6 +301,12 @@ export default async function PostPage({
                   </>
                 )}
                 <span>{formattedDate}</span>
+                {post.byline && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="truncate">{post.byline}</span>
+                  </>
+                )}
                 {post.verificationScore !== undefined && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
