@@ -62,7 +62,7 @@ CNAME www  cname.vercel-dns.com
 ### 4) Search Console (권장)
 
 - 속성 추가 후 사이트맵 제출: `https://aionda.blog/sitemap.xml`
-- 필요하면 `apps/web/app/layout.tsx`에 Google verification 메타를 추가합니다.
+- 필요하면 `NEXT_PUBLIC_GOOGLE_VERIFICATION` 환경변수를 추가합니다. (없으면 verification 메타 태그는 생성되지 않음)
 
 #### Admin API (선택)
 
@@ -100,6 +100,14 @@ Admin 기능을 쓰는 경우에만 설정하세요.
 - RSS: `/feed.xml`
 
 Vercel/Coolify 모두 도메인 연결 후 Google Search Console에 사이트맵을 제출하면 됩니다.
+
+## Production 체크리스트 (권장)
+
+- `main` push → Vercel 자동 배포가 트리거되는지 확인
+- 캐시 헤더 확인: `/feed.xml`, `/sitemap.xml`, `/robots.txt` (SWR 설정 포함)
+- Admin API 보호 확인: `/api/admin/*`는 `no-store` + `noindex` (robots disallow 포함)
+- 버전 엔드포인트 확인: `/api/version`은 항상 `no-store`
+- CI 확인: `CI` 워크플로우가 `build/lint`와 `vercel.json` parity를 통과
 
 ## 배포 전 로컬 체크(권장)
 

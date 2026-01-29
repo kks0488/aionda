@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { BASE_URL } from '@/lib/site';
 import './globals.css';
 
+const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
@@ -47,9 +49,7 @@ export const metadata: Metadata = {
     description: 'AI 기술과 트렌드를 검증된 정보로 전달하는 블로그',
     images: [`${BASE_URL}/api/og-default`],
   },
-  verification: {
-    google: '', // Google Search Console 인증 코드 추가 예정
-  },
+  verification: googleVerification ? { google: googleVerification } : undefined,
   alternates: {
     canonical: BASE_URL,
     languages: {

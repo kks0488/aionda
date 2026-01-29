@@ -2,11 +2,22 @@ import { NextRequest } from 'next/server';
 import matter from 'gray-matter';
 import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
 
+export const dynamic = 'force-dynamic';
+
 const GITHUB_API = 'https://api.github.com';
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 const AUTO_MERGE_ENABLED = process.env.GITHUB_AUTO_MERGE !== 'false';
 const MERGE_METHOD = String(process.env.GITHUB_MERGE_METHOD || 'SQUASH').toUpperCase();
 const PUBLISH_ENABLED = process.env.ADMIN_PUBLISH_ENABLED === 'true';
+
+const ADMIN_HEADERS = {
+  'Cache-Control': 'no-store',
+  'X-Robots-Tag': 'noindex, nofollow, noarchive',
+};
+
+function adminJson(data: unknown, init: ResponseInit = {}) {
+  return Response.json(data, { ...init, headers: ADMIN_HEADERS });
+}
 
 function requireLocal(request: NextRequest): Response | null {
   if (!isLocalOnlyEnabled()) return null;
@@ -17,7 +28,7 @@ function requireLocal(request: NextRequest): Response | null {
     request.nextUrl.hostname;
 
   if (!isLocalHost(host)) {
-    return Response.json({ error: 'Not found' }, { status: 404 });
+    return adminJson({ error: 'Not found' }, { status: 404 });
   }
 
   return null;
@@ -26,12 +37,12 @@ function requireLocal(request: NextRequest): Response | null {
 function requireAdmin(request: NextRequest): Response | null {
   const expected = process.env.ADMIN_API_KEY;
   if (!expected) {
-    return Response.json({ error: 'Admin API key not configured' }, { status: 500 });
+    return adminJson({ error: 'Admin API key not configured' }, { status: 500 });
   }
 
   const provided = request.headers.get('x-api-key');
   if (provided !== expected) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return adminJson({ error: 'Unauthorized' }, { status: 401 });
   }
 
   return null;
@@ -44,7 +55,7 @@ function requireGithubEnv(): { owner: string; repo: string; base: string; token:
   const base = process.env.GITHUB_DEFAULT_BRANCH || 'main';
 
   if (!owner || !repo || !token) {
-    return Response.json({ error: 'GitHub settings missing' }, { status: 500 });
+    return adminJson({ error: 'GitHub settings missing' }, { status: 500 });
   }
 
   return { owner, repo, token, base };
@@ -144,7 +155,7 @@ export async function POST(request: NextRequest) {
   if (auth) return auth;
 
   if (!PUBLISH_ENABLED) {
-    return Response.json({ error: 'Publish disabled' }, { status: 403 });
+    return adminJson({ error: 'Publish disabled' }, { status: 403 });
   }
 
   const githubEnv = requireGithubEnv();
@@ -156,11 +167,11 @@ export async function POST(request: NextRequest) {
   const action = String(payload.action || 'update').trim().toLowerCase();
 
   if (!slug || !locale) {
-    return Response.json({ error: 'Missing slug or locale' }, { status: 400 });
+    return adminJson({ error: 'Missing slug or locale' }, { status: 400 });
   }
 
   if (action !== 'update' && action !== 'delete') {
-    return Response.json({ error: 'Invalid action' }, { status: 400 });
+    return adminJson({ error: 'Invalid action' }, { status: 400 });
   }
 
   const { owner, repo, token, base } = githubEnv;
@@ -168,7 +179,7 @@ export async function POST(request: NextRequest) {
   try {
     const fileInfo = await findPostPath(owner, repo, base, token, slug, locale);
     if (!fileInfo) {
-      return Response.json({ error: 'Post file not found in repository' }, { status: 404 });
+      return adminJson({ error: 'Post file not found in repository' }, { status: 404 });
     }
 
     const branchSuffix = sanitizeBranchName(`${slug}-${locale}-${Date.now()}`);
@@ -300,8 +311,8 @@ export async function POST(request: NextRequest) {
       autoMerge.message = 'Auto-merge disabled';
     }
 
-    return Response.json({ ok: true, prUrl: pr.html_url, branch, autoMerge });
+    return adminJson({ ok: true, prUrl: pr.html_url, branch, autoMerge });
   } catch (error: any) {
-    return Response.json({ error: error?.message || 'GitHub API error' }, { status: 500 });
+    return adminJson({ error: error?.message || 'GitHub API error' }, { status: 500 });
   }
 }

@@ -6,12 +6,29 @@ export const runtime = 'edge';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  const title = searchParams.get('title') || 'AI온다 - AI가 온다';
-  const date = searchParams.get('date') || '';
-  const tags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
-  const score = searchParams.get('score');
-  const bylineRaw = searchParams.get('byline') || '';
-  const byline = bylineRaw.trim().length > 90 ? `${bylineRaw.trim().slice(0, 87)}…` : bylineRaw.trim();
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  const normalizeText = (value: string | null, fallback: string, maxLen: number) => {
+    const trimmed = (value ?? '').trim();
+    const text = trimmed || fallback;
+    if (text.length <= maxLen) return text;
+    return `${text.slice(0, Math.max(0, maxLen - 1))}…`;
+  };
+
+  const title = normalizeText(searchParams.get('title'), 'AI온다 - AI가 온다', 120);
+  const date = normalizeText(searchParams.get('date'), '', 40);
+  const byline = normalizeText(searchParams.get('byline'), '', 90);
+
+  const tags = (searchParams.get('tags') ?? '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((tag) => normalizeText(tag, '', 24))
+    .filter(Boolean);
+
+  const scoreParam = searchParams.get('score');
+  const scoreCandidate = scoreParam ? Number(scoreParam) : Number.NaN;
+  const score = Number.isFinite(scoreCandidate) ? clamp(Math.round(scoreCandidate), 0, 100) : null;
 
   return new ImageResponse(
     (
@@ -53,10 +70,10 @@ export async function GET(request: NextRequest) {
               aionda.blog
             </span>
           </div>
-          {score && (
+          {score !== null && (
             <span
               style={{
-                backgroundColor: Number(score) >= 70 ? '#22c55e' : '#f59e0b',
+                backgroundColor: score >= 70 ? '#22c55e' : '#f59e0b',
                 color: 'white',
                 padding: '8px 16px',
                 borderRadius: 8,

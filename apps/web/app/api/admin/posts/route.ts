@@ -4,8 +4,19 @@ import path from 'path';
 import matter from 'gray-matter';
 import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
 
+export const dynamic = 'force-dynamic';
+
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 const LOCALES = new Set(['en', 'ko']);
+
+const ADMIN_HEADERS = {
+  'Cache-Control': 'no-store',
+  'X-Robots-Tag': 'noindex, nofollow, noarchive',
+};
+
+function adminJson(data: unknown, init: ResponseInit = {}) {
+  return Response.json(data, { ...init, headers: ADMIN_HEADERS });
+}
 
 function requireLocal(request: NextRequest): Response | null {
   if (!isLocalOnlyEnabled()) return null;
@@ -16,7 +27,7 @@ function requireLocal(request: NextRequest): Response | null {
     request.nextUrl.hostname;
 
   if (!isLocalHost(host)) {
-    return Response.json({ error: 'Not found' }, { status: 404 });
+    return adminJson({ error: 'Not found' }, { status: 404 });
   }
 
   return null;
@@ -25,12 +36,12 @@ function requireLocal(request: NextRequest): Response | null {
 function requireAdmin(request: NextRequest): Response | null {
   const expected = process.env.ADMIN_API_KEY;
   if (!expected) {
-    return Response.json({ error: 'Admin API key not configured' }, { status: 500 });
+    return adminJson({ error: 'Admin API key not configured' }, { status: 500 });
   }
 
   const provided = request.headers.get('x-api-key');
   if (provided !== expected) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return adminJson({ error: 'Unauthorized' }, { status: 401 });
   }
 
   return null;
@@ -51,12 +62,12 @@ export async function GET(request: NextRequest) {
 
   const locale = request.nextUrl.searchParams.get('locale') || 'ko';
   if (!LOCALES.has(locale)) {
-    return Response.json({ error: 'Invalid locale' }, { status: 400 });
+    return adminJson({ error: 'Invalid locale' }, { status: 400 });
   }
 
   const localeDir = path.join(POSTS_DIR, locale);
   if (!existsSync(localeDir)) {
-    return Response.json({ posts: [] });
+    return adminJson({ posts: [] });
   }
 
   const files = readdirSync(localeDir).filter((file) => file.endsWith('.mdx') || file.endsWith('.md'));
@@ -81,5 +92,5 @@ export async function GET(request: NextRequest) {
 
   posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  return Response.json({ posts });
+  return adminJson({ posts });
 }

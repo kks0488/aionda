@@ -16,11 +16,11 @@ export default function Sidebar({ locale, trendingPosts = [] }: SidebarProps) {
         <p className="text-sm text-slate-600 dark:text-slate-300 mb-5 leading-relaxed">
           {locale === 'ko' ? (
             <>
-              Aionda는 DC Inside <span className="font-bold text-slate-900 dark:text-white">'특이점이온다'</span> 갤러리의 집단 지성에서 탄생했습니다. 갤러들의 의견과 실제 정보를 조합하여 검증된 AI 뉴스를 전달합니다.
+              Aionda는 DC Inside <span className="font-bold text-slate-900 dark:text-white">&apos;특이점이온다&apos;</span> 갤러리의 집단 지성에서 탄생했습니다. 갤러들의 의견과 실제 정보를 조합하여 검증된 AI 뉴스를 전달합니다.
             </>
           ) : (
             <>
-              Aionda was born from the collective intelligence of DC Inside <span className="font-bold text-slate-900 dark:text-white">'특이점이온다' (The Singularity is Coming)</span> gallery. We combine community insights with verified sources to deliver quality AI news.
+              Aionda was born from the collective intelligence of DC Inside <span className="font-bold text-slate-900 dark:text-white">&apos;특이점이온다&apos; (The Singularity is Coming)</span> gallery. We combine community insights with verified sources to deliver quality AI news.
             </>
           )}
         </p>
