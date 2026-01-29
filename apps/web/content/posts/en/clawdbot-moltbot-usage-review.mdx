@@ -1,0 +1,85 @@
+---
+title: 'clawdbot (moltbot) review: why I removed it after a few days'
+slug: clawdbot-moltbot-usage-review
+date: '2026-01-29'
+locale: en
+description: >-
+  A short hands-on review after using clawdbot (moltbot) in a real dev
+  environment. Why I went back to “native” CLI workflows.
+tags:
+  - llm
+  - coding
+  - workflow
+  - tooling
+  - claude-code
+  - codex
+  - review
+  - explainer
+author: AI온다
+sourceId: manual-clawdbot-moltbot-usage-review
+alternateLocale: /ko/posts/clawdbot-moltbot-usage-review
+coverImage: /images/posts/clawdbot-moltbot-usage-review.png
+---
+
+## TL;DR
+- After a few days with clawdbot (moltbot), it felt closer to a “Claude Code wrapper” than a new way of working for my workflow.
+I removed it.
+- The usual benefits (mobile coding, memory, agentic automation) overlapped with my remote stack, while the chat UX often reduced fine-grained control.
+- Before adopting a wrapper tool.
+Define what “a workflow change” means for you and test if native CLI tools already get you there.
+
+Example: You need to ship a small hotfix while away from your laptop. You connect from your phone and try to steer the work through a chat UI. Each small adjustment becomes another round trip, and the flow breaks. You end up going back to tmux and typing commands directly because it feels faster and more controlled.
+
+## Context
+clawdbot (moltbot) is often framed as a chat-first way to run coding agents remotely. I attached it to a real development environment for a few days, expecting a meaningful shift in how I work.
+
+Over time, my experience was that it added an extra interaction layer on top of Claude Code rather than changing the underlying problem-solving loop. So the question became less “is it good?” and more “does it create the change I want?”
+
+## Analysis
+### 1) Why it felt like a wrapper
+The change I wanted was not “typing fewer commands,” but “thinking, validating.
+Iterating differently.” In practice, the core execution still ran through Claude Code, with a chat UI in between.
+
+That extra layer sometimes made it harder to keep track of what was confirmed vs suggested, and where the real context lived (chat vs terminal vs repo). Over time, that cost added up for me.
+
+### 2) Mobile coding was not incremental value (for me)
+Mobile work itself did not feel like a new capability. I already rely on a remote stack (Tailscale + Termius + tmux) that lets me access my dev machine from anywhere with enough control and speed.
+
+So “coding from a phone” felt more like an alternative interface to something I already had, not a net-new advantage.
+
+### 3) Chat UX round-trip costs
+Coding often involves frequent micro-adjustments. In a chat-first interface, those small turns can introduce round trips and interruptions that compound.
+
+I ended up returning to a terminal-first workflow.
+Running native CLI tools (Claude Code/Codex) inside tmux, splitting tasks at the granularity I want, and validating quickly.
+
+### 4) The “agents mean you don’t have to code” trap
+Once you use agents seriously, you still end up editing scripts, refining logic, and handling failure cases. What matters most is the debugging loop (reproduce → diagnose → fix → validate).
+
+I found that a terminal-based workflow keeps that loop shortest for me.
+
+## Practical Application
+**Checklist for Today:**
+- Write a one-sentence success criterion for the tool. (What needs to change for this to be a win?)
+- Test it on one real ticket and track round trips between “instruction” and “verification.”
+- Compare against a native CLI workflow, then decide to keep or remove it.
+
+## FAQ
+**Q: Does this mean clawdbot (moltbot) is useless?**  
+A: No. The value depends on what change you need. For some people, chat UX can reduce friction and fit their habits.
+
+**Q: Why did you remove it?**  
+A: For me, mobile access was already solved, and the chat interface often reduced control and speed.
+
+**Q: What’s your current best setup?**  
+A: Tailscale + Termius + tmux for remote access, then Claude Code/Codex directly inside tmux.
+
+## Conclusion
+Right now, I get more leverage from going deeper on native CLI workflows than adding another wrapper layer. clawdbot (moltbot) was not a “bad tool”; it simply didn’t match how I work, so I removed it.
+
+## Sources
+- [Tailscale](https://tailscale.com/)
+- [Termius](https://termius.com/)
+- [tmux](https://github.com/tmux/tmux)
+- [OpenAI Codex CLI (GitHub)](https://github.com/openai/codex)
+- [Anthropic Claude Code (docs)](https://docs.anthropic.com/en/docs/claude-code)

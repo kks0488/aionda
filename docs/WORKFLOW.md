@@ -23,7 +23,8 @@ For operational troubleshooting (status/logs/candidate pool), see `docs/AUTOMATI
 
 ```bash
 crontab -l
-# 0 * * * * /home/kkaemo/projects/aionda/scripts/auto-publish.sh
+# Recommended: run from a dedicated clean clone (e.g., /home/kkaemo/aionda-publisher)
+# 0 * * * * /home/kkaemo/aionda-publisher/scripts/auto-publish.sh
 ```
 
 ## Manual run (publish pipeline)
