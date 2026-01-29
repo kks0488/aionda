@@ -1,16 +1,19 @@
 #!/bin/bash
 # auto-publish.sh - 매시간 자동 글 발행
-# Usage: 0 * * * * /home/kkaemo/projects/aionda/scripts/auto-publish.sh
+# Usage (crontab): 0 * * * * /absolute/path/to/this-repo/scripts/auto-publish.sh
 
 set -Eeuo pipefail
 IFS=$'\n\t'
 
 export HOME="/home/kkaemo"
 
-cd /home/kkaemo/projects/aionda
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-LOG_FILE="/home/kkaemo/projects/aionda/logs/auto-publish-$(date +%Y%m%d).log"
-mkdir -p /home/kkaemo/projects/aionda/logs
+cd "$REPO_ROOT"
+
+LOG_FILE="$REPO_ROOT/logs/auto-publish-$(date +%Y%m%d).log"
+mkdir -p "$REPO_ROOT/logs"
 
 exec >> "$LOG_FILE" 2>&1
 
@@ -175,12 +178,13 @@ set_status "running: synced origin/main"
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
 source /home/kkaemo/.bashrc 2>/dev/null || true
-source /home/kkaemo/projects/aionda/.env.local 2>/dev/null || true
+source "$REPO_ROOT/.env.local" 2>/dev/null || true
 
 # 1. 크롤링 (DC Inside + RSS)
 set_status "running: crawl dc"
 log "Step 1a: Crawling DC Inside..."
-pnpm crawl --pages=2 || echo "DC crawl warning (might be empty)"
+CRAWL_PAGES="${AUTO_PUBLISH_CRAWL_PAGES:-2}"
+pnpm crawl --pages="${CRAWL_PAGES}" || echo "DC crawl warning (might be empty)"
 
 set_status "running: crawl rss"
 log "Step 1b: Crawling RSS feeds..."
@@ -189,12 +193,14 @@ pnpm crawl-rss || echo "RSS crawl warning"
 # 2. 토픽 추출
 set_status "running: extract topics"
 log "Step 2: Extracting topics..."
-pnpm extract-topics --limit=3 || echo "Extract warning"
+EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
+pnpm extract-topics --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
 
 # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
 set_status "running: research topics"
 log "Step 3: Researching topics..."
-pnpm research-topic --limit=3 || echo "Research warning"
+RESEARCH_LIMIT="${AUTO_PUBLISH_RESEARCH_LIMIT:-6}"
+pnpm research-topic --limit="${RESEARCH_LIMIT}" || echo "Research warning"
 
 # 4. 글 작성 (memU 중복체크 포함)
 set_status "running: write article"
@@ -232,10 +238,16 @@ else
     # 새 글만 커밋
     git add apps/web/content/posts/ apps/web/public/images/posts/
 
-    NEW_FILES=$(git diff --cached --name-only | grep -E "\.mdx$" | head -1 || true)
-    if [ -n "$NEW_FILES" ]; then
-        SLUG=$(basename "$NEW_FILES" .mdx)
-        git commit -m "auto: 새 글 발행 - $SLUG
+    NEW_POSTS=$(git diff --cached --name-only | grep -E '^apps/web/content/posts/(en|ko)/[^/]+\.mdx$' | sed -E 's#^apps/web/content/posts/(en|ko)/##' | sed -E 's#\.mdx$##' | sort -u || true)
+    FIRST_SLUG="$(echo "$NEW_POSTS" | head -n 1 | tr -d '\r' || true)"
+    COUNT_SLUGS="$(echo "$NEW_POSTS" | sed '/^\s*$/d' | wc -l | tr -d ' ' || true)"
+    if [ -n "$FIRST_SLUG" ]; then
+        SUFFIX=""
+        if [ "${COUNT_SLUGS:-0}" -gt 1 ]; then
+          SUFFIX=" (+$((COUNT_SLUGS - 1)) more)"
+        fi
+
+        git commit -m "auto: 새 글 발행 - ${FIRST_SLUG}${SUFFIX}
 
 Automated publish by auto-publish.sh
 $(date '+%Y-%m-%d %H:%M')"
@@ -247,8 +259,8 @@ $(date '+%Y-%m-%d %H:%M')"
           exit 0
         fi
 
-        log "SUCCESS: Published $SLUG"
-        set_ready "last=published: $SLUG"
+        log "SUCCESS: Published ${FIRST_SLUG}${SUFFIX}"
+        set_ready "last=published: ${FIRST_SLUG}${SUFFIX}"
     else
         echo "No new articles to publish"
         set_ready "last=no new articles"

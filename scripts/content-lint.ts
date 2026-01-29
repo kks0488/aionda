@@ -27,6 +27,7 @@ const ABSOLUTE_PATTERN =
   /\b(guarantee|guarantees|100%|perfectly|impossible|completely|always|never|must)\b/i;
 const TLDR_HEADING = /^##\s*(TL;DR|세\s*줄\s*요약|세줄\s*요약|간단\s*요약)\s*$/im;
 const SOURCES_HEADING = /^##\s*(참고\s*자료|References|Sources)\s*$/im;
+const SERIES_TAGS = ['k-ai-pulse', 'explainer', 'deep-dive'] as const;
 const KO_EXAMPLE_MARKER = /^\s*예:\s/m;
 const EN_EXAMPLE_MARKER = /^\s*Example:\s/m;
 const KO_CHECKLIST_MARKER = /\*\*오늘\s*바로\s*할\s*일:\*\*/i;
@@ -80,6 +81,12 @@ const VAGUE_WORDS = [
 function stripSourcesSection(markdown: string): string {
   const idx = markdown.search(SOURCES_HEADING);
   return idx === -1 ? markdown : markdown.slice(0, idx);
+}
+
+function normalizeTags(raw: unknown): string[] {
+  if (!raw) return [];
+  const list = Array.isArray(raw) ? raw : [raw];
+  return list.map((t) => String(t).trim().toLowerCase()).filter(Boolean);
 }
 
 function isPostFile(file: string): boolean {
@@ -189,6 +196,63 @@ function countBulletsAfterMarker(markdown: string, marker: RegExp): number {
   return section.split('\n').filter((line) => /^\s*-\s+/.test(line)).length;
 }
 
+function getTldrBullets(markdown: string): string[] {
+  const lines = markdown.split('\n');
+  const headingIndex = lines.findIndex((line) => TLDR_HEADING.test(line));
+  if (headingIndex === -1) return [];
+
+  let endIndex = lines.length;
+  for (let i = headingIndex + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  return lines
+    .slice(headingIndex + 1, endIndex)
+    .filter((line) => /^\s*-\s+/.test(line))
+    .map((line) => line.replace(/^\s*-\s+/, '').trim())
+    .filter(Boolean);
+}
+
+function getFirstNarrativeLineAfterTldr(markdown: string): string | null {
+  const lines = markdown.split('\n');
+  const headingIndex = lines.findIndex((line) => TLDR_HEADING.test(line));
+  if (headingIndex === -1) return null;
+
+  let endIndex = lines.length;
+  for (let i = headingIndex + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  for (let i = endIndex; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    if (/^##\s+/.test(line)) continue;
+    return line;
+  }
+  return null;
+}
+
+function extractParagraphStartingWith(markdown: string, startsWith: RegExp): string | null {
+  const lines = markdown.split('\n');
+  const startIndex = lines.findIndex((line) => startsWith.test(line));
+  if (startIndex === -1) return null;
+
+  const para: string[] = [lines[startIndex]];
+  for (let i = startIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) break;
+    if (/^##\s+/.test(line)) break;
+    para.push(line);
+  }
+  return para.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 function includesAny(textLower: string, terms: string[]): string | null {
   for (const term of terms) {
     if (!term) continue;
@@ -246,6 +310,25 @@ function main() {
     }
 
     const content = parsed.content || '';
+    const frontmatter = (parsed as unknown as { data?: Record<string, unknown> }).data || {};
+    const tags = normalizeTags(frontmatter.tags);
+    const seriesTags = tags.filter((t) => (SERIES_TAGS as readonly string[]).includes(t));
+    if (seriesTags.length === 0) {
+      issues.push({
+        file: rel,
+        severity: 'suggestion',
+        rule: 'series_tag',
+        message: `Add exactly one series tag: ${SERIES_TAGS.join(' | ')}`,
+      });
+    } else if (seriesTags.length > 1) {
+      issues.push({
+        file: rel,
+        severity: 'suggestion',
+        rule: 'series_tag',
+        message: `Multiple series tags found (${seriesTags.join(', ')}). Keep exactly one.`,
+      });
+    }
+
     // Exclude the Sources/References section from stylistic checks to avoid
     // false positives from paper titles (e.g., "Talk Isn't Always Cheap").
     const lintableContent = stripSourcesSection(content);
@@ -269,6 +352,41 @@ function main() {
           message: `TL;DR section has ${bullets} bullet(s). Aim for exactly 3.`,
         });
       }
+
+      const bulletTexts = getTldrBullets(content);
+      const third = bulletTexts[2] || '';
+      if (third) {
+        const thirdLower = third.toLowerCase();
+        const genericFuture =
+          locale === 'ko'
+            ? /(ai는\s*앞으로|미래|앞으로는|결국|언젠가)/i.test(third)
+            : /\b(in the future|going forward|eventually|over time)\b/i.test(thirdLower);
+        if (genericFuture) {
+          issues.push({
+            file: rel,
+            severity: 'suggestion',
+            rule: 'tldr_action',
+            message: 'Third TL;DR bullet should end with an action/check/decision rule, not a generic future statement.',
+          });
+        }
+      }
+
+      const firstNarrative = getFirstNarrativeLineAfterTldr(content);
+      if (firstNarrative) {
+        const badLead =
+          locale === 'ko'
+            ? /^(?:[^\s]{2,20}\s*)?(?:가|이)\s*(?:발표|출시|공개|업데이트)/.test(firstNarrative)
+            : /\b(announced|released|launched|unveiled|updated)\b/i.test(firstNarrative) &&
+              /^[A-Z][^\n]{0,80}$/.test(firstNarrative);
+        if (badLead) {
+          issues.push({
+            file: rel,
+            severity: 'suggestion',
+            rule: 'hook',
+            message: 'Avoid starting the first narrative sentence after TL;DR with “X announced/released…”. Lead with the user-visible change/impact.',
+          });
+        }
+      }
     }
 
     if (locale === 'ko' && !KO_EXAMPLE_MARKER.test(content)) {
@@ -286,6 +404,21 @@ function main() {
         severity: 'suggestion',
         rule: 'example_missing',
         message: 'Add exactly one clearly labeled hypothetical scene paragraph near the top starting with "Example:"',
+      });
+    }
+
+    const examplePara =
+      locale === 'ko'
+        ? extractParagraphStartingWith(content, /^\s*예:\s/m)
+        : locale === 'en'
+          ? extractParagraphStartingWith(content, /^\s*Example:\s/m)
+          : null;
+    if (examplePara && /\d/.test(examplePara)) {
+      issues.push({
+        file: rel,
+        severity: 'suggestion',
+        rule: 'example_digits',
+        message: 'Avoid numeric digits (0-9) inside the labeled Example/예: paragraph.',
       });
     }
 

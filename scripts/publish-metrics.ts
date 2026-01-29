@@ -131,7 +131,9 @@ function collectRunsFromLog(filePath: string): { runs: RunInfo[]; publishes: Pub
     const success = successRe.exec(line);
     if (success) {
       const dt = parseTimestamp(fileDateYmd, { date: success[1] || undefined, time: success[2] });
-      const slug = String(success[3] || '').trim();
+      const slug = String(success[3] || '')
+        .replace(/\s*\(\+\d+\s+more\)\s*$/i, '')
+        .trim();
       if (dt && slug) {
         publishes.push({ at: dt, slug });
         current.slugs.push({ at: dt, slug });

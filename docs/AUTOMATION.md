@@ -6,11 +6,12 @@
 
 - GitHub Actions: `.github/workflows/auto-update.yml`의 `schedule`은 주석 처리되어 있으며, 현재는 `workflow_dispatch`(수동 실행)만 활성입니다.
 - 로컬 cron: 매시간 `scripts/auto-publish.sh`가 실행됩니다.
-  - 확인: `crontab -l` → `0 * * * * /home/kkaemo/projects/aionda/scripts/auto-publish.sh`
+  - 권장: 개발용 워크트리와 분리된 전용 클론(예: `/home/kkaemo/aionda-publisher`)에서 실행
+  - 확인: `crontab -l`
 
 ## 로그 위치
 
-- `/home/kkaemo/projects/aionda/logs/auto-publish-YYYYMMDD.log`
+- `<repo>/logs/auto-publish-YYYYMMDD.log`
 
 ## 실행 상태 확인(로컬)
 
@@ -66,7 +67,7 @@
 
 ```bash
 # 지금 당장 한 번 돌려보기(빌드는 스킵 가능)
-cd /home/kkaemo/projects/aionda
+cd /home/kkaemo/aionda-publisher
 AUTO_PUBLISH_SKIP_BUILD=true bash scripts/auto-publish.sh
 
 # 최근 N일 발행/스킵/게이트 실패 지표(로그 기반, AI 호출 없음)
@@ -85,4 +86,7 @@ git rev-list --left-right --count HEAD...origin/main
 
 # 후보 풀 리포트
 pnpm -s tsx scripts/candidate-pool-report.ts
+
+# (선택) 발행량/성공률 튜닝(기본값: pages=2, extract=6, research=6)
+AUTO_PUBLISH_CRAWL_PAGES=2 AUTO_PUBLISH_EXTRACT_LIMIT=6 AUTO_PUBLISH_RESEARCH_LIMIT=6 bash scripts/auto-publish.sh
 ```

@@ -50,6 +50,14 @@ pnpm content:fix-frontmatter
 pnpm -s tsx scripts/series-simulate.ts --limit=60
 ```
 
+### 5) Series 태그 현황 점검 (발행된 글 기준)
+
+실제 `apps/web/content/posts/`에 있는 글들이 시리즈 태그를 얼마나 갖고 있는지(레거시 포함) 확인합니다. (AI 호출 없음)
+
+```bash
+pnpm -s tsx scripts/series-audit.ts
+```
+
 ## Lint (빠른 품질 경고)
 
 외부 바이너리 없이, repo-local 규칙으로 빠르게 경고를 확인합니다.
