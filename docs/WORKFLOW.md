@@ -37,6 +37,24 @@ crontab -l
 # 0 * * * * /home/kkaemo/aionda-publisher/scripts/auto-publish.sh
 ```
 
+### Trend slot (라이브 토픽 1/3)
+
+`auto-publish.sh`는 “글 3개 중 1개는 라이브 토픽”을 위해 publish 모드를 순환합니다.
+
+- **standard**: 전체 소스(official+news+raw)에서 최근 글을 추출
+- **trend**: DCInside(raw)에서 **최근 2시간** 우선 추출 (없으면 **24시간**으로 폴백)
+
+상태는 repo 밖의 로컬 카운터 파일로 관리합니다(기본값: `/home/kkaemo/aionda-candidate-pool/state/publish-slot.txt`).
+
+조정 가능한 환경변수(기본값):
+
+- `AUTO_PUBLISH_TREND_EVERY=3`
+- `AUTO_PUBLISH_TREND_SINCE=2h`
+- `AUTO_PUBLISH_TREND_FALLBACK_SINCE=24h`
+- `AUTO_PUBLISH_STANDARD_SINCE=24h`
+- `AUTO_PUBLISH_WRITE_LIMIT=1` (한 번에 최대 1개 글만 생성)
+- `AUTO_PUBLISH_STATE_DIR` (slot 파일 위치 커스텀)
+
 ## Manual run (publish pipeline)
 
 ### One-shot (recommended)
