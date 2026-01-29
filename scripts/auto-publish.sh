@@ -42,6 +42,88 @@ run_timeout() {
   fi
 }
 
+pick_candidate_root() {
+  local root="$CANDIDATE_POOL_ROOT"
+  # Keep backward compatibility if user already relies on the old path.
+  if [ -d "$LEGACY_QUARANTINE_ROOT" ] && [ ! -d "$CANDIDATE_POOL_ROOT" ]; then
+    root="$LEGACY_QUARANTINE_ROOT"
+  fi
+  echo "$root"
+}
+
+quarantine_dirty_outputs() {
+  # On failure, the pipeline can leave tracked edits inside apps/web/content/posts
+  # which will permanently block future cron runs (dirty worktree skip).
+  # We keep a snapshot for debugging, then restore the repo to a clean state.
+  set +e
+
+  # Ignore known timestamp noise.
+  git restore --staged docker-compose.yml >/dev/null 2>&1 || true
+  git checkout -- docker-compose.yml >/dev/null 2>&1 || true
+
+  local tracked_dirty=0
+  git diff --quiet -- apps/web/content/posts apps/web/public/images/posts >/dev/null 2>&1 || tracked_dirty=1
+  local staged_dirty=0
+  git diff --cached --quiet -- apps/web/content/posts apps/web/public/images/posts >/dev/null 2>&1 || staged_dirty=1
+  local untracked_outputs
+  untracked_outputs="$(git ls-files --others --exclude-standard -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true)"
+
+  if [ "$tracked_dirty" -eq 0 ] && [ "$staged_dirty" -eq 0 ] && [ -z "$untracked_outputs" ]; then
+    return 0
+  fi
+
+  local ts root dest
+  ts="$(date +%Y%m%d-%H%M%S)"
+  root="$(pick_candidate_root)"
+  dest="$root/publisher-failed-$ts"
+
+  log "Detected dirty publish outputs after failure. Quarantining to: $dest"
+  mkdir -p "$dest"
+
+  git status --porcelain=v1 > "$dest/git-status.txt" 2>/dev/null || true
+  git diff -- apps/web/content/posts apps/web/public/images/posts > "$dest/diff.patch" 2>/dev/null || true
+  git diff --cached -- apps/web/content/posts apps/web/public/images/posts > "$dest/diff-cached.patch" 2>/dev/null || true
+
+  # Snapshot modified tracked files (best-effort) for quick inspection.
+  local modified_files
+  modified_files="$(
+    {
+      git diff --name-only -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true
+      git diff --cached --name-only -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true
+    } | sort -u
+  )"
+
+  if [ -n "$modified_files" ]; then
+    mkdir -p "$dest/worktree"
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      mkdir -p "$dest/worktree/$(dirname "$f")"
+      cp -a "$f" "$dest/worktree/$f" 2>/dev/null || true
+    done <<< "$modified_files"
+  fi
+
+  # Move leftover untracked outputs out of the repo.
+  if [ -n "$untracked_outputs" ]; then
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      mkdir -p "$dest/untracked/$(dirname "$f")"
+      mv "$f" "$dest/untracked/$f" 2>/dev/null || true
+    done <<< "$untracked_outputs"
+  fi
+
+  # Restore tracked edits (keep scope narrow; never touch unrelated files).
+  if [ -n "$modified_files" ]; then
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
+      git restore --staged -- "$f" >/dev/null 2>&1 || true
+      git checkout -- "$f" >/dev/null 2>&1 || true
+    done <<< "$modified_files"
+  fi
+
+  log "Quarantine complete. Worktree restored to clean state."
+  return 0
+}
+
 push_with_rebase() {
   if run_timeout 300 git push; then
     return 0
@@ -99,6 +181,9 @@ on_exit() {
       cmd_preview="$(echo "${FAIL_CMD:-unknown}" | tr '\n' ' ' | cut -c 1-200)"
       set_status "failed: exit=$code line=${FAIL_LINE:-?} cmd=${cmd_preview}"
     fi
+
+    # Ensure failures do not permanently block future cron runs.
+    quarantine_dirty_outputs || true
   fi
 }
 trap 'on_err "$LINENO" "$BASH_COMMAND"' ERR
