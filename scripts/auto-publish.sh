@@ -352,7 +352,7 @@ read_last_extracted_count() {
 
   node - <<'NODE' "$path" 2>/dev/null || echo 0
 const fs = require('fs');
-const p = process.argv[1];
+const p = process.argv[2];
 try {
   const j = JSON.parse(fs.readFileSync(p, 'utf8'));
   const n = Number(j && j.extractedCount);
