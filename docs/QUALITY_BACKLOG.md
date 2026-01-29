@@ -9,7 +9,6 @@
 2. 태그 클릭 UX 부재로 필터가 동작하지 않는 것처럼 보임.
 3. 동일 `sourceId` 기반의 중복 게시물 존재(예: `930830`, `929648`).
 4. 번역본이 없는 글에 `alternateLocale`이 기록되어 hreflang이 잘못될 수 있음.
-5. 린트 설정이 없어 `next lint` 실행 시 초기 설정 프롬프트 발생.
 
 ## Fixes Applied (this pass)
 - 크롤러에서 HTML을 줄바꿈 보존 텍스트로 변환하도록 개선.
@@ -28,6 +27,7 @@
 - 커버 이미지 파일이 없으면 자동으로 placeholder를 사용하도록 처리.
 - ChatGPT/Gemini 표기 통일(제미나이/젬나이, 챗지피티 등 정규화) 및 태그 정규화.
 - 커버 이미지는 `ENABLE_COVER_IMAGES=true`일 때만 활성화(기본 비활성).
+- `apps/web/.eslintrc.json` 추가로 `next lint` 초기 설정 프롬프트 제거.
 
 ## Action Items
 ### P0
@@ -42,7 +42,6 @@
   - 홈 카테고리(AGI/LLM/Hardware/News/Opinion/Robotics)와 생성 태그 매핑 정리.
 
 ### P2
-- `next lint` 설정 파일 추가 및 기본 린트 실행 루틴 확정.
 - 게시물 카드/상세에서 태그 다중 표시 기준 정리(현재 1개만 표시).
 
 ## Verification Checklist
