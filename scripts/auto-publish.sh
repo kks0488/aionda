@@ -225,6 +225,36 @@ fi
 git restore --staged docker-compose.yml >/dev/null 2>&1 || true
 git checkout -- docker-compose.yml >/dev/null 2>&1 || true
 
+# If the repo is dirty ONLY due to publish outputs (posts/images) from a previous
+# failed run, quarantine and clean them so cron can keep going. If any other
+# file is dirty, treat it as a dev change and skip as before.
+only_publish_outputs_dirty() {
+  local any=0
+  local file
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    any=1
+    case "$file" in
+      apps/web/content/posts/*) ;;
+      apps/web/public/images/posts/*) ;;
+      *) return 1 ;;
+    esac
+  done < <(
+    {
+      git diff --name-only -- . ':(exclude)docker-compose.yml' 2>/dev/null || true
+      git diff --cached --name-only -- . ':(exclude)docker-compose.yml' 2>/dev/null || true
+      git ls-files --others --exclude-standard 2>/dev/null || true
+    } | sort -u
+  )
+
+  [ "$any" -eq 1 ]
+}
+
+if only_publish_outputs_dirty; then
+  log "Worktree has leftover publish outputs only. Quarantining and continuing..."
+  quarantine_dirty_outputs || true
+fi
+
 # 개발 중인 변경사항이 섞이면 콘텐츠 린트/게이트가 예상치 못하게 실패할 수 있으므로
 # 워크트리가 더럽다면(unstaged/staged/untracked) 안전하게 이번 실행은 스킵합니다.
 if ! git diff --quiet -- . ':(exclude)docker-compose.yml' \
