@@ -1,0 +1,98 @@
+---
+title: Mercedes-Benz and NVIDIA Partner for Level 4 Autonomous Driving
+slug: mercedes-benz-nvidia-level-4-autonomous-driving
+date: '2026-01-30'
+locale: en
+description: >-
+  Mercedes-Benz uses NVIDIA DRIVE Thor for Level 4 autonomy, building
+  high-performance AI architecture for the S-Class.
+tags:
+  - hardware
+  - autonomous-driving
+  - nvidia
+  - mercedes-benz
+  - deep-dive
+  - robotics
+  - llm
+author: AI온다
+sourceId: nvidia-16yb1no
+sourceUrl: 'https://blogs.nvidia.com/blog/mercedes-benz-l4-s-class-drive-av-platform/'
+verificationScore: 0.9
+alternateLocale: /ko/posts/mercedes-benz-nvidia-level-4-autonomous-driving
+coverImage: /images/posts/mercedes-benz-nvidia-level-4-autonomous-driving.png
+---
+
+A driver removes their hands from the steering wheel and engages in deep conversation with a passenger in the front seat. Outside the window, the complex nightscape of a city center flashes by, yet the vehicle performs trillions of operations per second through dozens of sensors, smoothly navigating around intersections and pedestrians.
+
+Example.
+While a driver rests inside a vehicle traveling on a fog-covered road at dawn, the system identifies road surface conditions in real-time, secures visibility, and heads safely toward the destination.
+
+As it approaches its 140th anniversary, Mercedes-Benz is targeting the era of 'Level 4 (L4) autonomous driving' in partnership with NVIDIA. Moving beyond mere improvements to driving assistance systems, the company plans to introduce a new AI architecture that fully integrates hardware and software into the next-generation S-Class. This represents a significant turning point, redefining the automobile from a simple means of transportation into a high-performance AI supercomputer on wheels.
+
+## TL;DR
+- **Core Issue:** Mercedes-Benz is establishing a hardware foundation capable of Level 4 autonomous driving by combining the NVIDIA DRIVE Hyperion architecture with its proprietary operating system.
+MB.OS.
+- **Significance:** By introducing the Blackwell architecture-based DRIVE Thor accelerator, the system secures a computing performance of over 1,000 TOPS per single SoC.
+Is key to real-time data processing and safety redundancy.
+- **Actionable Guidance:** Autonomous driving hardware designers and strategists should not be consumed by simple computing performance figures.
+Instead, they should prioritize verifying the maturity of the 'closed-loop data loop' infrastructure that connects the vehicle and the cloud.
+
+## Current Status: A Powerful Computing Foundation Based on Blackwell
+
+The NVIDIA DRIVE Hyperion 10 platform, being introduced by Mercedes-Benz, is a collection of high-performance computing technologies for implementing Level 4 autonomous driving. At its core is NVIDIA's next-generation accelerator, 'DRIVE Thor.' Adopting the Blackwell architecture, this accelerator delivers computing performance of 1,000 FP8 TFLOPS or 2,000 FP4 TFLOPS on a single System-on-Chip (SoC).
+
+The most significant features of this platform are its overwhelming sensor capacity and design for safety. The Hyperion 10 architecture includes the following specifications:
+- **Sensor Configuration:** 12 high-resolution cameras, 9 radars, 1 LiDAR, and 12 ultrasonic sensors monitor 360 degrees around the vehicle in real-time.
+- **Redundancy Design:** Two DRIVE Thor SoCs are mounted on a single board. This ensures that even if a failure occurs in the primary processor, the secondary processor immediately takes over control to maintain safety.
+- **Software Integration:** Mercedes-Benz's independent operating system, MB.OS, is deeply integrated with the NVIDIA AI platform to efficiently manage hardware resources.
+
+Mercedes-Benz plans to apply this technology starting with the next-generation S-Class. While specific mass production and consumer delivery dates are expected to be post-2026, the unveiling of the hardware architecture suggests that technical preparations are nearing completion.
+
+## Analysis: The Value of Trust Created by 'Chip-to-Cloud'
+
+The core of this collaboration is not simply putting high-performance chips into cars, but building an 'ecosystem' where the vehicle and the cloud interact in real-time. To this end, Mercedes-Benz has introduced a 'closed-loop data loop' mechanism.
+
+When the Hyperion architecture installed in the vehicle collects vast amounts of data on the road, this data is transmitted to a cloud infrastructure based on the NVIDIA DGX system. Here, the data is used for AI model re-training and undergoes trillions of verification processes in NVIDIA Omniverse, a simulation environment governed by the laws of physics. Subsequently, the verified model is redeployed back to the vehicle via over-the-air (OTA) updates.
+
+This approach dramatically increases the reliability of autonomous driving. Unlike traditional fixed algorithms, the system can continuously evolve by converting 'edge cases' encountered on real roads into training data. This is why Mercedes-Benz refers to it as an 'architecture designed for trust.'
+
+However, limitations and concerns also exist:
+1. **Energy Efficiency and Heat:** High-performance SoCs delivering over 1,000 TOPS inevitably consume high amounts of power. For electric vehicles, this can lead to a reduction in driving range, and the design of cooling systems for high-performance computing modules becomes another challenge.
+2. **Data Processing Latency:** Specific figures regarding bandwidth limits and compression methods for transmitting large-scale data from the vehicle to the cloud have not yet been clearly disclosed. In autonomous driving, where real-time performance is critical, the latency of the data loop is a factor directly linked to safety.
+3. **Cost Burden:** Expensive sensor suites, including high-performance hardware and LiDAR, are major causes of vehicle price increases. This implies that initial application may be limited to high-end models such as the S-Class.
+
+## Practical Application: Decision-Making for Future Mobility
+
+Corporate hardware strategists and AI engineers should read the strategic context beyond hardware specifications in the Mercedes-Benz and NVIDIA collaboration model. Competitiveness in autonomous driving is shifting from 'how much computation can be performed' to 'how quickly valuable data can be integrated into the learning loop.'
+
+Developers should proactively build environments to experiment with AI models optimized for specific driving environments using the SDKs provided by the Hyperion platform. Furthermore, manufacturers should establish workload management strategies for efficiently allocating in-vehicle computing resources not only to driving but also to infotainment and in-car assistant services.
+
+**Today's Action Checklist:**
+- Review whether the hardware redundancy design of currently pursued autonomous driving projects meets Level 4 safety regulations.
+- Measure the automation level of the 'data pipeline' that trains data collected from vehicles in the cloud and redeploys it.
+- Simulate the impact of expected power consumption when introducing next-generation accelerators (such as Thor) on the vehicle's battery management system (BMS).
+
+## FAQ
+
+**Q: What is the decisive difference between Level 4 and Level 3 autonomous driving?**
+A: In Level 3, the driver should immediately take over control when requested by the system. However, in Level 4, the system is responsible for all driving within specific conditions (ODD, Operational Design Domain), and driver intervention is not required. Mercedes-Benz's Hyperion architecture focuses on providing the computing power and backup systems capable of sustaining this 'system responsibility' stage.
+
+**Q: Why was the Thor accelerator chosen over the existing Orin?**
+A: While the 254 TOPS performance of Orin was sufficient for Level 2–3, Level 4 requires real-time fusion processing of data from over 10 high-resolution cameras and LiDAR. Thor provides approximately four times the performance of Orin, allowing complex AI algorithms based on Transformer models to run without latency.
+
+**Q: Why is Omniverse simulation important?**
+A: It is hard to directly test dangerous situations that could lead to accidents on real roads. Omniverse provides a virtual world with the same physical laws as reality, allowing AI to learn safe evasive maneuvers by experiencing millions of virtual accidents.
+
+## Conclusion
+
+This collaboration between Mercedes-Benz and NVIDIA demonstrates that leadership in autonomous driving technology has largely shifted from mechanical engineering to AI computing performance and data pipelines. The Hyperion architecture to be installed in the S-Class is not a mere display of technology, but an essential infrastructure investment to help ensure the extreme safety required for Level 4 autonomous driving.
+
+Moving forward, the focus will be on how quickly this high-performance architecture can spread beyond the S-Class to lower-tier lineups. Additionally, whether the speed of government regulations and infrastructure development can keep pace with Mercedes-Benz's technical readiness will be the final puzzle piece for actual commercialization.
+---
+
+## References
+
+- 🛡️ [High-Performance In-Vehicle Computing for Autonomous Vehicles - NVIDIA](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/in-vehicle-computing/)
+- 🛡️ [Hardware for Self-Driving Cars - NVIDIA](https://www.nvidia.com/en-gb/self-driving-cars/drive-platform/hardware/)
+- 🛡️ [Mercedes-Benz Taking Vehicle Product Lifecycle Digital With NVIDIA AI and Omniverse](https://nvidianews.nvidia.com/news/mercedes-benz-taking-vehicle-product-lifecycle-digital-with-nvidia-ai-and-omniverse)
+- 🛡️ [blogs.nvidia.com](https://blogs.nvidia.com/blog/mercedes-benz-l4-s-class-drive-av-platform/)
