@@ -178,6 +178,35 @@ function hasHighSignal(post: UnifiedPost): boolean {
   return HIGH_SIGNAL_PATTERNS.some((re) => re.test(sample));
 }
 
+const LEGACY_MODEL_PATTERNS: RegExp[] = [
+  /\bgpt[-\s]?4o\b/i,
+  /\bgpt[-\s]?4\b/i,
+  /\bgemini[-\s]?2(?:\.\d+)?\b/i,
+  /제미나이\s*2(?:\.\d+)?/i,
+  /\bclaude\s*3(?:\.\d+)?\b/i,
+  /클로드\s*3(?:\.\d+)?/i,
+];
+
+// If a story is primarily about an older model and lacks clear "new/hard" signal, it tends to be evergreen or stale.
+// We keep exceptions for high-signal items and for comparisons that include modern models.
+const MODERN_MODEL_PATTERNS: RegExp[] = [
+  /\bgpt[-\s]?5(?:\.\d+)?\b/i,
+  /\bgemini[-\s]?3(?:\.\d+)?\b/i,
+  /\bclaude\s*4(?:\.\d+)?\b/i,
+  /제미나이\s*3(?:\.\d+)?/i,
+  /클로드\s*4(?:\.\d+)?/i,
+];
+
+function mentionsLegacyModel(post: UnifiedPost): boolean {
+  const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 4000);
+  return LEGACY_MODEL_PATTERNS.some((re) => re.test(sample));
+}
+
+function mentionsModernModel(post: UnifiedPost): boolean {
+  const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 4000);
+  return MODERN_MODEL_PATTERNS.some((re) => re.test(sample));
+}
+
 function isLikelyConsumerDrift(post: UnifiedPost): boolean {
   if (post.sourceType === 'raw') return false;
   if (post.sourceTier === 'S') return false; // official sources can have legitimately useful "how-to" posts
@@ -483,6 +512,12 @@ async function main() {
     if (isNewsOrOfficial && isLikelyConsumerDrift(post)) {
       console.log('    ⏭️ Skipping: consumer/how-to/review drift');
       skipCounts.consumerDrift++;
+      console.log('');
+      continue;
+    }
+    if (isNewsOrOfficial && mentionsLegacyModel(post) && !mentionsModernModel(post) && !hasHighSignal(post)) {
+      console.log('    ⏭️ Skipping: legacy model mention without new/hard signal');
+      skipCounts.lowSignal++;
       console.log('');
       continue;
     }

@@ -11,9 +11,163 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { classifySource, SourceTier } from './lib/search-mode.js';
 
 const POSTS_PREFIX = `${['apps', 'web', 'content', 'posts'].join(path.sep)}${path.sep}`;
 const TRANSIENT_VERIFY_NOTE_PATTERN = /(verification failed due to error|aborterror|timed out|parsing failed|unable to verify|search failed)/i;
+const LEGACY_MODEL_PATTERN =
+  /\b(gpt[-\s]?4o|gpt[-\s]?4|gemini\s*1(?:\.\d+)?|gemini\s*2(?:\.\d+)?|claude\s*3(?:\.\d+)?)\b|제미나이\s*1(?:\.\d+)?|제미나이\s*2(?:\.\d+)?|클로드\s*3(?:\.\d+)?/i;
+const MODERN_MODEL_PATTERN =
+  /\b(gpt[-\s]?5(?:\.\d+)?|gemini\s*3(?:\.\d+)?|claude\s*4(?:\.\d+)?)\b|제미나이\s*3(?:\.\d+)?|클로드\s*4(?:\.\d+)?/i;
+const HISTORICAL_MARKER_PATTERN = /(과거\s*사례|당시|historical(?:\s+example)?|in\s+earlier\s+generations|previous\s+generation)/i;
+
+function parseFrontmatterBlock(raw: string): { frontmatter: Record<string, any>; body: string } {
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match) return { frontmatter: {}, body: raw };
+
+  const fmRaw = match[1] || '';
+  const body = match[2] || '';
+  const frontmatter: Record<string, any> = {};
+
+  for (const line of fmRaw.split('\n')) {
+    const m = line.match(/^([A-Za-z0-9_]+):\s*(.*)\s*$/);
+    if (!m) continue;
+    const key = m[1];
+    let value: any = m[2] ?? '';
+    value = String(value).trim();
+    value = value.replace(/^['"]|['"]$/g, '');
+    frontmatter[key] = value;
+  }
+
+  return { frontmatter, body };
+}
+
+function parseFrontmatterDate(value: unknown): Date | null {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function extractUrls(raw: string): string[] {
+  const urls = new Set<string>();
+  for (const m of raw.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)) urls.add(String(m[1] || '').trim());
+  for (const m of raw.matchAll(/https?:\/\/[^\s)]+/g)) urls.add(String(m[0] || '').trim());
+  return Array.from(urls).filter((u) => u.startsWith('http'));
+}
+
+function checkLegacyAnchoring(files: string[]) {
+  const repoRoot = process.cwd();
+  const now = new Date();
+  const maxAgeDays = 30;
+
+  const offenders: Array<{ file: string; title: string; slug: string }> = [];
+
+  for (const relPath of files.map(normalizePath)) {
+    const abs = path.isAbsolute(relPath) ? relPath : path.join(repoRoot, relPath);
+    if (!fs.existsSync(abs)) continue;
+
+    const raw = fs.readFileSync(abs, 'utf8');
+    const { frontmatter, body } = parseFrontmatterBlock(raw);
+
+    const title = String(frontmatter.title || '');
+    const slug = String(frontmatter.slug || '');
+    const date = parseFrontmatterDate(frontmatter.date);
+
+    if (!date) continue;
+    const ageDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays > maxAgeDays) continue;
+
+    if (!LEGACY_MODEL_PATTERN.test(body)) continue;
+
+    const headerText = `${title}\n${slug}`;
+    const mentionsLegacyInHeader = LEGACY_MODEL_PATTERN.test(headerText);
+    if (mentionsLegacyInHeader) continue; // likely intentionally about the legacy model
+
+    const mentionsModernSomewhere = MODERN_MODEL_PATTERN.test(raw);
+    const hasHistoricalMarker = HISTORICAL_MARKER_PATTERN.test(raw);
+
+    // If a recent post casually mentions legacy models without signaling "historical example"
+    // and without also referencing current-generation context, it tends to read stale.
+    if (!mentionsModernSomewhere && !hasHistoricalMarker) {
+      offenders.push({ file: relPath, title, slug });
+    }
+  }
+
+  if (offenders.length === 0) return;
+
+  console.log('\n❌ Gate failed: Recent posts mention legacy models without context.');
+  console.log('   Fix one of:');
+  console.log('   - Remove the legacy model mention(s), or');
+  console.log('   - Add an explicit historical marker (e.g., "과거 사례" / "Historical example"), or');
+  console.log('   - Add current-generation context (without inventing facts).');
+  console.log('');
+  for (const o of offenders) {
+    const label = o.title || o.slug || o.file;
+    console.log(`   - ${label} (${o.file})`);
+  }
+  throw new Error('Legacy anchoring check failed.');
+}
+
+function checkCommunitySourcing(files: string[]) {
+  const repoRoot = process.cwd();
+  const now = new Date();
+  const maxAgeDays = 30;
+
+  const offenders: Array<{ file: string; title: string; slug: string; sourceUrl: string; trustedRefs: number; refs: number }> = [];
+
+  for (const relPath of files.map(normalizePath)) {
+    const abs = path.isAbsolute(relPath) ? relPath : path.join(repoRoot, relPath);
+    if (!fs.existsSync(abs)) continue;
+
+    const raw = fs.readFileSync(abs, 'utf8');
+    const { frontmatter } = parseFrontmatterBlock(raw);
+
+    const title = String(frontmatter.title || '');
+    const slug = String(frontmatter.slug || '');
+    const sourceUrl = String(frontmatter.sourceUrl || '');
+    const date = parseFrontmatterDate(frontmatter.date);
+
+    if (!date) continue;
+    const ageDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+    if (ageDays > maxAgeDays) continue;
+
+    const primaryTier = classifySource(sourceUrl);
+    if (primaryTier !== SourceTier.C) continue; // only enforce for community/low-trust primary sources
+
+    const urls = extractUrls(raw);
+    const uniqueUrls = Array.from(new Set(urls));
+
+    const trustedRefs = uniqueUrls
+      .filter((u) => u !== sourceUrl)
+      .map((u) => classifySource(u))
+      .filter((t) => t === SourceTier.S || t === SourceTier.A).length;
+
+    // Require at least one trusted (S/A) reference beyond the community primary source.
+    if (trustedRefs < 1) {
+      offenders.push({
+        file: relPath,
+        title,
+        slug,
+        sourceUrl,
+        trustedRefs,
+        refs: uniqueUrls.length,
+      });
+    }
+  }
+
+  if (offenders.length === 0) return;
+
+  console.log('\n❌ Gate failed: Recent community-sourced posts must include at least 1 trusted reference (tier S/A).');
+  console.log('   Rationale: prevents “community opinion → authoritative-sounding post” without evidence.');
+  console.log('');
+  for (const o of offenders) {
+    const label = o.title || o.slug || o.file;
+    console.log(`   - ${label} (${o.file}) | refs=${o.refs}, trustedRefs=${o.trustedRefs} | primary=${o.sourceUrl || '(none)'}`);
+  }
+  throw new Error('Community sourcing check failed.');
+}
 
 function sleepMs(ms: number) {
   if (ms <= 0) return;
@@ -402,6 +556,12 @@ function main() {
   if (strict && styleFixTargets.length > 0) {
     const filesArg = styleFixTargets.join(',');
     run(`pnpm content:style-fix -- --files=${filesArg}`);
+  }
+
+  if (strict) {
+    const targets = lastWritten.files.length > 0 ? lastWritten.files : changedPostFiles;
+    checkLegacyAnchoring(targets);
+    checkCommunitySourcing(targets);
   }
 
   try {

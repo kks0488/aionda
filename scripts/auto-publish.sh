@@ -364,7 +364,7 @@ NODE
 }
 
 slot="$(read_int_file "$PUBLISH_SLOT_FILE" 0)"
-trend_every="${AUTO_PUBLISH_TREND_EVERY:-3}"
+trend_every="${AUTO_PUBLISH_TREND_EVERY:-5}"
 if ! [[ "$trend_every" =~ ^[0-9]+$ ]] || [ "$trend_every" -le 0 ]; then
   trend_every=3
 fi
@@ -390,7 +390,7 @@ pnpm crawl-rss || echo "RSS crawl warning"
 set_status "running: extract topics"
 log "Step 2: Extracting topics..."
 EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
-STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-24h}"
+STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-72h}"
 
 if [ "$publish_mode" = "trend" ]; then
   TREND_LIMIT="${AUTO_PUBLISH_TREND_EXTRACT_LIMIT:-$EXTRACT_LIMIT}"

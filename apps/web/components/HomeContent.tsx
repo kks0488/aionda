@@ -33,12 +33,39 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
     );
   }, [posts, normalizedCategory]);
 
-  const featuredPosts = filteredPosts.slice(0, 2);
-  const gridPosts = filteredPosts.slice(2, 6);
+  const orderedPosts = useMemo(() => {
+    const hasTag = (post: Post, tag: string) =>
+      post.tags.some((t) => t.toLowerCase() === tag);
+    const isPulse = (post: Post) => hasTag(post, 'k-ai-pulse');
+    const isEvergreen = (post: Post) => hasTag(post, 'explainer') || hasTag(post, 'deep-dive');
+
+    const byDateDesc = (a: Post, b: Post) => new Date(b.date).getTime() - new Date(a.date).getTime();
+    const sorted = [...filteredPosts].sort(byDateDesc);
+
+    // "Latest" should feel current: prioritize fast-news posts over evergreen explainers.
+    if (normalizedCategory === 'all') {
+      sorted.sort((a, b) => {
+        const pulseDiff = Number(isPulse(b)) - Number(isPulse(a));
+        if (pulseDiff !== 0) return pulseDiff;
+        const evergreenDiff = Number(isEvergreen(a)) - Number(isEvergreen(b));
+        if (evergreenDiff !== 0) return evergreenDiff;
+        return byDateDesc(a, b);
+      });
+    }
+
+    return sorted;
+  }, [filteredPosts, normalizedCategory]);
+
+  const featuredPosts = orderedPosts.slice(0, 2);
+  const gridPosts = orderedPosts.slice(2, 6);
   const trendingPosts = useMemo(() => (
-    [...posts]
-      .sort((a, b) => (b.verificationScore || 0) - (a.verificationScore || 0))
-      .slice(0, 4)
+    (() => {
+      const pulse = posts.filter((post) => post.tags.some((t) => t.toLowerCase() === 'k-ai-pulse'));
+      const sortedPulse = [...pulse].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      if (sortedPulse.length >= 4) return sortedPulse.slice(0, 4);
+      const fallback = [...posts].sort((a, b) => (b.verificationScore || 0) - (a.verificationScore || 0));
+      return fallback.slice(0, 4);
+    })()
   ), [posts]);
 
   return (
@@ -65,7 +92,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Article Feed (Left 8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-16">
-          {filteredPosts.length === 0 ? (
+          {orderedPosts.length === 0 ? (
             <div className="text-center py-20">
               <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-500 mb-4">
                 search_off
@@ -109,7 +136,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
               )}
 
               {/* Load More */}
-              {filteredPosts.length > 6 && (
+              {orderedPosts.length > 6 && (
                 <div className="flex justify-center pt-8">
                   <Link
                     href={`/${locale}/posts`}

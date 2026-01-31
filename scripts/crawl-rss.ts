@@ -59,6 +59,15 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'deepmind', name: 'DeepMind Blog', url: 'https://deepmind.google/blog/rss.xml', tier: 'S', type: 'official', enabled: true },
   { id: 'microsoft-ai', name: 'Microsoft AI Blog', url: 'https://blogs.microsoft.com/ai/feed/', tier: 'S', type: 'official', enabled: true },
   { id: 'huggingface', name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', tier: 'S', type: 'official', enabled: true },
+  // Cloud + Security + Enterprise (sales-friendly, still filtered downstream)
+  { id: 'aws-ml', name: 'AWS Machine Learning Blog', url: 'https://aws.amazon.com/blogs/machine-learning/feed/', tier: 'S', type: 'official', enabled: true },
+  { id: 'aws-security', name: 'AWS Security Blog', url: 'https://aws.amazon.com/blogs/security/feed/', tier: 'S', type: 'official', enabled: true },
+  { id: 'aws-blog', name: 'AWS Official Blog', url: 'https://aws.amazon.com/blogs/aws/feed/', tier: 'A', type: 'official', enabled: true },
+  { id: 'azure-blog', name: 'Microsoft Azure Blog', url: 'https://azure.microsoft.com/en-us/blog/feed/', tier: 'A', type: 'official', enabled: true },
+  { id: 'cloudflare', name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', tier: 'A', type: 'official', enabled: true },
+  { id: 'google-security', name: 'Google Online Security Blog', url: 'https://feeds.feedburner.com/GoogleOnlineSecurityBlog', tier: 'A', type: 'official', enabled: true },
+  { id: 'mandiant-ti', name: 'Google Threat Intelligence (Mandiant)', url: 'https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/', tier: 'A', type: 'official', enabled: true },
+  { id: 'crowdstrike', name: 'CrowdStrike Blog', url: 'https://www.crowdstrike.com/en-us/blog/feed', tier: 'A', type: 'official', enabled: true },
 
   // Tech News (Tier A)
   { id: 'techcrunch-ai', name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', tier: 'A', type: 'news', enabled: true },

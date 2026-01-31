@@ -183,7 +183,99 @@ async function verifyFile(filePath: string, maxClaims: number): Promise<FileRepo
 
     return Array.from(urls).slice(0, 8);
   })();
-  const extracted = (await extractClaims(content)) as ExtractedClaim[];
+  const errorToText = (err: unknown): string => {
+    const anyErr = err as any;
+    if (anyErr?.name) return String(anyErr.name);
+    if (anyErr?.message) return String(anyErr.message);
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  };
+
+  const fallbackExtractClaims = (rawContent: string, limit: number): ExtractedClaim[] => {
+    // Deterministic fallback when the LLM-based claim extractor fails (e.g., AbortError).
+    // Goal: keep verification meaningful (no "silent pass") while preserving exact quotes.
+    const lines = rawContent
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+      // Skip headings, bullets, and code fences-ish lines.
+      .filter((l) => !/^#{1,6}\s+/.test(l))
+      .filter((l) => !/^[-*]\s+/.test(l))
+      .filter((l) => !/^```/.test(l))
+      // Skip example scene lines.
+      .filter((l) => !/^Example:/i.test(l) && !/^예:\s*/.test(l));
+
+    const candidates = lines
+      .filter((l) => /\b(20\d{2}|mmlu|gpqa|gsm8k|swe-bench|livecodebench|aime|benchmark|release|launched|priced?|%|\d)\b/i.test(l))
+      // Prefer lines that look like factual claims.
+      .sort((a, b) => {
+        const score = (s: string) => {
+          let v = 0;
+          if (/\b20\d{2}\b/.test(s)) v += 2;
+          if (/%|\b\d+(?:\.\d+)?\b/.test(s)) v += 2;
+          if (/\b(mmlu|gpqa|gsm8k|swe-bench|livecodebench|aime|benchmark)\b/i.test(s)) v += 3;
+          if (/\b(release|launched|priced?)\b/i.test(s)) v += 1;
+          return v;
+        };
+        return score(b) - score(a);
+      })
+      .slice(0, Math.max(0, limit));
+
+    return candidates.map((text, idx) => {
+      const lower = text.toLowerCase();
+      const type =
+        /mmlu|gpqa|gsm8k|swe-bench|livecodebench|aime|benchmark/.test(lower) ? 'benchmark'
+          : /release|launched|priced?/.test(lower) ? 'release_date'
+            : 'general';
+      return {
+        id: `fallback_claim_${idx + 1}`,
+        text,
+        type,
+        priority: 'high',
+        entities: [],
+      };
+    });
+  };
+
+  let extracted: ExtractedClaim[] = [];
+  try {
+    extracted = (await extractClaims(content)) as ExtractedClaim[];
+  } catch (err) {
+    // Fall back to deterministic extraction so verification remains meaningful.
+    extracted = fallbackExtractClaims(content, Math.min(maxClaims, 6));
+  }
+
+  // If claim extraction returns empty but the content clearly contains verifiable facts,
+  // treat it as a verification failure (prevents “silent pass” on API aborts/timeouts).
+  const looksVerifiable =
+    /\b(20\d{2}|mmlu|gpqa|gsm8k|swe-bench|livecodebench|aime|benchmark|release|launched|priced?|%|\d)\b/i.test(content);
+  if ((!extracted || extracted.length === 0) && looksVerifiable) {
+    extracted = fallbackExtractClaims(content, Math.min(maxClaims, 6));
+  }
+  if ((!extracted || extracted.length === 0) && looksVerifiable) {
+    return {
+      file: rel,
+      claimsChecked: 0,
+      verifiedClaims: 0,
+      avgConfidence: 0,
+      failedHighPriority: 1,
+      results: [
+        {
+          id: 'claim_extraction_empty',
+          text: 'No verifiable claims extracted',
+          type: 'claim_extraction_empty',
+          priority: 'high',
+          verified: false,
+          confidence: 0,
+          notes: 'No claims extracted despite quantitative/benchmark markers in the content.',
+          sources: [],
+        },
+      ],
+    };
+  }
 
   const claims = (extracted || [])
     .filter((c) => c && typeof c.text === 'string' && c.text.trim().length > 0)

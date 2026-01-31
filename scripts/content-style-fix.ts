@@ -177,6 +177,12 @@ function processMarkdownBody(markdown: string): { next: string; changed: boolean
         continue;
       }
 
+      // Keep the required "Example:" / "예:" scene paragraph intact.
+      if (/^\s*Example:\s*/.test(nextLine) || /^\s*예:\s*/.test(nextLine)) {
+        nextLines.push(nextLine);
+        continue;
+      }
+
       if (countWords(nextLine) > 22) {
         const sentences = splitSentences(nextLine);
         if (sentences.length === 1 && countWords(sentences[0]) > 20) {
