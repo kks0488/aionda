@@ -1,0 +1,79 @@
+---
+title: >-
+  DeepSeek-R1: Enhancing Reasoning Efficiency Through Reinforcement Learning and
+  GRPO
+slug: deepseek-r1-grpo-reasoning-efficiency
+date: '2026-01-31'
+locale: en
+description: >-
+  Explore how DeepSeek-R1 achieves self-correction through RL and optimizes
+  reasoning efficiency using the GRPO algorithm.
+tags:
+  - llm
+  - deepseek-r1
+  - grpo
+  - reinforcement-learning
+  - deep-dive
+  - hardware
+author: AI온다
+sourceId: '948968'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=948968'
+verificationScore: 0.9166666666666666
+alternateLocale: /ko/posts/deepseek-r1-grpo-reasoning-efficiency
+coverImage: /images/posts/deepseek-r1-grpo-reasoning-efficiency.png
+---
+
+## TL;DR
+- DeepSeek-R1-Zero demonstrated that model self-correction and reasoning capabilities can be achieved through reinforcement learning alone, without supervised fine-tuning.
+- By utilizing an algorithm that eliminates the critic model.
+It increased computational resource efficiency and lowered the barrier to developing complex reasoning models.
+- Organizations requiring reasoning efficiency should evaluate service performance using knowledge distillation models that inherit the performance of superior base models.
+
+Example: An artificial intelligence self-corrects its wrong answers and rewrites its logic. The sight of it pausing during complex calculations, identifying errors, and restarting illustrates the transformation brought by reinforcement learning.
+
+Without human intervention or pre-trained exemplary answers, the AI developed a chain of thought (CoT) within the reward framework of reinforcement learning. DeepSeek-R1 serves as a case study showing how the structural efficiency of an algorithm, rather than complex data refinement, can enhance reasoning capabilities.
+
+## Current Status
+The emergence of self-correction capabilities has been observed in models trained purely through reinforcement learning without supervised learning datasets. During the training process, this model discovered and corrected reasoning errors on its own, with the length of its Chain of Thought (CoT) increasing over time. According to technical reports, these changes in reasoning patterns appeared when the model increased the use of specific words during its reflection process.
+
+The technical core is the Group Relative Policy Optimization (GRPO) algorithm. The traditional PPO method required maintaining a separate critic model to estimate the value model, which increased memory requirements during training. In contrast, GRPO generates multiple outputs for the same prompt and calculates advantages using the relative reward mean and standard deviation within the group. A key feature is the improvement of computational efficiency by removing the critic model.
+
+DeepSeek-R1 applied multi-stage curriculum learning. A small amount of data was introduced to resolve readability issues and language mixing that occurred in the pure reinforcement learning outputs. Finally, a structure was adopted to enhance the reasoning performance of smaller models through knowledge distillation.
+
+## Analysis
+The emergence of DeepSeek-R1 suggests that the axis of competition in large language models is shifting from data volume to the efficiency of learning algorithms. In particular, the introduction of GRPO demonstrated the possibility of developing high-performance reasoning models even in environments with limited capital and computational resources. The method of performing optimization without a critic model offers significant advantages in terms of training efficiency.
+
+However, limitations exist. While pure reinforcement learning models excel in reasoning, they require supplementation regarding user interaction and readability. This is why DeepSeek opted for curriculum learning that incorporates some supervised learning data. It shows that while reasoning logic can be secured through reinforcement learning, the format requires human guidance.
+
+Furthermore, while knowledge distillation contributes to improving the performance of small models, it remains dependent on the performance of the superior base model. Additional verification is needed regarding the possibility that distilled models might inherit the logical limitations of the parent model.
+
+## Practical Application
+Developers and architects can refer to the GRPO and knowledge distillation strategies presented by DeepSeek-R1 for model optimization. GRPO can be an alternative for organizations that were considering reinforcement learning but were hesitant due to computational costs.
+
+Example: When building a legal document summarization system that requires complex logic, performance can be improved by applying GRPO to a base model to reward logical consistency, rather than creating a large amount of gold-standard data.
+
+**To-do List for Today:**
+- Apply knowledge distillation models to current reasoning workloads to measure response speed and accuracy compared to existing models.
+- Implement a structure that removes the critic model when building reinforcement learning pipelines to simulate memory saving metrics.
+- Calculate the impact of token consumption during the model's thinking process on total costs to identify the economic threshold.
+
+## FAQ
+**Q: Specifically, in what ways is GRPO more advantageous than PPO?**
+A: It has higher memory efficiency. PPO requires maintaining a critic model of a similar size to the policy model, leading to high resource consumption. GRPO eliminates this and replaces it with relative rewards within a group, reducing training resources.
+
+**Q: Does the 'Aha Moment' mean the model has actually achieved intelligence?**
+A: Rather than the presence of intelligence, it is more appropriate to interpret it as the model choosing a self-correction strategy to increase rewards within the reward system set by the learning algorithm. It is the result of reinforced patterns where the model re-examines its own logical steps.
+
+**Q: Is using only a knowledge distillation model sufficient?**
+A: In domains where answers are clear, such as mathematics or coding, small distilled models can be efficient. However, in areas requiring complex contextual understanding, performance gaps may still exist compared to superior models with more parameters, necessitating thorough testing.
+
+## Conclusion
+DeepSeek-R1 is a case study demonstrating that reinforcement learning can enhance a model's reasoning capabilities. In particular, computational efficiency through GRPO and the manifestation of reasoning abilities based on pure reinforcement learning suggest a potential shift in technical development methodologies.
+
+In the future, the industry is expected to focus not only on increasing model size but also on creating models that can think for themselves through efficient learning methodologies. A key factor will be whether small models with high-performance reasoning capabilities, achieved through knowledge distillation, can prove their economic viability in real-world operational environments.
+---
+
+## References
+
+- 🏛️ [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300)
+- 🏛️ [DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning](https://arxiv.org/abs/2501.12948)
