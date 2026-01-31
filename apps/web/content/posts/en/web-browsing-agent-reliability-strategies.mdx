@@ -1,0 +1,87 @@
+---
+title: Strategies to Reduce Hallucinations and Enhance Web Browsing Agents
+slug: web-browsing-agent-reliability-strategies
+date: '2026-01-31'
+locale: en
+description: >-
+  Technical strategies to reduce hallucinations in browsing agents using
+  accessibility trees and hierarchical structures.
+tags:
+  - llm
+  - browsing-agent
+  - web-automation
+  - ai-reliability
+  - deep-dive
+  - agi
+author: AI온다
+sourceId: '948786'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=948786'
+verificationScore: 0.6333333333333333
+alternateLocale: /ko/posts/web-browsing-agent-reliability-strategies
+coverImage: /images/posts/web-browsing-agent-reliability-strategies.png
+---
+
+## TL;DR
+- **Core Issue:** To suppress AI hallucinations caused by complex web structures.
+Strategies that combine visual information with refined accessibility tree data and introduce hierarchical execution structures are required.
+- **Importance:** Ensuring the reliability of browsing agents allows AI to assist in web tasks requiring complex decision-making.
+Moving beyond simple automation of repetitive tasks and increasing operational efficiency.
+- **Reader's Action:** When designing agents, utilize accessibility trees instead of raw HTML, inject unique identifiers for each element.
+Apply a hierarchical structure that separates the planner and the navigator.
+
+Example: An AI receives a command to pay for an item in an online store. The agent navigates the screen to find the purchase button, but due to an overlap with an advertisement banner, it selects the wrong location. Consequently, the task is interrupted, and only an error message appears.
+
+Entering a destination in a web browser address bar and gathering information has primarily been a task performed by humans. Now, Artificial Intelligence (AI) is evolving beyond text generation into 'browsing agents' that navigate the web and perform actions on behalf of users. However, information inconsistency and hallucinations occurring in this process act as constraints for practical application.
+
+To address these issues.
+Researchers have begun to move away from relying solely on the reasoning capabilities of Large Language Models (LLMs) and have started introducing technical mechanisms to refine web structures and manage states.
+
+## Current Status
+
+Browsing agent technology is shifting from a method of inputting all webpage information into a model to a refinement stage that selects only the necessary data. Instead of using complex HTML structures as they are, researchers simplify data using the 'Accessibility Tree' designed for web accessibility. This induces the model to focus on core elements and reduces the amount of information it should process.
+
+According to the WebVoyager research published in January 2024, the clicking accuracy of agents improved when utilizing a visual feedback loop that combines text information and screenshots with bounding boxes. By allowing the model to recognize actual on-screen positions along with text, it compensates for the problem of misidentifying click locations.
+
+A specific tool, Agent-Browser, introduced the 'Snapshot + Refs' system. Benchmark results showed that Agent-E reduced context usage by an average of 93% by utilizing DOM distillation instead of sending the entire HTML context every time. Furthermore, the Agent-E research, released on July 17, 2024, proposed a 'DOM Distillation' technique. This method limits the model to manipulating only existing elements by removing unnecessary elements and injecting unique identifiers, such as 'mmid,' into each element.
+
+## Analysis
+
+In the process of securing consistency for browsing agents, the balance between accuracy and cost is crucial. Detailed analysis of all web elements increases accuracy but leads to higher token usage and slower processing speeds. Conversely, excessive condensation of data can lead to hallucinations where necessary information is missed.
+
+A strategy to resolve this is a hierarchical structure that separates roles. This involves dividing the system into a 'Planner' that establishes high-level plans and a 'Navigator' responsible for actual clicks and inputs. The planner manages the overall task steps and sets checkpoints, while the navigator performs detailed actions based on refined DOM data. This separation enables a 'Checkpointing' feature, allowing recovery from the point of failure rather than restarting from the beginning when an error occurs.
+
+However, limitations still exist. Universal metrics for how much the DOM refinement process specifically lowers the hallucination rate have not been clearly verified. Additionally, technical mechanisms may not function smoothly on dynamic websites that change in real-time or in front of security authentication procedures (such as CAPTCHAs). Therefore, the consistency of an agent depends on technical optimization as well as the method of defining and managing exception scenarios.
+
+## Practical Application
+
+Developers and business decision-makers should consider the following when introducing browsing agents into practice. Inputting the entire web page into an LLM is inefficient and carries a probability of failure.
+
+The priority should be 'DOM Downsampling.' While maintaining the hierarchical structure of the webpage, non-interactive nodes should be removed to optimize the number of input tokens. This is a method to increase the model's reasoning consistency. Additionally, a structured memory management system should be introduced to systematically record the history of tasks performed by the agent.
+
+**Action Checklist for Today:**
+1. When designing web automation, set the Accessibility Tree as the default input instead of raw HTML to reduce data noise.
+2. Inject unique identifier attributes (e.g., mmid) into each web element to prevent ambiguity when the model selects an element.
+3. Implement a visual feedback loop that verifies execution results at each task step to immediately detect execution errors.
+
+## FAQ
+
+**Q: Why use the Accessibility Tree instead of raw HTML?**
+A: Standard HTML includes tags and scripts for visual decoration, which can act as noise for the model. In contrast, the Accessibility Tree contains only the core structures necessary for actual interaction, such as buttons and input fields, helping to improve token efficiency and accuracy.
+
+**Q: How does the visual feedback loop work specifically?**
+A: It is a process where a screenshot is taken immediately after the agent performs a specific action, and the model reassesses whether the screen matches the expected result. By contrasting visual changes before and after a click, it verifies the success of the task.
+
+**Q: Doesn't introducing the checkpointing technique cost more?**
+A: While additional costs for state storage may occur, it prevents the waste of tokens that happens when restarting all steps from the beginning upon task failure. Therefore, it is advantageous for overall cost reduction, especially in complex tasks.
+
+## Conclusion
+
+The core of a web browsing agent lies in how sophisticatedly the interface through which the model views the web is constructed. DOM distillation, unique identifier injection, and hierarchical structure design are practical ways to reduce LLM uncertainty to a controllable level.
+
+Moving forward, browsing agents will advance toward understanding the web by combining visual information with structural data. By systematically introducing these technical mechanisms, the efficiency of task automation through AI can be enhanced.
+---
+
+## References
+
+- 🏛️ [WebVoyager: Building an End-to-End Web Agent with Large Multimodal Models](https://arxiv.org/abs/2401.13919)
+- 🏛️ [Agent-E: From Autonomous Web Navigation to Foundational Design Principles in Agentic Systems](https://arxiv.org/abs/2407.17140)
