@@ -45,11 +45,20 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
     // "Latest" should feel current: prioritize fast-news posts over evergreen explainers.
     if (normalizedCategory === 'all') {
       sorted.sort((a, b) => {
+        const timeA = new Date(a.date).getTime();
+        const timeB = new Date(b.date).getTime();
+        const dateDiff = timeB - timeA; // newest first
+
+        // Never let older "pulse" items hide truly newer posts.
+        // Apply pulse/evergreen preference only inside a short recency window.
+        const RECENCY_WINDOW_MS = 36 * 60 * 60 * 1000; // 36h
+        if (Math.abs(dateDiff) > RECENCY_WINDOW_MS) return dateDiff;
+
         const pulseDiff = Number(isPulse(b)) - Number(isPulse(a));
         if (pulseDiff !== 0) return pulseDiff;
         const evergreenDiff = Number(isEvergreen(a)) - Number(isEvergreen(b));
         if (evergreenDiff !== 0) return evergreenDiff;
-        return byDateDesc(a, b);
+        return dateDiff;
       });
     }
 
