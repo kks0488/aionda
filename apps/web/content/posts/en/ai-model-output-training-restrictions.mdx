@@ -1,0 +1,86 @@
+---
+title: Restrictions on Using AI Outputs for Training Competing Models
+slug: ai-model-output-training-restrictions
+date: '2026-02-01'
+locale: en
+description: >-
+  Major AI companies are tightening Terms of Use to prohibit using model outputs
+  for training or improving competing models.
+tags:
+  - llm
+  - terms-of-use
+  - knowledge-distillation
+  - synthetic-data
+  - deep-dive
+  - hardware
+author: AI온다
+sourceId: '949263'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=949263'
+verificationScore: 0.9666666666666667
+alternateLocale: /ko/posts/ai-model-output-training-restrictions
+coverImage: /images/posts/ai-model-output-training-restrictions.png
+---
+
+At three in the morning, a startup development team cheers as they check the benchmark results of their self-trained Small Language Model (SLM). They had just significantly boosted performance by utilizing high-quality synthetic data generated via a large AI company's API. However, their joy is short-lived as the legal review stage grinds their progress to a halt. Hidden within the terms of use for the data they utilized was a clause explicitly prohibiting the 'use of outputs to develop competing models.'
+
+Example: A software company collected response data from an external model to improve the performance of their existing service and used it to train their proprietary language model. However, after receiving a notice of terms-of-service violation from the data provider, they largely halted the deployment of the model under development.
+
+'Data isolationism' in the AI industry is becoming increasingly overt. Leading technology companies are implementing powerful barriers through their Terms of Use (ToS) to prevent their models' outputs from becoming the nourishment for competitors. Beyond simple copyright discussions, this is acting as a strategic barrier to fundamentally block latecomers from attempting to close the gap through Knowledge Distillation.
+
+## TL;DR
+- **What is changing?** Major AI companies such as OpenAI, Microsoft.
+Meta are strictly prohibiting the use of their models' output data to develop, train, or improve competing AI models through their Terms of Use.
+- **Why does it matter?** While 'Knowledge Distillation'—reusing high-performance model outputs as training data—is key to efficient model development.
+Indiscriminate use poses risks such as platform expulsion or legal litigation that threaten business continuity.
+- **What should readers do?** Before including synthetic data or external API outputs in model training.
+Conduct a thorough investigation with your legal team into the scope of 'non-compete' clauses and the definition of 'derivative models' within the respective model's license.
+
+## Current Status: The Dense Net of Terms
+
+The service terms of major AI companies commonly put forward 'competition prevention' as a core value. The 'Restrictions' section within OpenAI's Terms of Use explicitly prohibits using the service's Output to develop artificial intelligence models that compete with OpenAI's products and services. However, developing models for the purpose of simply classifying or organizing data (such as embeddings or classifiers) is permitted, provided the model is not distributed to third parties or used commercially. Furthermore, performance improvements through the official Fine-tuning features provided by OpenAI do not constitute a violation of the terms.
+
+Microsoft Azure OpenAI Service maintains a similar stance. While customer input and output data are not used to train the base model, using service outputs to develop or train generative AI models that compete with Azure OpenAI is strictly restricted. Notably, they implement a policy of retaining data for up to 30 days for abuse monitoring, while offering a 'Zero Data Retention' option upon approval for security-sensitive enterprises.
+
+
+## Analysis: Monopoly of Knowledge or Justifiable Defense?
+
+These regulations represent a survival strategy for leading companies aiming to maintain their technological moat. The logic is to protect the value of the astronomical computing resources and refined data invested in building high-performance models. If a latecomer could replicate (distill) the logical framework of a high-performance model just by paying low API costs, the commercial interests of the early investors would be fatally wounded.
+
+However, critical perspectives also exist. There are concerns that these terms hinder the democratization of AI technology and solidify a closed ecosystem. A particular issue is the ambiguity in the definition of a 'competing model.' Whether an SLM specialized in a specific domain training on a portion of a large model's output constitutes 'competition' with that large model is a matter of interpretation that may vary by company.
+
+Additionally, some models adopting the Apache 2.0 license (e.g., early versions of Mistral 7B) may have relatively loose or no regulations regarding the use of outputs. This places developers in a complex situation where the level of legal risk varies depending on which model they choose as a base. The fact that legal interpretations regarding whether knowledge distillation itself constitutes 'Fair Use' have not been established globally further compounds the uncertainty.
+
+## Practical Application: Risk-Free Model Development Strategies
+
+Developers and corporate decision-makers should prioritize legal stability over short-term performance gains. The moment external model data is fed into a training pipeline, a license dependency for that model is created.
+
+**To-do list for today:**
+- Conduct a full audit and catalog the source models of any synthetic data currently included in your training datasets.
+- Locate the 'Restrictions' or 'Prohibited Use' sections in the terms of the API services you are using to check for language related to 'Compete/Competitive' models.
+- Perform technical verification to determine if your work falls under 'permitted exceptions' such as data classification or embedding generation.
+
+## FAQ
+
+**Q: Is it okay to process or summarize outputs from another company's model instead of using them as-is for training?**
+While Llama 3.1 allows using outputs to improve Llama-based models, it also permits their use to improve other large language models, departing from the restrictions found in many other model terms.
+
+**Q: Is it a violation even if the model is developed for internal testing only?**
+A: In the case of OpenAI, there are exception clauses allowing the development of internal models for classifying or organizing data, provided there is no commercial distribution. However, if the purpose is to develop a 'competing model,' even internal use may constitute a violation of terms; therefore, you should check the 'Permitted Exception' scope of the specific service you are using.
+
+**Q: Can outputs from open-source models often be used freely?**
+A: No. 'Open Source' and 'Open Weights' models are different. Models like Llama or Gemma are publicly available but follow unique community licenses that explicitly include clauses prohibiting the improvement of other models. Conversely, full open-source models using the Apache 2.0 license may have relatively fewer restrictions, but you should still verify the specific license language directly.
+
+## Conclusion
+
+As competition in the LLM market intensifies, regulations on data utilization are becoming more sophisticated. Now, 'how legally clean the data is' has become as critical a metric for a model's survival as 'what data is secured.'
+
+The key point to watch moving forward is the emergence of actual case law contesting the validity of these terms. Until the legal boundaries are clarified regarding whether training through knowledge distillation is a legitimate research activity for technical progress or an act of unfair competition infringing on another's intellectual assets, a conservative approach is essential. It is time for a strategy that increases the proportion of proprietary data and the use of true open-source models free from such regulations.
+---
+
+## References
+
+- 🛡️ [Terms of use - OpenAI](https://openai.com/policies/terms-of-use)
+- 🛡️ [OpenAI Services Agreement](https://openai.com/policies/service-terms)
+- 🛡️ [OpenAI Terms of Use](https://openai.com/policies/usage-policies)
+- 🛡️ [Llama 3.1 Community License Agreement](https://llama.meta.com/llama3_1/license/)
+- 🛡️ [llama3.1 license restrictions - Hugging Face](https://huggingface.co/meta-llama/Llama-3.1-405B/discussions/1)
