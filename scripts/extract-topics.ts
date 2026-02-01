@@ -181,10 +181,20 @@ function hasHighSignal(post: UnifiedPost): boolean {
 const LEGACY_MODEL_PATTERNS: RegExp[] = [
   /\bgpt[-\s]?4o\b/i,
   /\bgpt[-\s]?4\b/i,
+  /\bgpt[-\s]?3(?:\.\d+)?\b/i,
+  /\bgpt[-\s]?3\.5\b/i,
   /\bgemini[-\s]?2(?:\.\d+)?\b/i,
+  /\bgemini[-\s]?1\.5\b/i,
+  /\bgemini[-\s]?1\b/i,
   /제미나이\s*2(?:\.\d+)?/i,
+  /제미나이\s*1\.5/i,
+  /제미나이\s*1\b/i,
   /\bclaude\s*3(?:\.\d+)?\b/i,
+  /\bclaude\s*2(?:\.\d+)?\b/i,
+  /\bclaude\s*1(?:\.\d+)?\b/i,
   /클로드\s*3(?:\.\d+)?/i,
+  /클로드\s*2(?:\.\d+)?/i,
+  /클로드\s*1(?:\.\d+)?/i,
 ];
 
 // If a story is primarily about an older model and lacks clear "new/hard" signal, it tends to be evergreen or stale.
@@ -205,6 +215,21 @@ function mentionsLegacyModel(post: UnifiedPost): boolean {
 function mentionsModernModel(post: UnifiedPost): boolean {
   const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 4000);
   return MODERN_MODEL_PATTERNS.some((re) => re.test(sample));
+}
+
+const LEGACY_ALLOW_CONTEXT_PATTERNS: RegExp[] = [
+  /\b(end of life|eol|deprecated|deprecate|sunset|security|cve|vulnerability|outage|incident|postmortem|pricing|price|cost|api|policy|regulation|law|lawsuit|ban|migration)\b/i,
+  /종료|eol|지원\s*종료|중단|폐지|보안|취약점|cve|사고|장애|사후\s*보고|가격|비용|api|정책|규제|법|소송|금지|마이그레이션/i,
+];
+
+function isLegacyAnchoredTitle(post: UnifiedPost): boolean {
+  const title = (post.title || '').slice(0, 300);
+  return LEGACY_MODEL_PATTERNS.some((re) => re.test(title));
+}
+
+function hasLegacyAllowContext(post: UnifiedPost): boolean {
+  const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 2000);
+  return LEGACY_ALLOW_CONTEXT_PATTERNS.some((re) => re.test(sample));
 }
 
 function isLikelyConsumerDrift(post: UnifiedPost): boolean {
@@ -517,6 +542,13 @@ async function main() {
     }
     if (isNewsOrOfficial && mentionsLegacyModel(post) && !mentionsModernModel(post) && !hasHighSignal(post)) {
       console.log('    ⏭️ Skipping: legacy model mention without new/hard signal');
+      skipCounts.lowSignal++;
+      console.log('');
+      continue;
+    }
+    // Community posts often rehash older-model deep-dives; avoid turning them into "today's" posts unless there's a fresh operational angle.
+    if (post.sourceType === 'raw' && isLegacyAnchoredTitle(post) && !mentionsModernModel(post) && !hasLegacyAllowContext(post)) {
+      console.log('    ⏭️ Skipping: community post anchored to legacy model (no fresh context)');
       skipCounts.lowSignal++;
       console.log('');
       continue;
