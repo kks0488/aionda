@@ -8,6 +8,7 @@
 - 로컬 cron: 매시간 `scripts/auto-publish.sh`가 실행됩니다.
   - 권장: 개발용 워크트리와 분리된 전용 클론(예: `/home/kkaemo/aionda-publisher`)에서 실행
   - 확인: `crontab -l`
+  - env 로드 순서: `~/.config/claude-projects/global.env` → `<repo>/.env.local`
 
 ## 로그 위치
 

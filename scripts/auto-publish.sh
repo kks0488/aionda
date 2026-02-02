@@ -313,6 +313,14 @@ set_status "running: synced origin/main"
 # 환경변수 로드
 export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
 source /home/kkaemo/.bashrc 2>/dev/null || true
+GLOBAL_ENV="/home/kkaemo/.config/claude-projects/global.env"
+if [ -f "$GLOBAL_ENV" ]; then
+  # global.env is SSOT for secrets. Load it for cron so we don't duplicate keys in repo clones.
+  set +u
+  # shellcheck disable=SC1090
+  source "$GLOBAL_ENV" 2>/dev/null || true
+  set -u
+fi
 source "$REPO_ROOT/.env.local" 2>/dev/null || true
 
 # Publish slot state (outside the repo)
