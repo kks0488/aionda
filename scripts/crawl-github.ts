@@ -101,7 +101,7 @@ function getExistingIds(dir: string): Set<string> {
 }
 
 function buildSearchQuery(keyword: string, since: Date | null): string {
-  const base = `${keyword} in:name,description,readme`;
+  const base = `${keyword} in:name,description,readme fork:false archived:false stars:>50`;
   if (!since) return base;
   // Use "pushed" as a cheap proxy for "recently active" (closer to trending than created-only).
   return `${base} pushed:>${formatYmd(since)}`;
@@ -130,6 +130,52 @@ function truncate(value: string, max: number): string {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   if (text.length <= max) return text;
   return `${text.slice(0, Math.max(0, max - 1))}…`;
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const AI_SIGNAL_PATTERN =
+  /\b(ai|artificial intelligence|machine learning|deep learning|neural|llm|genai|gpt|openai|anthropic|claude|gemini|llama|qwen|kimi|rag|retrieval|embedding|vector|transformer|diffusion|multimodal|agentic|mcp)\b/i;
+
+const STRONG_KEYWORD_PATTERNS: Record<string, RegExp[]> = {
+  llm: [/\bllm\b/i, /large[-\s]?language model/i, /language model/i],
+  agent: [/\bagentic\b/i, /\bmulti[-\s]?agent\b/i, /\bai\s*agent\b/i, /\bagent\b/i],
+  mcp: [/\bmcp\b/i, /model context protocol/i],
+  rag: [
+    /\brag\b/i,
+    /retrieval[-\s]?augmented/i,
+    /retrieval augmented generation/i,
+    /\bembedding\b/i,
+    /\bvector\b/i,
+  ],
+};
+
+function matchesStrongKeyword(keyword: string, text: string): boolean {
+  const key = keyword.trim().toLowerCase();
+  const patterns = STRONG_KEYWORD_PATTERNS[key];
+  if (!patterns || patterns.length === 0) {
+    const safe = escapeRegex(key);
+    return new RegExp(`\\b${safe}\\b`, 'i').test(text);
+  }
+  return patterns.some((re) => re.test(text));
+}
+
+function hasAiSignal(text: string): boolean {
+  return AI_SIGNAL_PATTERN.test(text);
+}
+
+function shouldIncludeRepo(keyword: string, repo: any): boolean {
+  const fullName = String(repo?.full_name || '').trim();
+  const description = String(repo?.description || '').trim();
+  const language = String(repo?.language || '').trim();
+  const topics = Array.isArray(repo?.topics) ? repo.topics.map(String) : [];
+
+  const haystack = `${fullName}\n${description}\n${language}\n${topics.join(' ')}`.slice(0, 4000);
+  if (!matchesStrongKeyword(keyword, haystack)) return false;
+  if (!hasAiSignal(haystack)) return false;
+  return true;
 }
 
 async function main() {
@@ -161,6 +207,7 @@ async function main() {
 
   let totalNew = 0;
   let totalSkipped = 0;
+  let totalFiltered = 0;
 
   for (const keyword of keywords) {
     const q = buildSearchQuery(keyword, since);
@@ -182,6 +229,11 @@ async function main() {
       const htmlUrl = String(repo?.html_url || '').trim();
       if (!repoId || !fullName || !htmlUrl) continue;
 
+      if (!shouldIncludeRepo(keyword, repo)) {
+        totalFiltered++;
+        continue;
+      }
+
       const id = `github-${repoId}`;
       if (existingIds.has(id)) {
         totalSkipped++;
@@ -194,11 +246,13 @@ async function main() {
       const stars = Number(repo?.stargazers_count || 0);
       const forks = Number(repo?.forks_count || 0);
       const pushedAt = String(repo?.pushed_at || repo?.updated_at || repo?.created_at || new Date().toISOString());
+      const license = String(repo?.license?.spdx_id || repo?.license?.key || '').trim();
 
       const contentBits = [
         language ? `Language: ${language}` : '',
         Number.isFinite(stars) ? `Stars: ${stars}` : '',
         Number.isFinite(forks) ? `Forks: ${forks}` : '',
+        license ? `License: ${license}` : '',
         topics.length > 0 ? `Topics: ${topics.slice(0, 8).join(', ')}` : '',
       ].filter(Boolean);
 
@@ -230,6 +284,7 @@ async function main() {
   console.log('✨ Done!');
   console.log(`   New: ${totalNew}`);
   console.log(`   Skipped (existing): ${totalSkipped}`);
+  console.log(`   Filtered (irrelevant): ${totalFiltered}`);
   console.log(`   Total news items: ${existingIds.size}`);
 }
 
@@ -237,4 +292,3 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
-

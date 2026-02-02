@@ -178,6 +178,28 @@ function hasHighSignal(post: UnifiedPost): boolean {
   return HIGH_SIGNAL_PATTERNS.some((re) => re.test(sample));
 }
 
+// GitHub Search items are developer-tooling oriented. They often lack explicit "paper/api/policy"
+// keywords, but are still valuable "what devs are building" signals.
+const GITHUB_DEV_TOOLING_PATTERNS: RegExp[] = [
+  /\b(cli|command[-\s]?line|sdk|api|toolkit|framework|library|repo|repository|agentic?|orchestrat(?:ion|or)|workflow|mcp|plugin|extension|server|rag|retrieval|vector|embedding|prompt|copilot|codegen|code\s*agent|autonomous|evals?|benchmark)\b/i,
+  /도구|툴킷|프레임워크|라이브러리|리포지토리|에이전트|오케스트레이션|워크플로우|플러그인|확장|서버|검색\s*증강|벡터|임베딩|프롬프트|벤치마크/i,
+];
+
+function isGitHubNewsItem(post: UnifiedPost): boolean {
+  return (
+    post.sourceType === 'news' &&
+    post.sourceTier === 'B' &&
+    String(post.id || '').startsWith('github-') &&
+    /github\.com\//i.test(post.url || '') &&
+    (post.sourceName || '').toLowerCase().includes('github search')
+  );
+}
+
+function hasGitHubDevSignal(post: UnifiedPost): boolean {
+  const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 2000);
+  return GITHUB_DEV_TOOLING_PATTERNS.some((re) => re.test(sample));
+}
+
 const LEGACY_MODEL_PATTERNS: RegExp[] = [
   /\bgpt[-\s]?4o\b/i,
   /\bgpt[-\s]?4\b/i,
@@ -241,6 +263,7 @@ function hasLegacyAllowContext(post: UnifiedPost): boolean {
 function isLikelyConsumerDrift(post: UnifiedPost): boolean {
   if (post.sourceType === 'raw') return false;
   if (post.sourceTier === 'S') return false; // official sources can have legitimately useful "how-to" posts
+  if (isGitHubNewsItem(post)) return false;
 
   if (hasHighSignal(post)) return false;
   const sample = `${post.title}\n${post.content || ''}\n${post.url || ''}`.slice(0, 2000);
@@ -539,6 +562,9 @@ async function main() {
     console.log(`${emoji} [${post.sourceTier}] ${post.sourceName}`);
     console.log(`   📋 "${post.title.substring(0, 50)}..."`);
 
+    const githubDevSignal = isGitHubNewsItem(post) && hasGitHubDevSignal(post);
+    const highSignal = hasHighSignal(post) || githubDevSignal;
+
     const isNewsOrOfficial = post.sourceType !== 'raw';
     if (isNewsOrOfficial && isLikelyConsumerDrift(post)) {
       console.log('    ⏭️ Skipping: consumer/how-to/review drift');
@@ -546,7 +572,7 @@ async function main() {
       console.log('');
       continue;
     }
-    if (isNewsOrOfficial && mentionsLegacyModel(post) && !mentionsModernModel(post) && !hasHighSignal(post)) {
+    if (isNewsOrOfficial && mentionsLegacyModel(post) && !mentionsModernModel(post) && !highSignal) {
       console.log('    ⏭️ Skipping: legacy model mention without new/hard signal');
       skipCounts.lowSignal++;
       console.log('');
@@ -566,7 +592,6 @@ async function main() {
       continue;
     }
 
-    const highSignal = hasHighSignal(post);
     if (post.sourceType === 'news' && post.sourceTier !== 'S' && !highSignal) {
       console.log('    ⏭️ Skipping: low-signal news (no model/api/policy/hardware/workforce signal)');
       skipCounts.lowSignal++;
