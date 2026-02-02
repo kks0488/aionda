@@ -67,7 +67,7 @@ export default async function AboutPage({
           <section>
             <h2 className="text-2xl font-semibold mb-4 text-slate-900 dark:text-white">{t('contactTitle')}</h2>
             <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-              {t('contact')}: <a href="mailto:contact@aionda.blog" className="text-primary hover:underline">contact@aionda.blog</a>
+              {t('contact')}: <a href="mailto:kks0488@gmail.com" className="text-primary hover:underline">kks0488@gmail.com</a>
             </p>
           </section>
         </div>
