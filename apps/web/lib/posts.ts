@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import type { Locale } from '@/i18n';
+import { locales, type Locale } from '@/i18n';
 
 export interface Post {
   slug: string;
@@ -282,8 +282,29 @@ export function getPostBySlug(slug: string, locale: Locale): Post | null {
   return null;
 }
 
+export function getAvailableLocalesForSlug(slug: string): Locale[] {
+  if (!slug) return [];
+
+  const available: Locale[] = [];
+  const extensions = ['.mdx', '.md'];
+
+  for (const locale of locales) {
+    const localeDir = path.join(postsDirectory, locale);
+    if (!fs.existsSync(localeDir)) continue;
+
+    for (const ext of extensions) {
+      const fullPath = path.join(localeDir, `${slug}${ext}`);
+      if (fs.existsSync(fullPath)) {
+        available.push(locale as Locale);
+        break;
+      }
+    }
+  }
+
+  return available;
+}
+
 export function getAllSlugs(): { locale: Locale; slug: string }[] {
-  const locales: Locale[] = ['en', 'ko'];
   const slugs: { locale: Locale; slug: string }[] = [];
 
   for (const locale of locales) {

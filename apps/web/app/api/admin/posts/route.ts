@@ -7,7 +7,7 @@ import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
 export const dynamic = 'force-dynamic';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
-const LOCALES = new Set(['en', 'ko']);
+const LOCALES = new Set(['en', 'ko', 'ja', 'es']);
 
 const ADMIN_HEADERS = {
   'Cache-Control': 'no-store',

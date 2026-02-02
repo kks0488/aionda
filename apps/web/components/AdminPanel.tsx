@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { Locale } from '@/i18n';
+import { locales, type Locale } from '@/i18n';
 
 type PostSummary = {
   slug: string;
@@ -21,7 +21,7 @@ type PostDetail = PostSummary & {
 };
 
 const STORAGE_KEY = 'aionda-admin-api-key';
-const LOCALES: Locale[] = ['en', 'ko'];
+const LOCALES: Locale[] = [...locales];
 const PUBLISH_ENABLED = process.env.NEXT_PUBLIC_ADMIN_PUBLISH === 'true';
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 

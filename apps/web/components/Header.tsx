@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { Locale } from '@/i18n';
+import { locales, type Locale } from '@/i18n';
 import { useSearch } from './SearchProvider';
 import ThemeToggle from './ThemeToggle';
 
@@ -16,7 +16,9 @@ export default function Header({ locale }: HeaderProps) {
   const pathname = usePathname();
 
   // Get current path without locale prefix for language switching
-  const currentPath = pathname.replace(/^\/(en|ko)/, '') || '';
+  const parts = pathname.split('/').filter(Boolean);
+  const isLocalePrefixed = parts.length > 0 && locales.includes(parts[0] as Locale);
+  const currentPath = isLocalePrefixed ? `/${parts.slice(1).join('/')}` : pathname;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -62,28 +64,20 @@ export default function Header({ locale }: HeaderProps) {
             aria-label={locale === 'ko' ? '언어 선택' : 'Language selection'}
             className="flex h-9 bg-gray-100 dark:bg-slate-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700"
           >
-            <Link
-              href={`/en${currentPath}`}
-              aria-current={locale === 'en' ? 'page' : undefined}
-              className={`flex items-center px-3 text-xs font-bold rounded-md transition-all ${
-                locale === 'en'
-                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
-              }`}
-            >
-              EN
-            </Link>
-            <Link
-              href={`/ko${currentPath}`}
-              aria-current={locale === 'ko' ? 'page' : undefined}
-              className={`flex items-center px-3 text-xs font-bold rounded-md transition-all ${
-                locale === 'ko'
-                  ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
-              }`}
-            >
-              KO
-            </Link>
+            {locales.map((l) => (
+              <Link
+                key={l}
+                href={`/${l}${currentPath}`}
+                aria-current={locale === l ? 'page' : undefined}
+                className={`flex items-center px-3 text-xs font-bold rounded-md transition-all ${
+                  locale === l
+                    ? 'bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
+                }`}
+              >
+                {l.toUpperCase()}
+              </Link>
+            ))}
           </nav>
         </div>
       </div>

@@ -1,9 +1,9 @@
 import { getPosts } from '@/lib/posts';
 import { BASE_URL } from '@/lib/site';
+import { locales, type Locale } from '@/i18n';
 
 export async function GET() {
-  const enPosts = getPosts('en');
-  const koPosts = getPosts('ko');
+  const allLocalePosts = locales.flatMap((locale) => getPosts(locale as Locale));
 
   const safeString = (value: unknown) => (value == null ? '' : String(value));
   const cdata = (value: unknown) => safeString(value).replace(/]]>/g, ']]]]><![CDATA[>');
@@ -13,7 +13,7 @@ export async function GET() {
   };
 
   // Combine and sort all posts by date
-  const allPosts = [...enPosts, ...koPosts].sort(
+  const allPosts = allLocalePosts.sort(
     (a, b) => toDateMs(b.date) - toDateMs(a.date)
   );
 
@@ -40,6 +40,16 @@ export async function GET() {
       const byline = post.byline || post.author || 'AI온다';
       const postDateMs = toDateMs(post.date);
       const pubDate = new Date(postDateMs || lastBuildTime).toUTCString();
+      const localeLabel =
+        post.locale === 'ko'
+          ? '한국어'
+          : post.locale === 'en'
+            ? 'English'
+            : post.locale === 'ja'
+              ? '日本語'
+              : post.locale === 'es'
+                ? 'Español'
+                : String(post.locale || '').toUpperCase();
 
       return `
     <item>
@@ -49,7 +59,7 @@ export async function GET() {
       <description><![CDATA[${cdata(post.description)}]]></description>
       <pubDate>${pubDate}</pubDate>
       <dc:creator><![CDATA[${cdata(byline)}]]></dc:creator>
-      <category><![CDATA[${cdata(post.locale === 'ko' ? '한국어' : 'English')}]]></category>
+      <category><![CDATA[${cdata(localeLabel)}]]></category>
       ${tags.map(tag => `<category><![CDATA[${cdata(tag)}]]></category>`).join('\n      ')}
     </item>`;
     }).join('')}

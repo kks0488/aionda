@@ -7,11 +7,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/api/admin', '/api/admin/', '/en/admin', '/ko/admin'],
+        disallow: ['/api/admin', '/api/admin/', '/en/admin', '/ko/admin', '/ja/admin', '/es/admin'],
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,
     host: new URL(BASE_URL).host,
   };
 }
-

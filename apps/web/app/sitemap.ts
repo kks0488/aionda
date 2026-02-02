@@ -5,7 +5,7 @@ import { BASE_URL } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
-  const allPosts = [...getPosts('en'), ...getPosts('ko')];
+  const allPosts = locales.flatMap((locale) => getPosts(locale as Locale));
   const siteLastModified =
     allPosts.length > 0
       ? new Date(

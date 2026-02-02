@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
-    alternateLocale: 'en_US',
+    alternateLocale: ['en_US', 'ja_JP', 'es_ES'],
     url: BASE_URL,
     siteName: 'AI온다',
     title: 'AI온다 - AI가 온다',
@@ -55,6 +55,8 @@ export const metadata: Metadata = {
     languages: {
       'en': `${BASE_URL}/en`,
       'ko': `${BASE_URL}/ko`,
+      'ja': `${BASE_URL}/ja`,
+      'es': `${BASE_URL}/es`,
     },
   },
 };

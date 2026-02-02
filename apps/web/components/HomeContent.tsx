@@ -13,13 +13,13 @@ interface HomeContentProps {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: { en: 'Latest', ko: '최신' } },
-  { id: 'agi', label: { en: 'AGI', ko: 'AGI' } },
-  { id: 'llm', label: { en: 'LLM', ko: 'LLM' } },
-  { id: 'robotics', label: { en: 'Robotics', ko: '로보틱스' } },
-  { id: 'hardware', label: { en: 'Hardware', ko: '하드웨어' } },
-  { id: 'news', label: { en: 'News', ko: '뉴스' } },
-  { id: 'opinion', label: { en: 'Opinion', ko: '의견' } },
+  { id: 'all', label: { en: 'Latest', ko: '최신', ja: '最新', es: 'Recientes' } },
+  { id: 'agi', label: { en: 'AGI', ko: 'AGI', ja: 'AGI', es: 'AGI' } },
+  { id: 'llm', label: { en: 'LLM', ko: 'LLM', ja: 'LLM', es: 'LLM' } },
+  { id: 'robotics', label: { en: 'Robotics', ko: '로보틱스', ja: 'ロボティクス', es: 'Robótica' } },
+  { id: 'hardware', label: { en: 'Hardware', ko: '하드웨어', ja: 'ハードウェア', es: 'Hardware' } },
+  { id: 'news', label: { en: 'News', ko: '뉴스', ja: 'ニュース', es: 'Noticias' } },
+  { id: 'opinion', label: { en: 'Opinion', ko: '의견', ja: '意見', es: 'Opinión' } },
 ];
 
 export default function HomeContent({ posts, locale }: HomeContentProps) {

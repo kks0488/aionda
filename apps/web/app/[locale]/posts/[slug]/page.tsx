@@ -2,14 +2,27 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getPostBySlug, getPosts } from '@/lib/posts';
+import { getAvailableLocalesForSlug, getPostBySlug, getPosts } from '@/lib/posts';
 import { getTagColor, getTagIcon } from '@/lib/tag-utils';
 import { BASE_URL } from '@/lib/site';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
 import PostNavigation from '@/components/PostNavigation';
-import type { Locale } from '@/i18n';
+import { defaultLocale, locales, type Locale } from '@/i18n';
+
+const OG_LOCALE: Record<Locale, string> = {
+  en: 'en_US',
+  ko: 'ko_KR',
+  ja: 'ja_JP',
+  es: 'es_ES',
+};
+
+function pickCanonicalLocale(available: Locale[]): Locale {
+  if (available.includes(defaultLocale)) return defaultLocale;
+  if (available.includes('en')) return 'en';
+  return available[0];
+}
 
 function buildOgImageUrl(post: {
   title: string;
@@ -39,13 +52,14 @@ function buildOgImageUrl(post: {
 }
 
 export async function generateStaticParams() {
-  const enPosts = getPosts('en');
-  const koPosts = getPosts('ko');
-
-  return [
-    ...enPosts.map((post) => ({ locale: 'en', slug: post.slug })),
-    ...koPosts.map((post) => ({ locale: 'ko', slug: post.slug })),
-  ];
+  const params: Array<{ locale: Locale; slug: string }> = [];
+  for (const locale of locales) {
+    const posts = getPosts(locale);
+    for (const post of posts) {
+      params.push({ locale, slug: post.slug });
+    }
+  }
+  return params;
 }
 
 export async function generateMetadata({
@@ -53,67 +67,66 @@ export async function generateMetadata({
 }: {
   params: { locale: string; slug: string };
 }) {
-  const post = getPostBySlug(slug, locale as Locale);
+  const requestedLocale = locale as Locale;
+  const post = getPostBySlug(slug, requestedLocale);
 
   // If the post doesn't exist in the requested locale but exists in the other locale,
   // return metadata that points to the existing canonical version (and noindex the bridge page).
   if (!post) {
-    const otherLocale = locale === 'en' ? 'ko' : 'en';
-    const otherPost = getPostBySlug(slug, otherLocale as Locale);
-    if (!otherPost) return { title: 'Not Found' };
+    const available = getAvailableLocalesForSlug(slug);
+    if (available.length === 0) return { title: 'Not Found' };
 
-    const otherUrl = `${BASE_URL}/${otherLocale}/posts/${slug}`;
-    const ogImageUrl = buildOgImageUrl(otherPost);
+    const canonicalLocale = pickCanonicalLocale(available);
+    const canonicalPost = getPostBySlug(slug, canonicalLocale);
+    if (!canonicalPost) return { title: 'Not Found' };
+
+    const canonicalUrl = `${BASE_URL}/${canonicalLocale}/posts/${slug}`;
+    const ogImageUrl = buildOgImageUrl(canonicalPost);
+    const languageAlternates = Object.fromEntries(
+      available.map((l) => [l, `${BASE_URL}/${l}/posts/${slug}`])
+    );
 
     return {
-      title: otherPost.title,
-      description: otherPost.description,
+      title: canonicalPost.title,
+      description: canonicalPost.description,
       robots: { index: false, follow: true },
       alternates: {
-        canonical: otherUrl,
-        languages: { [otherLocale]: otherUrl },
+        canonical: canonicalUrl,
+        languages: languageAlternates,
       },
       openGraph: {
-        title: otherPost.title,
-        description: otherPost.description,
-        url: otherUrl,
+        title: canonicalPost.title,
+        description: canonicalPost.description,
+        url: canonicalUrl,
         siteName: 'AI온다',
         type: 'article',
-        publishedTime: otherPost.date,
-        tags: otherPost.tags,
-        locale: otherLocale === 'ko' ? 'ko_KR' : 'en_US',
+        publishedTime: canonicalPost.date,
+        tags: canonicalPost.tags,
+        locale: OG_LOCALE[canonicalLocale] || 'en_US',
         images: [
           {
             url: ogImageUrl,
             width: 1200,
             height: 630,
-            alt: otherPost.title,
+            alt: canonicalPost.title,
           },
         ],
       },
       twitter: {
         card: 'summary_large_image',
-        title: otherPost.title,
-        description: otherPost.description,
+        title: canonicalPost.title,
+        description: canonicalPost.description,
         images: [ogImageUrl],
       },
     };
   }
 
-  const url = `${BASE_URL}/${locale}/posts/${slug}`;
+  const url = `${BASE_URL}/${requestedLocale}/posts/${slug}`;
   const ogImageUrl = buildOgImageUrl(post);
-  const languageAlternates: Record<string, string> = { [locale]: url };
-
-  if (post.alternateLocale) {
-    const normalized = post.alternateLocale.startsWith('/')
-      ? post.alternateLocale
-      : `/${post.alternateLocale}`;
-    const parts = normalized.split('/').filter(Boolean);
-    const [altLocale, route, altSlug] = parts;
-    if ((altLocale === 'en' || altLocale === 'ko') && route === 'posts' && altSlug) {
-      languageAlternates[altLocale] = `${BASE_URL}/${altLocale}/posts/${altSlug}`;
-    }
-  }
+  const available = getAvailableLocalesForSlug(slug);
+  const languageAlternates = Object.fromEntries(
+    (available.length > 0 ? available : [requestedLocale]).map((l) => [l, `${BASE_URL}/${l}/posts/${slug}`])
+  );
 
   return {
     title: post.title,
@@ -130,7 +143,7 @@ export async function generateMetadata({
       type: 'article',
       publishedTime: post.date,
       tags: post.tags,
-      locale: locale === 'ko' ? 'ko_KR' : 'en_US',
+      locale: OG_LOCALE[requestedLocale] || 'en_US',
       images: [
         {
           url: ogImageUrl,
@@ -172,15 +185,13 @@ export default async function PostPage({
   setRequestLocale(locale);
 
   const t = await getTranslations({ locale, namespace: 'post' });
-  const post = getPostBySlug(slug, locale as Locale);
-  const allPosts = getPosts(locale as Locale);
+  const requestedLocale = locale as Locale;
+  const post = getPostBySlug(slug, requestedLocale);
+  const allPosts = getPosts(requestedLocale);
 
   if (!post) {
-    const otherLocale = locale === 'en' ? 'ko' : 'en';
-    const otherPost = getPostBySlug(slug, otherLocale as Locale);
-    if (!otherPost) {
-      notFound();
-    }
+    const available = getAvailableLocalesForSlug(slug);
+    if (available.length === 0) notFound();
 
     return (
       <main className="w-full max-w-3xl mx-auto px-6 py-24">
@@ -192,12 +203,15 @@ export default async function PostPage({
         </p>
 
         <div className="mt-10 flex flex-wrap gap-3">
-          <Link
-            href={`/${otherLocale}/posts/${slug}`}
-            className="px-5 py-2.5 rounded-lg bg-primary text-white font-bold text-sm hover:opacity-95 transition-opacity"
-          >
-            {t('viewOtherLanguage')}
-          </Link>
+          {available.map((l) => (
+            <Link
+              key={l}
+              href={`/${l}/posts/${slug}`}
+              className="px-4 py-2.5 rounded-lg bg-primary text-white font-bold text-sm hover:opacity-95 transition-opacity"
+            >
+              {l.toUpperCase()}
+            </Link>
+          ))}
           <Link
             href={`/${locale}/posts`}
             className="px-5 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-900 dark:text-white font-bold text-sm hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"

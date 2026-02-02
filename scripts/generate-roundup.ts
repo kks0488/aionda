@@ -12,6 +12,8 @@
  * Writes:
  *   apps/web/content/posts/ko/<slug>.mdx
  *   apps/web/content/posts/en/<slug>.mdx
+ *   apps/web/content/posts/ja/<slug>.mdx
+ *   apps/web/content/posts/es/<slug>.mdx
  * Updates:
  *   .vc/last-written.json (so verify/gate only targets the new files)
  */
@@ -321,6 +323,152 @@ function renderEn(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
   return lines.join('\n');
 }
 
+function renderJa(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string, sinceLabel: string): string {
+  const title = `AI リソースまとめ (${sinceLabel}) - ${ymd}`;
+  const slug = slugForDate(ymd);
+
+  const lines: string[] = [];
+  lines.push('---');
+  lines.push(`title: '${title.replace(/'/g, "''")}'`);
+  lines.push(`slug: ${slug}`);
+  lines.push(`date: '${ymd}'`);
+  lines.push('locale: ja');
+  lines.push(`description: '${'最近収集した公式アップデートと技術ニュースのリンクをまとめた。'.replace(/'/g, "''")}'`);
+  lines.push('tags:');
+  lines.push('  - k-ai-pulse');
+  lines.push('  - resources');
+  lines.push('  - roundup');
+  lines.push('author: AI온다');
+  lines.push(`alternateLocale: /en/posts/${slug}`);
+  lines.push('---');
+  lines.push('');
+  lines.push('## TL;DR');
+  lines.push('- 最近収集した資料から、公式/信頼できる出典を優先してリンクを整理。');
+  lines.push('- まずはタイトルでスキャンし、必要なものだけ原文に当たる。');
+  lines.push('- これは要約記事ではなく、一次情報へ素早く飛ぶための索引。');
+  lines.push('');
+  lines.push(`この投稿は直近 ${sinceLabel} の収集データを元にしたリンクアーカイブです。気になる項目は必ず原文を確認してください。`);
+  lines.push('');
+
+  if (itemsOfficial.length > 0) {
+    lines.push('## Official Updates');
+    for (const item of itemsOfficial) {
+      const url = normalizeUrl(item.link);
+      const t = normalizeTitle(item.title);
+      const icon = tierIcon(item.sourceTier);
+      const source = String(item.sourceName || item.sourceId || '').trim();
+      const suffix = source ? ` — ${source}` : '';
+      lines.push(`- ${icon} [${t}](${url})${suffix}`);
+    }
+    lines.push('');
+  }
+
+  if (itemsNews.length > 0) {
+    lines.push('## Tech News');
+    for (const item of itemsNews) {
+      const url = normalizeUrl(item.link);
+      const t = normalizeTitle(item.title);
+      const icon = tierIcon(item.sourceTier);
+      const source = String(item.sourceName || item.sourceId || '').trim();
+      const suffix = source ? ` — ${source}` : '';
+      lines.push(`- ${icon} [${t}](${url})${suffix}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## Checklist for Today:');
+  lines.push('- 社内メモ用にキーワードを3つ抽出（セールス/調査のフック）');
+  lines.push('- 1〜2件を深掘りして、次の分析記事候補としてキューに追加');
+  lines.push('- 数字/ポリシーは必ず一次情報で確認してから引用');
+  lines.push('');
+
+  lines.push('## References');
+  const all = [...itemsOfficial, ...itemsNews];
+  for (const item of all) {
+    const url = normalizeUrl(item.link);
+    if (!url) continue;
+    const t = normalizeTitle(item.title) || url;
+    const icon = tierIcon(item.sourceTier);
+    lines.push(`- ${icon} [${t}](${url})`);
+  }
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+function renderEs(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string, sinceLabel: string): string {
+  const title = `Resumen de recursos de IA (${sinceLabel}) - ${ymd}`;
+  const slug = slugForDate(ymd);
+
+  const lines: string[] = [];
+  lines.push('---');
+  lines.push(`title: '${title.replace(/'/g, "''")}'`);
+  lines.push(`slug: ${slug}`);
+  lines.push(`date: '${ymd}'`);
+  lines.push('locale: es');
+  lines.push(`description: '${'Un índice de enlaces con actualizaciones oficiales y noticias técnicas recopiladas recientemente.'.replace(/'/g, "''")}'`);
+  lines.push('tags:');
+  lines.push('  - k-ai-pulse');
+  lines.push('  - resources');
+  lines.push('  - roundup');
+  lines.push('author: AI온다');
+  lines.push(`alternateLocale: /en/posts/${slug}`);
+  lines.push('---');
+  lines.push('');
+  lines.push('## TL;DR');
+  lines.push('- Enlaces seleccionados de materiales recientes (priorizando fuentes oficiales).');
+  lines.push('- Diseñado para escanear rápido: abre la fuente y toma notas para tu caso de uso.');
+  lines.push('- Es un índice, no un reemplazo de la lectura del original.');
+  lines.push('');
+  lines.push(`Este post es un archivo de enlaces basado en materiales recopilados en las últimas ${sinceLabel}. Úsalo para llegar rápido a las fuentes primarias.`);
+  lines.push('');
+
+  if (itemsOfficial.length > 0) {
+    lines.push('## Official Updates');
+    for (const item of itemsOfficial) {
+      const url = normalizeUrl(item.link);
+      const t = normalizeTitle(item.title);
+      const icon = tierIcon(item.sourceTier);
+      const source = String(item.sourceName || item.sourceId || '').trim();
+      const suffix = source ? ` — ${source}` : '';
+      lines.push(`- ${icon} [${t}](${url})${suffix}`);
+    }
+    lines.push('');
+  }
+
+  if (itemsNews.length > 0) {
+    lines.push('## Tech News');
+    for (const item of itemsNews) {
+      const url = normalizeUrl(item.link);
+      const t = normalizeTitle(item.title);
+      const icon = tierIcon(item.sourceTier);
+      const source = String(item.sourceName || item.sourceId || '').trim();
+      const suffix = source ? ` — ${source}` : '';
+      lines.push(`- ${icon} [${t}](${url})${suffix}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## Checklist for Today:');
+  lines.push('- Extrae 3 palabras clave para notas internas (ventas/investigación)');
+  lines.push('- Elige 1–2 enlaces para lectura profunda y cola un post de análisis');
+  lines.push('- Verifica cifras/políticas directamente en la fuente antes de citar');
+  lines.push('');
+
+  lines.push('## References');
+  const all = [...itemsOfficial, ...itemsNews];
+  for (const item of all) {
+    const url = normalizeUrl(item.link);
+    if (!url) continue;
+    const t = normalizeTitle(item.title) || url;
+    const icon = tierIcon(item.sourceTier);
+    lines.push(`- ${icon} [${t}](${url})`);
+  }
+  lines.push('');
+
+  return lines.join('\n');
+}
+
 function ensureDir(p: string) {
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
@@ -374,14 +522,22 @@ function main() {
 
   const koDir = path.join(POSTS_DIR, 'ko');
   const enDir = path.join(POSTS_DIR, 'en');
+  const jaDir = path.join(POSTS_DIR, 'ja');
+  const esDir = path.join(POSTS_DIR, 'es');
   ensureDir(koDir);
   ensureDir(enDir);
+  ensureDir(jaDir);
+  ensureDir(esDir);
 
   const koPath = path.join(koDir, `${slug}.mdx`);
   const enPath = path.join(enDir, `${slug}.mdx`);
+  const jaPath = path.join(jaDir, `${slug}.mdx`);
+  const esPath = path.join(esDir, `${slug}.mdx`);
 
   fs.writeFileSync(koPath, `${renderKo(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
   fs.writeFileSync(enPath, `${renderEn(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
+  fs.writeFileSync(jaPath, `${renderJa(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
+  fs.writeFileSync(esPath, `${renderEs(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
 
   console.log(`✅ Wrote roundup post: ${slug} (official=${officialPicked.length}, news=${newsPicked.length})`);
 
@@ -389,11 +545,10 @@ function main() {
     topicId: `roundup-${ymd.replace(/-/g, '')}`,
     sourceId: '',
     slug,
-    files: [koPath, enPath],
+    files: [koPath, enPath, jaPath, esPath],
     writtenAt: new Date().toISOString(),
   };
-  writeLastWritten({ writtenCount: 1, files: [koPath, enPath], entries: [entry] });
+  writeLastWritten({ writtenCount: 1, files: [koPath, enPath, jaPath, esPath], entries: [entry] });
 }
 
 main();
-
