@@ -12,7 +12,7 @@ import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
-import { generateContent } from './lib/gemini';
+import { generateContent } from './lib/ai-text';
 import { GENERATE_IMAGE_PROMPT_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });

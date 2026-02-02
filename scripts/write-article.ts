@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, statSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { generateContent, translateToEnglish } from './lib/gemini';
+import { generateContent, translateToEnglish } from './lib/ai-text';
 import { selectEditorialSeries, formatSeriesForPrompt, type EditorialSeries } from './lib/editorial-series.js';
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';

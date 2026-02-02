@@ -25,7 +25,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { generateContent } from './lib/gemini';
+import { generateContent } from './lib/ai-text';
 import { EXTRACT_TOPIC_PROMPT, EXTRACT_TOPIC_FROM_NEWS_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });
@@ -203,8 +203,14 @@ const MODERN_MODEL_PATTERNS: RegExp[] = [
   /\bgpt[-\s]?5(?:\.\d+)?\b/i,
   /\bgemini[-\s]?3(?:\.\d+)?\b/i,
   /\bclaude\s*4(?:\.\d+)?\b/i,
+  /\bkimi\s*2(?:\.\d+)?\b/i,
+  /\bqwen\s*2(?:\.\d+)?\b/i,
+  /\bllama\s*3(?:\.\d+)?\b/i,
   /제미나이\s*3(?:\.\d+)?/i,
   /클로드\s*4(?:\.\d+)?/i,
+  /키미\s*2(?:\.\d+)?/i,
+  /큐웬\s*2(?:\.\d+)?/i,
+  /라마\s*3(?:\.\d+)?/i,
 ];
 
 function mentionsLegacyModel(post: UnifiedPost): boolean {

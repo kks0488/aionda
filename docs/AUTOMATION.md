@@ -21,6 +21,17 @@
 - `AUTO_PUBLISH_MIN_INTERVAL_MINUTES` (기본 30): 최근 발행 이후 최소 간격(분)
 - `AUTO_PUBLISH_JITTER_SECONDS` (기본 180): 실행 시작 시 랜덤 지연(초) — 고정된 봇 패턴 완화
 
+## 텍스트 생성 Provider (LLM)
+
+글 작성/번역/이미지 프롬프트 생성에 사용할 텍스트 생성 Provider를 바꿀 수 있습니다.
+
+- `AI_TEXT_PROVIDER` = `gemini` | `openai` | `deepseek` (기본 `gemini`)
+  - `openai`: `OPENAI_API_KEY` (+ 선택 `OPENAI_BASE_URL`, `OPENAI_MODEL`)
+  - `deepseek`: `DEEPSEEK_API_KEY` (+ 선택 `DEEPSEEK_BASE_URL`, `DEEPSEEK_MODEL`)
+
+주의:
+- 사실 검증(`content:verify`)은 **Google Search 툴을 쓰는 Gemini 기반**으로 유지됩니다. (즉, `GEMINI_API_KEY`는 계속 필요)
+
 ## 자료 모음(링크 라운드업)
 
 “우리가 수집한 자료를 따로 올리기” 위한 경량 포맷입니다(요약 기사 X, 링크 아카이브 O).
@@ -83,6 +94,9 @@
 ## 운영용 커맨드 모음
 
 ```bash
+# GitHub(오픈소스) 트렌드 수집 (Search API 기반)
+pnpm -s crawl-github --since=7d --limit=20
+
 # 지금 당장 한 번 돌려보기(빌드는 스킵 가능)
 cd /home/kkaemo/aionda-publisher
 AUTO_PUBLISH_SKIP_BUILD=true bash scripts/auto-publish.sh

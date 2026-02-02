@@ -18,7 +18,7 @@ const TRANSIENT_VERIFY_NOTE_PATTERN = /(verification failed due to error|aborter
 const LEGACY_MODEL_PATTERN =
   /\b(gpt[-\s]?4o|gpt[-\s]?4|gemini\s*1(?:\.\d+)?|gemini\s*2(?:\.\d+)?|claude\s*3(?:\.\d+)?)\b|제미나이\s*1(?:\.\d+)?|제미나이\s*2(?:\.\d+)?|클로드\s*3(?:\.\d+)?/i;
 const MODERN_MODEL_PATTERN =
-  /\b(gpt[-\s]?5(?:\.\d+)?|gemini\s*3(?:\.\d+)?|claude\s*4(?:\.\d+)?)\b|제미나이\s*3(?:\.\d+)?|클로드\s*4(?:\.\d+)?/i;
+  /\b(gpt[-\s]?5(?:\.\d+)?|gemini\s*3(?:\.\d+)?|claude\s*4(?:\.\d+)?|kimi\s*2(?:\.\d+)?|qwen\s*2(?:\.\d+)?|llama\s*3(?:\.\d+)?)\b|제미나이\s*3(?:\.\d+)?|클로드\s*4(?:\.\d+)?|키미\s*2(?:\.\d+)?|큐웬\s*2(?:\.\d+)?|라마\s*3(?:\.\d+)?/i;
 const HISTORICAL_MARKER_PATTERN = /(과거\s*사례|당시|historical(?:\s+example)?|in\s+earlier\s+generations|previous\s+generation)/i;
 
 function parseFrontmatterBlock(raw: string): { frontmatter: Record<string, any>; body: string } {

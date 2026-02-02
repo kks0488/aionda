@@ -437,14 +437,18 @@ if [ "${JITTER_SECONDS:-0}" -gt 0 ]; then
   fi
 fi
 
-# 1. 크롤링 (DC Inside + RSS)
+# 1. 크롤링 (DC Inside + GitHub + RSS)
 set_status "running: crawl dc"
 log "Step 1a: Crawling DC Inside..."
 CRAWL_PAGES="${AUTO_PUBLISH_CRAWL_PAGES:-2}"
 pnpm crawl --pages="${CRAWL_PAGES}" || echo "DC crawl warning (might be empty)"
 
+set_status "running: crawl github"
+log "Step 1b: Crawling GitHub (Search API)..."
+pnpm crawl-github || echo "GitHub crawl warning"
+
 set_status "running: crawl rss"
-log "Step 1b: Crawling RSS feeds..."
+log "Step 1c: Crawling RSS feeds..."
 pnpm crawl-rss || echo "RSS crawl warning"
 
 # 2. 토픽 추출 / 자료 모음(라운드업)
