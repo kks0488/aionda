@@ -40,16 +40,7 @@ export async function GET() {
       const byline = post.byline || post.author || 'AI온다';
       const postDateMs = toDateMs(post.date);
       const pubDate = new Date(postDateMs || lastBuildTime).toUTCString();
-      const localeLabel =
-        post.locale === 'ko'
-          ? '한국어'
-          : post.locale === 'en'
-            ? 'English'
-            : post.locale === 'ja'
-              ? '日本語'
-              : post.locale === 'es'
-                ? 'Español'
-                : String(post.locale || '').toUpperCase();
+      const localeLabel = post.locale === 'ko' ? '한국어' : 'English';
 
       return `
     <item>

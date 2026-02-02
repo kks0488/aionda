@@ -14,8 +14,6 @@ import { defaultLocale, locales, type Locale } from '@/i18n';
 const OG_LOCALE: Record<Locale, string> = {
   en: 'en_US',
   ko: 'ko_KR',
-  ja: 'ja_JP',
-  es: 'es_ES',
 };
 
 function pickCanonicalLocale(available: Locale[]): Locale {

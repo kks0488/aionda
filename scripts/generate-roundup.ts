@@ -12,8 +12,6 @@
  * Writes:
  *   apps/web/content/posts/ko/<slug>.mdx
  *   apps/web/content/posts/en/<slug>.mdx
- *   apps/web/content/posts/ja/<slug>.mdx
- *   apps/web/content/posts/es/<slug>.mdx
  * Updates:
  *   .vc/last-written.json (so verify/gate only targets the new files)
  */
@@ -522,22 +520,14 @@ function main() {
 
   const koDir = path.join(POSTS_DIR, 'ko');
   const enDir = path.join(POSTS_DIR, 'en');
-  const jaDir = path.join(POSTS_DIR, 'ja');
-  const esDir = path.join(POSTS_DIR, 'es');
   ensureDir(koDir);
   ensureDir(enDir);
-  ensureDir(jaDir);
-  ensureDir(esDir);
 
   const koPath = path.join(koDir, `${slug}.mdx`);
   const enPath = path.join(enDir, `${slug}.mdx`);
-  const jaPath = path.join(jaDir, `${slug}.mdx`);
-  const esPath = path.join(esDir, `${slug}.mdx`);
 
   fs.writeFileSync(koPath, `${renderKo(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
   fs.writeFileSync(enPath, `${renderEn(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
-  fs.writeFileSync(jaPath, `${renderJa(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
-  fs.writeFileSync(esPath, `${renderEs(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
 
   console.log(`✅ Wrote roundup post: ${slug} (official=${officialPicked.length}, news=${newsPicked.length})`);
 
@@ -545,10 +535,10 @@ function main() {
     topicId: `roundup-${ymd.replace(/-/g, '')}`,
     sourceId: '',
     slug,
-    files: [koPath, enPath, jaPath, esPath],
+    files: [koPath, enPath],
     writtenAt: new Date().toISOString(),
   };
-  writeLastWritten({ writtenCount: 1, files: [koPath, enPath, jaPath, esPath], entries: [entry] });
+  writeLastWritten({ writtenCount: 1, files: [koPath, enPath], entries: [entry] });
 }
 
 main();
