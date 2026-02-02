@@ -23,6 +23,8 @@ type RunOutcome =
   | 'overlap_exit'
   | 'skipped_dirty_worktree'
   | 'skipped_not_on_main'
+  | 'skipped_daily_cap'
+  | 'skipped_min_interval'
   | 'gate_failed'
   | 'blocked_push'
   | 'failed'
@@ -157,6 +159,16 @@ function collectRunsFromLog(filePath: string): { runs: RunInfo[]; publishes: Pub
       continue;
     }
 
+    if (line.includes('Daily cap reached') && line.includes('Skipping')) {
+      current.outcomes.add('skipped_daily_cap');
+      continue;
+    }
+
+    if (line.includes('Min interval not reached') && line.includes('Skipping')) {
+      current.outcomes.add('skipped_min_interval');
+      continue;
+    }
+
     if (line.includes('❌ Gate failed. Aborting publish.')) {
       current.outcomes.add('gate_failed');
       continue;
@@ -192,6 +204,8 @@ function collectRunsFromLog(filePath: string): { runs: RunInfo[]; publishes: Pub
     if (run.outcomes.has('blocked_push')) continue;
     if (run.outcomes.has('skipped_dirty_worktree')) continue;
     if (run.outcomes.has('skipped_not_on_main')) continue;
+    if (run.outcomes.has('skipped_daily_cap')) continue;
+    if (run.outcomes.has('skipped_min_interval')) continue;
     if (run.outcomes.has('overlap_exit')) continue;
     if (run.outcomes.has('no_new_articles')) continue;
     if (run.outcomes.has('no_changes')) continue;

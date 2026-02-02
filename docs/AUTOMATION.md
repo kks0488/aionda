@@ -13,6 +13,23 @@
 
 - `<repo>/logs/auto-publish-YYYYMMDD.log`
 
+## 발행량(Throughput) 컨트롤
+
+자동화는 “많이”보다 “지속 가능한 품질 + 안정적인 리듬”이 더 중요합니다. 아래 환경변수로 과도한 발행/스팸 패턴을 방지합니다.
+
+- `AUTO_PUBLISH_DAILY_MAX` (기본 12): 하루 최대 발행 글 수(슬러그 기준)
+- `AUTO_PUBLISH_MIN_INTERVAL_MINUTES` (기본 30): 최근 발행 이후 최소 간격(분)
+- `AUTO_PUBLISH_JITTER_SECONDS` (기본 180): 실행 시작 시 랜덤 지연(초) — 고정된 봇 패턴 완화
+
+## 자료 모음(링크 라운드업)
+
+“우리가 수집한 자료를 따로 올리기” 위한 경량 포맷입니다(요약 기사 X, 링크 아카이브 O).
+
+- `AUTO_PUBLISH_ROUNDUP_ENABLED` (기본 true): 라운드업 발행 활성화
+- `AUTO_PUBLISH_ROUNDUP_AFTER_HOUR` (기본 9): 해당 시각 이후(로컬 타임) 하루 1회 라운드업 시도
+- `AUTO_PUBLISH_ROUNDUP_SINCE` (기본 24h): 라운드업에 포함할 수집 범위
+- `AUTO_PUBLISH_ROUNDUP_LIMIT` (기본 12): 라운드업 링크 수(대략 공식/뉴스 반반)
+
 ## 실행 상태 확인(로컬)
 
 - 마지막 실행 시각: `/tmp/aionda-auto-publish-last-run.txt`
@@ -69,6 +86,9 @@
 # 지금 당장 한 번 돌려보기(빌드는 스킵 가능)
 cd /home/kkaemo/aionda-publisher
 AUTO_PUBLISH_SKIP_BUILD=true bash scripts/auto-publish.sh
+
+# 발행량/리듬 튜닝 예시(과발행 방지)
+AUTO_PUBLISH_DAILY_MAX=10 AUTO_PUBLISH_MIN_INTERVAL_MINUTES=45 bash scripts/auto-publish.sh
 
 # 최근 N일 발행/스킵/게이트 실패 지표(로그 기반, AI 호출 없음)
 pnpm -s tsx scripts/publish-metrics.ts --days=7

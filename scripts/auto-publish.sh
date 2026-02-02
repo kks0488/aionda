@@ -321,6 +321,9 @@ AUTO_PUBLISH_STATE_DIR="${AUTO_PUBLISH_STATE_DIR:-$STATE_ROOT/state}"
 PUBLISH_SLOT_FILE="$AUTO_PUBLISH_STATE_DIR/publish-slot.txt"
 mkdir -p "$AUTO_PUBLISH_STATE_DIR"
 
+LAST_PUBLISH_EPOCH_FILE="$AUTO_PUBLISH_STATE_DIR/last-publish-epoch.txt"
+ROUNDUP_LAST_DATE_FILE="$AUTO_PUBLISH_STATE_DIR/roundup-last-date.txt"
+
 read_int_file() {
   local path="$1"
   local fallback="${2:-0}"
@@ -376,6 +379,64 @@ fi
 
 log "Publish mode: ${publish_mode} (slot=${slot}, every=${trend_every})"
 
+# Throughput controls (to avoid “spam burst” while still allowing more runs)
+DAILY_MAX="${AUTO_PUBLISH_DAILY_MAX:-12}"
+MIN_INTERVAL_MIN="${AUTO_PUBLISH_MIN_INTERVAL_MINUTES:-30}"
+JITTER_SECONDS="${AUTO_PUBLISH_JITTER_SECONDS:-180}"
+
+ROUNDUP_ENABLED="${AUTO_PUBLISH_ROUNDUP_ENABLED:-true}"
+ROUNDUP_AFTER_HOUR="${AUTO_PUBLISH_ROUNDUP_AFTER_HOUR:-9}"
+ROUNDUP_SINCE="${AUTO_PUBLISH_ROUNDUP_SINCE:-24h}"
+ROUNDUP_LIMIT="${AUTO_PUBLISH_ROUNDUP_LIMIT:-12}"
+
+if ! [[ "$DAILY_MAX" =~ ^[0-9]+$ ]]; then DAILY_MAX=12; fi
+if ! [[ "$MIN_INTERVAL_MIN" =~ ^[0-9]+$ ]]; then MIN_INTERVAL_MIN=30; fi
+if ! [[ "$JITTER_SECONDS" =~ ^[0-9]+$ ]]; then JITTER_SECONDS=180; fi
+if ! [[ "$ROUNDUP_AFTER_HOUR" =~ ^[0-9]+$ ]]; then ROUNDUP_AFTER_HOUR=9; fi
+if ! [[ "$ROUNDUP_LIMIT" =~ ^[0-9]+$ ]]; then ROUNDUP_LIMIT=12; fi
+
+today_ymd="$(date +%Y%m%d)"
+today_count_file="$AUTO_PUBLISH_STATE_DIR/daily-count-${today_ymd}.txt"
+published_today="$(read_int_file "$today_count_file" 0)"
+
+if [ "${DAILY_MAX:-0}" -gt 0 ] && [ "${published_today:-0}" -ge "${DAILY_MAX:-0}" ]; then
+  log "Daily cap reached (published_today=${published_today}, daily_max=${DAILY_MAX}). Skipping."
+  set_ready "last=skipped: daily cap (${published_today}/${DAILY_MAX})"
+  exit 0
+fi
+
+last_publish_epoch="$(read_int_file "$LAST_PUBLISH_EPOCH_FILE" 0)"
+now_epoch="$(date +%s)"
+if [ "${last_publish_epoch:-0}" -gt 0 ] && [ "${MIN_INTERVAL_MIN:-0}" -gt 0 ]; then
+  since_last="$((now_epoch - last_publish_epoch))"
+  min_sec="$((MIN_INTERVAL_MIN * 60))"
+  if [ "$since_last" -lt "$min_sec" ]; then
+    log "Min interval not reached (since_last=${since_last}s, min=${min_sec}s). Skipping."
+    set_ready "last=skipped: min interval (${since_last}s < ${min_sec}s)"
+    exit 0
+  fi
+fi
+
+# Optional daily roundup (publishes the collected materials as a link-first post)
+if [ "${ROUNDUP_ENABLED}" = "true" ]; then
+  current_hour="$(date +%H | sed 's/^0*//')"
+  current_hour="${current_hour:-0}"
+  last_roundup_date="$(cat "$ROUNDUP_LAST_DATE_FILE" 2>/dev/null | tr -d '[:space:]' || true)"
+  if [ "$current_hour" -ge "$ROUNDUP_AFTER_HOUR" ] && [ "$last_roundup_date" != "$today_ymd" ]; then
+    publish_mode="roundup"
+    log "Roundup due today (after_hour=${ROUNDUP_AFTER_HOUR}). Switching publish mode to: roundup"
+  fi
+fi
+
+# Jitter start (reduces “predictable bot schedule” patterns a bit)
+if [ "${JITTER_SECONDS:-0}" -gt 0 ]; then
+  jitter="$((RANDOM % (JITTER_SECONDS + 1)))"
+  if [ "${jitter:-0}" -gt 0 ]; then
+    log "Startup jitter: sleeping ${jitter}s"
+    sleep "$jitter"
+  fi
+fi
+
 # 1. 크롤링 (DC Inside + RSS)
 set_status "running: crawl dc"
 log "Step 1a: Crawling DC Inside..."
@@ -386,77 +447,83 @@ set_status "running: crawl rss"
 log "Step 1b: Crawling RSS feeds..."
 pnpm crawl-rss || echo "RSS crawl warning"
 
-# 2. 토픽 추출
-set_status "running: extract topics"
-log "Step 2: Extracting topics..."
-EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
-STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-72h}"
+# 2. 토픽 추출 / 자료 모음(라운드업)
+if [ "$publish_mode" = "roundup" ]; then
+  set_status "running: generate roundup"
+  log "Step 2: Generating materials roundup... (since=${ROUNDUP_SINCE} limit=${ROUNDUP_LIMIT})"
+  pnpm generate-roundup --since="${ROUNDUP_SINCE}" --limit="${ROUNDUP_LIMIT}" || echo "Roundup warning"
+else
+  set_status "running: extract topics"
+  log "Step 2: Extracting topics..."
+  EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
+  STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-72h}"
 
-if [ "$publish_mode" = "trend" ]; then
-  TREND_LIMIT="${AUTO_PUBLISH_TREND_EXTRACT_LIMIT:-$EXTRACT_LIMIT}"
-  TREND_SINCE="${AUTO_PUBLISH_TREND_SINCE:-2h}"
-  TREND_FALLBACK_SINCE="${AUTO_PUBLISH_TREND_FALLBACK_SINCE:-24h}"
+  if [ "$publish_mode" = "trend" ]; then
+    TREND_LIMIT="${AUTO_PUBLISH_TREND_EXTRACT_LIMIT:-$EXTRACT_LIMIT}"
+    TREND_SINCE="${AUTO_PUBLISH_TREND_SINCE:-2h}"
+    TREND_FALLBACK_SINCE="${AUTO_PUBLISH_TREND_FALLBACK_SINCE:-24h}"
 
-  log "Trend extraction: source=raw since=${TREND_SINCE} limit=${TREND_LIMIT}"
-  pnpm extract-topics --source=raw --since="${TREND_SINCE}" --limit="${TREND_LIMIT}" || echo "Extract warning"
-  extracted_count="$(read_last_extracted_count)"
-  log "Trend extractedCount=${extracted_count}"
-
-  if [ "${extracted_count:-0}" -eq 0 ]; then
-    log "No trend topics in ${TREND_SINCE}. Retrying with since=${TREND_FALLBACK_SINCE}..."
-    pnpm extract-topics --source=raw --since="${TREND_FALLBACK_SINCE}" --limit="${TREND_LIMIT}" || echo "Extract warning"
+    log "Trend extraction: source=raw since=${TREND_SINCE} limit=${TREND_LIMIT}"
+    pnpm extract-topics --source=raw --since="${TREND_SINCE}" --limit="${TREND_LIMIT}" || echo "Extract warning"
     extracted_count="$(read_last_extracted_count)"
-    log "Trend extractedCount=${extracted_count} (fallback)"
-  fi
+    log "Trend extractedCount=${extracted_count}"
 
-  if [ "${extracted_count:-0}" -eq 0 ]; then
-    log "No trend topics found. Falling back to standard extraction (since=${STANDARD_SINCE})..."
-    publish_mode="standard_fallback"
-  fi
-fi
-
-if [ "$publish_mode" != "trend" ]; then
-  log "Standard extraction: since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
-
-  extracted_count=0
-  # Prefer higher-trust sources first to keep the feed "current" and reduce community-only drift.
-  # Order is configurable via env:
-  #   AUTO_PUBLISH_STANDARD_SOURCES="official,news,raw"
-  #   AUTO_PUBLISH_STANDARD_SOURCES="official,news"  (disable raw unless no topics are extracted)
-  STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news,raw}"
-  IFS=',' read -ra SOURCES <<< "${STANDARD_SOURCES}"
-
-  for src in "${SOURCES[@]}"; do
-    src="$(echo "${src}" | tr -d '[:space:]')"
-    [ -z "${src}" ] && continue
-
-    if [ "${src}" = "all" ]; then
-      log "Standard extraction: source=all since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
-      pnpm extract-topics --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
-    else
-      log "Standard extraction: source=${src} since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
-      pnpm extract-topics --source="${src}" --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+    if [ "${extracted_count:-0}" -eq 0 ]; then
+      log "No trend topics in ${TREND_SINCE}. Retrying with since=${TREND_FALLBACK_SINCE}..."
+      pnpm extract-topics --source=raw --since="${TREND_FALLBACK_SINCE}" --limit="${TREND_LIMIT}" || echo "Extract warning"
+      extracted_count="$(read_last_extracted_count)"
+      log "Trend extractedCount=${extracted_count} (fallback)"
     fi
 
-    extracted_count="$(read_last_extracted_count)"
-    log "Standard extractedCount=${extracted_count} (source=${src})"
-    if [ "${extracted_count:-0}" -gt 0 ]; then
-      break
+    if [ "${extracted_count:-0}" -eq 0 ]; then
+      log "No trend topics found. Falling back to standard extraction (since=${STANDARD_SINCE})..."
+      publish_mode="standard_fallback"
     fi
-  done
+  fi
+
+  if [ "$publish_mode" != "trend" ]; then
+    log "Standard extraction: since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
+
+    extracted_count=0
+    # Prefer higher-trust sources first to keep the feed "current" and reduce community-only drift.
+    # Order is configurable via env:
+    #   AUTO_PUBLISH_STANDARD_SOURCES="official,news,raw"
+    #   AUTO_PUBLISH_STANDARD_SOURCES="official,news"  (disable raw unless no topics are extracted)
+    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news,raw}"
+    IFS=',' read -ra SOURCES <<< "${STANDARD_SOURCES}"
+
+    for src in "${SOURCES[@]}"; do
+      src="$(echo "${src}" | tr -d '[:space:]')"
+      [ -z "${src}" ] && continue
+
+      if [ "${src}" = "all" ]; then
+        log "Standard extraction: source=all since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
+        pnpm extract-topics --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+      else
+        log "Standard extraction: source=${src} since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
+        pnpm extract-topics --source="${src}" --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+      fi
+
+      extracted_count="$(read_last_extracted_count)"
+      log "Standard extractedCount=${extracted_count} (source=${src})"
+      if [ "${extracted_count:-0}" -gt 0 ]; then
+        break
+      fi
+    done
+  fi
+
+  # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
+  set_status "running: research topics"
+  log "Step 3: Researching topics..."
+  RESEARCH_LIMIT="${AUTO_PUBLISH_RESEARCH_LIMIT:-6}"
+  pnpm research-topic --from-last-extract --limit="${RESEARCH_LIMIT}" || echo "Research warning"
+
+  # 4. 글 작성 (memU 중복체크 포함)
+  set_status "running: write article"
+  log "Step 4: Writing article..."
+  WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-1}"
+  pnpm write-article --limit="${WRITE_LIMIT}" || echo "Write warning"
 fi
-
-# 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
-set_status "running: research topics"
-log "Step 3: Researching topics..."
-RESEARCH_LIMIT="${AUTO_PUBLISH_RESEARCH_LIMIT:-6}"
-pnpm research-topic --from-last-extract --limit="${RESEARCH_LIMIT}" || echo "Research warning"
-
-# 4. 글 작성 (memU 중복체크 포함)
-set_status "running: write article"
-log "Step 4: Writing article..."
-WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-1}"
-pnpm write-article --limit="${WRITE_LIMIT}" || echo "Write warning"
 
 # 4b. 품질 게이트(엄격 + 사실 검증)
 set_status "running: content gate"
@@ -513,6 +580,22 @@ $(date '+%Y-%m-%d %H:%M')"
         fi
 
         log "SUCCESS: Published ${FIRST_SLUG}${SUFFIX}"
+        # Update pacing state (best-effort; do not fail the run if this breaks).
+        {
+          today_ymd="$(date +%Y%m%d)"
+          count_file="$AUTO_PUBLISH_STATE_DIR/daily-count-${today_ymd}.txt"
+          cur_count="$(read_int_file "$count_file" 0)"
+          inc="${COUNT_SLUGS:-1}"
+          if ! [[ "$inc" =~ ^[0-9]+$ ]] || [ "$inc" -le 0 ]; then inc=1; fi
+          next_count="$((cur_count + inc))"
+          write_int_file "$count_file" "$next_count"
+          write_int_file "$LAST_PUBLISH_EPOCH_FILE" "$(date +%s)"
+          if [ "$publish_mode" = "roundup" ]; then
+            printf '%s\n' "$today_ymd" > "$ROUNDUP_LAST_DATE_FILE"
+          fi
+          log "Pacing state: published_today=${next_count}/${DAILY_MAX}, last_publish_epoch updated"
+        } || true
+
         next_slot="$((slot + 1))"
         write_int_file "$PUBLISH_SLOT_FILE" "$next_slot"
         log "Advanced publish slot: ${slot} -> ${next_slot}"
