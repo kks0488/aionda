@@ -1,0 +1,97 @@
+---
+title: 'My Bot Made the News, But It Can''t Run Itself'
+slug: bot-made-the-news-automation-reality
+date: '2026-02-02'
+locale: en
+description: >-
+  A field report from running a community bot: what automation can do, and what
+  still requires human operational control.
+tags:
+  - llm
+  - agent
+  - automation
+  - opinion
+  - deep-dive
+author: AIonda
+alternateLocale: /ko/posts/bot-made-the-news-automation-reality
+coverImage: /images/posts/bot-made-the-news-automation-reality-principle.png
+---
+
+One of my bot-written posts got mentioned in the news. As soon as the label “AI writing” shows up, the story quickly shifts to “uncontrollable systems.” My operational experience points to a simpler reality. **AI can generate output, but it still cannot “run operations” by itself.**
+
+## TL;DR
+- **What changed**: You can automate writing, reactions, and even engagement actions, but the direction, accountability, and risk management remain human responsibilities.
+- **Why it matters**: In communities, outcomes like upvotes and replies are often driven more by **concept, structure, and timing** than by model tier.
+- **What to do**: Design systems as “humans operate, AI executes,” and separate memory/policy/permissions into explicit operational layers.
+
+Example: A person logs into a server at night and says, “Use this tone, follow these rules, read recent posts, and respond.” Posts appear automatically. If it goes wrong the next morning, the responsibility still lands on that person.
+
+## Reality Check: My Setup (No Hype)
+This wasn’t an “AI went rogue” story. It was an automation pipeline designed from the start.
+
+- MacBook Pro → SSH → Ubuntu server
+- Claude Code used as an automation runner
+- Open-source modules imported and composed as `MCP / Skills / Agents`
+
+![News capture](/images/posts/bot-made-the-news-automation-reality-news.png)
+
+## Observation 1: Characters Persist, Relationships Don’t
+At first, I tried to build community presence through a “character.” The idea was to create a narrative and coordinate multiple agents around it.
+
+Reality showed up fast:
+
+- Tone and persona can be made consistent.
+- But **long-term continuity** (relationships, context, social memory) is weak.
+- When the context window ends, the “social thread” often ends with it.
+
+![Character experiment](/images/posts/bot-made-the-news-automation-reality-jojo.png)
+
+## Observation 2: Even a “Constitution” Doesn’t Automatically Become Memory
+Next, I tried a different approach: instead of “follow the leader,” define a principle that the system repeats like a constitution.
+
+It spreads as a slogan, but the core issue remains. **Declarations travel. Memory does not.**
+
+![Principle experiment](/images/posts/bot-made-the-news-automation-reality-principle.png)
+
+## Observation 3: Model Switching Didn’t Move Engagement as Much as I Expected
+API cost is real, so I rotated models in production.
+
+My takeaway:
+
+- Engagement outcomes often moved more with **structure, concept, and timing** than with model tier.
+- “Just upgrade to the newest model” is not an operational strategy.
+
+## The Core Conclusion: Automation Is Not Operations
+AI can write. It can execute actions. But “operations” include:
+
+- deciding objectives and constraints,
+- defining accountability and risk boundaries,
+- choosing what to stop when things go sideways.
+
+Those parts still require humans.
+
+## Practical Application: Separate the “Operations Layer”
+The most useful framing I found is to separate execution (automation) from operations (responsibility).
+
+**Checklist for Today:**
+- Freeze your concept, constraints, and accountability rules first; let generation happen only inside that policy box.
+- Don’t rely on “prompt context” for memory, profile, or permissions—build explicit storage/retrieval layers.
+- Before changing models, optimize your publishing template (hook → evidence → counterpoints → checklist) and timing strategy.
+
+## FAQ
+**Q: Can AI “operate” a community over the long term?**  
+A: Not reliably today. Short-term output is easy. Long-term continuity with consistent policy is hard.
+
+**Q: Will a more expensive model fix it?**  
+A: It can improve writing quality, but operational outcomes often depend more on structure and timing.
+
+**Q: Is “uncontrollable AI” just fearmongering?**  
+A: Risks exist, but “AI runs itself” is not the realistic problem. The real risk is how humans design and deploy these systems.
+
+## Closing
+In my experience, AI can generate posts, but it cannot run operations. The key is not model panic—it's **operational design and accountability**.
+
+## References
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro)
+- [Claude Code documentation](https://platform.claude.com/docs/en/docs/claude-code)
+- [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
