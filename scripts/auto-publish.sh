@@ -417,7 +417,33 @@ fi
 
 if [ "$publish_mode" != "trend" ]; then
   log "Standard extraction: since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
-  pnpm extract-topics --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+
+  extracted_count=0
+  # Prefer higher-trust sources first to keep the feed "current" and reduce community-only drift.
+  # Order is configurable via env:
+  #   AUTO_PUBLISH_STANDARD_SOURCES="official,news,raw"
+  #   AUTO_PUBLISH_STANDARD_SOURCES="official,news"  (disable raw unless no topics are extracted)
+  STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news,raw}"
+  IFS=',' read -ra SOURCES <<< "${STANDARD_SOURCES}"
+
+  for src in "${SOURCES[@]}"; do
+    src="$(echo "${src}" | tr -d '[:space:]')"
+    [ -z "${src}" ] && continue
+
+    if [ "${src}" = "all" ]; then
+      log "Standard extraction: source=all since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
+      pnpm extract-topics --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+    else
+      log "Standard extraction: source=${src} since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
+      pnpm extract-topics --source="${src}" --since="${STANDARD_SINCE}" --limit="${EXTRACT_LIMIT}" || echo "Extract warning"
+    fi
+
+    extracted_count="$(read_last_extracted_count)"
+    log "Standard extractedCount=${extracted_count} (source=${src})"
+    if [ "${extracted_count:-0}" -gt 0 ]; then
+      break
+    fi
+  done
 fi
 
 # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
