@@ -149,17 +149,17 @@ export default function Sidebar({
           <div className="flex flex-wrap gap-2">
             {popularTags.map((tag) => {
               const tagColor = getTagColor(tag);
-              const tagIcon = getTagIcon(tag);
               return (
                 <Link
                   key={tag}
                   href={`/${locale}/tags/${encodeURIComponent(tag)}`}
-                  className={`group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/30 hover:border-gray-300 dark:hover:border-gray-600 transition-colors`}
+                  className="group inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/30 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
                 >
-                  <span className={`material-symbols-outlined text-[14px] ${tagIcon === 'article' ? '' : 'icon-filled'} text-slate-500 group-hover:text-primary`} aria-hidden="true">
-                    {tagIcon}
-                  </span>
-                  <span className={`text-transparent bg-clip-text bg-gradient-to-r ${tagColor}`}>
+                  <span
+                    className={`h-2 w-2 rounded-full bg-gradient-to-r ${tagColor}`}
+                    aria-hidden="true"
+                  />
+                  <span className="text-slate-700 dark:text-slate-200">
                     {tag}
                   </span>
                 </Link>
