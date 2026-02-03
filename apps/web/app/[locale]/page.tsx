@@ -4,6 +4,7 @@ import { getPosts } from '@/lib/posts';
 import HomeContent from '@/components/HomeContent';
 import SearchDataSetter from '@/components/SearchDataSetter';
 import type { Locale } from '@/i18n';
+import { BASE_URL } from '@/lib/site';
 
 export async function generateMetadata({
   params: { locale },
@@ -14,6 +15,13 @@ export async function generateMetadata({
   return {
     title: t('title'),
     description: t('description'),
+    alternates: {
+      canonical: `${BASE_URL}/${locale}`,
+      languages: {
+        en: `${BASE_URL}/en`,
+        ko: `${BASE_URL}/ko`,
+      },
+    },
   };
 }
 

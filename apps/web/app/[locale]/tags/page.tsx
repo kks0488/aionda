@@ -5,6 +5,7 @@ import { getTagStats } from '@/lib/tags';
 import { getTagColor } from '@/lib/tag-utils';
 import SearchDataSetter from '@/components/SearchDataSetter';
 import type { Locale } from '@/i18n';
+import { BASE_URL } from '@/lib/site';
 
 export async function generateMetadata({
   params: { locale },
@@ -17,6 +18,13 @@ export async function generateMetadata({
       locale === 'ko'
         ? '주제별로 AI 아티클을 찾아보세요.'
         : 'Browse AI articles by topic.',
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/tags`,
+      languages: {
+        en: `${BASE_URL}/en/tags`,
+        ko: `${BASE_URL}/ko/tags`,
+      },
+    },
   };
 }
 

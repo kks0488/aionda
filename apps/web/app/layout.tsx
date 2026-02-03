@@ -50,13 +50,6 @@ export const metadata: Metadata = {
     images: [`${BASE_URL}/api/og-default`],
   },
   verification: googleVerification ? { google: googleVerification } : undefined,
-  alternates: {
-    canonical: BASE_URL,
-    languages: {
-      'en': `${BASE_URL}/en`,
-      'ko': `${BASE_URL}/ko`,
-    },
-  },
 };
 
 export default function RootLayout({

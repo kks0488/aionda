@@ -4,6 +4,7 @@ import { getPosts } from '@/lib/posts';
 import PostCard from '@/components/PostCard';
 import SearchDataSetter from '@/components/SearchDataSetter';
 import type { Locale } from '@/i18n';
+import { BASE_URL } from '@/lib/site';
 
 export async function generateMetadata({
   params: { locale },
@@ -16,6 +17,13 @@ export async function generateMetadata({
     description: locale === 'ko'
       ? 'AI 관련 최신 뉴스와 인사이트'
       : 'Latest AI news and insights',
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/posts`,
+      languages: {
+        en: `${BASE_URL}/en/posts`,
+        ko: `${BASE_URL}/ko/posts`,
+      },
+    },
   };
 }
 
