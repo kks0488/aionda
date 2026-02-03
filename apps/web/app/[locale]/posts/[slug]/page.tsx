@@ -332,7 +332,7 @@ export default async function PostPage({
                 {post.tags[0] && (
                   <>
                     <Link
-                      href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+                      href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
                       className="text-primary hover:underline"
                     >
                       {post.tags[0]}

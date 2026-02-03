@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { getPosts } from '@/lib/posts';
+import { getTagStats } from '@/lib/tags';
 import { locales, type Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 
@@ -46,6 +47,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'daily',
       priority: 0.8,
     });
+
+    // Tags index + tag pages
+    entries.push({
+      url: `${BASE_URL}/${locale}/tags`,
+      lastModified: localeLastModified,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    });
+
+    const MIN_INDEXED_TAG_COUNT = 3;
+    const MAX_SITEMAP_TAGS_PER_LOCALE = 400;
+    const tagStats = getTagStats(locale as Locale)
+      .filter((stat) => stat.count >= MIN_INDEXED_TAG_COUNT)
+      .slice(0, MAX_SITEMAP_TAGS_PER_LOCALE);
+    for (const stat of tagStats) {
+      const lm = new Date(stat.lastUsedAt);
+      entries.push({
+        url: `${BASE_URL}/${locale}/tags/${encodeURIComponent(stat.tag)}`,
+        lastModified: Number.isNaN(lm.getTime()) ? localeLastModified : lm,
+        changeFrequency: 'weekly',
+        priority: 0.4,
+      });
+    }
 
     // Individual posts
     for (const post of localePosts) {

@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { redirect } from 'next/navigation';
 import { getPosts } from '@/lib/posts';
 import PostCard from '@/components/PostCard';
 import SearchDataSetter from '@/components/SearchDataSetter';
@@ -30,18 +31,16 @@ export default function PostsPage({
   const posts = getPosts(locale as Locale);
   const tagParam = typeof searchParams?.tag === 'string' ? searchParams.tag.trim() : '';
   const normalizedTag = tagParam ? tagParam.toLowerCase() : '';
-  const filteredPosts = normalizedTag
-    ? posts.filter((post) => post.tags.some((tag) => tag.toLowerCase() === normalizedTag))
-    : posts;
+  if (normalizedTag) {
+    redirect(`/${locale}/tags/${encodeURIComponent(normalizedTag)}`);
+  }
   const searchPosts = posts.map(({ slug, title, description, tags }) => ({
     slug,
     title,
     description,
     tags,
   }));
-  const headerTitle = tagParam
-    ? locale === 'ko' ? `"${tagParam}" 태그` : `Tag: ${tagParam}`
-    : locale === 'ko' ? '모든 글' : 'All Articles';
+  const headerTitle = locale === 'ko' ? '모든 글' : 'All Articles';
 
   return (
     <div className="bg-white dark:bg-[#101922] min-h-screen">
@@ -55,26 +54,16 @@ export default function PostsPage({
             {headerTitle}
           </h1>
           <p className="text-lg text-slate-500 dark:text-slate-400">
-            {locale === 'ko'
-              ? `${filteredPosts.length}개의 글이 있습니다`
-              : `${filteredPosts.length} articles available`}
+            {locale === 'ko' ? `${posts.length}개의 글이 있습니다` : `${posts.length} articles available`}
           </p>
-          {tagParam && (
-            <a
-              href={`/${locale}/posts`}
-              className="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
-            >
-              {locale === 'ko' ? '전체 글 보기' : 'View all posts'}
-            </a>
-          )}
         </div>
       </section>
 
       {/* Posts Grid */}
       <main className="w-full max-w-7xl mx-auto px-6 py-12">
-        {filteredPosts.length > 0 ? (
+        {posts.length > 0 ? (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPosts.map((post) => (
+            {posts.map((post) => (
               <PostCard
                 key={post.slug}
                 post={post}
@@ -89,18 +78,8 @@ export default function PostsPage({
               article
             </span>
             <p className="text-slate-500 dark:text-slate-400 text-lg">
-              {locale === 'ko'
-                ? '해당 태그의 글이 없습니다'
-                : 'No posts found for this tag'}
+              {locale === 'ko' ? '아직 글이 없습니다' : 'No posts yet'}
             </p>
-            {tagParam && (
-              <a
-                href={`/${locale}/posts`}
-                className="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
-              >
-                {locale === 'ko' ? '전체 글 보기' : 'View all posts'}
-              </a>
-            )}
           </div>
         )}
       </main>

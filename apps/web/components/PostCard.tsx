@@ -61,7 +61,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           </Link>
           {post.tags[0] && (
             <Link
-              href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+              href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
               className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
             >
               {post.tags[0]}
@@ -120,7 +120,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           </Link>
           {post.tags[0] && (
             <Link
-              href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+              href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
               className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
             >
               {post.tags[0]}
@@ -180,7 +180,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
         </Link>
         {post.tags[0] && (
           <Link
-            href={`/${locale}/posts?tag=${encodeURIComponent(post.tags[0])}`}
+            href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
             className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
           >
             {post.tags[0]}

@@ -16,6 +16,12 @@ export default function Footer() {
         </div>
 
         <div className="flex gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
+          <Link href={`/${locale}/posts`} className="hover:text-primary transition-colors">
+            Posts
+          </Link>
+          <Link href={`/${locale}/tags`} className="hover:text-primary transition-colors">
+            Tags
+          </Link>
           <Link href={`/${locale}/privacy`} className="hover:text-primary transition-colors">
             Privacy
           </Link>
