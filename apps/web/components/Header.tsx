@@ -45,7 +45,7 @@ export default function Header({ locale }: HeaderProps) {
             aria-hidden="true"
           />
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            {locale === 'ko' ? 'AI온다' : 'Aionda'}
+            Aionda
           </h1>
         </Link>
 

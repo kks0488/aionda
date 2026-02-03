@@ -13,7 +13,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-            © {year} {locale === 'ko' ? 'AI온다' : 'Aionda'}
+            © {year} Aionda
           </span>
         </div>
 
