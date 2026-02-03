@@ -16,30 +16,6 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside className="space-y-10">
-      {/* About Widget */}
-      <div className="p-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-slate-800/50">
-        <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">
-          {locale === 'ko' ? '운영 원칙' : 'How Aionda Works'}
-        </h3>
-        <p className="text-sm text-slate-600 dark:text-slate-300 mb-5 leading-relaxed">
-          {locale === 'ko' ? (
-            <>
-              Aionda는 DC Inside <span className="font-bold text-slate-900 dark:text-white">&apos;특이점이온다&apos;</span> 갤러리의 “신호”를 빠르게 포착하고, 공식/신뢰 소스로 교차검증해 근거 중심으로 정리합니다.
-            </>
-          ) : (
-            <>
-              Aionda catches early community signals, then triangulates with trusted sources.
-            </>
-          )}
-        </p>
-        <Link
-          href={`/${locale}/about`}
-          className="text-primary text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all"
-        >
-          {locale === 'ko' ? '더 알아보기' : 'Read More'}
-        </Link>
-      </div>
-
       {/* Popular Tags */}
       {popularTags.length > 0 && (
         <div className="p-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900/30">
@@ -51,14 +27,14 @@ export default function Sidebar({
               <Link
                 key={tag}
                 href={`/${locale}/tags/${encodeURIComponent(tag)}`}
-                className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/30 text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200/80 dark:border-gray-700/80 bg-slate-50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
               >
                 {tag}
               </Link>
             ))}
             <Link
               href={`/${locale}/tags`}
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border border-dashed border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold border border-dashed border-gray-200/80 dark:border-gray-700/80 text-slate-600 dark:text-slate-300 hover:text-primary hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             >
               {locale === 'ko' ? '전체 태그' : 'All tags'}
             </Link>

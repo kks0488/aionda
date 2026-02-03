@@ -34,6 +34,16 @@ export default function HomePage({
 
   const posts = getPosts(locale as Locale);
   const postCount = posts.length;
+  const latestPostDate =
+    posts.length > 0 ? new Date(posts[0].date) : null;
+  const latestPostDateLabel =
+    latestPostDate && !Number.isNaN(latestPostDate.getTime())
+      ? latestPostDate.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : '';
   const searchPosts = posts.map(({ slug, title, description, tags }) => ({
     slug,
     title,
@@ -109,12 +119,12 @@ export default function HomePage({
             {locale === 'ko' ? (
               <>
                 <span className="font-semibold text-slate-900 dark:text-white">{postCount}</span>개 아티클 ·
-                {' '}K‑AI Pulse · 근거 기반 · 검색형 가이드
+                {latestPostDateLabel ? <> 업데이트 {latestPostDateLabel}</> : <>매일 업데이트</>}
               </>
             ) : (
               <>
                 <span className="font-semibold text-slate-900 dark:text-white">{postCount}</span> articles ·
-                {' '}Pulse · Source‑Backed · Guides
+                {latestPostDateLabel ? <> Updated {latestPostDateLabel}</> : <> Daily updates</>}
               </>
             )}
           </div>

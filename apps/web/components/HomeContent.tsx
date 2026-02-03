@@ -144,7 +144,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
   ), [posts]);
 
   const popularTags = useMemo(() => {
-    const exclude = new Set(['k-ai-pulse', 'explainer', 'deep-dive']);
+    const exclude = new Set(['k-ai-pulse', 'explainer', 'deep-dive', 'article', 'ai']);
     const now = Date.now();
     const DAY_MS = 24 * 60 * 60 * 1000;
     const RECENT_DAYS = 21;

@@ -245,6 +245,7 @@ export default async function PostPage({
   const tagColor = getTagColor(primaryTag);
   const placeholderMark = primaryTag.slice(0, 1).toUpperCase();
   const sourceHostname = getHostname(post.sourceUrl);
+  const showSourceBadge = Boolean(post.sourceId || post.sourceUrl);
   const isDcInsideSource = Boolean(post.sourceUrl && /dcinside\.com/i.test(post.sourceUrl));
   const publishedAtMs = new Date(post.date).getTime();
   const ageDays = Number.isNaN(publishedAtMs)
@@ -339,39 +340,45 @@ export default async function PostPage({
             <div className="mb-8 md:mb-12">
               {/* Meta info */}
               <div className="flex items-center gap-3 text-sm font-medium text-slate-500 dark:text-slate-400 mb-4 min-w-0">
-                {post.tags[0] && (
-                  <>
-                    <Link
-                      href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
-                      className="text-primary hover:underline"
-                    >
-                      {post.tags[0]}
-                    </Link>
-                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                  </>
-                )}
-                <SourceBadge locale={locale as Locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
-                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="hidden sm:inline">{formattedDate}</span>
                 <span className="sm:hidden">{formattedDateCompact}</span>
-                {typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) && (
-                  <span className="hidden sm:contents">
-                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span>{locale === 'ko' ? `${post.readingTime}분` : `${post.readingTime} min`}</span>
-                  </span>
-                )}
-                {post.byline && (
-                  <span className="hidden sm:contents">
-                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="truncate">{post.byline}</span>
-                  </span>
-                )}
-                {post.verificationScore !== undefined && (
-                  <span className="hidden sm:contents">
-                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="text-primary font-semibold">{Math.round(post.verificationScore * 100)}% Verified</span>
-                  </span>
-                )}
+                <span className="hidden sm:contents">
+                  {post.tags[0] && (
+                    <>
+                      <Link
+                        href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
+                        className="text-primary hover:underline"
+                      >
+                        {post.tags[0]}
+                      </Link>
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    </>
+                  )}
+                  {showSourceBadge && (
+                    <>
+                      <SourceBadge locale={locale as Locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    </>
+                  )}
+                  <span>{formattedDate}</span>
+                  {typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      <span>{locale === 'ko' ? `${post.readingTime}분` : `${post.readingTime} min`}</span>
+                    </>
+                  )}
+                  {post.byline && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      <span className="truncate">{post.byline}</span>
+                    </>
+                  )}
+                  {post.verificationScore !== undefined && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      <span className="text-primary font-semibold">{Math.round(post.verificationScore * 100)}% Verified</span>
+                    </>
+                  )}
+                </span>
               </div>
 
               {/* Freshness / staleness notice */}
