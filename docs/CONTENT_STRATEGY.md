@@ -36,6 +36,21 @@
 
 ---
 
+## 2.1) 글 작성에 쓰는 LLM Provider 설정
+
+글 생성/번역/토픽 추출에 쓰는 LLM은 환경변수로 바꿀 수 있다.
+
+- `AI_TEXT_PROVIDER=gemini|openai|deepseek`
+  - 기본값은 `gemini`
+- OpenAI를 프록시로 쓰고 싶다면:
+  - `OPENAI_BASE_URL`에 프록시 엔드포인트를 설정
+  - `OPENAI_MODEL`에 원하는 모델명을 설정
+
+주의:
+- 키/엔드포인트 같은 민감정보는 repo에 넣지 말고 SSOT(`~/.config/claude-projects/global.env`)에서 관리한다.
+
+---
+
 ## 3) 태그/SEO 위생 (구닥다리 느낌 제거에 직결)
 
 문제: 자동 생성 태그가 무제한으로 늘어나면,
@@ -89,4 +104,3 @@ RSS 소스에 국내 테크 블로그를 추가해 “국내 운영/제품” �
 - 상태 파일(크론 동작 확인):
   - `/tmp/aionda-auto-publish-last-run.txt`
   - `/tmp/aionda-auto-publish-status.txt`
-
