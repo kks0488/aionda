@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { Post } from '@/lib/posts';
 import type { Locale } from '@/i18n';
-import { getTagColor } from '@/lib/tag-utils';
 import SourceBadge from '@/components/SourceBadge';
 
 interface SidebarProps {
@@ -48,24 +47,15 @@ export default function Sidebar({
             {locale === 'ko' ? '인기 태그' : 'Popular Tags'}
           </h3>
           <div className="flex flex-wrap gap-2">
-            {popularTags.map((tag) => {
-              const tagColor = getTagColor(tag);
-              return (
-                <Link
-                  key={tag}
-                  href={`/${locale}/tags/${encodeURIComponent(tag)}`}
-                  className="group inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/30 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-                >
-                  <span
-                    className={`h-2 w-2 rounded-full bg-gradient-to-r ${tagColor}`}
-                    aria-hidden="true"
-                  />
-                  <span className="text-slate-700 dark:text-slate-200">
-                    {tag}
-                  </span>
-                </Link>
-              );
-            })}
+            {popularTags.map((tag) => (
+              <Link
+                key={tag}
+                href={`/${locale}/tags/${encodeURIComponent(tag)}`}
+                className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-950/30 text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              >
+                {tag}
+              </Link>
+            ))}
             <Link
               href={`/${locale}/tags`}
               className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border border-dashed border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
