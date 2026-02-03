@@ -9,6 +9,7 @@ import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
 import PostNavigation from '@/components/PostNavigation';
+import SourceBadge from '@/components/SourceBadge';
 import { defaultLocale, locales, type Locale } from '@/i18n';
 
 const OG_LOCALE: Record<Locale, string> = {
@@ -340,6 +341,8 @@ export default async function PostPage({
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                   </>
                 )}
+                <SourceBadge locale={locale as Locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span>{formattedDate}</span>
                 {post.byline && (
                   <>

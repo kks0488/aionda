@@ -6,6 +6,7 @@ import type { Post } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import PostCard from './PostCard';
 import Sidebar from './Sidebar';
+import { getSourceKind } from '@/lib/source-utils';
 
 interface HomeContentProps {
   posts: Post[];
@@ -38,6 +39,8 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
       post.tags.some((t) => t.toLowerCase() === tag);
     const isPulse = (post: Post) => hasTag(post, 'k-ai-pulse');
     const isEvergreen = (post: Post) => hasTag(post, 'explainer') || hasTag(post, 'deep-dive');
+    const isCommunity = (post: Post) =>
+      getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl }) === 'community';
 
     const byDateDesc = (a: Post, b: Post) => new Date(b.date).getTime() - new Date(a.date).getTime();
     const sorted = [...filteredPosts].sort(byDateDesc);
@@ -58,6 +61,8 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
         if (pulseDiff !== 0) return pulseDiff;
         const evergreenDiff = Number(isEvergreen(a)) - Number(isEvergreen(b));
         if (evergreenDiff !== 0) return evergreenDiff;
+        const communityDiff = Number(isCommunity(a)) - Number(isCommunity(b));
+        if (communityDiff !== 0) return communityDiff;
         return dateDiff;
       });
     }
@@ -65,8 +70,27 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
     return sorted;
   }, [filteredPosts, normalizedCategory]);
 
-  const featuredPosts = orderedPosts.slice(0, 2);
-  const gridPosts = orderedPosts.slice(2, 6);
+  const featuredPosts = useMemo(() => {
+    const kind = (post: Post) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
+    const isTrusted = (post: Post) => {
+      const k = kind(post);
+      return k === 'official' || k === 'news' || k === 'evergreen';
+    };
+
+    const trustedFirst = orderedPosts.filter(isTrusted).slice(0, 2);
+    if (trustedFirst.length >= 2) return trustedFirst;
+    const fill = orderedPosts
+      .filter((p) => !trustedFirst.some((x) => x.slug === p.slug))
+      .slice(0, 2 - trustedFirst.length);
+    return [...trustedFirst, ...fill];
+  }, [orderedPosts]);
+
+  const gridPosts = useMemo(() => {
+    const used = new Set(featuredPosts.map((p) => p.slug));
+    const rest = orderedPosts.filter((p) => !used.has(p.slug));
+    return rest.slice(0, 4);
+  }, [featuredPosts, orderedPosts]);
+
   const trendingPosts = useMemo(() => (
     (() => {
       const pulse = posts.filter((post) => post.tags.some((t) => t.toLowerCase() === 'k-ai-pulse'));
@@ -76,6 +100,51 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
       return fallback.slice(0, 4);
     })()
   ), [posts]);
+
+  const popularTags = useMemo(() => {
+    const exclude = new Set(['k-ai-pulse', 'explainer', 'deep-dive']);
+    const counts = new Map<string, number>();
+    for (const post of posts) {
+      for (const raw of post.tags) {
+        const tag = String(raw || '').trim().toLowerCase();
+        if (!tag || exclude.has(tag)) continue;
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .filter(([, count]) => count >= 3)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 14)
+      .map(([tag]) => tag);
+  }, [posts]);
+
+  const starterPosts = useMemo(() => {
+    const isExplainer = (post: Post) => post.tags.some((t) => String(t || '').toLowerCase() === 'explainer');
+    return [...posts].filter(isExplainer).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+  }, [posts]);
+
+  const recentMix = useMemo(() => {
+    const DAYS = 7;
+    const since = Date.now() - DAYS * 24 * 60 * 60 * 1000;
+    const recent = posts.filter((p) => new Date(p.date).getTime() >= since);
+    const counts = { total: recent.length, trusted: 0, community: 0, evergreen: 0, news: 0, official: 0, unknown: 0 };
+    for (const post of recent) {
+      const kind = getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
+      if (kind === 'community') counts.community += 1;
+      else if (kind === 'evergreen') counts.evergreen += 1;
+      else if (kind === 'news') {
+        counts.news += 1;
+        counts.trusted += 1;
+      } else if (kind === 'official') {
+        counts.official += 1;
+        counts.trusted += 1;
+      } else {
+        counts.unknown += 1;
+      }
+    }
+    return counts;
+  }, [posts]);
 
   return (
     <main className="w-full max-w-7xl mx-auto px-6 pb-20">
@@ -161,7 +230,13 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
 
         {/* Sidebar (Right 4 cols) */}
         <div className="lg:col-span-4">
-          <Sidebar locale={locale} trendingPosts={trendingPosts} />
+          <Sidebar
+            locale={locale}
+            trendingPosts={trendingPosts}
+            popularTags={popularTags}
+            starterPosts={starterPosts}
+            recentMix={recentMix}
+          />
         </div>
       </div>
     </main>

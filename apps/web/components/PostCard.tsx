@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { Post } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import { getTagColor, getTagIcon } from '@/lib/tag-utils';
+import SourceBadge from '@/components/SourceBadge';
 
 interface PostCardProps {
   post: Post;
@@ -71,6 +72,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
 
         <Link href={postHref} className="mt-5 block space-y-3">
           <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
+            <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} />
             <span>{formattedDate}</span>
             {post.byline && (
               <>
@@ -130,6 +132,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
 
         <Link href={postHref} className="mt-4 block space-y-2">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
+            <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
             <span>{formattedDate}</span>
             {post.byline && (
               <>
@@ -190,6 +193,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
 
       <Link href={postHref} className="mt-4 block space-y-2">
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
+          <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
           <span>{formattedDate}</span>
           {post.byline && (
             <>
