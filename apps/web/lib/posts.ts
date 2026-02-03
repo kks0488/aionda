@@ -62,15 +62,26 @@ const TAG_ALIASES: Record<string, string> = {
   'huggingface': 'huggingface',
   '젬나이': 'gemini',
   '제미나이': 'gemini',
+  '인공지능': 'ai',
+  'ai': 'ai',
+  '엔비디아': 'nvidia',
+  '오픈ai': 'openai',
+  '오픈에이아이': 'openai',
+  '앤스로픽': 'anthropic',
+  '클로드': 'claude',
 };
 
 function normalizeTagValue(value: string): string {
   const compact = value.trim().toLowerCase().replace(/\s+/g, ' ');
   const aliased = TAG_ALIASES[compact] || compact;
 
-  // Normalize common model/version formatting (e.g., "gpt 5.2" -> "gpt-5.2")
-  if (/^gpt\s+\d/.test(aliased)) return aliased.replace(/^gpt\s+/, 'gpt-');
-  if (/^gemini\s+\d/.test(aliased)) return aliased.replace(/^gemini\s+/, 'gemini-');
+  // Collapse model/version tags into family tags (avoid long-tail tag explosion)
+  if (/^gpt(?:[-\s]?\d|[-\s]?(?:4o|o1)\b)/.test(aliased)) return 'gpt';
+  if (/^gemini(?:[-\s]?\d|\b)/.test(aliased)) return 'gemini';
+  if (/^claude(?:[-\s]?\d|\b)/.test(aliased)) return 'claude';
+  if (/^llama(?:[-\s]?\d|\b)/.test(aliased)) return 'llama';
+  if (/^qwen(?:[-\s]?\d|\b)/.test(aliased)) return 'qwen';
+  if (/^kimi(?:[-\s]?\d|\b)/.test(aliased)) return 'kimi';
 
   return aliased;
 }

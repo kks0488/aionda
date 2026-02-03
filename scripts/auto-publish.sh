@@ -476,7 +476,9 @@ else
   set_status "running: extract topics"
   log "Step 2: Extracting topics..."
   EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
-  STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-72h}"
+  # Keep the default "standard" lane fresh. If no topics are found, the pipeline
+  # falls back to evergreen (search queue).
+  STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-48h}"
 
   extracted_count=0
 
@@ -522,7 +524,7 @@ else
     # Order is configurable via env:
     #   AUTO_PUBLISH_STANDARD_SOURCES="official,news,raw"
     #   AUTO_PUBLISH_STANDARD_SOURCES="official,news"  (disable raw unless no topics are extracted)
-    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news,raw}"
+    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news}"
     IFS=',' read -ra SOURCES <<< "${STANDARD_SOURCES}"
 
     for src in "${SOURCES[@]}"; do

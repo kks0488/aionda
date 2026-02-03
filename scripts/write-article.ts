@@ -12,6 +12,7 @@ import { selectEditorialSeries, formatSeriesForPrompt, type EditorialSeries } fr
 import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import { classifySource, createVerifiedSource, SourceTier } from './lib/search-mode.js';
+import { canonicalizeTags } from './lib/tags.js';
 import matter from 'gray-matter';
 
 config({ path: '.env.local' });
@@ -338,7 +339,8 @@ function generateFrontmatter(
     ({ tag }) => tag
   );
 
-  const finalTags = [...new Set([...baseTags, ...(derivedCore.length ? derivedCore : ['llm'])])];
+  const finalTagsRaw = [...new Set([...baseTags, ...(derivedCore.length ? derivedCore : ['llm'])])];
+  const finalTags = canonicalizeTags(finalTagsRaw, { maxTags: 8 });
 
 return `---
 title: "${title.replace(/"/g, '\\"')}"
@@ -506,6 +508,74 @@ function appendSources(locale: 'ko' | 'en', content: string, topic: ResearchedTo
   return cleaned + sourcesSection;
 }
 
+function normalizeEvidenceToken(value: string): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[\s\-_–—.]/g, '')
+    .replace(/[’'"]/g, '');
+}
+
+function sanitizeModelMentions(locale: 'ko' | 'en', markdown: string, evidenceText: string): string {
+  const evidence = normalizeEvidenceToken(evidenceText);
+  if (!evidence) return markdown;
+
+  const replacements = {
+    gpt: locale === 'ko' ? 'GPT 계열' : 'GPT-family model',
+    gemini: locale === 'ko' ? 'Gemini 계열' : 'Gemini-family model',
+    claude: locale === 'ko' ? 'Claude 계열' : 'Claude-family model',
+    llama: locale === 'ko' ? 'Llama 계열' : 'Llama-family model',
+    qwen: locale === 'ko' ? 'Qwen 계열' : 'Qwen-family model',
+    kimi: locale === 'ko' ? 'Kimi 계열' : 'Kimi-family model',
+    deepseek: locale === 'ko' ? 'DeepSeek 계열' : 'DeepSeek-family model',
+  } as const;
+
+  const rules: Array<{ family: keyof typeof replacements; re: RegExp }> = [
+    { family: 'gpt', re: /\bGPT[-\s]?(?:\d[0-9a-z.\-]*|4o[0-9a-z.\-]*|o\d[0-9a-z.\-]*)\b/gi },
+    { family: 'gemini', re: /\bGemini[-\s]?\d(?:\.\d+)?\b/gi },
+    { family: 'claude', re: /\bClaude[-\s]?\d(?:\.\d+)?\b/gi },
+    { family: 'llama', re: /\bLlama[-\s]?\d(?:\.\d+)?\b/gi },
+    { family: 'qwen', re: /\bQwen[-\s]?\d(?:\.\d+)?\b/gi },
+    { family: 'kimi', re: /\bKimi[-\s]?\d(?:\.\d+)?\b/gi },
+    { family: 'deepseek', re: /\bDeepSeek[-\s]?\d(?:\.\d+)?\b/gi },
+  ];
+
+  const koRules: Array<{ family: keyof typeof replacements; re: RegExp }> = [
+    { family: 'gpt', re: /\bGPT\s*[-‑–—]?\s*\d[0-9a-z.\-]*\b/gi },
+    { family: 'gemini', re: /제미나이\s*\d(?:\.\d+)?/gi },
+    { family: 'claude', re: /클로드\s*\d(?:\.\d+)?/gi },
+    { family: 'llama', re: /라마\s*\d(?:\.\d+)?/gi },
+    { family: 'qwen', re: /큐웬\s*\d(?:\.\d+)?/gi },
+    { family: 'kimi', re: /키미\s*\d(?:\.\d+)?/gi },
+    { family: 'deepseek', re: /딥시크\s*\d(?:\.\d+)?/gi },
+  ];
+
+  // Avoid touching code fences (can contain literal model identifiers).
+  const lines = String(markdown || '').split('\n');
+  let inFence = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (line.trimStart().startsWith('```')) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    const applyRule = (family: keyof typeof replacements, re: RegExp) => {
+      lines[i] = lines[i].replace(re, (match) => {
+        const token = normalizeEvidenceToken(match);
+        if (token && evidence.includes(token)) return match;
+        return replacements[family];
+      });
+    };
+
+    for (const rule of rules) applyRule(rule.family, rule.re);
+    for (const rule of koRules) applyRule(rule.family, rule.re);
+  }
+
+  return lines.join('\n');
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const limitArg = args.find((a) => a.startsWith('--limit='));
@@ -635,6 +705,15 @@ async function main() {
       console.log('   📝 Writing Korean article...');
       let articleKo = await writeArticle(topic, series);
       articleKo = await polishArticleMarkdown('ko', articleKo);
+      const primaryExcerptKo = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
+      const evidenceTextKo = [
+        primaryExcerptKo?.title,
+        primaryExcerptKo?.excerpt,
+        ...topic.findings.flatMap((f) => (f.sources || []).map((s) => `${s.title}\n${s.snippet || ''}`)),
+      ]
+        .filter(Boolean)
+        .join('\n');
+      articleKo = sanitizeModelMentions('ko', articleKo, evidenceTextKo);
       articleKo = appendSources('ko', articleKo, topic);
 
       // Generate metadata
@@ -649,6 +728,15 @@ async function main() {
       let articleEn = translated.content_en;
       articleEn = await polishArticleMarkdown('en', articleEn);
       articleEn = normalizeEnTldr(articleEn);
+      const primaryExcerptEn = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
+      const evidenceTextEn = [
+        primaryExcerptEn?.title,
+        primaryExcerptEn?.excerpt,
+        ...topic.findings.flatMap((f) => (f.sources || []).map((s) => `${s.title}\n${s.snippet || ''}`)),
+      ]
+        .filter(Boolean)
+        .join('\n');
+      articleEn = sanitizeModelMentions('en', articleEn, evidenceTextEn);
       articleEn = appendSources('en', articleEn, topic);
 
       const sourceId = String(topic.sourceId || '');

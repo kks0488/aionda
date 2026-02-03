@@ -74,6 +74,9 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'naver-d2', name: 'NAVER D2', url: 'https://d2.naver.com/d2.atom', tier: 'A', type: 'official', enabled: true },
   { id: 'kakao-tech', name: 'Kakao Tech', url: 'https://tech.kakao.com/feed/', tier: 'A', type: 'official', enabled: true },
   { id: 'toss-tech', name: 'Toss Tech', url: 'https://toss.tech/rss.xml', tier: 'A', type: 'official', enabled: true },
+  { id: 'woowahan-tech', name: 'Woowahan Tech Blog', url: 'https://techblog.woowahan.com/feed/', tier: 'A', type: 'official', enabled: true },
+  { id: 'gccompany-tech', name: 'GCCompany Tech Blog', url: 'https://techblog.gccompany.co.kr/feed', tier: 'A', type: 'official', enabled: true },
+  { id: 'coupang-engineering', name: 'Coupang Engineering (Medium)', url: 'https://medium.com/feed/coupang-engineering', tier: 'A', type: 'official', enabled: true },
 
   // Tech News (Tier A)
   { id: 'techcrunch-ai', name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', tier: 'A', type: 'news', enabled: true },
