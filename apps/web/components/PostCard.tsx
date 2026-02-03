@@ -13,11 +13,15 @@ interface PostCardProps {
 }
 
 export default function PostCard({ post, locale, variant = 'medium', priority = false }: PostCardProps) {
-  const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+  const dateObj = new Date(post.date);
+  const formattedDate = dateObj.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
+  const formattedDateCompact = Number.isNaN(dateObj.getTime())
+    ? formattedDate
+    : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
   const readingTime = typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) ? post.readingTime : undefined;
   const readingLabel = readingTime
     ? locale === 'ko'
@@ -82,24 +86,25 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
         <Link href={postHref} className="mt-5 block space-y-3">
           <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
             <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} />
-            <span>{formattedDate}</span>
+            <span className="hidden sm:inline">{formattedDate}</span>
+            <span className="sm:hidden">{formattedDateCompact}</span>
             {readingTime !== undefined && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span>{readingLabel}</span>
-              </>
+              </span>
             )}
             {post.byline && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span className="truncate">{post.byline}</span>
-              </>
+              </span>
             )}
             {post.verificationScore !== undefined && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span className="text-primary font-semibold">AI Verified</span>
-              </>
+              </span>
             )}
           </div>
           <h2 className="text-2xl md:text-3xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
@@ -145,24 +150,25 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
         <Link href={postHref} className="mt-4 block space-y-2">
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
             <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
-            <span>{formattedDate}</span>
+            <span className="hidden sm:inline">{formattedDate}</span>
+            <span className="sm:hidden">{formattedDateCompact}</span>
             {readingTime !== undefined && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span>{readingLabel}</span>
-              </>
+              </span>
             )}
             {post.byline && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span className="truncate">{post.byline}</span>
-              </>
+              </span>
             )}
             {post.verificationScore !== undefined && (
-              <>
+              <span className="hidden sm:contents">
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span className="text-primary font-semibold">Verified</span>
-              </>
+              </span>
             )}
           </div>
           <h3 className="text-xl font-bold leading-tight group-hover:text-primary transition-colors text-slate-900 dark:text-white">
@@ -209,24 +215,25 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
       <Link href={postHref} className="mt-4 block space-y-2">
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
           <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
-          <span>{formattedDate}</span>
+          <span className="hidden sm:inline">{formattedDate}</span>
+          <span className="sm:hidden">{formattedDateCompact}</span>
           {readingTime !== undefined && (
-            <>
+            <span className="hidden sm:contents">
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span>{readingLabel}</span>
-            </>
+            </span>
           )}
           {post.byline && (
-            <>
+            <span className="hidden sm:contents">
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span className="truncate">{post.byline}</span>
-            </>
+            </span>
           )}
           {post.verificationScore !== undefined && (
-            <>
+            <span className="hidden sm:contents">
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span className="text-primary font-semibold">Verified</span>
-            </>
+            </span>
           )}
         </div>
         <h3 className="text-lg font-bold leading-snug group-hover:text-primary transition-colors text-slate-900 dark:text-white line-clamp-2">

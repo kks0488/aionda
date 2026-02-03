@@ -18,20 +18,11 @@ export default function Footer() {
         </div>
 
         <div className="flex gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
-          <Link href={`/${locale}/posts`} className="hover:text-primary transition-colors">
-            {locale === 'ko' ? '글' : 'Posts'}
-          </Link>
-          <Link href={`/${locale}/tags`} className="hover:text-primary transition-colors">
-            {locale === 'ko' ? '태그' : 'Tags'}
-          </Link>
           <Link href={`/${locale}/privacy`} className="hover:text-primary transition-colors">
             {locale === 'ko' ? '개인정보 처리방침' : 'Privacy'}
           </Link>
           <Link href={`/${locale}/terms`} className="hover:text-primary transition-colors">
             {locale === 'ko' ? '이용약관' : 'Terms'}
-          </Link>
-          <Link href={`/${locale}/about`} className="hover:text-primary transition-colors">
-            {locale === 'ko' ? '소개' : 'About'}
           </Link>
           <a href="/feed.xml" className="hover:text-primary transition-colors">
             RSS

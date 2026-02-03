@@ -252,11 +252,15 @@ export default async function PostPage({
     : Math.floor((Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24));
   const showStaleNotice = ageDays >= 120;
 
-  const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+  const dateObj = new Date(post.date);
+  const formattedDate = dateObj.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
+  const formattedDateCompact = Number.isNaN(dateObj.getTime())
+    ? formattedDate
+    : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
   // JSON-LD structured data for SEO
   const articleJsonLd = {
@@ -348,24 +352,25 @@ export default async function PostPage({
                 )}
                 <SourceBadge locale={locale as Locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span>{formattedDate}</span>
+                <span className="hidden sm:inline">{formattedDate}</span>
+                <span className="sm:hidden">{formattedDateCompact}</span>
                 {typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) && (
-                  <>
+                  <span className="hidden sm:contents">
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                     <span>{locale === 'ko' ? `${post.readingTime}분` : `${post.readingTime} min`}</span>
-                  </>
+                  </span>
                 )}
                 {post.byline && (
-                  <>
+                  <span className="hidden sm:contents">
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                     <span className="truncate">{post.byline}</span>
-                  </>
+                  </span>
                 )}
                 {post.verificationScore !== undefined && (
-                  <>
+                  <span className="hidden sm:contents">
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                     <span className="text-primary font-semibold">{Math.round(post.verificationScore * 100)}% Verified</span>
-                  </>
+                  </span>
                 )}
               </div>
 
