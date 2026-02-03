@@ -3,6 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './CodeBlock';
+import { toHeadingId } from '@/lib/heading-utils';
 
 interface MDXContentProps {
   source: string;
@@ -16,7 +17,7 @@ export function MDXContent({ source }: MDXContentProps) {
         components={{
           // Headings with anchors
           h1: ({ children }) => {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = toHeadingId(String(children));
             return (
               <h1 id={id} className="text-4xl font-bold tracking-tight mt-12 mb-6 scroll-mt-24">
                 {children}
@@ -24,7 +25,7 @@ export function MDXContent({ source }: MDXContentProps) {
             );
           },
           h2: ({ children }) => {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = toHeadingId(String(children));
             return (
               <h2
                 id={id}
@@ -35,7 +36,7 @@ export function MDXContent({ source }: MDXContentProps) {
             );
           },
           h3: ({ children }) => {
-            const id = String(children).toLowerCase().replace(/\s+/g, '-');
+            const id = toHeadingId(String(children));
             return (
               <h3 id={id} className="text-xl font-semibold mt-8 mb-4 scroll-mt-24">
                 {children}

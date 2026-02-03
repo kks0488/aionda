@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { getAvailableLocalesForSlug, getPostBySlug, getPosts } from '@/lib/posts';
 import { getTagColor, getTagIcon } from '@/lib/tag-utils';
 import { BASE_URL } from '@/lib/site';
+import { normalizeHeadingText, toHeadingId } from '@/lib/heading-utils';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
@@ -176,6 +177,47 @@ function getHostname(url?: string): string | null {
   }
 }
 
+type TocItem = {
+  id: string;
+  text: string;
+  level: 2 | 3;
+};
+
+function extractToc(source: string): TocItem[] {
+  if (!source) return [];
+  const lines = source.split('\n');
+  const toc: TocItem[] = [];
+  let inFence = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (line.startsWith('```')) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    const h2 = line.match(/^##\s+(.+)$/);
+    if (h2) {
+      const text = normalizeHeadingText(h2[1]);
+      if (text) toc.push({ id: toHeadingId(text), text, level: 2 });
+      continue;
+    }
+
+    const h3 = line.match(/^###\s+(.+)$/);
+    if (h3) {
+      const text = normalizeHeadingText(h3[1]);
+      if (text) toc.push({ id: toHeadingId(text), text, level: 3 });
+    }
+
+    if (toc.length >= 14) break;
+  }
+
+  return toc;
+}
+
 export default async function PostPage({
   params: { locale, slug },
 }: {
@@ -246,6 +288,7 @@ export default async function PostPage({
   const tagIcon = getTagIcon(primaryTag);
   const sourceHostname = getHostname(post.sourceUrl);
   const isDcInsideSource = Boolean(post.sourceUrl && /dcinside\.com/i.test(post.sourceUrl));
+  const toc = extractToc(post.content);
 
   const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
@@ -501,6 +544,37 @@ export default async function PostPage({
 
           {/* Sidebar */}
           <aside className="lg:col-span-4 space-y-12">
+            {/* Table of contents */}
+            {toc.length > 0 && (
+              <div className="sticky top-24">
+                <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary icon-filled text-2xl">toc</span>
+                  {locale === 'ko' ? '이 글에서' : 'On this page'}
+                </h3>
+                <nav
+                  aria-label={locale === 'ko' ? '목차' : 'Table of contents'}
+                  className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/70 dark:bg-slate-900/30 p-4"
+                >
+                  <ul className="space-y-1.5">
+                    {toc.map((item) => (
+                      <li key={`${item.level}-${item.id}`} className={item.level === 3 ? 'pl-3' : ''}>
+                        <a
+                          href={`#${item.id}`}
+                          className="group flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="mt-[3px] h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600 group-hover:bg-primary transition-colors"
+                          />
+                          <span className="line-clamp-2 leading-snug">{item.text}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </div>
+            )}
+
             {/* Related Articles */}
             {relatedPosts.length > 0 && (
               <div>
