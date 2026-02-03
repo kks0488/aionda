@@ -289,6 +289,11 @@ export default async function PostPage({
   const sourceHostname = getHostname(post.sourceUrl);
   const isDcInsideSource = Boolean(post.sourceUrl && /dcinside\.com/i.test(post.sourceUrl));
   const toc = extractToc(post.content);
+  const publishedAtMs = new Date(post.date).getTime();
+  const ageDays = Number.isNaN(publishedAtMs)
+    ? 0
+    : Math.floor((Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24));
+  const showStaleNotice = ageDays >= 120;
 
   const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
@@ -412,6 +417,43 @@ export default async function PostPage({
                   </>
                 )}
               </div>
+
+              {/* Freshness / staleness notice */}
+              {showStaleNotice && (
+                <div className="mb-8 rounded-2xl border border-amber-200/80 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 icon-filled" aria-hidden="true">
+                      history
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">
+                        {locale === 'ko'
+                          ? `이 글은 ${formattedDate} 기준으로 작성되었습니다.`
+                          : `This post was written on ${formattedDate}.`}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                        {locale === 'ko' ? (
+                          <>
+                            모델/가격/정책은 바뀌었을 수 있어요.{' '}
+                            <Link href={`/${locale}/tags/${encodeURIComponent(primaryTag)}`} className="text-primary hover:underline font-semibold">
+                              최신 {primaryTag} 글
+                            </Link>
+                            로 업데이트를 확인하세요.
+                          </>
+                        ) : (
+                          <>
+                            Models/pricing/policies may have changed. Check the latest{' '}
+                            <Link href={`/${locale}/tags/${encodeURIComponent(primaryTag)}`} className="text-primary hover:underline font-semibold">
+                              {primaryTag} posts
+                            </Link>
+                            .
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Title */}
               <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-6 text-slate-900 dark:text-white">
