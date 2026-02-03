@@ -12,6 +12,7 @@ export interface Post {
   content: string;
   locale: Locale;
   verificationScore?: number;
+  readingTime?: number;
   author?: string;
   byline?: string;
   sourceUrl?: string;
@@ -235,6 +236,26 @@ function parsePostFile(
   const author = typeof data.author === 'string' ? data.author.trim() : '';
   const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
 
+  const estimateReadingTime = (raw: string): number => {
+    const stripped = String(raw || '')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/`[^`]+`/g, ' ')
+      .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!stripped) return 1;
+
+    if (locale === 'ko') {
+      const chars = stripped.replace(/\s/g, '').length;
+      return Math.max(1, Math.round(chars / 800));
+    }
+
+    const words = stripped.split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.round(words / 220));
+  };
+
   return {
     slug,
     title: data.title || slug,
@@ -244,6 +265,7 @@ function parsePostFile(
     content,
     locale,
     verificationScore: data.verificationScore,
+    readingTime: estimateReadingTime(content),
     author: author || undefined,
     byline: byline || undefined,
     sourceUrl: data.sourceUrl,

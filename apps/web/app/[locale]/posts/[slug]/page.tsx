@@ -344,6 +344,15 @@ export default async function PostPage({
                 <SourceBadge locale={locale as Locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <span>{formattedDate}</span>
+                {typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span>
+                      {locale === 'ko' ? `${post.readingTime}분` : `${post.readingTime} min`}
+                    </span>
+                  </>
+                )}
                 {post.byline && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />

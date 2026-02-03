@@ -18,6 +18,12 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
     month: 'short',
     day: 'numeric',
   });
+  const readingTime = typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) ? post.readingTime : undefined;
+  const readingLabel = readingTime
+    ? locale === 'ko'
+      ? `${readingTime}분`
+      : `${readingTime} min`
+    : '';
 
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
@@ -74,6 +80,15 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
             <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} />
             <span>{formattedDate}</span>
+            {readingTime !== undefined && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span>
+                  {readingLabel}
+                </span>
+              </>
+            )}
             {post.byline && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
@@ -134,6 +149,15 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
             <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
             <span>{formattedDate}</span>
+            {readingTime !== undefined && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
+                  {readingLabel}
+                </span>
+              </>
+            )}
             {post.byline && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
@@ -195,6 +219,15 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 min-w-0">
           <SourceBadge locale={locale} sourceId={post.sourceId} sourceUrl={post.sourceUrl} compact />
           <span>{formattedDate}</span>
+          {readingTime !== undefined && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
+                {readingLabel}
+              </span>
+            </>
+          )}
           {post.byline && (
             <>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
