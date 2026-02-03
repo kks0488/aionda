@@ -380,12 +380,20 @@ if ! [[ "$trend_every" =~ ^[0-9]+$ ]] || [ "$trend_every" -le 0 ]; then
   trend_every=3
 fi
 
+evergreen_every="${AUTO_PUBLISH_EVERGREEN_EVERY:-3}"
+if ! [[ "$evergreen_every" =~ ^[0-9]+$ ]] || [ "$evergreen_every" -le 0 ]; then
+  evergreen_every=0
+fi
+EVERGREEN_ENABLED="${AUTO_PUBLISH_EVERGREEN_ENABLED:-true}"
+
 publish_mode="standard"
 if [ $((slot % trend_every)) -eq 0 ]; then
   publish_mode="trend"
+elif [ "${EVERGREEN_ENABLED}" = "true" ] && [ "${evergreen_every:-0}" -gt 0 ] && [ $((slot % evergreen_every)) -eq 0 ]; then
+  publish_mode="evergreen"
 fi
 
-log "Publish mode: ${publish_mode} (slot=${slot}, every=${trend_every})"
+log "Publish mode: ${publish_mode} (slot=${slot}, trend_every=${trend_every}, evergreen_every=${evergreen_every})"
 
 # Throughput controls (to avoid “spam burst” while still allowing more runs)
 DAILY_MAX="${AUTO_PUBLISH_DAILY_MAX:-12}"
@@ -470,6 +478,8 @@ else
   EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
   STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-72h}"
 
+  extracted_count=0
+
   if [ "$publish_mode" = "trend" ]; then
     TREND_LIMIT="${AUTO_PUBLISH_TREND_EXTRACT_LIMIT:-$EXTRACT_LIMIT}"
     TREND_SINCE="${AUTO_PUBLISH_TREND_SINCE:-2h}"
@@ -491,9 +501,20 @@ else
       log "No trend topics found. Falling back to standard extraction (since=${STANDARD_SINCE})..."
       publish_mode="standard_fallback"
     fi
+  elif [ "$publish_mode" = "evergreen" ]; then
+    EVERGREEN_LIMIT="${AUTO_PUBLISH_EVERGREEN_EXTRACT_LIMIT:-4}"
+    log "Evergreen extraction: limit=${EVERGREEN_LIMIT}"
+    pnpm extract-evergreen --limit="${EVERGREEN_LIMIT}" || echo "Evergreen extract warning"
+    extracted_count="$(read_last_extracted_count)"
+    log "Evergreen extractedCount=${extracted_count}"
+
+    if [ "${extracted_count:-0}" -eq 0 ]; then
+      log "No evergreen topics available. Falling back to standard extraction (since=${STANDARD_SINCE})..."
+      publish_mode="standard_fallback"
+    fi
   fi
 
-  if [ "$publish_mode" != "trend" ]; then
+  if [ "$publish_mode" != "trend" ] && [ "$publish_mode" != "evergreen" ]; then
     log "Standard extraction: since=${STANDARD_SINCE} limit=${EXTRACT_LIMIT}"
 
     extracted_count=0
@@ -522,6 +543,14 @@ else
         break
       fi
     done
+
+    if [ "${extracted_count:-0}" -eq 0 ] && [ "${EVERGREEN_ENABLED}" = "true" ]; then
+      EVERGREEN_LIMIT="${AUTO_PUBLISH_EVERGREEN_EXTRACT_LIMIT:-4}"
+      log "No standard topics found. Falling back to evergreen queue (limit=${EVERGREEN_LIMIT})..."
+      pnpm extract-evergreen --limit="${EVERGREEN_LIMIT}" || echo "Evergreen extract warning"
+      extracted_count="$(read_last_extracted_count)"
+      log "Evergreen extractedCount=${extracted_count} (fallback)"
+    fi
   fi
 
   # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)

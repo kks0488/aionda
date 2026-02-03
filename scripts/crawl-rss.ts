@@ -20,6 +20,7 @@ const parser = new Parser({
   timeout: 10000,
   headers: {
     'User-Agent': 'AIOnda/1.0 (AI News Aggregator)',
+    Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
   },
 });
 
@@ -68,6 +69,11 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'google-security', name: 'Google Online Security Blog', url: 'https://feeds.feedburner.com/GoogleOnlineSecurityBlog', tier: 'A', type: 'official', enabled: true },
   { id: 'mandiant-ti', name: 'Google Threat Intelligence (Mandiant)', url: 'https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/', tier: 'A', type: 'official', enabled: true },
   { id: 'crowdstrike', name: 'CrowdStrike Blog', url: 'https://www.crowdstrike.com/en-us/blog/feed', tier: 'A', type: 'official', enabled: true },
+
+  // Korea tech/AI blogs (Tier A)
+  { id: 'naver-d2', name: 'NAVER D2', url: 'https://d2.naver.com/d2.atom', tier: 'A', type: 'official', enabled: true },
+  { id: 'kakao-tech', name: 'Kakao Tech', url: 'https://tech.kakao.com/feed/', tier: 'A', type: 'official', enabled: true },
+  { id: 'toss-tech', name: 'Toss Tech', url: 'https://toss.tech/rss.xml', tier: 'A', type: 'official', enabled: true },
 
   // Tech News (Tier A)
   { id: 'techcrunch-ai', name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', tier: 'A', type: 'news', enabled: true },
