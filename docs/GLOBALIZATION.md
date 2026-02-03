@@ -8,7 +8,7 @@
 대량 기계 번역은 얇은 페이지/중복 페이지로 보일 확률이 높고, 운영 리스크(품질/검증/비용)가 급격히 커진다.
 
 2) **언어는 단계적으로**  
-기본은 `ko/en` 유지 + 추가는 ROI 높은 언어부터(현재: `ja`, `es`).
+기본은 `ko/en` 유지 + 추가는 ROI 높은 언어부터(현재는 `ko/en`만 활성화, `ja/es`는 보류).
 
 3) **번역은 “선별 + 로컬라이징”**  
 단순 번역이 아니라 제목/설명/키워드가 현지 검색어 관점에서 읽히도록 재작성(특히 Evergreen/가이드 글).
@@ -21,7 +21,7 @@
 ## 현재 구현 상태(요약)
 
 ### 1) 지원 Locale
-- `apps/web/i18n.ts`에서 `en/ko/ja/es`를 지원한다.
+- `apps/web/i18n.ts`에서 현재 `en/ko`만 활성화한다.
 - UI 메시지는 `apps/web/messages/<locale>.json`에서 로드된다.
 
 ### 2) hreflang / canonical 전략
@@ -32,7 +32,7 @@
 
 ### 3) 일일 “자료 모음(링크 라운드업)”
 - `scripts/generate-roundup.ts`는 크롤링된 `data/official`, `data/news`를 기반으로
-  - `ko/en/ja/es` 4개 언어로 **링크 아카이브 포스트**를 생성한다.
+  - `ko/en` 2개 언어로 **링크 아카이브 포스트**를 생성한다.
   - (요약 기사 X, 원문으로 빠르게 들어가는 인덱스 O)
 - `scripts/auto-publish.sh`의 `roundup` 모드에서 자동 발행된다.
 
@@ -56,4 +56,3 @@
 - `apps/web/app/layout.tsx` alternates 업데이트
 - `apps/web/app/robots.ts` admin disallow 업데이트
 - (선택) `apps/web/components/HomeContent.tsx` 카테고리 라벨 추가
-

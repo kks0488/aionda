@@ -380,6 +380,38 @@ export default async function PostPage({
                 {post.description}
               </p>
 
+              {/* Tag chips */}
+              {post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-10">
+                  {post.tags.slice(0, 4).map((tag) => {
+                    const chipIcon = getTagIcon(tag);
+                    const chipHref = `/${locale}/tags/${encodeURIComponent(tag)}`;
+                    return (
+                      <Link
+                        key={tag}
+                        href={chipHref}
+                        className="group inline-flex items-center gap-2 rounded-full border border-gray-200/80 dark:border-gray-700/80 bg-white/70 dark:bg-slate-900/40 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+                      >
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
+                          <span className="material-symbols-outlined text-[16px] icon-filled" aria-hidden="true">
+                            {chipIcon}
+                          </span>
+                        </span>
+                        <span className="max-w-[14rem] truncate">{tag}</span>
+                      </Link>
+                    );
+                  })}
+                  {post.tags.length > 4 && (
+                    <Link
+                      href={`/${locale}/tags`}
+                      className="inline-flex items-center rounded-full border border-transparent bg-gray-100 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      +{post.tags.length - 4}
+                    </Link>
+                  )}
+                </div>
+              )}
+
               {/* Hero Image */}
               <div className="relative w-full aspect-video overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 mb-10">
                 {post.coverImage ? (

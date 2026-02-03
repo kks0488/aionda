@@ -6,6 +6,7 @@ import { fontVariables } from '@/lib/fonts';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import MobileNav from '@/components/MobileNav';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import GoogleAdSense from '@/components/GoogleAdSense';
 import SearchProvider from '@/components/SearchProvider';
@@ -47,7 +48,7 @@ export default async function LocaleLayout({
         <GoogleAnalytics />
         <GoogleAdSense />
       </head>
-      <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden font-body">
+      <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden font-body pb-24 md:pb-0">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -61,6 +62,7 @@ export default async function LocaleLayout({
                 {children}
               </main>
               <Footer />
+              <MobileNav locale={locale as Locale} />
             </SearchProvider>
           </NextIntlClientProvider>
         </ThemeProvider>
