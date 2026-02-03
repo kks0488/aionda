@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Post } from '@/lib/posts';
 import type { Locale } from '@/i18n';
-import { getTagColor, getTagIcon } from '@/lib/tag-utils';
+import { getTagColor } from '@/lib/tag-utils';
 import SourceBadge from '@/components/SourceBadge';
 
 interface PostCardProps {
@@ -27,7 +27,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
 
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
-  const tagIcon = getTagIcon(primaryTag);
+  const placeholderMark = primaryTag.slice(0, 1).toUpperCase();
   const postHref = `/${locale}/posts/${post.slug}`;
 
   const PlaceholderImage = ({ size = 'large' }: { size?: 'large' | 'medium' | 'small' }) => (
@@ -39,10 +39,13 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }} />
       </div>
-      <span className={`material-symbols-outlined text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] ${
-        size === 'large' ? 'text-7xl' : size === 'small' ? 'text-4xl' : 'text-5xl'
-      }`}>
-        {tagIcon}
+      <span
+        className={`text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] font-extrabold tracking-tight ${
+          size === 'large' ? 'text-6xl' : size === 'small' ? 'text-3xl' : 'text-4xl'
+        }`}
+        aria-hidden="true"
+      >
+        {placeholderMark}
       </span>
     </div>
   );
@@ -83,10 +86,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             {readingTime !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span>
-                  {readingLabel}
-                </span>
+                <span>{readingLabel}</span>
               </>
             )}
             {post.byline && (
@@ -98,10 +98,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             {post.verificationScore !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="flex items-center gap-1 text-primary">
-                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                  AI Verified
-                </span>
+                <span className="text-primary font-semibold">AI Verified</span>
               </>
             )}
           </div>
@@ -152,10 +149,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             {readingTime !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
-                  {readingLabel}
-                </span>
+                <span>{readingLabel}</span>
               </>
             )}
             {post.byline && (
@@ -167,10 +161,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             {post.verificationScore !== undefined && (
               <>
                 <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                <span className="flex items-center gap-1 text-primary">
-                  <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                  Verified
-                </span>
+                <span className="text-primary font-semibold">Verified</span>
               </>
             )}
           </div>
@@ -222,10 +213,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           {readingTime !== undefined && (
             <>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
-              <span className="flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
-                {readingLabel}
-              </span>
+              <span>{readingLabel}</span>
             </>
           )}
           {post.byline && (
@@ -237,10 +225,7 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           {post.verificationScore !== undefined && (
             <>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
-              <span className="flex items-center gap-1 text-primary">
-                <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                Verified
-              </span>
+              <span className="text-primary font-semibold">Verified</span>
             </>
           )}
         </div>

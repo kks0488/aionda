@@ -31,7 +31,7 @@ export default function MobileNav({ locale }: MobileNavProps) {
   const isTags = normalized === tagsPrefix || normalized.startsWith(`${tagsPrefix}/`);
 
   const baseItem =
-    'group flex flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2.5 transition-all select-none';
+    'group flex items-center justify-center rounded-2xl px-3 py-2.5 transition-all select-none text-xs font-bold';
   const activeItem = 'bg-primary/10 text-primary shadow-[0_10px_30px_rgba(13,127,242,0.18)]';
   const inactiveItem =
     'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10';
@@ -48,15 +48,7 @@ export default function MobileNav({ locale }: MobileNavProps) {
             aria-current={isHome ? 'page' : undefined}
             className={`${baseItem} ${isHome ? activeItem : inactiveItem}`}
           >
-            <span
-              className={`material-symbols-outlined text-[22px] ${isHome ? 'icon-filled' : ''}`}
-              aria-hidden="true"
-            >
-              home
-            </span>
-            <span className="text-[11px] font-bold tracking-tight">
-              {locale === 'ko' ? '홈' : 'Home'}
-            </span>
+            {locale === 'ko' ? '홈' : 'Home'}
           </Link>
 
           <Link
@@ -64,15 +56,7 @@ export default function MobileNav({ locale }: MobileNavProps) {
             aria-current={isPosts ? 'page' : undefined}
             className={`${baseItem} ${isPosts ? activeItem : inactiveItem}`}
           >
-            <span
-              className={`material-symbols-outlined text-[22px] ${isPosts ? 'icon-filled' : ''}`}
-              aria-hidden="true"
-            >
-              article
-            </span>
-            <span className="text-[11px] font-bold tracking-tight">
-              {locale === 'ko' ? '글' : 'Posts'}
-            </span>
+            {locale === 'ko' ? '글' : 'Posts'}
           </Link>
 
           <Link
@@ -80,15 +64,7 @@ export default function MobileNav({ locale }: MobileNavProps) {
             aria-current={isTags ? 'page' : undefined}
             className={`${baseItem} ${isTags ? activeItem : inactiveItem}`}
           >
-            <span
-              className={`material-symbols-outlined text-[22px] ${isTags ? 'icon-filled' : ''}`}
-              aria-hidden="true"
-            >
-              tag
-            </span>
-            <span className="text-[11px] font-bold tracking-tight">
-              {locale === 'ko' ? '태그' : 'Tags'}
-            </span>
+            {locale === 'ko' ? '태그' : 'Tags'}
           </Link>
 
           <button
@@ -97,16 +73,10 @@ export default function MobileNav({ locale }: MobileNavProps) {
             className={`${baseItem} ${inactiveItem}`}
             aria-label={locale === 'ko' ? '검색 열기' : 'Open search'}
           >
-            <span className="material-symbols-outlined text-[22px]" aria-hidden="true">
-              search
-            </span>
-            <span className="text-[11px] font-bold tracking-tight">
-              {locale === 'ko' ? '검색' : 'Search'}
-            </span>
+            {locale === 'ko' ? '검색' : 'Search'}
           </button>
         </div>
       </div>
     </nav>
   );
 }
-

@@ -32,9 +32,6 @@ export default function SourceBadge({
       className={`inline-flex items-center gap-1 rounded-full border ${toneClass} ${sizeClass} font-semibold tracking-tight`}
       title={host || undefined}
     >
-      <span className={`material-symbols-outlined ${compact ? 'text-[14px]' : 'text-[16px]'} icon-filled`} aria-hidden="true">
-        {badge.icon}
-      </span>
       <span className="leading-none">{badge.label}</span>
       {host && !compact && (
         <span className="ml-1 hidden md:inline text-[11px] font-medium opacity-70">
@@ -44,4 +41,3 @@ export default function SourceBadge({
     </span>
   );
 }
-

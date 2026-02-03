@@ -41,11 +41,47 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
           aria-live="polite"
         >
           {copyState === 'copied' ? (
-            <span className="material-symbols-outlined text-lg text-green-500" aria-hidden="true">check</span>
+            <svg
+              className="w-5 h-5 text-green-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
           ) : copyState === 'failed' ? (
-            <span className="material-symbols-outlined text-lg text-red-500" aria-hidden="true">error</span>
+            <svg
+              className="w-5 h-5 text-red-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 7v6" />
+              <path d="M12 17h.01" />
+            </svg>
           ) : (
-            <span className="material-symbols-outlined text-lg" aria-hidden="true">link</span>
+            <svg
+              className="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1" />
+              <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1" />
+            </svg>
           )}
         </button>
         <a
@@ -64,7 +100,19 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
           className="h-9 w-9 flex items-center justify-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           aria-label={locale === 'ko' ? '이메일로 공유' : 'Share via Email'}
         >
-          <span className="material-symbols-outlined text-lg" aria-hidden="true">email</span>
+          <svg
+            className="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 6h16v12H4z" />
+            <path d="m4 7 8 6 8-6" />
+          </svg>
         </a>
       </div>
     </div>

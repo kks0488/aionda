@@ -40,7 +40,10 @@ export default function Header({ locale }: HeaderProps) {
           className="flex items-center gap-2 group cursor-pointer"
           aria-label={locale === 'ko' ? 'AI온다 홈으로 가기' : 'Go to Aionda home'}
         >
-          <span className="material-symbols-outlined text-primary text-3xl icon-filled" aria-hidden="true">all_inclusive</span>
+          <span
+            className="h-2.5 w-2.5 rounded-full bg-gradient-to-r from-primary to-blue-400 shadow-[0_0_0_4px_rgba(13,127,242,0.12)]"
+            aria-hidden="true"
+          />
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             {locale === 'ko' ? 'AI온다' : 'Aionda'}
           </h1>
@@ -70,9 +73,8 @@ export default function Header({ locale }: HeaderProps) {
           </Link>
           <a
             href="/feed.xml"
-            className="ml-2 inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:text-primary transition-colors"
+            className="ml-2 inline-flex items-center rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:text-primary transition-colors"
           >
-            <span className="material-symbols-outlined text-[16px]" aria-hidden="true">rss_feed</span>
             RSS
           </a>
         </nav>
@@ -81,9 +83,8 @@ export default function Header({ locale }: HeaderProps) {
           <button
             onClick={openSearch}
             aria-label={locale === 'ko' ? '검색 열기 (⌘K)' : 'Open search (⌘K)'}
-            className="flex items-center gap-2 h-9 px-3 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+            className="flex items-center gap-2 h-9 px-3 text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           >
-            <span className="material-symbols-outlined text-lg" aria-hidden="true">search</span>
             <span className="hidden sm:inline text-sm">{locale === 'ko' ? '검색' : 'Search'}</span>
             <kbd className="hidden sm:inline ml-1 px-1.5 py-0.5 text-xs font-medium bg-white dark:bg-slate-700 rounded border border-gray-200 dark:border-gray-600" aria-hidden="true">
               ⌘K

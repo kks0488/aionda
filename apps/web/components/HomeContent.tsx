@@ -167,35 +167,6 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
       .map(([tag]) => tag);
   }, [posts]);
 
-  const starterPosts = useMemo(() => {
-    const isExplainer = (post: Post) => post.tags.some((t) => String(t || '').toLowerCase() === 'explainer');
-    return [...posts].filter(isExplainer).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
-  }, [posts]);
-
-  const recentMix = useMemo(() => {
-    const DAYS = 7;
-    const since = Date.now() - DAYS * 24 * 60 * 60 * 1000;
-    const recent = posts.filter((p) => new Date(p.date).getTime() >= since);
-    const counts = { total: recent.length, trusted: 0, community: 0, evergreen: 0, news: 0, official: 0, unknown: 0 };
-    for (const post of recent) {
-      const kind = getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
-      if (kind === 'community') counts.community += 1;
-      else if (kind === 'evergreen') counts.evergreen += 1;
-      else if (kind === 'news') {
-        counts.news += 1;
-        counts.trusted += 1;
-      } else if (kind === 'official') {
-        counts.official += 1;
-        counts.trusted += 1;
-      } else if (kind === 'roundup') {
-        counts.trusted += 1;
-      } else {
-        counts.unknown += 1;
-      }
-    }
-    return counts;
-  }, [posts]);
-
   return (
     <main className="w-full max-w-7xl mx-auto px-6 pb-20">
       {/* Category Chips */}
@@ -222,9 +193,6 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
         <div className="lg:col-span-8 flex flex-col gap-16">
           {orderedPosts.length === 0 ? (
             <div className="text-center py-20">
-              <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-500 mb-4">
-                search_off
-              </span>
               <p className="text-slate-500 dark:text-slate-400 text-lg">
                 {locale === 'ko'
                   ? '해당 카테고리의 글이 없습니다'
@@ -284,8 +252,6 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
             locale={locale}
             trendingPosts={trendingPosts}
             popularTags={popularTags}
-            starterPosts={starterPosts}
-            recentMix={recentMix}
           />
         </div>
       </div>

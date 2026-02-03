@@ -2,7 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import { getPosts } from '@/lib/posts';
 import { getTagStats } from '@/lib/tags';
-import { getTagColor, getTagIcon } from '@/lib/tag-utils';
+import { getTagColor } from '@/lib/tag-utils';
 import SearchDataSetter from '@/components/SearchDataSetter';
 import type { Locale } from '@/i18n';
 
@@ -78,7 +78,6 @@ export default function TagsPage({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {displayTags.map((stat) => {
               const tagColor = getTagColor(stat.tag);
-              const tagIcon = getTagIcon(stat.tag);
               const updated = new Date(stat.lastUsedAt).toLocaleDateString(
                 locale === 'ko' ? 'ko-KR' : 'en-US',
                 { year: 'numeric', month: 'short', day: 'numeric' }
@@ -96,8 +95,8 @@ export default function TagsPage({
                       className={`shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${tagColor} flex items-center justify-center`}
                       aria-hidden="true"
                     >
-                      <span className="material-symbols-outlined text-white icon-filled">
-                        {tagIcon}
+                      <span className="text-white font-extrabold tracking-tight">
+                        {stat.tag.slice(0, 1).toUpperCase()}
                       </span>
                     </div>
                     <div className="min-w-0">
@@ -122,9 +121,6 @@ export default function TagsPage({
           </div>
         ) : (
           <div className="text-center py-20">
-            <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4">
-              tag
-            </span>
             <p className="text-slate-500 dark:text-slate-400 text-lg">
               {locale === 'ko' ? '태그가 아직 없습니다' : 'No tags yet'}
             </p>

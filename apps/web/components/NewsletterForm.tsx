@@ -31,7 +31,18 @@ export default function NewsletterForm({ locale, variant = 'hero' }: NewsletterF
   if (isSubmitted) {
     return (
       <div className="flex items-center justify-center gap-2 p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg">
-        <span className="material-symbols-outlined text-xl">check_circle</span>
+        <svg
+          className="w-5 h-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
         <span className="font-medium">
           {locale === 'ko' ? '구독해주셔서 감사합니다!' : 'Thanks for subscribing!'}
         </span>
@@ -56,7 +67,7 @@ export default function NewsletterForm({ locale, variant = 'hero' }: NewsletterF
           className="px-6 py-3 bg-primary text-white text-sm font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {isLoading ? (
-            <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-white" aria-hidden="true" />
           ) : (
             locale === 'ko' ? '구독' : 'Join'
           )}
@@ -81,9 +92,9 @@ export default function NewsletterForm({ locale, variant = 'hero' }: NewsletterF
         className="bg-primary text-white rounded-lg px-3 py-2 hover:bg-blue-600 transition-colors disabled:opacity-50"
       >
         {isLoading ? (
-          <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-white" aria-hidden="true" />
         ) : (
-          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          <span className="text-sm font-bold">{locale === 'ko' ? '구독' : 'Join'}</span>
         )}
       </button>
     </form>

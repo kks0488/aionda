@@ -147,7 +147,6 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
       >
         {/* Search Input */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-800">
-          <span className="material-symbols-outlined text-slate-400 dark:text-slate-500" aria-hidden="true">search</span>
           <input
             ref={inputRef}
             type="text"
@@ -195,7 +194,6 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
                         : 'hover:bg-gray-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-primary mt-1" aria-hidden="true">article</span>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                         {post.title}
@@ -215,9 +213,7 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
                       </div>
                     </div>
                     {index === selectedIndex && (
-                      <span className="material-symbols-outlined text-primary" aria-hidden="true">
-                        keyboard_return
-                      </span>
+                      <span className="shrink-0 text-xs font-semibold text-primary">Enter</span>
                     )}
                   </Link>
                 </li>
@@ -225,12 +221,10 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
             </ul>
           ) : query ? (
             <div className="p-8 text-center text-slate-600 dark:text-slate-300" role="status">
-              <span className="material-symbols-outlined text-4xl mb-2" aria-hidden="true">search_off</span>
               <p>{locale === 'ko' ? '검색 결과가 없습니다' : 'No results found'}</p>
             </div>
           ) : (
             <div className="p-8 text-center text-slate-600 dark:text-slate-300" role="status">
-              <span className="material-symbols-outlined text-4xl mb-2" aria-hidden="true">manage_search</span>
               <p>{locale === 'ko' ? '검색어를 입력하세요' : 'Start typing to search'}</p>
             </div>
           )}
@@ -239,20 +233,10 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
         {/* Footer */}
         <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-800/50 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm" aria-hidden="true">keyboard_return</span>
-              {locale === 'ko' ? '선택' : 'Select'}
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm" aria-hidden="true">keyboard_arrow_up</span>
-              <span className="material-symbols-outlined text-sm" aria-hidden="true">keyboard_arrow_down</span>
-              {locale === 'ko' ? '이동' : 'Navigate'}
-            </span>
+            <span>{locale === 'ko' ? 'Enter 선택' : 'Enter select'}</span>
+            <span>{locale === 'ko' ? '↑/↓ 이동' : '↑/↓ navigate'}</span>
           </div>
-          <span className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
-            {locale === 'ko' ? '닫기' : 'Close'}
-          </span>
+          <span>{locale === 'ko' ? 'Esc 닫기' : 'Esc close'}</span>
         </div>
       </div>
     </div>

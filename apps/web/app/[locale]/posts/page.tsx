@@ -74,9 +74,6 @@ export default function PostsPage({
           </div>
         ) : (
           <div className="text-center py-20">
-            <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4">
-              article
-            </span>
             <p className="text-slate-500 dark:text-slate-400 text-lg">
               {locale === 'ko' ? '아직 글이 없습니다' : 'No posts yet'}
             </p>

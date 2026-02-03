@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getAvailableLocalesForSlug, getPostBySlug, getPosts } from '@/lib/posts';
-import { getTagColor, getTagIcon } from '@/lib/tag-utils';
+import { getTagColor } from '@/lib/tag-utils';
 import { BASE_URL } from '@/lib/site';
 import { normalizeHeadingText, toHeadingId } from '@/lib/heading-utils';
 import { MDXContent } from '@/components/MDXContent';
@@ -285,7 +285,7 @@ export default async function PostPage({
   const readingTime = estimateReadingTime(post.content);
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
-  const tagIcon = getTagIcon(primaryTag);
+  const placeholderMark = primaryTag.slice(0, 1).toUpperCase();
   const sourceHostname = getHostname(post.sourceUrl);
   const isDcInsideSource = Boolean(post.sourceUrl && /dcinside\.com/i.test(post.sourceUrl));
   const toc = extractToc(post.content);
@@ -395,10 +395,7 @@ export default async function PostPage({
                 {typeof post.readingTime === 'number' && !Number.isNaN(post.readingTime) && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span>
-                      {locale === 'ko' ? `${post.readingTime}분` : `${post.readingTime} min`}
-                    </span>
+                    <span>{locale === 'ko' ? `${post.readingTime}분` : `${post.readingTime} min`}</span>
                   </>
                 )}
                 {post.byline && (
@@ -410,10 +407,7 @@ export default async function PostPage({
                 {post.verificationScore !== undefined && (
                   <>
                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-                    <span className="flex items-center gap-1 text-primary">
-                      <span className="material-symbols-outlined text-[16px] icon-filled">verified</span>
-                      {Math.round(post.verificationScore * 100)}% Verified
-                    </span>
+                    <span className="text-primary font-semibold">{Math.round(post.verificationScore * 100)}% Verified</span>
                   </>
                 )}
               </div>
@@ -422,9 +416,6 @@ export default async function PostPage({
               {showStaleNotice && (
                 <div className="mb-8 rounded-2xl border border-amber-200/80 dark:border-amber-900/60 bg-amber-50/80 dark:bg-amber-950/30 p-4">
                   <div className="flex items-start gap-3">
-                    <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 icon-filled" aria-hidden="true">
-                      history
-                    </span>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {locale === 'ko'
@@ -469,19 +460,13 @@ export default async function PostPage({
               {post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-10">
                   {post.tags.slice(0, 4).map((tag) => {
-                    const chipIcon = getTagIcon(tag);
                     const chipHref = `/${locale}/tags/${encodeURIComponent(tag)}`;
                     return (
                       <Link
                         key={tag}
                         href={chipHref}
-                        className="group inline-flex items-center gap-2 rounded-full border border-gray-200/80 dark:border-gray-700/80 bg-white/70 dark:bg-slate-900/40 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+                        className="group inline-flex items-center rounded-full border border-gray-200/80 dark:border-gray-700/80 bg-white/70 dark:bg-slate-900/40 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
                       >
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary">
-                          <span className="material-symbols-outlined text-[16px] icon-filled" aria-hidden="true">
-                            {chipIcon}
-                          </span>
-                        </span>
                         <span className="max-w-[14rem] truncate">{tag}</span>
                       </Link>
                     );
@@ -516,8 +501,8 @@ export default async function PostPage({
                         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
                       }} />
                     </div>
-                    <span className="material-symbols-outlined text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] text-8xl">
-                      {tagIcon}
+                    <span className="text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] text-6xl font-extrabold tracking-tight" aria-hidden="true">
+                      {placeholderMark}
                     </span>
                   </div>
                 )}
@@ -542,7 +527,6 @@ export default async function PostPage({
                 <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
                   {isDcInsideSource && (
                     <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-base text-primary">lightbulb</span>
                       <span className="font-medium">
                         {locale === 'ko' ? '영감:' : 'Inspired by:'}
                       </span>
@@ -558,7 +542,6 @@ export default async function PostPage({
                   )}
                   {post.sourceUrl && (
                     <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-base text-primary">link</span>
                       <span className="font-medium">
                         {locale === 'ko' ? '출처:' : 'Source:'}
                       </span>
@@ -589,8 +572,7 @@ export default async function PostPage({
             {/* Table of contents */}
             {toc.length > 0 && (
               <div className="sticky top-24">
-                <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary icon-filled text-2xl">toc</span>
+                <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">
                   {locale === 'ko' ? '이 글에서' : 'On this page'}
                 </h3>
                 <nav
@@ -620,14 +602,13 @@ export default async function PostPage({
             {/* Related Articles */}
             {relatedPosts.length > 0 && (
               <div>
-                <h3 className="text-lg font-bold mb-6 text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-primary icon-filled text-2xl">auto_stories</span>
+                <h3 className="text-lg font-bold mb-6 text-slate-900 dark:text-white">
                   {locale === 'ko' ? '관련 글' : 'Related Articles'}
                 </h3>
                 <div className="space-y-6">
                   {relatedPosts.map((relatedPost) => {
                     const relatedTagColor = getTagColor(relatedPost.tags[0] || 'ai');
-                    const relatedTagIcon = getTagIcon(relatedPost.tags[0] || 'ai');
+                    const relatedMark = (relatedPost.tags[0] || 'ai').slice(0, 1).toUpperCase();
                     const relatedDate = new Date(relatedPost.date).toLocaleDateString(
                       locale === 'ko' ? 'ko-KR' : 'en-US',
                       { month: 'short', day: 'numeric', year: 'numeric' }
@@ -650,8 +631,8 @@ export default async function PostPage({
                           ) : (
                             <div className={`w-full h-full bg-gradient-to-br ${relatedTagColor} flex items-center justify-center relative overflow-hidden`}>
                               <div className="absolute inset-0 bg-black/25 dark:bg-black/10" />
-                              <span className="material-symbols-outlined text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] text-2xl">
-                                {relatedTagIcon}
+                              <span className="text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] text-xl font-extrabold tracking-tight" aria-hidden="true">
+                                {relatedMark}
                               </span>
                             </div>
                           )}
@@ -676,7 +657,6 @@ export default async function PostPage({
               href={`/${locale}/posts`}
               className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
             >
-              <span className="material-symbols-outlined text-xl">arrow_back</span>
               {locale === 'ko' ? '모든 글 보기' : 'Back to all posts'}
             </Link>
           </aside>

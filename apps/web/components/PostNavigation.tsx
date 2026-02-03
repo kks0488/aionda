@@ -23,8 +23,7 @@ export default function PostNavigation({ prevPost, nextPost, locale }: PostNavig
             className="group flex flex-col p-5 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary/30 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all"
           >
             <span className="text-xs font-medium text-slate-400 dark:text-slate-400 mb-3 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-sm">arrow_back</span>
-              {locale === 'ko' ? '이전 글' : 'Previous'}
+              {locale === 'ko' ? '← 이전 글' : '← Previous'}
             </span>
             <span className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
               {prevPost.title}
@@ -41,8 +40,7 @@ export default function PostNavigation({ prevPost, nextPost, locale }: PostNavig
             className="group flex flex-col p-5 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-primary/30 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-all text-right"
           >
             <span className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-1.5 justify-end">
-              {locale === 'ko' ? '다음 글' : 'Next'}
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              {locale === 'ko' ? '다음 글 →' : 'Next →'}
             </span>
             <span className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-2 leading-snug">
               {nextPost.title}
