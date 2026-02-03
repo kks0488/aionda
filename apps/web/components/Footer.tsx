@@ -6,30 +6,33 @@ import { useParams } from 'next/navigation';
 export default function Footer() {
   const params = useParams();
   const locale = (params.locale as string) || 'ko';
+  const year = new Date().getFullYear();
 
   return (
     <footer className="border-t border-gray-100 dark:border-gray-800 py-12 bg-gray-50 dark:bg-[#101922] mt-auto">
       <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">all_inclusive</span>
-          <span className="text-sm font-bold text-slate-500 dark:text-slate-400">© 2025 Aionda</span>
+          <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
+            © {year} {locale === 'ko' ? 'AI온다' : 'Aionda'}
+          </span>
         </div>
 
         <div className="flex gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
           <Link href={`/${locale}/posts`} className="hover:text-primary transition-colors">
-            Posts
+            {locale === 'ko' ? '글' : 'Posts'}
           </Link>
           <Link href={`/${locale}/tags`} className="hover:text-primary transition-colors">
-            Tags
+            {locale === 'ko' ? '태그' : 'Tags'}
           </Link>
           <Link href={`/${locale}/privacy`} className="hover:text-primary transition-colors">
-            Privacy
+            {locale === 'ko' ? '개인정보 처리방침' : 'Privacy'}
           </Link>
           <Link href={`/${locale}/terms`} className="hover:text-primary transition-colors">
-            Terms
+            {locale === 'ko' ? '이용약관' : 'Terms'}
           </Link>
           <Link href={`/${locale}/about`} className="hover:text-primary transition-colors">
-            About
+            {locale === 'ko' ? '소개' : 'About'}
           </Link>
           <a href="/feed.xml" className="hover:text-primary transition-colors">
             RSS

@@ -96,15 +96,63 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
       const pulse = posts.filter((post) => post.tags.some((t) => t.toLowerCase() === 'k-ai-pulse'));
       const sortedPulse = [...pulse].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       if (sortedPulse.length >= 4) return sortedPulse.slice(0, 4);
-      const fallback = [...posts].sort((a, b) => (b.verificationScore || 0) - (a.verificationScore || 0));
-      return fallback.slice(0, 4);
+
+      const now = Date.now();
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      const inLastDays = (days: number) => {
+        const since = now - days * DAY_MS;
+        return posts.filter((p) => new Date(p.date).getTime() >= since);
+      };
+
+      const pick = (candidates: Post[]) => {
+        const kind = (post: Post) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
+        const trustBoost = (post: Post) => {
+          const k = kind(post);
+          if (k === 'official' || k === 'news') return 0.25;
+          if (k === 'evergreen') return 0.15;
+          return 0;
+        };
+
+        const scored = candidates
+          .map((p) => {
+            const dt = new Date(p.date).getTime();
+            const ageDays = Number.isNaN(dt) ? 999 : Math.max(0, Math.floor((now - dt) / DAY_MS));
+            const recencyBoost = Math.max(0, 1 - ageDays / 21); // strongest inside ~3 weeks
+            const verification = Math.max(0, Math.min(1, p.verificationScore || 0));
+            const pulseBonus = p.tags.some((t) => t.toLowerCase() === 'k-ai-pulse') ? 0.2 : 0;
+            return {
+              post: p,
+              score: verification * 1.1 + recencyBoost * 0.9 + trustBoost(p) + pulseBonus,
+            };
+          })
+          .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return new Date(b.post.date).getTime() - new Date(a.post.date).getTime();
+          })
+          .map((x) => x.post);
+
+        return scored.slice(0, 4);
+      };
+
+      // Keep "Trending" actually current; widen only if necessary.
+      const recent30 = inLastDays(30);
+      if (recent30.length >= 4) return pick(recent30);
+      const recent120 = inLastDays(120);
+      if (recent120.length >= 4) return pick(recent120);
+      return pick(posts);
     })()
   ), [posts]);
 
   const popularTags = useMemo(() => {
     const exclude = new Set(['k-ai-pulse', 'explainer', 'deep-dive']);
+    const now = Date.now();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const RECENT_DAYS = 21;
+    const recent = posts.filter((p) => new Date(p.date).getTime() >= now - RECENT_DAYS * DAY_MS);
+    const pool = recent.length >= 24 ? recent : posts;
+
     const counts = new Map<string, number>();
-    for (const post of posts) {
+    for (const post of pool) {
       for (const raw of post.tags) {
         const tag = String(raw || '').trim().toLowerCase();
         if (!tag || exclude.has(tag)) continue;
@@ -113,7 +161,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
     }
 
     return Array.from(counts.entries())
-      .filter(([, count]) => count >= 3)
+      .filter(([, count]) => count >= 2)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 14)
       .map(([tag]) => tag);

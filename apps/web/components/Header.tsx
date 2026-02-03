@@ -41,7 +41,9 @@ export default function Header({ locale }: HeaderProps) {
           aria-label={locale === 'ko' ? 'AI온다 홈으로 가기' : 'Go to Aionda home'}
         >
           <span className="material-symbols-outlined text-primary text-3xl icon-filled" aria-hidden="true">all_inclusive</span>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Aionda</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {locale === 'ko' ? 'AI온다' : 'Aionda'}
+          </h1>
         </Link>
 
         <nav
