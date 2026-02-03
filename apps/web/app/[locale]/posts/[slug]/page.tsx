@@ -244,6 +244,7 @@ export default async function PostPage({
   const tagColor = getTagColor(primaryTag);
   const tagIcon = getTagIcon(primaryTag);
   const sourceHostname = getHostname(post.sourceUrl);
+  const isDcInsideSource = Boolean(post.sourceUrl && /dcinside\.com/i.test(post.sourceUrl));
 
   const formattedDate = new Date(post.date).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
     year: 'numeric',
@@ -407,40 +408,44 @@ export default async function PostPage({
             />
 
             {/* Inspiration & Source */}
-            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
-              <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base text-primary">lightbulb</span>
-                  <span className="font-medium">
-                    {locale === 'ko' ? '영감:' : 'Inspired by:'}
-                  </span>
-                  <a
-                    href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
-                  </a>
+            {(isDcInsideSource || post.sourceUrl) && (
+              <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  {isDcInsideSource && (
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-primary">lightbulb</span>
+                      <span className="font-medium">
+                        {locale === 'ko' ? '영감:' : 'Inspired by:'}
+                      </span>
+                      <a
+                        href="https://gall.dcinside.com/mgallery/board/lists?id=thesingularity"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
+                      </a>
+                    </div>
+                  )}
+                  {post.sourceUrl && (
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-primary">link</span>
+                      <span className="font-medium">
+                        {locale === 'ko' ? '출처:' : 'Source:'}
+                      </span>
+                      <a
+                        href={post.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline truncate max-w-[300px]"
+                      >
+                        {sourceHostname ?? post.sourceUrl}
+                      </a>
+                    </div>
+                  )}
                 </div>
-                {post.sourceUrl && (
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base text-primary">link</span>
-                    <span className="font-medium">
-                      {locale === 'ko' ? '출처:' : 'Source:'}
-                    </span>
-                    <a
-                      href={post.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline truncate max-w-[300px]"
-                    >
-                      {sourceHostname ?? post.sourceUrl}
-                    </a>
-                  </div>
-                )}
               </div>
-            </div>
+            )}
 
             {/* Previous / Next Navigation */}
             <PostNavigation
