@@ -524,7 +524,7 @@ else
     # Order is configurable via env:
     #   AUTO_PUBLISH_STANDARD_SOURCES="official,news,raw"
     #   AUTO_PUBLISH_STANDARD_SOURCES="official,news"  (disable raw unless no topics are extracted)
-    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news}"
+    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news,raw}"
     IFS=',' read -ra SOURCES <<< "${STANDARD_SOURCES}"
 
     for src in "${SOURCES[@]}"; do
