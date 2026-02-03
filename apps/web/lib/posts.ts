@@ -137,6 +137,13 @@ function mergeTags(base: string[], extra: string[]): string[] {
   return merged;
 }
 
+function deriveSourceId(rawSourceId: unknown, tags: string[]): string | undefined {
+  const sourceId = typeof rawSourceId === 'string' ? rawSourceId.trim() : '';
+  if (sourceId) return sourceId;
+  if (tags.some((t) => t === 'roundup')) return 'roundup';
+  return undefined;
+}
+
 const postsDirectory = path.join(process.cwd(), 'content/posts');
 let cachedPostPaths: Set<string> | null = null;
 const publicDirectory = path.join(process.cwd(), 'public');
@@ -233,6 +240,7 @@ function parsePostFile(
   const { data, content } = matter(fileContents);
   const normalizedTags = normalizeTags(data.tags);
   const coreTags = deriveCoreTags(String(data.title || slug), content, normalizedTags);
+  const tags = mergeTags(normalizedTags, coreTags);
   const author = typeof data.author === 'string' ? data.author.trim() : '';
   const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
 
@@ -261,7 +269,7 @@ function parsePostFile(
     title: data.title || slug,
     description: data.description || data.excerpt || content.slice(0, 160),
     date: parseDate(data.date),
-    tags: mergeTags(normalizedTags, coreTags),
+    tags,
     content,
     locale,
     verificationScore: data.verificationScore,
@@ -269,7 +277,7 @@ function parsePostFile(
     author: author || undefined,
     byline: byline || undefined,
     sourceUrl: data.sourceUrl,
-    sourceId: data.sourceId,
+    sourceId: deriveSourceId(data.sourceId, tags),
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
     coverImage: normalizeCoverImage(data.coverImage, slug),
   } as Post;

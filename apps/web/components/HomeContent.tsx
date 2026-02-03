@@ -74,7 +74,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
     const kind = (post: Post) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
     const isTrusted = (post: Post) => {
       const k = kind(post);
-      return k === 'official' || k === 'news' || k === 'evergreen';
+      return k === 'official' || k === 'news' || k === 'evergreen' || k === 'roundup';
     };
 
     const trustedFirst = orderedPosts.filter(isTrusted).slice(0, 2);
@@ -109,7 +109,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
         const trustBoost = (post: Post) => {
           const k = kind(post);
           if (k === 'official' || k === 'news') return 0.25;
-          if (k === 'evergreen') return 0.15;
+          if (k === 'evergreen' || k === 'roundup') return 0.15;
           return 0;
         };
 
@@ -186,6 +186,8 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
         counts.trusted += 1;
       } else if (kind === 'official') {
         counts.official += 1;
+        counts.trusted += 1;
+      } else if (kind === 'roundup') {
         counts.trusted += 1;
       } else {
         counts.unknown += 1;

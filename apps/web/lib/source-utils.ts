@@ -1,6 +1,6 @@
 import type { Locale } from '@/i18n';
 
-export type SourceKind = 'evergreen' | 'community' | 'official' | 'news' | 'unknown';
+export type SourceKind = 'evergreen' | 'roundup' | 'community' | 'official' | 'news' | 'unknown';
 
 function getHostname(url: string): string {
   try {
@@ -57,6 +57,7 @@ export function getSourceKind(input: { sourceId?: string; sourceUrl?: string }):
   const sourceUrl = String(input.sourceUrl || '').trim();
 
   if (sourceId.startsWith('evergreen-')) return 'evergreen';
+  if (sourceId === 'roundup' || sourceId.startsWith('roundup-') || sourceId.startsWith('aionda-roundup')) return 'roundup';
 
   const host = getHostname(sourceUrl);
   if (!host) return 'unknown';
@@ -75,6 +76,9 @@ export function getSourceBadge(locale: Locale, kind: SourceKind): { label: strin
   if (kind === 'evergreen') {
     return { label: isKo ? '가이드' : 'Guide', icon: 'menu_book', tone: 'success' };
   }
+  if (kind === 'roundup') {
+    return { label: isKo ? '자료 모음' : 'Roundup', icon: 'collections_bookmark', tone: 'info' };
+  }
   if (kind === 'official') {
     return { label: isKo ? '공식/신뢰' : 'Trusted', icon: 'shield', tone: 'success' };
   }
@@ -90,4 +94,3 @@ export function getSourceBadge(locale: Locale, kind: SourceKind): { label: strin
 export function getSourceHostname(sourceUrl?: string): string {
   return getHostname(String(sourceUrl || '').trim());
 }
-
