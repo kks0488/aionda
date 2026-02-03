@@ -568,97 +568,99 @@ export default async function PostPage({
           </article>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-4 space-y-12">
-            {/* Table of contents */}
-            {toc.length > 0 && (
-              <div className="sticky top-24">
-                <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">
-                  {locale === 'ko' ? '이 글에서' : 'On this page'}
-                </h3>
-                <nav
-                  aria-label={locale === 'ko' ? '목차' : 'Table of contents'}
-                  className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/70 dark:bg-slate-900/30 p-4"
-                >
-                  <ul className="space-y-1.5">
-                    {toc.map((item) => (
-                      <li key={`${item.level}-${item.id}`} className={item.level === 3 ? 'pl-3' : ''}>
-                        <a
-                          href={`#${item.id}`}
-                          className="group flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className="mt-[3px] h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600 group-hover:bg-primary transition-colors"
-                          />
-                          <span className="line-clamp-2 leading-snug">{item.text}</span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </div>
-            )}
-
-            {/* Related Articles */}
-            {relatedPosts.length > 0 && (
-              <div>
-                <h3 className="text-lg font-bold mb-6 text-slate-900 dark:text-white">
-                  {locale === 'ko' ? '관련 글' : 'Related Articles'}
-                </h3>
-                <div className="space-y-6">
-                  {relatedPosts.map((relatedPost) => {
-                    const relatedTagColor = getTagColor(relatedPost.tags[0] || 'ai');
-                    const relatedMark = (relatedPost.tags[0] || 'ai').slice(0, 1).toUpperCase();
-                    const relatedDate = new Date(relatedPost.date).toLocaleDateString(
-                      locale === 'ko' ? 'ko-KR' : 'en-US',
-                      { month: 'short', day: 'numeric', year: 'numeric' }
-                    );
-
-                    return (
-                      <Link
-                        key={relatedPost.slug}
-                        href={`/${locale}/posts/${relatedPost.slug}`}
-                        className="group flex gap-4 items-start"
-                      >
-                        <div className="relative w-24 h-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800 flex-shrink-0">
-                          {relatedPost.coverImage ? (
-                            <Image
-                              src={relatedPost.coverImage}
-                              alt={relatedPost.title}
-                              fill
-                              className="object-cover"
+          <aside className="lg:col-span-4">
+            <div className="space-y-12 lg:sticky lg:top-24 lg:max-h-[calc(100vh-6rem)] lg:overflow-auto lg:pr-1 lg:overscroll-contain">
+              {/* Table of contents */}
+              {toc.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">
+                    {locale === 'ko' ? '이 글에서' : 'On this page'}
+                  </h3>
+                  <nav
+                    aria-label={locale === 'ko' ? '목차' : 'Table of contents'}
+                    className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/70 dark:bg-slate-900/30 p-4"
+                  >
+                    <ul className="space-y-1.5">
+                      {toc.map((item) => (
+                        <li key={`${item.level}-${item.id}`} className={item.level === 3 ? 'pl-3' : ''}>
+                          <a
+                            href={`#${item.id}`}
+                            className="group flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-primary transition-colors"
+                          >
+                            <span
+                              aria-hidden="true"
+                              className="mt-[3px] h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600 group-hover:bg-primary transition-colors"
                             />
-                          ) : (
-                            <div className={`w-full h-full bg-gradient-to-br ${relatedTagColor} flex items-center justify-center relative overflow-hidden`}>
-                              <div className="absolute inset-0 bg-black/25 dark:bg-black/10" />
-                              <span className="text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] text-xl font-extrabold tracking-tight" aria-hidden="true">
-                                {relatedMark}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-snug text-base line-clamp-2">
-                            {relatedPost.title}
-                          </h4>
-                          <span className="text-xs text-slate-500 mt-1 block">
-                            {relatedDate}
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                            <span className="line-clamp-2 leading-snug">{item.text}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Back to posts */}
-            <Link
-              href={`/${locale}/posts`}
-              className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
-            >
-              {locale === 'ko' ? '모든 글 보기' : 'Back to all posts'}
-            </Link>
+              {/* Related Articles */}
+              {relatedPosts.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mb-6 text-slate-900 dark:text-white">
+                    {locale === 'ko' ? '관련 글' : 'Related Articles'}
+                  </h3>
+                  <div className="space-y-6">
+                    {relatedPosts.map((relatedPost) => {
+                      const relatedTagColor = getTagColor(relatedPost.tags[0] || 'ai');
+                      const relatedMark = (relatedPost.tags[0] || 'ai').slice(0, 1).toUpperCase();
+                      const relatedDate = new Date(relatedPost.date).toLocaleDateString(
+                        locale === 'ko' ? 'ko-KR' : 'en-US',
+                        { month: 'short', day: 'numeric', year: 'numeric' }
+                      );
+
+                      return (
+                        <Link
+                          key={relatedPost.slug}
+                          href={`/${locale}/posts/${relatedPost.slug}`}
+                          className="group flex gap-4 items-start"
+                        >
+                          <div className="relative w-24 h-16 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800 flex-shrink-0">
+                            {relatedPost.coverImage ? (
+                              <Image
+                                src={relatedPost.coverImage}
+                                alt={relatedPost.title}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className={`w-full h-full bg-gradient-to-br ${relatedTagColor} flex items-center justify-center relative overflow-hidden`}>
+                                <div className="absolute inset-0 bg-black/25 dark:bg-black/10" />
+                                <span className="text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)] text-xl font-extrabold tracking-tight" aria-hidden="true">
+                                  {relatedMark}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-snug text-base line-clamp-2">
+                              {relatedPost.title}
+                            </h4>
+                            <span className="text-xs text-slate-500 mt-1 block">
+                              {relatedDate}
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Back to posts */}
+              <Link
+                href={`/${locale}/posts`}
+                className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors"
+              >
+                {locale === 'ko' ? '모든 글 보기' : 'Back to all posts'}
+              </Link>
+            </div>
           </aside>
         </div>
       </main>
