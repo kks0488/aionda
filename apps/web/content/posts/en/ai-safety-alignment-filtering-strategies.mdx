@@ -1,0 +1,78 @@
+---
+title: Comparing AI Safety Alignment and Filtering Technologies for Services
+slug: ai-safety-alignment-filtering-strategies
+date: '2026-02-04'
+locale: en
+description: >-
+  Analyze safety techniques from Anthropic, OpenAI, and Google to balance AI
+  model utility with ethical risk management.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: '949859'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=949859'
+verificationScore: 0.9666666666666667
+alternateLocale: /ko/posts/ai-safety-alignment-filtering-strategies
+coverImage: /images/posts/ai-safety-alignment-filtering-strategies.png
+---
+
+## TL;DR
+- **Key Issue:** Leading companies such as Anthropic, OpenAI.
+Google have introduced distinct safety alignment and filtering technologies to manage the reliability of AI responses.
+- **Importance:** Service competitiveness depends on balanced design; overly strict refusal policies diminish utility, while excessively loose policies create ethical risks.
+- **Action Items:** Developers and product planners should understand the characteristics of external API filters and internal system prompts to build a multi-layered defense system tailored to their service's purpose.
+
+Example: When a user asks for instructions on manufacturing dangerous substances, the AI refuses the response and explains the relevant principles. While AI in the past might have answered directly or provided a brief refusal, it now reviews the validity of the response internally according to established guidelines.
+
+## Current Status: From Self-Teaching AI to External Monitors
+
+Alignment technology, where AI models judge the toxicity of responses and self-correct their logic, has emerged as a core field determining reliability. Currently, the industry's approach to ensuring safety is divided into three major trends.
+
+Anthropic provides principles to its models through a concept called 'Constitutional AI.' According to a paper published in December 2022, this process involves a cycle where the model critiques and revises its own responses. Instead of humans judging every instance of toxicity, the model refines data according to set principles and performs fine-tuning based on the results.
+
+OpenAI adopts a more bifurcated structure. It inspects input and output data in real-time through dedicated moderation APIs, such as 'omni-moderation-latest.' This serves as an external filter to screen specific categories like hate, violence, and sexual content. Simultaneously, it controls the model's internal response logic via system prompts. While the moderation API is highly accessible and provided for free, system prompts allow for custom settings but may be vulnerable to prompt injection attacks.
+
+Google has established a multi-layered defense system known as 'Safety layers.' According to technical documentation, Gemini models are divided into configurable and unconfigurable filters to manage safety and model reliability. For four major toxicity categories, such as hate speech and harassment, users can adjust the blocking thresholds. Conversely, filters for critical items like child sexual abuse material (CSAM) or PII (Personally Identifiable Information) exposure are restricted and cannot be disabled.
+
+## Analysis: Finding the Equilibrium Between Safety and Utility
+
+These safety measures can potentially conflict with model utility. If a model focuses excessively on safety, 'over-refusal' occurs, where the AI declines even benign questions about medical information or historical conflicts. This risks degrading the user experience and giving the impression that the model is underperforming. Anthropic's self-correction method strengthens the model's internal logic to induce natural refusals, but it is complex to implement and carries high initial training costs.
+
+In contrast, the external filter methods used by OpenAI and Google are fast to implement and provide clear standards. However, they function more like external censors. If an external filter forcibly blocks a response while the model is attempting to generate it, the output may be cut off mid-sentence or display contextually irrelevant error messages. The technical challenge lies in how naturally safety guidelines are integrated into the model's reasoning process.
+
+## Practical Application: Strategies for Secure AI Services
+
+Developers and enterprises should not rely solely on the inherent safety performance of a model. They should test the strictness of each model's refusal policy and set filtering intensities appropriate for their specific service.
+
+Example: If building an educational chatbot, violence filters should be set to the maximum level. However, if the service handles historical data for education, blocking thresholds for specific keywords should be finely tuned to allow for the discussion of war history.
+
+**Checklist for Today:**
+- Reconfigure the blocking thresholds for each toxicity category provided by the model API to match the service's tolerance levels.
+- Conduct red-teaming tests to check if safety instructions specified in the system prompt can be bypassed by prompt injection attacks.
+- Monitor the frequency of the model's refusal responses to identify the balance point between utility and safety based on data.
+
+## FAQ
+**Q: How does Anthropic's Constitutional AI differ from Reinforcement Learning from Human Feedback (RLHF)?**
+A: While RLHF requires humans to evaluate a vast number of responses directly, Constitutional AI allows humans to simply set the principles. The AI then evaluates responses and generates training data based on those principles, enabling large-scale alignment with fewer human resources.
+
+**Q: If I use OpenAI's moderation API, can I exclude safety instructions from the system prompt?**
+A: No. The moderation API is a net that catches universal harmful content, whereas the system prompt is a conductor’s baton that sets specific brand guidelines and conversation tones. Both layers should be used for comprehensive control.
+
+**Q: Why do 'unconfigurable filters' exist in Google Gemini?**
+A: Because risks like child sexual abuse material or personal data leaks are unacceptable regardless of the business scenario. Since these are directly linked to corporate legal liability, the policy remains to block them at the source without giving users an option to disable them.
+
+## Conclusion
+
+Safety alignment for Large Language Models (LLMs) has evolved beyond creating simple blacklists into an engineering task of internalizing correct judgment standards within the model. Different approaches, ranging from Anthropic's self-correcting models to Google's multi-layered filters, are testing whether AI can harmoniously coexist with human values. In the future, ethical capability—the ability to maintain boundaries according to context—will become a key criterion for model selection alongside intelligence.
+---
+
+## References
+
+- 🛡️ [Claude’s Constitution](https://www.anthropic.com/news/claudes-constitution)
+- 🛡️ [Moderation | OpenAI API](https://platform.openai.com/docs/guides/moderation)
+- 🛡️ [Safety best practices | OpenAI API](https://platform.openai.com/docs/guides/safety-best-practices)
+- 🛡️ [Safer Gemini model outputs with content filters and system instructions | Google Cloud Blog](https://cloud.google.com/blog/products/ai-machine-learning/safer-gemini-model-outputs-with-content-filters-and-system-instructions)
+- 🏛️ [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)
