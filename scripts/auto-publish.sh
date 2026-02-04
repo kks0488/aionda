@@ -317,11 +317,20 @@ GLOBAL_ENV="/home/kkaemo/.config/claude-projects/global.env"
 if [ -f "$GLOBAL_ENV" ]; then
   # global.env is SSOT for secrets. Load it for cron so we don't duplicate keys in repo clones.
   set +u
+  set -a
   # shellcheck disable=SC1090
   source "$GLOBAL_ENV" 2>/dev/null || true
+  set +a
   set -u
 fi
-source "$REPO_ROOT/.env.local" 2>/dev/null || true
+if [ -f "$REPO_ROOT/.env.local" ]; then
+  set +u
+  set -a
+  # shellcheck disable=SC1091
+  source "$REPO_ROOT/.env.local" 2>/dev/null || true
+  set +a
+  set -u
+fi
 
 # Publish slot state (outside the repo)
 STATE_ROOT="$(pick_candidate_root)"

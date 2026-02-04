@@ -37,7 +37,8 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
   const orderedPosts = useMemo(() => {
     const hasTag = (post: Post, tag: string) =>
       post.tags.some((t) => t.toLowerCase() === tag);
-    const isPulse = (post: Post) => hasTag(post, 'k-ai-pulse');
+    const isRoundup = (post: Post) => hasTag(post, 'roundup');
+    const isPulse = (post: Post) => hasTag(post, 'k-ai-pulse') && !isRoundup(post);
     const isEvergreen = (post: Post) => hasTag(post, 'explainer') || hasTag(post, 'deep-dive');
     const isCommunity = (post: Post) =>
       getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl }) === 'community';
@@ -59,6 +60,8 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
 
         const pulseDiff = Number(isPulse(b)) - Number(isPulse(a));
         if (pulseDiff !== 0) return pulseDiff;
+        const roundupDiff = Number(isRoundup(a)) - Number(isRoundup(b));
+        if (roundupDiff !== 0) return roundupDiff;
         const evergreenDiff = Number(isEvergreen(a)) - Number(isEvergreen(b));
         if (evergreenDiff !== 0) return evergreenDiff;
         const communityDiff = Number(isCommunity(a)) - Number(isCommunity(b));
@@ -71,15 +74,17 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
   }, [filteredPosts, normalizedCategory]);
 
   const featuredPosts = useMemo(() => {
+    const isRoundupPost = (post: Post) => post.tags.some((t) => t.toLowerCase() === 'roundup');
     const kind = (post: Post) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
     const isTrusted = (post: Post) => {
       const k = kind(post);
       return k === 'official' || k === 'news' || k === 'evergreen' || k === 'roundup';
     };
 
-    const trustedFirst = orderedPosts.filter(isTrusted).slice(0, 2);
+    const pool = orderedPosts.filter((p) => !isRoundupPost(p));
+    const trustedFirst = pool.filter(isTrusted).slice(0, 2);
     if (trustedFirst.length >= 2) return trustedFirst;
-    const fill = orderedPosts
+    const fill = pool
       .filter((p) => !trustedFirst.some((x) => x.slug === p.slug))
       .slice(0, 2 - trustedFirst.length);
     return [...trustedFirst, ...fill];
@@ -93,7 +98,10 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
 
   const trendingPosts = useMemo(() => (
     (() => {
-      const pulse = posts.filter((post) => post.tags.some((t) => t.toLowerCase() === 'k-ai-pulse'));
+      const pulse = posts.filter((post) => (
+        post.tags.some((t) => t.toLowerCase() === 'k-ai-pulse') &&
+        !post.tags.some((t) => t.toLowerCase() === 'roundup')
+      ));
       const sortedPulse = [...pulse].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       if (sortedPulse.length >= 4) return sortedPulse.slice(0, 4);
 
@@ -119,7 +127,11 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
             const ageDays = Number.isNaN(dt) ? 999 : Math.max(0, Math.floor((now - dt) / DAY_MS));
             const recencyBoost = Math.max(0, 1 - ageDays / 21); // strongest inside ~3 weeks
             const verification = Math.max(0, Math.min(1, p.verificationScore || 0));
-            const pulseBonus = p.tags.some((t) => t.toLowerCase() === 'k-ai-pulse') ? 0.2 : 0;
+            const pulseBonus =
+              p.tags.some((t) => t.toLowerCase() === 'k-ai-pulse') &&
+              !p.tags.some((t) => t.toLowerCase() === 'roundup')
+                ? 0.2
+                : 0;
             return {
               post: p,
               score: verification * 1.1 + recencyBoost * 0.9 + trustBoost(p) + pulseBonus,
@@ -144,7 +156,7 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
   ), [posts]);
 
   const popularTags = useMemo(() => {
-    const exclude = new Set(['k-ai-pulse', 'explainer', 'deep-dive', 'article', 'ai']);
+    const exclude = new Set(['k-ai-pulse', 'explainer', 'deep-dive', 'roundup', 'resources', 'article', 'ai']);
     const now = Date.now();
     const DAY_MS = 24 * 60 * 60 * 1000;
     const RECENT_DAYS = 21;
