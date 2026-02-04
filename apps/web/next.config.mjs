@@ -9,6 +9,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // Vercel can return 402 for `/_next/image` optimization requests on some plans/quotas.
+    // We serve images directly from `/public` to avoid broken thumbnails/covers.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
