@@ -22,6 +22,7 @@ const PUBLISHED_DIR = './data/published';
 const POSTS_DIR = './apps/web/content/posts';
 const VC_DIR = './.vc';
 const LAST_WRITTEN_PATH = join(VC_DIR, 'last-written.json');
+const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 const MIN_CONFIDENCE = 0.6;
 const CORE_TAGS = ['agi', 'llm', 'robotics', 'hardware'] as const;
 const CORE_TAG_PATTERNS: Array<{ tag: (typeof CORE_TAGS)[number]; regex: RegExp }> = [
@@ -156,6 +157,20 @@ interface ArticleMetadata {
   description_ko: string;
   description_en: string;
   tags: string[];
+}
+
+function readLastExtractedTopicIds(): Set<string> | null {
+  if (!existsSync(LAST_EXTRACTED_TOPICS_PATH)) return null;
+  try {
+    const raw = readFileSync(LAST_EXTRACTED_TOPICS_PATH, 'utf-8');
+    const parsed = JSON.parse(raw) as { topics?: Array<{ id?: string }> };
+    const ids = (parsed.topics || [])
+      .map((t) => String(t?.id || '').trim())
+      .filter(Boolean);
+    return new Set(ids);
+  } catch {
+    return null;
+  }
 }
 
 function formatFindings(findings: ResearchFinding[]): string {
@@ -596,6 +611,7 @@ async function main() {
         .filter(Boolean)
     : [];
   const force = args.includes('--force');
+  const fromLastExtract = args.includes('--from-last-extract');
 
   console.log('\n' + '═'.repeat(60));
   console.log('  Article Writing Pipeline');
@@ -628,6 +644,29 @@ async function main() {
     }
   }
 
+  const lastExtractedIds = fromLastExtract ? readLastExtractedTopicIds() : null;
+  if (fromLastExtract) {
+    if (!lastExtractedIds || lastExtractedIds.size === 0) {
+      console.log('✅ No last extracted topics found. Nothing to write (use without --from-last-extract to process backlog).');
+      writeFileSync(
+        LAST_WRITTEN_PATH,
+        JSON.stringify(
+          {
+            generatedAt: new Date().toISOString(),
+            writtenCount: 0,
+            files: [],
+            entries: [],
+          },
+          null,
+          2
+        )
+      );
+      console.log(`Wrote ${LAST_WRITTEN_PATH}`);
+      process.exit(0);
+    }
+    console.log(`🎯 From last extract: ${lastExtractedIds.size} topic(s)\n`);
+  }
+
   // Get publishable topics
   const researchedFiles = readdirSync(RESEARCHED_DIR)
     .filter(f => f.endsWith('.json') && !f.startsWith('._'))
@@ -636,6 +675,7 @@ async function main() {
       return { file: f, topic };
     })
     .filter(({ topic }) => {
+      if (lastExtractedIds && !lastExtractedIds.has(String(topic.topicId || ''))) return false;
       const matchesTarget =
         targetIds.length === 0 ||
         targetIds.includes(topic.topicId) ||
@@ -644,6 +684,14 @@ async function main() {
       if (!isPublishable(topic)) return false;
       if (force) return true;
       return !publishedIds.has(topic.topicId);
+    })
+    .sort((a, b) => {
+      const at = new Date(a.topic.researchedAt || '').getTime() || 0;
+      const bt = new Date(b.topic.researchedAt || '').getTime() || 0;
+      if (at !== bt) return bt - at;
+      const ac = Number(a.topic.overallConfidence || 0);
+      const bc = Number(b.topic.overallConfidence || 0);
+      return bc - ac;
     });
 
   if (researchedFiles.length === 0) {

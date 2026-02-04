@@ -574,7 +574,7 @@ else
   set_status "running: write article"
   log "Step 4: Writing article..."
   WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-2}"
-  pnpm write-article --limit="${WRITE_LIMIT}" || echo "Write warning"
+  pnpm write-article --from-last-extract --limit="${WRITE_LIMIT}" || echo "Write warning"
 fi
 
 # 4b. 품질 게이트(엄격 + 사실 검증)
