@@ -1,0 +1,73 @@
+---
+title: AWS Launches 8th Gen EC2 Instances With Expanded Local NVMe
+slug: aws-ec2-8th-gen-local-nvme-storage
+date: '2026-02-04'
+locale: en
+description: >-
+  AWS EC2 C8id, M8id, and R8id instances feature up to 22.8TB local NVMe storage
+  to accelerate LLM training and data I/O.
+tags:
+  - hardware
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: aws-blog-59lo6bz
+sourceUrl: >-
+  https://aws.amazon.com/blogs/aws/amazon-ec2-c8id-m8id-and-r8id-instances-with-up-to-22-8-tb-local-nvme-storage-are-generally-available/
+verificationScore: 0.8166666666666668
+alternateLocale: /ko/posts/aws-ec2-8th-gen-local-nvme-storage
+coverImage: /images/posts/aws-ec2-8th-gen-local-nvme-storage.png
+---
+
+## TL;DR
+- AWS released C8id, M8id, and R8id instances featuring up to 22.8TB of local NVMe storage capacity.
+- These instances reduce bottlenecks during Large Language Model training by saving model state data locally.
+- Users should evaluate their data management workflows to account for the temporary nature of local storage.
+
+Example: During the training of Large Language Models, computational units may idle while waiting for data. If the data pathway is narrow, high performance processors might not reach full potential. Rapid data retrieval is now a core metric for sophisticated computing.
+
+High performance local storage now bypasses network bandwidth limits for intensive cloud workloads. AWS is addressing input/output bottlenecks through 8th generation instances with expanded local NVMe storage.
+
+## Current Status
+Amazon EC2 C8id, M8id, and R8id instances are now available. These instances include high-performance local NVMe storage. This storage is directly attached to the physical host servers.
+
+The available local NVMe storage capacity reaches up to 22.8TB. This represents a threefold expansion in resources compared to previous generations. Users can choose between compute-optimized, general-purpose, and memory-optimized models for their specific workloads.
+
+These instance families are available in major AWS regions. The pricing structure remains consistent with existing options. Enterprises can secure high-performance local storage without separate hardware deployments.
+
+## Analysis
+The launch of 8th generation instances holds technical significance beyond capacity expansion. Saving model states is a critical performance variable for Large Language Model fine-tuning. Using network storage for this process can increase training time due to bandwidth limits.
+
+Research shows that lazy asynchronous multi-level checkpointing can reduce storage time by up to 48x. This method also reduces total training runtime by up to 2.2x compared to traditional methods. Local storage helps process these large checkpoints locally without network bottlenecks.
+
+However, data in local NVMe storage is temporary. It is deleted when the instance is stopped or terminated. Local storage suits batch processing with frequent intermediate results. It also benefits real-time analytics where data loading speed is critical. Users should design dual-tier structures that use local storage while replicating final outputs to persistent storage.
+
+## Practical Application
+Data engineers can use 8th generation instances to overcome physical limits in data pipelines. Local NVMe reduces network costs when reading large datasets repeatedly.
+
+Example: When a data scientist trains on large-scale image data, they can increase speed by caching the dataset locally.
+
+**Checklist for Today:**
+- Measure I/O wait times of current workloads to identify network storage bottlenecks.
+- Verify automation scripts for synchronizing local storage data to persistent storage.
+- Analyze memory usage to select the best instance type for specific workloads.
+
+## FAQ
+**Q: How does local NVMe storage differ from standard EBS (Elastic Block Store)?**
+A: EBS connects via a network while local NVMe attaches to the physical server. Local storage lacks network latency but data is lost when instances are terminated.
+
+**Q: What should I consider when migrating from previous generation instances to the 8th generation?**
+A: Resource capacity has tripled so the cost per instance will change. You should evaluate the efficiency of consolidating tasks into fewer high-specification instances.
+
+**Q: Can the entire 22.8TB capacity be used as a single partition?**
+A: The number of physical disks varies depending on the instance size. Users can bind them into a single logical volume using software RAID within the operating system.
+
+## Conclusion
+AWS EC2 8th generation instances show that cloud computing is shifting toward higher data processing density. Tripled resources and large local storage provide a foundation for efficient model fine-tuning and data analysis.
+
+The key factor will be the capability to manage high-performance local resources at the software layer. Architectures should balance high performance with the risk of data loss from temporary storage. This balance will determine infrastructure competitiveness.
+---
+
+## References
+
+- 🛡️ [Lazy Asynchronous Multi-level Checkpointing for LLMs](https://huggingface.co/papers/2410.23214)
