@@ -573,7 +573,7 @@ else
   # 4. 글 작성 (memU 중복체크 포함)
   set_status "running: write article"
   log "Step 4: Writing article..."
-  WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-1}"
+  WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-2}"
   pnpm write-article --limit="${WRITE_LIMIT}" || echo "Write warning"
 fi
 
@@ -583,6 +583,21 @@ log "Step 4b: Content gate (publish)..."
 if ! pnpm content:gate:publish; then
     echo "❌ Gate failed. Aborting publish."
     exit 1
+fi
+
+# If the verification gate quarantined all newly written posts, we may end up with
+# nothing to publish. Short-circuit to keep cron fast and avoid wasting build minutes.
+set +e
+HAS_POST_CHANGES=0
+git diff --quiet -- apps/web/content/posts apps/web/public/images/posts >/dev/null 2>&1 || HAS_POST_CHANGES=1
+git diff --cached --quiet -- apps/web/content/posts apps/web/public/images/posts >/dev/null 2>&1 || HAS_POST_CHANGES=1
+UNTRACKED_NEW="$(git ls-files --others --exclude-standard -- apps/web/content/posts apps/web/public/images/posts 2>/dev/null || true)"
+set -e
+
+if [ "$HAS_POST_CHANGES" -eq 0 ] && [ -z "$UNTRACKED_NEW" ]; then
+  log "No publishable post changes after content gate. Skipping images/build/commit."
+  set_ready "last=no changes"
+  exit 0
 fi
 
 # 5. 이미지 생성
