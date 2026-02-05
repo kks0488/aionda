@@ -33,6 +33,9 @@ const MIN_CONFIDENCE = 0.6;
 const DEFAULT_SINCE = (process.env.TOPICS_SINCE || '14d').trim();
 const TIER_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
 
+type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
+type EvergreenSchema = 'howto' | 'faq';
+
 interface ExtractedTopic {
   id: string;
   sourceId: string;
@@ -46,6 +49,10 @@ interface ExtractedTopic {
   keyInsights: string[];
   researchQuestions: string[];
   extractedAt: string;
+  primaryKeyword?: string;
+  intent?: EvergreenIntent;
+  topic?: string;
+  schema?: EvergreenSchema;
 }
 
 interface VerifiedSource {
@@ -76,6 +83,10 @@ interface ResearchedTopic {
   researchedAt: string;
   overallConfidence: number;
   canPublish: boolean;
+  primaryKeyword?: string;
+  intent?: EvergreenIntent;
+  topic?: string;
+  schema?: EvergreenSchema;
 }
 
 function getTierIcon(tier: string): string {
@@ -266,6 +277,10 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
     researchedAt: new Date().toISOString(),
     overallConfidence: avgConfidence,
     canPublish: hasVerifiedContent,
+    primaryKeyword: topic.primaryKeyword ? String(topic.primaryKeyword).trim() : undefined,
+    intent: topic.intent,
+    topic: topic.topic ? String(topic.topic).trim() : undefined,
+    schema: topic.schema,
   };
 }
 

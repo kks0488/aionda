@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import type { Post } from '@/lib/posts';
+import type { PostSummary } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 
 interface PostNavigationProps {
-  prevPost: Post | null;
-  nextPost: Post | null;
+  prevPost: PostSummary | null;
+  nextPost: PostSummary | null;
   locale: Locale;
 }
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { Locale } from '@/i18n';
+import { trackEvent } from '@/lib/analytics';
 
 interface ShareButtonsProps {
   url: string;
@@ -16,8 +17,10 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
     try {
       await navigator.clipboard.writeText(url);
       setCopyState('copied');
+      trackEvent('share_click', { method: 'copy', status: 'copied', locale });
     } catch {
       setCopyState('failed');
+      trackEvent('share_click', { method: 'copy', status: 'failed', locale });
     }
     setTimeout(() => setCopyState('idle'), 2000);
   };
@@ -88,6 +91,8 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
           href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`}
           target="_blank"
           rel="noopener noreferrer"
+          data-analytics-event="share_click"
+          data-analytics-params={JSON.stringify({ method: 'x', locale })}
           className="h-9 w-9 flex items-center justify-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           aria-label={locale === 'ko' ? '트위터에 공유' : 'Share on Twitter'}
         >
@@ -97,6 +102,8 @@ export default function ShareButtons({ url, title, locale }: ShareButtonsProps) 
         </a>
         <a
           href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${title}\n\n${url}`)}`}
+          data-analytics-event="share_click"
+          data-analytics-params={JSON.stringify({ method: 'email', locale })}
           className="h-9 w-9 flex items-center justify-center bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-600 dark:text-slate-300 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
           aria-label={locale === 'ko' ? '이메일로 공유' : 'Share via Email'}
         >

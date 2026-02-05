@@ -1,12 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
-import { getPosts } from '@/lib/posts';
+import { deriveSeries, getPostSummaries } from '@/lib/posts';
 import { getTagStats } from '@/lib/tags';
 import SearchDataSetter from '@/components/SearchDataSetter';
 import PostCard from '@/components/PostCard';
+import Pagination from '@/components/Pagination';
+import { DEFAULT_PAGE_SIZE, getTotalPages, sliceForPage } from '@/lib/pagination';
 import { BASE_URL } from '@/lib/site';
 import { locales, type Locale } from '@/i18n';
+import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
 
 function normalizeTag(value: string): string {
   return String(value || '').trim().toLowerCase();
@@ -46,13 +49,30 @@ export async function generateMetadata({
     locales.map((l) => [l, `${BASE_URL}/${l}/tags/${encodeURIComponent(normalizedTag)}`])
   );
   const ogImageUrl = `${BASE_URL}/api/og?title=${encodeURIComponent(title)}`;
-  const posts = getPosts(locale as Locale);
-  const count = posts.filter((post) => post.tags.some((t) => normalizeTag(t) === normalizedTag)).length;
+  const posts = getPostSummaries(locale as Locale);
+  const matched = posts.filter((post) => post.tags.some((t) => normalizeTag(t) === normalizedTag));
+  const count = matched.length;
   const shouldIndex = count >= 3;
+  const lastUsedAtMs = matched.reduce((max, post) => {
+    const t = new Date(post.lastReviewedAt || post.date).getTime();
+    return Number.isNaN(t) ? max : Math.max(max, t);
+  }, 0);
+  const updatedLabel = lastUsedAtMs
+    ? new Date(lastUsedAtMs).toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
+  const descriptionWithUpdated = updatedLabel
+    ? locale === 'ko'
+      ? `${description} 최근 업데이트: ${updatedLabel}.`
+      : `${description} Last updated: ${updatedLabel}.`
+    : description;
 
   return {
     title,
-    description,
+    description: descriptionWithUpdated,
     robots: shouldIndex ? undefined : { index: false, follow: true },
     alternates: {
       canonical: url,
@@ -97,25 +117,46 @@ export default function TagPage({
     redirect(`/${locale}/tags/${encodeURIComponent(normalizedTag)}`);
   }
 
-  const posts = getPosts(locale as Locale);
+  const posts = getPostSummaries(locale as Locale);
   const filteredPosts = posts.filter((post) =>
     post.tags.some((t) => normalizeTag(t) === normalizedTag)
   );
 
   if (filteredPosts.length === 0) notFound();
 
-  const searchPosts = posts.map(({ slug, title, description, tags }) => ({
+  const totalPosts = filteredPosts.length;
+  const totalPages = getTotalPages(totalPosts, DEFAULT_PAGE_SIZE);
+  const pagePosts = sliceForPage(filteredPosts, 1, DEFAULT_PAGE_SIZE);
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: locale === 'ko' ? '홈' : 'Home', path: `/${locale}` },
+    { name: locale === 'ko' ? '태그' : 'Tags', path: `/${locale}/tags` },
+    { name: normalizedTag, path: `/${locale}/tags/${encodeURIComponent(normalizedTag)}` },
+  ]);
+
+  const searchPosts = posts.map(({ slug, title, description, tags, date, lastReviewedAt, primaryKeyword, intent, topic, schema }) => ({
     slug,
     title,
     description,
     tags,
+    date,
+    lastReviewedAt,
+    primaryKeyword,
+    intent,
+    topic,
+    schema,
+    series: deriveSeries(tags),
   }));
 
   const headerTitle = locale === 'ko' ? `"${normalizedTag}" 태그` : `Tag: ${normalizedTag}`;
 
   return (
-    <div className="bg-white dark:bg-[#101922] min-h-screen">
-      <SearchDataSetter posts={searchPosts} locale={locale as Locale} />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <div className="bg-white dark:bg-[#101922] min-h-screen">
+        <SearchDataSetter posts={searchPosts} locale={locale as Locale} />
 
       <section className="w-full py-12 px-6 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto">
@@ -124,8 +165,8 @@ export default function TagPage({
           </h1>
           <p className="text-lg text-slate-500 dark:text-slate-400">
             {locale === 'ko'
-              ? `${filteredPosts.length}개의 글이 있습니다`
-              : `${filteredPosts.length} articles available`}
+              ? `${totalPosts}개의 글이 있습니다`
+              : `${totalPosts} articles available`}
           </p>
           <div className="mt-4 flex gap-3">
             <Link
@@ -144,18 +185,28 @@ export default function TagPage({
         </div>
       </section>
 
-      <main className="w-full max-w-7xl mx-auto px-6 py-12">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {filteredPosts.map((post) => (
-            <PostCard
-              key={post.slug}
-              post={post}
+        <main className="w-full max-w-7xl mx-auto px-6 py-12">
+          <>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {pagePosts.map((post) => (
+                <PostCard
+                  key={post.slug}
+                  post={post}
+                  locale={locale as Locale}
+                  variant="medium"
+                />
+              ))}
+            </div>
+            <Pagination
+              baseHref={`/${locale}/tags/${encodeURIComponent(normalizedTag)}`}
+              currentPage={1}
+              totalPages={totalPages}
               locale={locale as Locale}
-              variant="medium"
+              analyticsFrom="tag"
             />
-          ))}
-        </div>
-      </main>
-    </div>
+          </>
+        </main>
+      </div>
+    </>
   );
 }

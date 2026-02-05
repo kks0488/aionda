@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import type { Post } from '@/lib/posts';
+import type { PostSummary } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import SourceBadge from '@/components/SourceBadge';
 
 interface SidebarProps {
   locale: Locale;
-  trendingPosts?: Post[];
+  trendingPosts?: PostSummary[];
   popularTags?: string[];
 }
 
@@ -27,6 +27,8 @@ export default function Sidebar({
               <Link
                 key={tag}
                 href={`/${locale}/tags/${encodeURIComponent(tag)}`}
+                data-analytics-event="tag_click"
+                data-analytics-params={JSON.stringify({ tag, from: 'sidebar_popular_tags', locale })}
                 className="inline-flex items-center rounded-full px-3 py-1.5 text-xs font-bold border border-gray-200/80 dark:border-gray-700/80 bg-slate-50 dark:bg-slate-950/30 text-slate-900 dark:text-slate-100 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
               >
                 {tag}

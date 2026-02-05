@@ -383,6 +383,38 @@ try {
 NODE
 }
 
+run_evergreen_extract() {
+  local limit="$1"
+  local queue="${AUTO_PUBLISH_EVERGREEN_QUEUE:-seeds}"
+  local topic="${AUTO_PUBLISH_EVERGREEN_TOPIC:-}"
+  local intent="${AUTO_PUBLISH_EVERGREEN_INTENT:-}"
+  local schema="${AUTO_PUBLISH_EVERGREEN_SCHEMA:-}"
+  local priority="${AUTO_PUBLISH_EVERGREEN_PRIORITY:-}"
+  local shuffle="${AUTO_PUBLISH_EVERGREEN_SHUFFLE:-false}"
+  local seed="${AUTO_PUBLISH_EVERGREEN_SEED:-}"
+
+  local args=()
+  if [ -n "$queue" ] && [ "$queue" != "seeds" ]; then args+=(--queue="${queue}"); fi
+  if [ -n "$topic" ]; then args+=(--topic="${topic}"); fi
+  if [ -n "$intent" ]; then args+=(--intent="${intent}"); fi
+  if [ -n "$schema" ]; then args+=(--schema="${schema}"); fi
+  if [ -n "$priority" ]; then args+=(--priority="${priority}"); fi
+  if [ "$shuffle" = "true" ]; then args+=(--shuffle); fi
+  if [ -n "$seed" ]; then args+=(--seed="${seed}"); fi
+  args+=(--limit="${limit}")
+
+  local meta=""
+  if [ -n "$topic" ]; then meta="${meta} topic=${topic}"; fi
+  if [ -n "$intent" ]; then meta="${meta} intent=${intent}"; fi
+  if [ -n "$schema" ]; then meta="${meta} schema=${schema}"; fi
+  if [ -n "$priority" ]; then meta="${meta} priority=${priority}"; fi
+  if [ "$shuffle" = "true" ]; then meta="${meta} shuffle=true"; fi
+  if [ -n "$seed" ]; then meta="${meta} seed=${seed}"; fi
+
+  log "Evergreen extraction: queue=${queue} limit=${limit}${meta}"
+  pnpm extract-evergreen "${args[@]}"
+}
+
 slot="$(read_int_file "$PUBLISH_SLOT_FILE" 0)"
 trend_every="${AUTO_PUBLISH_TREND_EVERY:-5}"
 if ! [[ "$trend_every" =~ ^[0-9]+$ ]] || [ "$trend_every" -le 0 ]; then
@@ -514,8 +546,7 @@ else
     fi
   elif [ "$publish_mode" = "evergreen" ]; then
     EVERGREEN_LIMIT="${AUTO_PUBLISH_EVERGREEN_EXTRACT_LIMIT:-4}"
-    log "Evergreen extraction: limit=${EVERGREEN_LIMIT}"
-    pnpm extract-evergreen --limit="${EVERGREEN_LIMIT}" || echo "Evergreen extract warning"
+    run_evergreen_extract "${EVERGREEN_LIMIT}" || echo "Evergreen extract warning"
     extracted_count="$(read_last_extracted_count)"
     log "Evergreen extractedCount=${extracted_count}"
 
@@ -558,7 +589,7 @@ else
     if [ "${extracted_count:-0}" -eq 0 ] && [ "${EVERGREEN_ENABLED}" = "true" ]; then
       EVERGREEN_LIMIT="${AUTO_PUBLISH_EVERGREEN_EXTRACT_LIMIT:-4}"
       log "No standard topics found. Falling back to evergreen queue (limit=${EVERGREEN_LIMIT})..."
-      pnpm extract-evergreen --limit="${EVERGREEN_LIMIT}" || echo "Evergreen extract warning"
+      run_evergreen_extract "${EVERGREEN_LIMIT}" || echo "Evergreen extract warning"
       extracted_count="$(read_last_extracted_count)"
       log "Evergreen extractedCount=${extracted_count} (fallback)"
     fi

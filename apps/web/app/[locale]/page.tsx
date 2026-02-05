@@ -1,8 +1,9 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
-import { getPosts } from '@/lib/posts';
+import { deriveSeries, getPostSummaries } from '@/lib/posts';
 import HomeContent from '@/components/HomeContent';
 import SearchDataSetter from '@/components/SearchDataSetter';
+import NewsletterSignup from '@/components/NewsletterSignup';
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 
@@ -32,7 +33,7 @@ export default function HomePage({
 }) {
   setRequestLocale(locale);
 
-  const posts = getPosts(locale as Locale);
+  const posts = getPostSummaries(locale as Locale);
   const postCount = posts.length;
   const latestPostDate =
     posts.length > 0 ? new Date(posts[0].date) : null;
@@ -44,11 +45,18 @@ export default function HomePage({
           day: 'numeric',
         })
       : '';
-  const searchPosts = posts.map(({ slug, title, description, tags }) => ({
+  const searchPosts = posts.map(({ slug, title, description, tags, date, lastReviewedAt, primaryKeyword, intent, topic, schema }) => ({
     slug,
     title,
     description,
     tags,
+    date,
+    lastReviewedAt,
+    primaryKeyword,
+    intent,
+    topic,
+    schema,
+    series: deriveSeries(tags),
   }));
 
   return (
@@ -102,13 +110,23 @@ export default function HomePage({
               {locale === 'ko' ? '최신 글 보기' : 'Read Latest'}
             </Link>
             <Link
+              href={`/${locale}/topics`}
+              data-analytics-event="topic_click"
+              data-analytics-params={JSON.stringify({ from: 'home_hero', locale })}
+              className="inline-flex items-center justify-center h-11 px-5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-900/40 backdrop-blur text-slate-900 dark:text-white font-bold hover:border-gray-300 dark:hover:border-gray-600 transition-colors w-full sm:w-auto"
+            >
+              {locale === 'ko' ? '토픽으로 탐색' : 'Explore Topics'}
+            </Link>
+            <Link
               href={`/${locale}/tags`}
               className="inline-flex items-center justify-center h-11 px-5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-900/40 backdrop-blur text-slate-900 dark:text-white font-bold hover:border-gray-300 dark:hover:border-gray-600 transition-colors w-full sm:w-auto"
             >
               {locale === 'ko' ? '태그로 탐색' : 'Explore Tags'}
             </Link>
             <a
-              href="/feed.xml"
+              href={`/${locale}/feed.xml`}
+              data-analytics-event="rss_click"
+              data-analytics-params={JSON.stringify({ from: 'home_hero', locale })}
               className="inline-flex items-center justify-center h-11 px-5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-900/40 backdrop-blur text-slate-700 dark:text-slate-200 font-bold hover:border-gray-300 dark:hover:border-gray-600 hover:text-primary transition-colors w-full sm:w-auto"
             >
               RSS
@@ -133,6 +151,10 @@ export default function HomePage({
 
       {/* Main Content Area */}
       <HomeContent posts={posts} locale={locale as Locale} />
+
+      <div className="w-full max-w-7xl mx-auto px-6 pb-16">
+        <NewsletterSignup locale={locale as Locale} from="home" />
+      </div>
     </div>
   );
 }

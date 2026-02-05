@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { normalizeHeadingText, toHeadingId } from '@/lib/heading-utils';
 
 interface TocItem {
   id: string;
@@ -10,9 +11,10 @@ interface TocItem {
 
 interface TableOfContentsProps {
   content: string;
+  className?: string;
 }
 
-export function TableOfContents({ content }: TableOfContentsProps) {
+export function TableOfContents({ content, className }: TableOfContentsProps) {
   const [items, setItems] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>('');
 
@@ -24,8 +26,10 @@ export function TableOfContents({ content }: TableOfContentsProps) {
 
     while ((match = headingRegex.exec(content)) !== null) {
       const level = match[1].length;
-      const text = match[2];
-      const id = text.toLowerCase().replace(/\s+/g, '-');
+      const rawText = match[2];
+      const text = normalizeHeadingText(rawText);
+      const id = toHeadingId(rawText);
+      if (!text || !id) continue;
       headings.push({ id, text, level });
     }
 
@@ -58,8 +62,11 @@ export function TableOfContents({ content }: TableOfContentsProps) {
   if (items.length < 2) return null;
 
   return (
-    <nav className="hidden xl:block sticky top-24 ml-8 w-64 max-h-[calc(100vh-8rem)] overflow-y-auto">
-      <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
+    <nav
+      className={`hidden xl:block sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-slate-900/30 p-5 ${className || ''}`}
+      aria-label="Table of contents"
+    >
+      <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-4">
         On this page
       </h4>
       <ul className="space-y-2 text-sm">

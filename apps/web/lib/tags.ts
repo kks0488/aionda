@@ -1,4 +1,4 @@
-import { getPosts } from '@/lib/posts';
+import { getPostSummaries } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 
 export type TagStat = {
@@ -8,7 +8,7 @@ export type TagStat = {
 };
 
 export function getTagStats(locale: Locale): TagStat[] {
-  const posts = getPosts(locale);
+  const posts = getPostSummaries(locale);
   const stats = new Map<string, { count: number; lastUsedAtMs: number }>();
 
   for (const post of posts) {

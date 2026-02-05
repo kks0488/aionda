@@ -78,6 +78,14 @@ export default function Header({ locale }: HeaderProps) {
             {locale === 'ko' ? '글' : 'Posts'}
           </Link>
           <Link
+            href={`/${locale}/topics`}
+            className="px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-primary transition-colors"
+            data-analytics-event="topic_click"
+            data-analytics-params={JSON.stringify({ from: 'header', locale })}
+          >
+            {locale === 'ko' ? '토픽' : 'Topics'}
+          </Link>
+          <Link
             href={`/${locale}/tags`}
             className="px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-primary transition-colors"
           >
@@ -90,7 +98,9 @@ export default function Header({ locale }: HeaderProps) {
             {locale === 'ko' ? '소개' : 'About'}
           </Link>
           <a
-            href="/feed.xml"
+            href={`/${locale}/feed.xml`}
+            data-analytics-event="rss_click"
+            data-analytics-params={JSON.stringify({ from: 'header', locale })}
             className="ml-2 inline-flex items-center rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:text-primary transition-colors"
           >
             RSS
@@ -102,6 +112,8 @@ export default function Header({ locale }: HeaderProps) {
             onClick={openSearch}
             aria-label={locale === 'ko' ? '검색 열기 (⌘K)' : 'Open search (⌘K)'}
             className="flex items-center justify-center sm:justify-start gap-2 h-9 w-9 sm:w-auto sm:px-3 text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-gray-700 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-colors"
+            data-analytics-event="search_open"
+            data-analytics-params={JSON.stringify({ from: 'header', locale })}
           >
             <SearchIcon className="h-4 w-4" />
             <span className="hidden sm:inline text-sm">{locale === 'ko' ? '검색' : 'Search'}</span>

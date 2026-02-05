@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import { BASE_URL } from '@/lib/site';
 import './globals.css';
 
-const googleVerification = process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION?.trim();
+const googleVerification = (
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+  process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION
+)?.trim();
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

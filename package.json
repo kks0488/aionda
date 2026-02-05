@@ -38,9 +38,13 @@
     "research-topic": "tsx scripts/research-topic.ts",
     "write-article": "tsx scripts/write-article.ts",
     "sync-memu": "tsx scripts/sync-memu.ts",
+    "refresh-evergreen": "tsx scripts/refresh-evergreen.ts",
+    "generate-digest": "tsx scripts/generate-digest.ts",
     "pipeline": "pnpm crawl-all && pnpm extract-topics && pnpm research-topic && pnpm write-article && pnpm content:gate && pnpm generate-image",
     "pipeline:strict": "pnpm crawl-all && pnpm extract-topics && pnpm research-topic && pnpm write-article && pnpm content:gate:strict && pnpm generate-image",
-    "pipeline:publish": "pnpm crawl-all && pnpm extract-topics -- --limit=3 && pnpm research-topic -- --limit=3 --from-last-extract && pnpm write-article && pnpm content:gate:publish && pnpm generate-image -- --limit=1"
+    "pipeline:publish": "pnpm crawl-all && pnpm extract-topics -- --limit=3 && pnpm research-topic -- --limit=3 --from-last-extract && pnpm write-article && pnpm content:gate:publish && pnpm generate-image -- --limit=1",
+    "pipeline:evergreen": "pnpm extract-evergreen -- --queue=keywords-ko && pnpm research-topic -- --from-last-extract && pnpm write-article && pnpm content:gate:strict && pnpm generate-image",
+    "pipeline:evergreen:publish": "pnpm extract-evergreen -- --queue=keywords-ko && pnpm research-topic -- --from-last-extract && pnpm write-article && pnpm content:gate:publish && pnpm generate-image"
   },
   "dependencies": {
     "@google/genai": "^1.35.0",

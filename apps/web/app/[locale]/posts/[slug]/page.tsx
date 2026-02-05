@@ -2,14 +2,17 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getAvailableLocalesForSlug, getPostBySlug, getPosts } from '@/lib/posts';
+import { getAllSlugs, getAvailableLocalesForSlug, getPostBySlug, getPostSummaries } from '@/lib/posts';
 import { getTagColor } from '@/lib/tag-utils';
+import { getTopicConfig, normalizeTopicId } from '@/lib/topics';
 import { BASE_URL } from '@/lib/site';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
 import PostNavigation from '@/components/PostNavigation';
 import SourceBadge from '@/components/SourceBadge';
+import NewsletterSignup from '@/components/NewsletterSignup';
+import { TableOfContents } from '@/components/TableOfContents';
 import { defaultLocale, locales, type Locale } from '@/i18n';
 
 const OG_LOCALE: Record<Locale, string> = {
@@ -51,14 +54,7 @@ function buildOgImageUrl(post: {
 }
 
 export async function generateStaticParams() {
-  const params: Array<{ locale: Locale; slug: string }> = [];
-  for (const locale of locales) {
-    const posts = getPosts(locale);
-    for (const post of posts) {
-      params.push({ locale, slug: post.slug });
-    }
-  }
-  return params;
+  return getAllSlugs();
 }
 
 export async function generateMetadata({
@@ -100,6 +96,7 @@ export async function generateMetadata({
         siteName: 'AI온다',
         type: 'article',
         publishedTime: canonicalPost.date,
+        modifiedTime: canonicalPost.lastReviewedAt || canonicalPost.date,
         tags: canonicalPost.tags,
         locale: OG_LOCALE[canonicalLocale] || 'en_US',
         images: [
@@ -141,6 +138,7 @@ export async function generateMetadata({
       siteName: 'AI온다',
       type: 'article',
       publishedTime: post.date,
+      modifiedTime: post.lastReviewedAt || post.date,
       tags: post.tags,
       locale: OG_LOCALE[requestedLocale] || 'en_US',
       images: [
@@ -176,6 +174,105 @@ function getHostname(url?: string): string | null {
   }
 }
 
+function stripMarkdownForJsonLd(value: string): string {
+  return String(value || '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/[*_]{1,3}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractHeadingSection(markdown: string, heading: RegExp): string {
+  const raw = String(markdown || '');
+  const match = heading.exec(raw);
+  if (!match || typeof match.index !== 'number') return '';
+
+  const after = raw.slice(match.index + match[0].length);
+  const nextHeadingIndex = after.search(/^##\s+/m);
+  const section = nextHeadingIndex === -1 ? after : after.slice(0, nextHeadingIndex);
+  return section.trim();
+}
+
+function extractFaqPairs(markdown: string): Array<{ question: string; answer: string }> {
+  const section = extractHeadingSection(markdown, /^##\s*FAQ\s*$/im);
+  if (!section) return [];
+
+  const lines = section
+    .replace(/```[\s\S]*?```/g, '')
+    .split('\n')
+    .map((l) => l.trimEnd());
+
+  const pairs: Array<{ question: string; answer: string }> = [];
+  let currentQ = '';
+  let currentA: string[] = [];
+  let sawAnswer = false;
+
+  const flush = () => {
+    const q = stripMarkdownForJsonLd(currentQ);
+    const a = stripMarkdownForJsonLd(currentA.join(' '));
+    if (q && a) pairs.push({ question: q, answer: a });
+    currentQ = '';
+    currentA = [];
+    sawAnswer = false;
+  };
+
+  const qRe = /^\s*(?:\*\*)?\s*Q[:：]\s*(.+?)(?:\*\*)?\s*$/i;
+  const aRe = /^\s*(?:\*\*)?\s*A[:：]\s*(.+?)(?:\*\*)?\s*$/i;
+
+  for (const lineRaw of lines) {
+    const line = String(lineRaw || '').trim();
+    if (!line) {
+      if (sawAnswer) currentA.push('');
+      continue;
+    }
+
+    const qMatch = line.match(qRe);
+    if (qMatch) {
+      if (currentQ) flush();
+      currentQ = qMatch[1] || '';
+      continue;
+    }
+
+    const aMatch = line.match(aRe);
+    if (aMatch) {
+      if (!currentQ) continue;
+      currentA.push(aMatch[1] || '');
+      sawAnswer = true;
+      continue;
+    }
+
+    if (!currentQ) continue;
+    if (!sawAnswer) continue;
+    if (/^##\s+/.test(line)) break;
+    currentA.push(line);
+  }
+
+  if (currentQ) flush();
+  return pairs.slice(0, 20);
+}
+
+function extractHowToSteps(markdown: string, locale: Locale): string[] {
+  const marker = locale === 'ko' ? /\*\*오늘\s*바로\s*할\s*일:\*\*/i : /\*\*Checklist\s+for\s+Today:\*\*/i;
+  const raw = String(markdown || '');
+  const match = marker.exec(raw);
+  if (!match || typeof match.index !== 'number') return [];
+
+  const after = raw.slice(match.index + match[0].length);
+  const nextHeadingIndex = after.search(/^##\s+/m);
+  const section = nextHeadingIndex === -1 ? after : after.slice(0, nextHeadingIndex);
+
+  return section
+    .replace(/```[\s\S]*?```/g, '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => /^-\s+/.test(l))
+    .map((l) => stripMarkdownForJsonLd(l.replace(/^-\s+/, '')))
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
 export default async function PostPage({
   params: { locale, slug },
 }: {
@@ -186,7 +283,7 @@ export default async function PostPage({
   const t = await getTranslations({ locale, namespace: 'post' });
   const requestedLocale = locale as Locale;
   const post = getPostBySlug(slug, requestedLocale);
-  const allPosts = getPosts(requestedLocale);
+  const allPosts = getPostSummaries(requestedLocale);
 
   if (!post) {
     const available = getAvailableLocalesForSlug(slug);
@@ -222,10 +319,26 @@ export default async function PostPage({
     );
   }
 
-  // Get related posts (same tag, excluding current)
-  const relatedPosts = allPosts
-    .filter((p) => p.slug !== post.slug && p.tags.some((tag) => post.tags.includes(tag)))
-    .slice(0, 3);
+  const postTopicId = post.topic ? normalizeTopicId(post.topic) : '';
+  const postTopicConfig = postTopicId ? getTopicConfig(requestedLocale, postTopicId) : null;
+
+  // Get related posts (topic first, then tags, then recent)
+  const relatedByTopic = postTopicId
+    ? allPosts
+        .filter((p) => p.slug !== post.slug && normalizeTopicId(p.topic || '') === postTopicId)
+        .slice(0, 3)
+    : [];
+
+  const relatedByTags = allPosts
+    .filter(
+      (p) =>
+        p.slug !== post.slug &&
+        !relatedByTopic.includes(p) &&
+        p.tags.some((tag) => post.tags.includes(tag))
+    )
+    .slice(0, Math.max(0, 3 - relatedByTopic.length));
+
+  const relatedPosts = [...relatedByTopic, ...relatedByTags].slice(0, 3);
 
   // If not enough related posts, fill with recent posts
   if (relatedPosts.length < 3) {
@@ -247,10 +360,11 @@ export default async function PostPage({
   const sourceHostname = getHostname(post.sourceUrl);
   const showSourceBadge = Boolean(post.sourceId || post.sourceUrl);
   const isDcInsideSource = Boolean(post.sourceUrl && /dcinside\.com/i.test(post.sourceUrl));
-  const publishedAtMs = new Date(post.date).getTime();
-  const ageDays = Number.isNaN(publishedAtMs)
+  const freshnessBase = post.lastReviewedAt || post.date;
+  const freshnessAtMs = new Date(freshnessBase).getTime();
+  const ageDays = Number.isNaN(freshnessAtMs)
     ? 0
-    : Math.floor((Date.now() - publishedAtMs) / (1000 * 60 * 60 * 24));
+    : Math.floor((Date.now() - freshnessAtMs) / (1000 * 60 * 60 * 24));
   const showStaleNotice = ageDays >= 120;
 
   const dateObj = new Date(post.date);
@@ -263,6 +377,19 @@ export default async function PostPage({
     ? formattedDate
     : `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 
+  const reviewedAt = post.lastReviewedAt ? new Date(post.lastReviewedAt) : null;
+  const reviewedDateLabel =
+    reviewedAt && !Number.isNaN(reviewedAt.getTime())
+      ? reviewedAt.toLocaleDateString(locale === 'ko' ? 'ko-KR' : 'en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : '';
+
+  const postUrl = `${BASE_URL}/${locale}/posts/${slug}`;
+  const correctionsHref = `/${locale}/corrections?url=${encodeURIComponent(postUrl)}&title=${encodeURIComponent(post.title)}`;
+
   // JSON-LD structured data for SEO
   const articleJsonLd = {
     '@context': 'https://schema.org',
@@ -270,8 +397,8 @@ export default async function PostPage({
     headline: post.title,
     description: post.description,
     datePublished: post.date,
-    dateModified: post.date,
-    url: `${BASE_URL}/${locale}/posts/${slug}`,
+    dateModified: post.lastReviewedAt || post.date,
+    url: postUrl,
     image: post.coverImage || buildOgImageUrl(post),
     author: {
       '@type': 'Organization',
@@ -289,7 +416,7 @@ export default async function PostPage({
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${BASE_URL}/${locale}/posts/${slug}`,
+      '@id': postUrl,
     },
     keywords: post.tags.join(', '),
     inLanguage: locale === 'ko' ? 'ko-KR' : 'en-US',
@@ -320,6 +447,51 @@ export default async function PostPage({
     ],
   };
 
+  const faqPairs = post.schema === 'faq' ? extractFaqPairs(post.content) : [];
+  const faqJsonLd =
+    post.schema === 'faq' && faqPairs.length >= 2
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: faqPairs.map((qa) => ({
+            '@type': 'Question',
+            name: qa.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: qa.answer,
+            },
+          })),
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `${BASE_URL}/${locale}/posts/${slug}`,
+          },
+          inLanguage: locale === 'ko' ? 'ko-KR' : 'en-US',
+        }
+      : null;
+
+  const howToSteps = post.schema === 'howto' ? extractHowToSteps(post.content, requestedLocale) : [];
+  const howToJsonLd =
+    post.schema === 'howto' && howToSteps.length >= 2
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'HowTo',
+          name: post.title,
+          description: post.description,
+          image: post.coverImage || buildOgImageUrl(post),
+          step: howToSteps.map((text, idx) => ({
+            '@type': 'HowToStep',
+            position: idx + 1,
+            name: text.length > 120 ? `${text.slice(0, 117)}...` : text,
+            text,
+          })),
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `${BASE_URL}/${locale}/posts/${slug}`,
+          },
+          inLanguage: locale === 'ko' ? 'ko-KR' : 'en-US',
+        }
+      : null;
+
   return (
     <>
       <script
@@ -330,6 +502,20 @@ export default async function PostPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {faqJsonLd && (
+        <script
+          id="ld-faq"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      )}
+      {howToJsonLd && (
+        <script
+          id="ld-howto"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+        />
+      )}
       <ReadingProgress />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12 lg:py-20">
@@ -347,6 +533,8 @@ export default async function PostPage({
                       <Link
                         href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
                         className="text-primary hover:underline"
+                        data-analytics-event="tag_click"
+                        data-analytics-params={JSON.stringify({ tag: post.tags[0], from: 'post_meta', locale })}
                       >
                         {post.tags[0]}
                       </Link>
@@ -372,6 +560,14 @@ export default async function PostPage({
                       <span className="truncate">{post.byline}</span>
                     </>
                   )}
+                  {reviewedDateLabel && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                      <span className="truncate">
+                        {locale === 'ko' ? `검토 ${reviewedDateLabel}` : `Reviewed ${reviewedDateLabel}`}
+                      </span>
+                    </>
+                  )}
                   {post.verificationScore !== undefined && (
                     <>
                       <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
@@ -387,15 +583,24 @@ export default async function PostPage({
                   <div className="flex items-start gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
-                        {locale === 'ko'
-                          ? `이 글은 ${formattedDate} 기준으로 작성되었습니다.`
-                          : `This post was written on ${formattedDate}.`}
+                        {reviewedDateLabel
+                          ? locale === 'ko'
+                            ? `이 글은 ${reviewedDateLabel} 기준으로 마지막으로 검토되었습니다.`
+                            : `This post was last reviewed on ${reviewedDateLabel}.`
+                          : locale === 'ko'
+                            ? `이 글은 ${formattedDate} 기준으로 작성되었습니다.`
+                            : `This post was written on ${formattedDate}.`}
                       </p>
                       <p className="mt-1 text-sm text-slate-700 dark:text-slate-200">
                         {locale === 'ko' ? (
                           <>
                             모델/가격/정책은 바뀌었을 수 있어요.{' '}
-                            <Link href={`/${locale}/tags/${encodeURIComponent(primaryTag)}`} className="text-primary hover:underline font-semibold">
+                            <Link
+                              href={`/${locale}/tags/${encodeURIComponent(primaryTag)}`}
+                              className="text-primary hover:underline font-semibold"
+                              data-analytics-event="tag_click"
+                              data-analytics-params={JSON.stringify({ tag: primaryTag, from: 'stale_notice', locale })}
+                            >
                               최신 {primaryTag} 글
                             </Link>
                             로 업데이트를 확인하세요.
@@ -403,7 +608,12 @@ export default async function PostPage({
                         ) : (
                           <>
                             Models/pricing/policies may have changed. Check the latest{' '}
-                            <Link href={`/${locale}/tags/${encodeURIComponent(primaryTag)}`} className="text-primary hover:underline font-semibold">
+                            <Link
+                              href={`/${locale}/tags/${encodeURIComponent(primaryTag)}`}
+                              className="text-primary hover:underline font-semibold"
+                              data-analytics-event="tag_click"
+                              data-analytics-params={JSON.stringify({ tag: primaryTag, from: 'stale_notice', locale })}
+                            >
                               {primaryTag} posts
                             </Link>
                             .
@@ -425,6 +635,38 @@ export default async function PostPage({
                 {post.description}
               </p>
 
+              {postTopicConfig && (
+                <div className="mb-10 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white/70 dark:bg-slate-900/30 p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        {locale === 'ko' ? '토픽' : 'Topic'}
+                      </p>
+                      <Link
+                        href={`/${locale}/topics/${encodeURIComponent(postTopicConfig.id)}`}
+                        className="mt-1 inline-flex items-center gap-2 text-lg font-extrabold text-slate-900 dark:text-white hover:text-primary transition-colors"
+                        data-analytics-event="post_topic_hub_click"
+                        data-analytics-params={JSON.stringify({ locale, topic: postTopicConfig.id, slug })}
+                      >
+                        {postTopicConfig.title}
+                        <span aria-hidden="true" className="text-primary">→</span>
+                      </Link>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">
+                        {postTopicConfig.description}
+                      </p>
+                    </div>
+                    <Link
+                      href={`/${locale}/topics/${encodeURIComponent(postTopicConfig.id)}`}
+                      className="shrink-0 inline-flex items-center justify-center h-10 px-4 rounded-lg bg-primary text-white font-bold hover:opacity-95 transition-opacity"
+                      data-analytics-event="post_topic_hub_cta_click"
+                      data-analytics-params={JSON.stringify({ locale, topic: postTopicConfig.id, slug })}
+                    >
+                      {locale === 'ko' ? '토픽에서 더 보기' : 'Browse topic'}
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {/* Tag chips */}
               {post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-10">
@@ -435,6 +677,8 @@ export default async function PostPage({
                         key={tag}
                         href={chipHref}
                         className="group inline-flex items-center rounded-full border border-gray-200/80 dark:border-gray-700/80 bg-white/70 dark:bg-slate-900/40 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all"
+                        data-analytics-event="tag_click"
+                        data-analytics-params={JSON.stringify({ tag, from: 'post_chips', locale })}
                       >
                         <span className="max-w-[14rem] truncate">{tag}</span>
                       </Link>
@@ -490,6 +734,25 @@ export default async function PostPage({
               locale={locale as Locale}
             />
 
+            <NewsletterSignup locale={locale as Locale} from="post" />
+
+            <div className="mt-8 rounded-2xl border border-gray-200/80 dark:border-gray-800 bg-white/70 dark:bg-slate-900/40 p-4">
+              <p className="text-sm text-slate-700 dark:text-slate-200">
+                {locale === 'ko' ? '오류를 발견했나요?' : 'Found an issue?'}{' '}
+                <Link
+                  href={correctionsHref}
+                  className="text-primary hover:underline font-semibold"
+                  data-analytics-event="corrections_click"
+                  data-analytics-params={JSON.stringify({ from: 'post', locale, slug })}
+                >
+                  {locale === 'ko' ? '정정/오류 제보' : 'Report a correction'}
+                </Link>
+                {locale === 'ko'
+                  ? '로 알려주시면 검토 후 업데이트에 반영할게요.'
+                  : ' so we can review and update the post.'}
+              </p>
+            </div>
+
             {/* Inspiration & Source */}
             {(isDcInsideSource || post.sourceUrl) && (
               <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
@@ -504,6 +767,8 @@ export default async function PostPage({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline"
+                        data-analytics-event="source_outbound_click"
+                        data-analytics-params={JSON.stringify({ kind: 'inspired_by', locale })}
                       >
                         {locale === 'ko' ? '특이점이 온다 갤러리' : 'Singularity Gallery (Korea)'}
                       </a>
@@ -519,6 +784,8 @@ export default async function PostPage({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline truncate max-w-[300px]"
+                        data-analytics-event="source_outbound_click"
+                        data-analytics-params={JSON.stringify({ kind: 'source', locale, sourceId: post.sourceId || '' })}
                       >
                         {sourceHostname ?? post.sourceUrl}
                       </a>
@@ -539,6 +806,8 @@ export default async function PostPage({
           {/* Sidebar */}
           <aside className="lg:col-span-4">
             <div className="space-y-12">
+              <TableOfContents content={post.content} className="lg:block" />
+
               {/* Related Articles */}
               {relatedPosts.length > 0 && (
                 <div>

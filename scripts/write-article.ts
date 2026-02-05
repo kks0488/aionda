@@ -25,6 +25,10 @@ const LAST_WRITTEN_PATH = join(VC_DIR, 'last-written.json');
 const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 const MIN_CONFIDENCE = 0.6;
 const CORE_TAGS = ['agi', 'llm', 'robotics', 'hardware'] as const;
+const SERIES_TAGS = ['k-ai-pulse', 'explainer', 'deep-dive'] as const;
+type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
+type EvergreenSchema = 'howto' | 'faq';
+type Locale = 'ko' | 'en';
 const CORE_TAG_PATTERNS: Array<{ tag: (typeof CORE_TAGS)[number]; regex: RegExp }> = [
   { tag: 'agi', regex: /agi|artificial general intelligence|superintelligence|초지능|범용.*인공지능/i },
   { tag: 'robotics', regex: /robot|로봇|humanoid|휴머노이드|boston dynamics|figure|drone|드론|자율주행/i },
@@ -34,6 +38,16 @@ const CORE_TAG_PATTERNS: Array<{ tag: (typeof CORE_TAGS)[number]; regex: RegExp 
 
 function stripHtml(value: string): string {
   return String(value || '').replace(/<[^>]*>/g, '');
+}
+
+function normalizeTopicId(value: string): string {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function decodeHtmlEntities(value: string): string {
@@ -148,6 +162,10 @@ interface ResearchedTopic {
   researchedAt: string;
   overallConfidence: number;
   canPublish: boolean;
+  primaryKeyword?: string;
+  intent?: EvergreenIntent;
+  topic?: string;
+  schema?: EvergreenSchema;
 }
 
 interface ArticleMetadata {
@@ -330,7 +348,8 @@ function generateFrontmatter(
   locale: 'ko' | 'en',
   slug: string,
   content: string,
-  coverImagePath?: string
+  coverImagePath: string | undefined,
+  series: EditorialSeries
 ): string {
   const isEnglish = locale === 'en';
   const title = isEnglish ? metadata.title_en : metadata.title_ko;
@@ -347,25 +366,52 @@ function generateFrontmatter(
       .toLowerCase()
       .replace(/\s+/g, ' ');
 
-  const baseTags = (metadata.tags || []).map(normalizeTag).filter(Boolean);
+  const seriesSet = new Set(SERIES_TAGS);
+  const baseTags = (metadata.tags || [])
+    .map(normalizeTag)
+    .filter(Boolean)
+    .filter((t) => !seriesSet.has(t as any));
   const combinedText = `${title}\n${description}\n${baseTags.join(' ')}\n${content}`.toLowerCase();
 
   const derivedCore = CORE_TAG_PATTERNS.filter(({ regex }) => regex.test(combinedText)).map(
     ({ tag }) => tag
   );
 
-  const finalTagsRaw = [...new Set([...baseTags, ...(derivedCore.length ? derivedCore : ['llm'])])];
+  const topicTag = topic.topic ? normalizeTag(topic.topic) : '';
+  const finalTagsRaw = [
+    ...new Set([
+      series,
+      ...baseTags,
+      ...(topicTag ? [topicTag] : []),
+      ...(derivedCore.length ? derivedCore : ['llm']),
+    ]),
+  ];
   const finalTags = canonicalizeTags(finalTagsRaw, { maxTags: 8 });
 
-return `---
-title: "${title.replace(/"/g, '\\"')}"
-slug: "${slug}"
-date: "${new Date().toISOString().split('T')[0]}"
-locale: "${locale}"
-description: "${description.replace(/"/g, '\\"')}"
-tags: [${finalTags.map((t) => `"${t}"`).join(', ')}]
-author: "AI온다"
-sourceId: "${topic.sourceId}"
+  const primaryKeyword = topic.primaryKeyword ? String(topic.primaryKeyword).trim() : '';
+  const intent = topic.intent ? String(topic.intent).trim() : '';
+  const topicId = topic.topic ? String(topic.topic).trim() : '';
+  const schema = topic.schema ? String(topic.schema).trim() : '';
+  const evergreenLines = [
+    primaryKeyword ? `\tprimaryKeyword: "${primaryKeyword.replace(/"/g, '\\"')}"` : '',
+    intent ? `\tintent: "${intent.replace(/"/g, '\\"')}"` : '',
+    topicId ? `\ttopic: "${topicId.replace(/"/g, '\\"')}"` : '',
+    schema ? `\tschema: "${schema.replace(/"/g, '\\"')}"` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const evergreenBlock = evergreenLines ? `${evergreenLines}\n` : '';
+
+	return `---
+	title: "${title.replace(/"/g, '\\"')}"
+	slug: "${slug}"
+	date: "${new Date().toISOString().split('T')[0]}"
+	lastReviewedAt: "${new Date().toISOString().split('T')[0]}"
+	locale: "${locale}"
+	description: "${description.replace(/"/g, '\\"')}"
+${evergreenBlock}	tags: [${finalTags.map((t) => `"${t}"`).join(', ')}]
+	author: "AI온다"
+	sourceId: "${topic.sourceId}"
 sourceUrl: "${topic.sourceUrl}"
 verificationScore: ${topic.overallConfidence}
 alternateLocale: "/${otherLocale}/posts/${slug}"
@@ -455,6 +501,256 @@ function removeDuplicatePostsBySourceId(localeDir: string, sourceId: string, kee
   if (removed.length > 0) {
     console.log(`   🧹 Removed ${removed.length} duplicate post(s) for sourceId ${sourceId}`);
   }
+}
+
+interface IndexedPost {
+  slug: string;
+  title: string;
+  date: string;
+  lastReviewedAt?: string;
+  tags: string[];
+  topic?: string;
+  intent?: string;
+  schema?: string;
+  primaryKeyword?: string;
+  description?: string;
+}
+
+const postsIndexCache: Partial<Record<Locale, IndexedPost[]>> = {};
+const topicTitlesCache: Partial<Record<Locale, Map<string, string>>> = {};
+
+function getTopicTitle(locale: Locale, topicId: string): string | null {
+  const normalized = normalizeTopicId(topicId);
+  if (!normalized) return null;
+
+  const cached = topicTitlesCache[locale];
+  if (cached && cached.has(normalized)) return cached.get(normalized) || null;
+
+  const map = cached || new Map<string, string>();
+  if (!cached) topicTitlesCache[locale] = map;
+
+  const filePath = join(process.cwd(), 'apps', 'web', 'content', 'topics', `${locale}.json`);
+  if (!existsSync(filePath)) {
+    map.set(normalized, normalized);
+    return normalized;
+  }
+
+  try {
+    const raw = readFileSync(filePath, 'utf8');
+    const parsed = JSON.parse(raw) as Array<{ id?: unknown; title?: unknown }>;
+    if (Array.isArray(parsed)) {
+      for (const item of parsed) {
+        const id = normalizeTopicId(String(item?.id || ''));
+        const title = String(item?.title || '').trim();
+        if (!id || !title) continue;
+        map.set(id, title);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  if (!map.has(normalized)) map.set(normalized, normalized);
+  return map.get(normalized) || null;
+}
+
+function normalizeTagList(raw: unknown): string[] {
+  if (!raw) return [];
+  const list = Array.isArray(raw) ? raw : [raw];
+  return list
+    .map((t) => String(t || '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function loadPostsIndex(locale: Locale): IndexedPost[] {
+  const cached = postsIndexCache[locale];
+  if (cached) return cached;
+
+  const dir = join(process.cwd(), POSTS_DIR, locale);
+  if (!existsSync(dir)) {
+    postsIndexCache[locale] = [];
+    return [];
+  }
+
+  const out: IndexedPost[] = [];
+  for (const file of readdirSync(dir).filter((f) => (f.endsWith('.mdx') || f.endsWith('.md')) && !f.startsWith('._'))) {
+    const fullPath = join(dir, file);
+    try {
+      const raw = readFileSync(fullPath, 'utf8');
+      const { data, content } = matter(raw);
+      const slug = String(data.slug || file.replace(/\.mdx?$/, '')).trim();
+      if (!slug) continue;
+      const title = String(data.title || slug).trim();
+      const date = String(data.date || '').trim();
+      const lastReviewedAt = String(data.lastReviewedAt || '').trim();
+      const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
+      const intent = typeof data.intent === 'string' ? data.intent.trim().toLowerCase() : '';
+      const schema = typeof data.schema === 'string' ? data.schema.trim().toLowerCase() : '';
+      const primaryKeyword = typeof data.primaryKeyword === 'string' ? data.primaryKeyword.trim() : '';
+      const description =
+        typeof data.description === 'string'
+          ? data.description.trim()
+          : typeof data.excerpt === 'string'
+            ? data.excerpt.trim()
+            : String(content || '').trim().slice(0, 200);
+      const tags = normalizeTagList((data as any).tags);
+
+      out.push({
+        slug,
+        title,
+        date,
+        lastReviewedAt: lastReviewedAt || undefined,
+        tags,
+        topic: topic || undefined,
+        intent: intent || undefined,
+        schema: schema || undefined,
+        primaryKeyword: primaryKeyword || undefined,
+        description: description || undefined,
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  postsIndexCache[locale] = out;
+  return out;
+}
+
+function toFreshnessMs(post: { date: string; lastReviewedAt?: string }): number {
+  const raw = post.lastReviewedAt || post.date;
+  const t = new Date(String(raw || '')).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+function buildInternalLinksSection(locale: Locale, input: {
+  currentSlug: string;
+  topicId?: string;
+  intent?: string;
+  minLinks?: number;
+}): string {
+  const posts = loadPostsIndex(locale).filter((p) => p.slug !== input.currentSlug);
+  if (posts.length === 0) return '';
+
+  const topicNormalized = input.topicId ? normalizeTopicId(input.topicId) : '';
+  const intentNormalized = String(input.intent || '').trim().toLowerCase();
+  const minLinks = typeof input.minLinks === 'number' && input.minLinks > 0 ? input.minLinks : 4;
+
+  const seen = new Set<string>();
+  const picked: Array<{ href: string; text: string }> = [];
+  const add = (href: string, text: string) => {
+    const normalizedHref = String(href || '').trim();
+    const normalizedText = String(text || '').trim();
+    if (!normalizedHref || !normalizedText) return;
+    if (seen.has(normalizedHref)) return;
+    seen.add(normalizedHref);
+    picked.push({ href: normalizedHref, text: normalizedText });
+  };
+
+  if (topicNormalized) {
+    const title = getTopicTitle(locale, topicNormalized) || topicNormalized;
+    const label = locale === 'ko' ? `${title} 토픽에서 더 보기` : `Explore the ${title} topic`;
+    add(`/${locale}/topics/${encodeURIComponent(topicNormalized)}`, label);
+  }
+
+  if (topicNormalized) {
+    const sameTopic = posts
+      .filter((p) => {
+        const postTopic = p.topic ? normalizeTopicId(p.topic) : '';
+        if (postTopic && postTopic === topicNormalized) return true;
+        if (p.tags.includes(topicNormalized)) return true;
+        return false;
+      })
+      .sort((a, b) => toFreshnessMs(b) - toFreshnessMs(a))
+      .slice(0, 6);
+
+    for (const p of sameTopic) {
+      if (picked.length >= 3) break;
+      add(`/${locale}/posts/${encodeURIComponent(p.slug)}`, p.title);
+    }
+  }
+
+  if (intentNormalized) {
+    const sameIntent = posts
+      .filter((p) => String(p.intent || '').toLowerCase() === intentNormalized)
+      .sort((a, b) => toFreshnessMs(b) - toFreshnessMs(a))
+      .slice(0, 6);
+    for (const p of sameIntent) {
+      if (picked.length >= 5) break;
+      add(`/${locale}/posts/${encodeURIComponent(p.slug)}`, p.title);
+    }
+  }
+
+  if (picked.length < minLinks) {
+    const recent = posts
+      .slice()
+      .sort((a, b) => toFreshnessMs(b) - toFreshnessMs(a));
+    for (const p of recent) {
+      if (picked.length >= minLinks) break;
+      add(`/${locale}/posts/${encodeURIComponent(p.slug)}`, p.title);
+    }
+  }
+
+  if (picked.length < 2) return '';
+
+  const heading = locale === 'ko' ? '## 다음으로 읽기' : '## Further Reading';
+  const lines = [
+    '',
+    heading,
+    ...picked.slice(0, Math.max(minLinks, 4)).map((l) => `- [${l.text}](${l.href})`),
+    '',
+  ];
+  return lines.join('\n').trim();
+}
+
+function insertInternalLinks(locale: Locale, markdown: string, input: { slug: string; topicId?: string; intent?: string }): string {
+  const headingRe = locale === 'ko' ? /^##\s*다음으로\s*읽기\s*$/im : /^##\s*Further\s+Reading\s*$/im;
+  if (headingRe.test(markdown)) return markdown;
+
+  const cleaned = stripInlineReferences(markdown);
+  const section = buildInternalLinksSection(locale, {
+    currentSlug: input.slug,
+    topicId: input.topicId,
+    intent: input.intent,
+    minLinks: 5,
+  });
+  if (!section) return cleaned;
+  return `${cleaned}\n\n${section}\n`.trim();
+}
+
+function ensureTroubleshootingTldr(locale: Locale, markdown: string): string {
+  const tldrHeading = locale === 'ko'
+    ? /^##\s*(TL;DR|세\s*줄\s*요약|세줄\s*요약|간단\s*요약)\s*$/i
+    : /^##\s*TL;DR\s*$/i;
+  const lines = String(markdown || '').split('\n');
+  const headingIndex = lines.findIndex((line) => tldrHeading.test(line.trim()));
+  if (headingIndex === -1) return markdown;
+
+  let endIndex = lines.length;
+  for (let i = headingIndex + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  const bulletIndices: number[] = [];
+  for (let i = headingIndex + 1; i < endIndex; i++) {
+    if (/^\s*-\s+/.test(lines[i])) bulletIndices.push(i);
+  }
+  if (bulletIndices.length < 3) return markdown;
+
+  const already =
+    locale === 'ko'
+      ? /(장애|계정|네트워크|클라이언트)/.test(lines.slice(headingIndex, endIndex).join('\n'))
+      : /\b(outage|account|network|client)\b/i.test(lines.slice(headingIndex, endIndex).join('\n'));
+  if (already) return markdown;
+
+  const thirdIdx = bulletIndices[2];
+  const suffix = locale === 'ko'
+    ? ' — 장애/계정/네트워크/클라이언트로 먼저 분리해 확인하세요.'
+    : ' — Start by splitting it into outage/account/network/client.';
+  lines[thirdIdx] = `${lines[thirdIdx].trimEnd()}${suffix}`;
+  return lines.join('\n');
 }
 
 function stripInlineReferences(content: string): string {
@@ -762,13 +1058,21 @@ async function main() {
         .filter(Boolean)
         .join('\n');
       articleKo = sanitizeModelMentions('ko', articleKo, evidenceTextKo);
-      articleKo = appendSources('ko', articleKo, topic);
+      if (topic.intent === 'troubleshooting' || topic.schema === 'howto') {
+        articleKo = ensureTroubleshootingTldr('ko', articleKo);
+      }
 
       // Generate metadata
       console.log('   📰 Generating metadata...');
       const metadata = await generateMetadata(articleKo);
-      const seriesTag = series;
-      metadata.tags = Array.from(new Set([...(metadata.tags || []), seriesTag]));
+      metadata.tags = Array.from(new Set([...(metadata.tags || []), series]));
+
+      const sourceId = String(topic.sourceId || '');
+      const existingSlug =
+        (sourceId ? findExistingSlugBySourceId(koDir, sourceId) : null) ||
+        (sourceId ? findExistingSlugBySourceId(enDir, sourceId) : null);
+      const slug = existingSlug || metadata.slug;
+      const coverImagePath = getExistingCoverImage(slug);
 
       // Translate to English
       console.log('   🌐 Translating to English...');
@@ -785,18 +1089,28 @@ async function main() {
         .filter(Boolean)
         .join('\n');
       articleEn = sanitizeModelMentions('en', articleEn, evidenceTextEn);
+      if (topic.intent === 'troubleshooting' || topic.schema === 'howto') {
+        articleEn = ensureTroubleshootingTldr('en', articleEn);
+      }
+
+      // Insert internal links (locale-correct), then append sources as the last section.
+      articleKo = insertInternalLinks('ko', articleKo, {
+        slug,
+        topicId: topic.topic ? String(topic.topic) : undefined,
+        intent: topic.intent ? String(topic.intent) : undefined,
+      });
+      articleEn = insertInternalLinks('en', articleEn, {
+        slug,
+        topicId: topic.topic ? String(topic.topic) : undefined,
+        intent: topic.intent ? String(topic.intent) : undefined,
+      });
+
+      articleKo = appendSources('ko', articleKo, topic);
       articleEn = appendSources('en', articleEn, topic);
 
-      const sourceId = String(topic.sourceId || '');
-      const existingSlug =
-        (sourceId ? findExistingSlugBySourceId(koDir, sourceId) : null) ||
-        (sourceId ? findExistingSlugBySourceId(enDir, sourceId) : null);
-      const slug = existingSlug || metadata.slug;
-      const coverImagePath = getExistingCoverImage(slug);
-
       // Generate frontmatter
-      const frontmatterKo = generateFrontmatter(metadata, topic, 'ko', slug, articleKo, coverImagePath || undefined);
-      const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug, articleEn, coverImagePath || undefined);
+      const frontmatterKo = generateFrontmatter(metadata, topic, 'ko', slug, articleKo, coverImagePath || undefined, series);
+      const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug, articleEn, coverImagePath || undefined, series);
 
       // Write files
       const koFile = join(koDir, `${slug}.mdx`);

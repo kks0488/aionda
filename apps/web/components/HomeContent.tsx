@@ -2,14 +2,14 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import type { Post } from '@/lib/posts';
+import type { PostSummary } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import PostCard from './PostCard';
 import Sidebar from './Sidebar';
 import { getSourceKind } from '@/lib/source-utils';
 
 interface HomeContentProps {
-  posts: Post[];
+  posts: PostSummary[];
   locale: Locale;
 }
 
@@ -35,15 +35,15 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
   }, [posts, normalizedCategory]);
 
   const orderedPosts = useMemo(() => {
-    const hasTag = (post: Post, tag: string) =>
+    const hasTag = (post: PostSummary, tag: string) =>
       post.tags.some((t) => t.toLowerCase() === tag);
-    const isRoundup = (post: Post) => hasTag(post, 'roundup');
-    const isPulse = (post: Post) => hasTag(post, 'k-ai-pulse') && !isRoundup(post);
-    const isEvergreen = (post: Post) => hasTag(post, 'explainer') || hasTag(post, 'deep-dive');
-    const isCommunity = (post: Post) =>
+    const isRoundup = (post: PostSummary) => hasTag(post, 'roundup');
+    const isPulse = (post: PostSummary) => hasTag(post, 'k-ai-pulse') && !isRoundup(post);
+    const isEvergreen = (post: PostSummary) => hasTag(post, 'explainer') || hasTag(post, 'deep-dive');
+    const isCommunity = (post: PostSummary) =>
       getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl }) === 'community';
 
-    const byDateDesc = (a: Post, b: Post) => new Date(b.date).getTime() - new Date(a.date).getTime();
+    const byDateDesc = (a: PostSummary, b: PostSummary) => new Date(b.date).getTime() - new Date(a.date).getTime();
     const sorted = [...filteredPosts].sort(byDateDesc);
 
     // "Latest" should feel current: prioritize fast-news posts over evergreen explainers.
@@ -74,9 +74,9 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
   }, [filteredPosts, normalizedCategory]);
 
   const featuredPosts = useMemo(() => {
-    const isRoundupPost = (post: Post) => post.tags.some((t) => t.toLowerCase() === 'roundup');
-    const kind = (post: Post) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
-    const isTrusted = (post: Post) => {
+    const isRoundupPost = (post: PostSummary) => post.tags.some((t) => t.toLowerCase() === 'roundup');
+    const kind = (post: PostSummary) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
+    const isTrusted = (post: PostSummary) => {
       const k = kind(post);
       return k === 'official' || k === 'news' || k === 'evergreen' || k === 'roundup';
     };
@@ -112,9 +112,9 @@ export default function HomeContent({ posts, locale }: HomeContentProps) {
         return posts.filter((p) => new Date(p.date).getTime() >= since);
       };
 
-      const pick = (candidates: Post[]) => {
-        const kind = (post: Post) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
-        const trustBoost = (post: Post) => {
+      const pick = (candidates: PostSummary[]) => {
+        const kind = (post: PostSummary) => getSourceKind({ sourceId: post.sourceId, sourceUrl: post.sourceUrl });
+        const trustBoost = (post: PostSummary) => {
           const k = kind(post);
           if (k === 'official' || k === 'news') return 0.25;
           if (k === 'evergreen' || k === 'roundup') return 0.15;

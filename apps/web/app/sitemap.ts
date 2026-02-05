@@ -1,19 +1,23 @@
 import { MetadataRoute } from 'next';
-import { getPosts } from '@/lib/posts';
+import { getPostSummaries } from '@/lib/posts';
 import { getTagStats } from '@/lib/tags';
+import { buildTopicStats, getTopics } from '@/lib/topics';
 import { locales, type Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
-  const allPosts = locales.flatMap((locale) => getPosts(locale as Locale));
+  const allPosts = locales.flatMap((locale) => getPostSummaries(locale as Locale));
+  const toMs = (value: unknown) => {
+    const t = new Date(String(value || '')).getTime();
+    return Number.isNaN(t) ? 0 : t;
+  };
   const siteLastModified =
     allPosts.length > 0
       ? new Date(
           Math.max(
             ...allPosts.map((post) => {
-              const t = new Date(post.date).getTime();
-              return Number.isNaN(t) ? 0 : t;
+              return Math.max(toMs(post.date), toMs(post.lastReviewedAt || ''));
             })
           )
         )
@@ -21,14 +25,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // Home pages for each locale
   for (const locale of locales) {
-    const localePosts = getPosts(locale as Locale);
+    const localePosts = getPostSummaries(locale as Locale);
     const localeLastModified =
       localePosts.length > 0
         ? new Date(
-            Math.max(
+          Math.max(
               ...localePosts.map((post) => {
-                const t = new Date(post.date).getTime();
-                return Number.isNaN(t) ? 0 : t;
+                return Math.max(toMs(post.date), toMs(post.lastReviewedAt || ''));
               })
             )
           )
@@ -71,11 +74,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
       });
     }
 
+    // Topics index + topic pages
+    entries.push({
+      url: `${BASE_URL}/${locale}/topics`,
+      lastModified: localeLastModified,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    });
+
+    const topicStats = buildTopicStats(getTopics(locale as Locale), localePosts);
+    for (const stat of topicStats) {
+      const lm = new Date(stat.lastUsedAt);
+      entries.push({
+        url: `${BASE_URL}/${locale}/topics/${encodeURIComponent(stat.topic.id)}`,
+        lastModified: Number.isNaN(lm.getTime()) ? localeLastModified : lm,
+        changeFrequency: 'weekly',
+        priority: 0.5,
+      });
+    }
+
     // Individual posts
     for (const post of localePosts) {
       entries.push({
         url: `${BASE_URL}/${locale}/posts/${post.slug}`,
-        lastModified: new Date(post.date),
+        lastModified: new Date(post.lastReviewedAt || post.date),
         changeFrequency: 'weekly',
         priority: 0.7,
       });
@@ -83,7 +105,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
 
   // Static pages
-  const staticPages = ['about', 'privacy', 'terms'];
+  const staticPages = ['about', 'editorial', 'corrections', 'privacy', 'terms'];
   for (const page of staticPages) {
     for (const locale of locales) {
       entries.push({

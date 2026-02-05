@@ -22,12 +22,14 @@ export default function MobileNav({ locale }: MobileNavProps) {
   const normalized = normalizePathname(pathname);
   const localePrefix = `/${locale}`;
   const postsPrefix = `${localePrefix}/posts`;
+  const topicsPrefix = `${localePrefix}/topics`;
   const tagsPrefix = `${localePrefix}/tags`;
 
   if (normalized.startsWith(`${localePrefix}/admin`)) return null;
 
   const isHome = normalized === localePrefix;
   const isPosts = normalized === postsPrefix || normalized.startsWith(`${postsPrefix}/`);
+  const isTopics = normalized === topicsPrefix || normalized.startsWith(`${topicsPrefix}/`);
   const isTags = normalized === tagsPrefix || normalized.startsWith(`${tagsPrefix}/`);
 
   const baseItem =
@@ -42,7 +44,7 @@ export default function MobileNav({ locale }: MobileNavProps) {
       className="md:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-50 w-[min(560px,calc(100%-1.5rem))]"
     >
       <div className="relative rounded-[28px] border border-gray-200/70 dark:border-gray-700/70 bg-white/85 dark:bg-[#101922]/80 backdrop-blur-xl shadow-[0_18px_55px_rgba(0,0,0,0.18)]">
-        <div className="grid grid-cols-4 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+        <div className="grid grid-cols-5 px-2 py-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
           <Link
             href={`/${locale}`}
             aria-current={isHome ? 'page' : undefined}
@@ -60,6 +62,16 @@ export default function MobileNav({ locale }: MobileNavProps) {
           </Link>
 
           <Link
+            href={`/${locale}/topics`}
+            aria-current={isTopics ? 'page' : undefined}
+            className={`${baseItem} ${isTopics ? activeItem : inactiveItem}`}
+            data-analytics-event="topic_click"
+            data-analytics-params={JSON.stringify({ from: 'mobile_nav', locale })}
+          >
+            {locale === 'ko' ? '토픽' : 'Topics'}
+          </Link>
+
+          <Link
             href={`/${locale}/tags`}
             aria-current={isTags ? 'page' : undefined}
             className={`${baseItem} ${isTags ? activeItem : inactiveItem}`}
@@ -72,6 +84,8 @@ export default function MobileNav({ locale }: MobileNavProps) {
             onClick={openSearch}
             className={`${baseItem} ${inactiveItem}`}
             aria-label={locale === 'ko' ? '검색 열기' : 'Open search'}
+            data-analytics-event="search_open"
+            data-analytics-params={JSON.stringify({ from: 'mobile_nav', locale })}
           >
             {locale === 'ko' ? '검색' : 'Search'}
           </button>

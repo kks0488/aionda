@@ -1,9 +1,9 @@
-import { getPosts } from '@/lib/posts';
+import { getPostSummaries } from '@/lib/posts';
 import { BASE_URL } from '@/lib/site';
 import { locales, type Locale } from '@/i18n';
 
 export async function GET() {
-  const allLocalePosts = locales.flatMap((locale) => getPosts(locale as Locale));
+  const allLocalePosts = locales.flatMap((locale) => getPostSummaries(locale as Locale));
 
   const safeString = (value: unknown) => (value == null ? '' : String(value));
   const cdata = (value: unknown) => safeString(value).replace(/]]>/g, ']]]]><![CDATA[>');

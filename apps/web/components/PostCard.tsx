@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import type { Post } from '@/lib/posts';
+import type { PostSummary } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import { getTagColor } from '@/lib/tag-utils';
 import SourceBadge from '@/components/SourceBadge';
 
 interface PostCardProps {
-  post: Post;
+  post: PostSummary;
   locale: Locale;
   variant?: 'large' | 'medium' | 'small';
   priority?: boolean;
@@ -77,6 +77,8 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             <Link
               href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
               className="absolute top-4 left-4 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
+              data-analytics-event="tag_click"
+              data-analytics-params={JSON.stringify({ tag: post.tags[0], from: 'post_card', locale })}
             >
               {post.tags[0]}
             </Link>
@@ -141,6 +143,8 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
             <Link
               href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
               className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
+              data-analytics-event="tag_click"
+              data-analytics-params={JSON.stringify({ tag: post.tags[0], from: 'post_card', locale })}
             >
               {post.tags[0]}
             </Link>
@@ -206,6 +210,8 @@ export default function PostCard({ post, locale, variant = 'medium', priority = 
           <Link
             href={`/${locale}/tags/${encodeURIComponent(post.tags[0])}`}
             className="absolute top-3 left-3 z-20 bg-white/90 dark:bg-black/80 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider text-slate-900 dark:text-white"
+            data-analytics-event="tag_click"
+            data-analytics-params={JSON.stringify({ tag: post.tags[0], from: 'post_card', locale })}
           >
             {post.tags[0]}
           </Link>

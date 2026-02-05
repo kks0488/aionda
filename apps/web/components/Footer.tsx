@@ -18,13 +18,37 @@ export default function Footer() {
         </div>
 
         <div className="flex gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
+          <Link href={`/${locale}/topics`} className="hover:text-primary transition-colors">
+            {locale === 'ko' ? '토픽' : 'Topics'}
+          </Link>
+          <Link
+            href={`/${locale}/editorial`}
+            className="hover:text-primary transition-colors"
+            data-analytics-event="static_page_click"
+            data-analytics-params={JSON.stringify({ page: 'editorial', from: 'footer', locale })}
+          >
+            {locale === 'ko' ? '에디토리얼' : 'Editorial'}
+          </Link>
+          <Link
+            href={`/${locale}/corrections`}
+            className="hover:text-primary transition-colors"
+            data-analytics-event="static_page_click"
+            data-analytics-params={JSON.stringify({ page: 'corrections', from: 'footer', locale })}
+          >
+            {locale === 'ko' ? '정정' : 'Corrections'}
+          </Link>
           <Link href={`/${locale}/privacy`} className="hover:text-primary transition-colors">
             {locale === 'ko' ? '개인정보 처리방침' : 'Privacy'}
           </Link>
           <Link href={`/${locale}/terms`} className="hover:text-primary transition-colors">
             {locale === 'ko' ? '이용약관' : 'Terms'}
           </Link>
-          <a href="/feed.xml" className="hover:text-primary transition-colors">
+          <a
+            href={`/${locale}/feed.xml`}
+            data-analytics-event="rss_click"
+            data-analytics-params={JSON.stringify({ from: 'footer', locale })}
+            className="hover:text-primary transition-colors"
+          >
             RSS
           </a>
         </div>

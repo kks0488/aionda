@@ -35,6 +35,8 @@ const KO_EXAMPLE_MARKER = /^\s*예:\s/m;
 const EN_EXAMPLE_MARKER = /^\s*Example:\s/m;
 const KO_CHECKLIST_MARKER = /\*\*오늘\s*바로\s*할\s*일:\*\*/i;
 const EN_CHECKLIST_MARKER = /\*\*Checklist\s+for\s+Today:\*\*/i;
+const FAQ_HEADING = /^##\s*FAQ\s*$/im;
+const EVERGREEN_KW_SOURCE_ID_PREFIX = 'evergreen-kw-ko-';
 
 const HYPE_WORDS = [
   'revolutionary',
@@ -167,6 +169,26 @@ function stripMarkdown(text: string): string {
   return t;
 }
 
+function extractInternalLinks(markdown: string): string[] {
+  const out: string[] = [];
+  const re = /\]\((\/(?:ko|en)\/[^)\s]+)\)/g;
+  for (const match of String(markdown || '').matchAll(re)) {
+    const href = String(match[1] || '').trim();
+    if (!href) continue;
+    out.push(href);
+  }
+  return out;
+}
+
+function normalizeInternalHref(href: string): string {
+  let value = String(href || '').trim();
+  const hashIndex = value.indexOf('#');
+  if (hashIndex >= 0) value = value.slice(0, hashIndex);
+  const queryIndex = value.indexOf('?');
+  if (queryIndex >= 0) value = value.slice(0, queryIndex);
+  return value;
+}
+
 function splitSentences(text: string): string[] {
   return text
     .split(/(?<=[.!?])\s+/)
@@ -256,6 +278,25 @@ function extractParagraphStartingWith(markdown: string, startsWith: RegExp): str
   return para.join(' ').replace(/\s+/g, ' ').trim();
 }
 
+function extractHeadingSection(markdown: string, heading: RegExp): string {
+  const raw = String(markdown || '');
+  const re = new RegExp(heading.source, heading.flags);
+  const match = re.exec(raw);
+  if (!match || typeof match.index !== 'number') return '';
+
+  const after = raw.slice(match.index + match[0].length);
+  const nextHeadingIndex = after.search(/^##\s+/m);
+  return (nextHeadingIndex === -1 ? after : after.slice(0, nextHeadingIndex)).trim();
+}
+
+function countFaqPairs(markdown: string): number {
+  const section = extractHeadingSection(markdown, FAQ_HEADING);
+  if (!section) return 0;
+  const q = section.match(/^\s*(?:\*\*)?\s*Q[:：]\s*.+/gim) || [];
+  const a = section.match(/^\s*(?:\*\*)?\s*A[:：]\s*.+/gim) || [];
+  return Math.min(q.length, a.length);
+}
+
 function includesAny(textLower: string, terms: string[]): string | null {
   for (const term of terms) {
     if (!term) continue;
@@ -314,23 +355,72 @@ function main() {
 
     const content = parsed.content || '';
     const frontmatter = (parsed as unknown as { data?: Record<string, unknown> }).data || {};
+    const sourceId = typeof frontmatter.sourceId === 'string' ? frontmatter.sourceId.trim() : '';
+    const isEvergreenKw = sourceId.startsWith(EVERGREEN_KW_SOURCE_ID_PREFIX);
+    const primaryKeyword = typeof frontmatter.primaryKeyword === 'string' ? frontmatter.primaryKeyword.trim() : '';
+    const intentRaw = typeof frontmatter.intent === 'string' ? frontmatter.intent.trim().toLowerCase() : '';
+    const intent =
+      intentRaw === 'informational' || intentRaw === 'commercial' || intentRaw === 'troubleshooting'
+        ? intentRaw
+        : '';
+    const topicId = typeof frontmatter.topic === 'string' ? frontmatter.topic.trim() : '';
+    const schemaRaw = typeof frontmatter.schema === 'string' ? frontmatter.schema.trim().toLowerCase() : '';
+    const schema = schemaRaw === 'faq' || schemaRaw === 'howto' ? (schemaRaw as 'faq' | 'howto') : '';
     const tags = normalizeTags(frontmatter.tags);
     const seriesTags = tags.filter((t) => (SERIES_TAGS as readonly string[]).includes(t));
     const isFieldNotes = tags.includes(FIELD_NOTES_TAG);
     if (seriesTags.length === 0) {
       issues.push({
         file: rel,
-        severity: 'suggestion',
+        severity: 'warning',
         rule: 'series_tag',
         message: `Add exactly one series tag: ${SERIES_TAGS.join(' | ')}`,
       });
     } else if (seriesTags.length > 1) {
       issues.push({
         file: rel,
-        severity: 'suggestion',
+        severity: 'warning',
         rule: 'series_tag',
         message: `Multiple series tags found (${seriesTags.join(', ')}). Keep exactly one.`,
       });
+    }
+
+    if (isEvergreenKw) {
+      if (!primaryKeyword) {
+        issues.push({
+          file: rel,
+          severity: 'warning',
+          rule: 'evergreen_primary_keyword',
+          message: 'Evergreen keyword posts require `primaryKeyword` in frontmatter.',
+        });
+      }
+
+      if (!intent) {
+        issues.push({
+          file: rel,
+          severity: 'warning',
+          rule: 'evergreen_intent',
+          message: 'Evergreen keyword posts require `intent` in frontmatter (informational | commercial | troubleshooting).',
+        });
+      }
+
+      if (!topicId) {
+        issues.push({
+          file: rel,
+          severity: 'warning',
+          rule: 'evergreen_topic',
+          message: 'Evergreen keyword posts require `topic` in frontmatter (topic cluster id).',
+        });
+      }
+
+      if (!schema) {
+        issues.push({
+          file: rel,
+          severity: 'warning',
+          rule: 'evergreen_schema',
+          message: 'Evergreen keyword posts require `schema` in frontmatter (faq | howto).',
+        });
+      }
     }
 
     if (isFieldNotes) {
@@ -459,11 +549,34 @@ function main() {
       });
     }
 
+    if (schema === 'faq') {
+      const severity: Severity = isEvergreenKw ? 'warning' : 'suggestion';
+      if (!FAQ_HEADING.test(content)) {
+        issues.push({
+          file: rel,
+          severity,
+          rule: 'faq_section_missing',
+          message: 'schema=faq: add a dedicated "## FAQ" section (used for FAQPage JSON-LD).',
+        });
+      } else {
+        const pairs = countFaqPairs(content);
+        if (pairs < 2) {
+          issues.push({
+            file: rel,
+            severity,
+            rule: 'faq_pairs',
+            message: `schema=faq: found ${pairs} Q/A pair(s). Add at least 2 for rich results.`,
+          });
+        }
+      }
+    }
+
     if (locale === 'ko') {
+      const severity: Severity = schema === 'howto' ? 'warning' : 'suggestion';
       if (!KO_CHECKLIST_MARKER.test(content)) {
         issues.push({
           file: rel,
-          severity: 'suggestion',
+          severity,
           rule: 'checklist_missing',
           message: 'Under "## 실전 적용", include "**오늘 바로 할 일:**" with exactly 3 bullet points.',
         });
@@ -472,7 +585,7 @@ function main() {
         if (bullets !== 3) {
           issues.push({
             file: rel,
-            severity: 'suggestion',
+            severity,
             rule: 'checklist_bullets',
             message: `Checklist has ${bullets} bullet(s). Aim for exactly 3.`,
           });
@@ -481,10 +594,11 @@ function main() {
     }
 
     if (locale === 'en') {
+      const severity: Severity = schema === 'howto' ? 'warning' : 'suggestion';
       if (!EN_CHECKLIST_MARKER.test(content)) {
         issues.push({
           file: rel,
-          severity: 'suggestion',
+          severity,
           rule: 'checklist_missing',
           message: 'Under "## Practical Application", include "**Checklist for Today:**" with exactly 3 bullet points.',
         });
@@ -493,11 +607,36 @@ function main() {
         if (bullets !== 3) {
           issues.push({
             file: rel,
-            severity: 'suggestion',
+            severity,
             rule: 'checklist_bullets',
             message: `Checklist has ${bullets} bullet(s). Aim for exactly 3.`,
           });
         }
+      }
+    }
+
+    {
+      const internalLinks = extractInternalLinks(stripSourcesSection(content))
+        .map(normalizeInternalHref)
+        .filter(Boolean);
+      const uniqueInternal = Array.from(new Set(internalLinks));
+      const minLinks = 3;
+
+      if (uniqueInternal.length < minLinks) {
+        const severity: Severity = isEvergreenKw || Boolean(sourceId) ? 'warning' : 'suggestion';
+        issues.push({
+          file: rel,
+          severity,
+          rule: 'internal_links_min',
+          message: `Add at least ${minLinks} internal links (topic hub + related posts). Found ${uniqueInternal.length}.`,
+        });
+      } else if (uniqueInternal.length === 1 && internalLinks.length >= minLinks) {
+        issues.push({
+          file: rel,
+          severity: 'warning',
+          rule: 'internal_links_unique',
+          message: 'Internal links point to a single destination repeatedly. Add a few different related posts.',
+        });
       }
     }
 

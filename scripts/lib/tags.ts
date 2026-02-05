@@ -25,6 +25,15 @@ const TAG_ALIASES: Record<string, string> = {
   멀티모달: 'multimodal',
   로보틱스: 'robotics',
   하드웨어: 'hardware',
+  워크플로우: 'workflow',
+  툴링: 'tooling',
+  도구: 'tooling',
+  리뷰: 'review',
+  회고: 'postmortem',
+  포스트모템: 'postmortem',
+  필드노트: 'field-notes',
+  'field notes': 'field-notes',
+  'field-notes': 'field-notes',
 
   // Common spacing / formatting variants
   'hugging face': 'huggingface',
@@ -87,6 +96,11 @@ const ALLOWED_TAGS = new Set<string>([
   'strategy',
   'tutorial',
   'research',
+  'field-notes',
+  'review',
+  'workflow',
+  'tooling',
+  'postmortem',
 
   // Major companies / ecosystems
   'openai',
@@ -96,6 +110,8 @@ const ALLOWED_TAGS = new Set<string>([
   'nvidia',
   'amd',
   'apple',
+  'naver',
+  'kakao',
   'huggingface',
 
   // Model families (no versions)

@@ -8,11 +8,16 @@ export interface Post {
   title: string;
   description: string;
   date: string;
+  lastReviewedAt?: string;
   tags: string[];
   content: string;
   locale: Locale;
   verificationScore?: number;
   readingTime?: number;
+  primaryKeyword?: string;
+  intent?: string;
+  topic?: string;
+  schema?: 'faq' | 'howto';
   author?: string;
   byline?: string;
   sourceUrl?: string;
@@ -21,7 +26,31 @@ export interface Post {
   coverImage?: string;
 }
 
-export type SearchPost = Pick<Post, 'slug' | 'title' | 'description' | 'tags'>;
+export type PostSummary = Omit<Post, 'content'>;
+
+export type SearchPost = Pick<
+  Post,
+  | 'slug'
+  | 'title'
+  | 'description'
+  | 'tags'
+  | 'date'
+  | 'lastReviewedAt'
+  | 'primaryKeyword'
+  | 'intent'
+  | 'topic'
+  | 'schema'
+> & {
+  series?: 'k-ai-pulse' | 'explainer' | 'deep-dive';
+};
+
+export function deriveSeries(tags: string[]): SearchPost['series'] {
+  const normalized = Array.isArray(tags) ? tags.map((t) => String(t || '').trim().toLowerCase()) : [];
+  if (normalized.includes('k-ai-pulse')) return 'k-ai-pulse';
+  if (normalized.includes('explainer')) return 'explainer';
+  if (normalized.includes('deep-dive')) return 'deep-dive';
+  return undefined;
+}
 
 /**
  * Parse various date formats to ISO string
@@ -52,6 +81,28 @@ function parseDate(dateStr: string): string {
 
   // Fallback
   return new Date().toISOString();
+}
+
+function parseOptionalDate(dateStr: string): string | undefined {
+  const raw = String(dateStr || '').trim();
+  if (!raw) return undefined;
+
+  const dotFormat = raw.match(/^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  if (dotFormat) {
+    const [, year, month, day, hour, min, sec] = dotFormat;
+    const parsed = new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}`);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+  }
+
+  const dotDateOnly = raw.match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
+  if (dotDateOnly) {
+    const [, year, month, day] = dotDateOnly;
+    const parsed = new Date(`${year}-${month}-${day}`);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
 const TAG_ALIASES: Record<string, string> = {
@@ -146,6 +197,8 @@ function deriveSourceId(rawSourceId: unknown, tags: string[]): string | undefine
 
 const postsDirectory = path.join(process.cwd(), 'content/posts');
 let cachedPostPaths: Set<string> | null = null;
+let cachedPostsByLocale: Map<Locale, Post[]> | null = null;
+let cachedPostSummariesByLocale: Map<Locale, PostSummary[]> | null = null;
 const publicDirectory = path.join(process.cwd(), 'public');
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const COVER_IMAGE_EXTENSIONS = ['jpeg', 'jpg', 'png', 'webp', 'avif'];
@@ -243,6 +296,12 @@ function parsePostFile(
   const tags = mergeTags(normalizedTags, coreTags);
   const author = typeof data.author === 'string' ? data.author.trim() : '';
   const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
+  const lastReviewedAt = parseOptionalDate(String(data.lastReviewedAt || ''));
+  const primaryKeyword = typeof data.primaryKeyword === 'string' ? data.primaryKeyword.trim() : '';
+  const intent = typeof data.intent === 'string' ? data.intent.trim() : '';
+  const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
+  const schemaRaw = typeof data.schema === 'string' ? data.schema.trim().toLowerCase() : '';
+  const schema = schemaRaw === 'faq' || schemaRaw === 'howto' ? (schemaRaw as 'faq' | 'howto') : undefined;
 
   const estimateReadingTime = (raw: string): number => {
     const stripped = String(raw || '')
@@ -269,11 +328,16 @@ function parsePostFile(
     title: data.title || slug,
     description: data.description || data.excerpt || content.slice(0, 160),
     date: parseDate(data.date),
+    lastReviewedAt,
     tags,
     content,
     locale,
     verificationScore: data.verificationScore,
     readingTime: estimateReadingTime(content),
+    primaryKeyword: primaryKeyword || undefined,
+    intent: intent || undefined,
+    topic: topic || undefined,
+    schema,
     author: author || undefined,
     byline: byline || undefined,
     sourceUrl: data.sourceUrl,
@@ -283,7 +347,76 @@ function parsePostFile(
   } as Post;
 }
 
+function parsePostFileSummary(
+  fullPath: string,
+  slug: string,
+  locale: Locale,
+  existingPaths?: Set<string>
+): PostSummary {
+  const fileContents = fs.readFileSync(fullPath, 'utf8');
+  const { data, content } = matter(fileContents);
+  const normalizedTags = normalizeTags(data.tags);
+  const coreTags = deriveCoreTags(String(data.title || slug), content, normalizedTags);
+  const tags = mergeTags(normalizedTags, coreTags);
+  const author = typeof data.author === 'string' ? data.author.trim() : '';
+  const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
+  const lastReviewedAt = parseOptionalDate(String(data.lastReviewedAt || ''));
+  const primaryKeyword = typeof data.primaryKeyword === 'string' ? data.primaryKeyword.trim() : '';
+  const intent = typeof data.intent === 'string' ? data.intent.trim() : '';
+  const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
+  const schemaRaw = typeof data.schema === 'string' ? data.schema.trim().toLowerCase() : '';
+  const schema = schemaRaw === 'faq' || schemaRaw === 'howto' ? (schemaRaw as 'faq' | 'howto') : undefined;
+
+  const estimateReadingTime = (raw: string): number => {
+    const stripped = String(raw || '')
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/`[^`]+`/g, ' ')
+      .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!stripped) return 1;
+
+    if (locale === 'ko') {
+      const chars = stripped.replace(/\s/g, '').length;
+      return Math.max(1, Math.round(chars / 800));
+    }
+
+    const words = stripped.split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.round(words / 220));
+  };
+
+  return {
+    slug,
+    title: data.title || slug,
+    description: data.description || data.excerpt || content.slice(0, 160),
+    date: parseDate(data.date),
+    lastReviewedAt,
+    tags,
+    locale,
+    verificationScore: data.verificationScore,
+    readingTime: estimateReadingTime(content),
+    primaryKeyword: primaryKeyword || undefined,
+    intent: intent || undefined,
+    topic: topic || undefined,
+    schema,
+    author: author || undefined,
+    byline: byline || undefined,
+    sourceUrl: data.sourceUrl,
+    sourceId: deriveSourceId(data.sourceId, tags),
+    alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
+    coverImage: normalizeCoverImage(data.coverImage, slug),
+  } as PostSummary;
+}
+
 export function getPosts(locale: Locale): Post[] {
+  if (process.env.NODE_ENV === 'production') {
+    if (!cachedPostsByLocale) cachedPostsByLocale = new Map();
+    const cached = cachedPostsByLocale.get(locale);
+    if (cached) return cached;
+  }
+
   const localeDir = path.join(postsDirectory, locale);
 
   // Return empty array if directory doesn't exist
@@ -301,6 +434,42 @@ export function getPosts(locale: Locale): Post[] {
       return parsePostFile(fullPath, slug, locale, existingPaths);
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  if (process.env.NODE_ENV === 'production') {
+    if (!cachedPostsByLocale) cachedPostsByLocale = new Map();
+    cachedPostsByLocale.set(locale, posts);
+  }
+
+  return posts;
+}
+
+export function getPostSummaries(locale: Locale): PostSummary[] {
+  if (process.env.NODE_ENV === 'production') {
+    if (!cachedPostSummariesByLocale) cachedPostSummariesByLocale = new Map();
+    const cached = cachedPostSummariesByLocale.get(locale);
+    if (cached) return cached;
+  }
+
+  const localeDir = path.join(postsDirectory, locale);
+  if (!fs.existsSync(localeDir)) {
+    return [];
+  }
+
+  const fileNames = fs.readdirSync(localeDir);
+  const existingPaths = getExistingPostPaths();
+  const posts = fileNames
+    .filter((fileName) => fileName.endsWith('.mdx') || fileName.endsWith('.md'))
+    .map((fileName) => {
+      const slug = fileName.replace(/\.mdx?$/, '');
+      const fullPath = path.join(localeDir, fileName);
+      return parsePostFileSummary(fullPath, slug, locale, existingPaths);
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  if (process.env.NODE_ENV === 'production') {
+    if (!cachedPostSummariesByLocale) cachedPostSummariesByLocale = new Map();
+    cachedPostSummariesByLocale.set(locale, posts);
+  }
 
   return posts;
 }
@@ -349,7 +518,7 @@ export function getAllSlugs(): { locale: Locale; slug: string }[] {
   const slugs: { locale: Locale; slug: string }[] = [];
 
   for (const locale of locales) {
-    const posts = getPosts(locale);
+    const posts = getPostSummaries(locale);
     for (const post of posts) {
       slugs.push({ locale, slug: post.slug });
     }

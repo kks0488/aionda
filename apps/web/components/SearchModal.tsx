@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { SearchPost } from '@/lib/posts';
 import type { Locale } from '@/i18n';
+import { trackEvent } from '@/lib/analytics';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
       previousActiveElement.current = document.activeElement as HTMLElement;
       inputRef.current?.focus();
       document.body.style.overflow = 'hidden';
+      trackEvent('search_open', { from: 'modal', locale });
     } else {
       document.body.style.overflow = '';
       previousActiveElement.current?.focus();
@@ -58,7 +60,7 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, locale]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,6 +84,14 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
         case 'Enter':
           e.preventDefault();
           if (selectedIndex >= 0 && results[selectedIndex]) {
+            trackEvent('search_result_click', {
+              locale,
+              from: 'modal_enter',
+              query_length: query.trim().length,
+              results_count: results.length,
+              position: selectedIndex + 1,
+              slug: results[selectedIndex].slug,
+            });
             router.push(`/${locale}/posts/${results[selectedIndex].slug}`);
             onClose();
           }
@@ -113,7 +123,7 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, results, selectedIndex, router, locale]);
+  }, [isOpen, onClose, results, selectedIndex, router, locale, query]);
 
   // Reset state when closing
   useEffect(() => {
@@ -187,7 +197,17 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
                 >
                   <Link
                     href={`/${locale}/posts/${post.slug}`}
-                    onClick={onClose}
+                    onClick={() => {
+                      trackEvent('search_result_click', {
+                        locale,
+                        from: 'modal_click',
+                        query_length: query.trim().length,
+                        results_count: results.length,
+                        position: index + 1,
+                        slug: post.slug,
+                      });
+                      onClose();
+                    }}
                     className={`flex items-start gap-4 p-4 transition-colors ${
                       index === selectedIndex
                         ? 'bg-primary/10 dark:bg-primary/20'
