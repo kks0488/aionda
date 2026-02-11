@@ -2,7 +2,7 @@
  * AI-Powered Cover Image Generator
  *
  * Uses Gemini to analyze article content and generate contextual image prompts,
- * then SiliconFlow API to create the actual images.
+ * then image API (SiliconFlow/OpenAI-compatible) to create the actual images.
  *
  * Pipeline: analyze article → generate prompt → create image
  */
@@ -21,18 +21,49 @@ const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
 );
 
+type ImageProvider = 'siliconflow' | 'openai';
+const IMAGE_PROVIDER: ImageProvider =
+  (process.env.IMAGE_PROVIDER || '').trim().toLowerCase() === 'openai'
+    ? 'openai'
+    : 'siliconflow';
+
+const IMAGE_MODEL =
+  process.env.IMAGE_MODEL ||
+  (IMAGE_PROVIDER === 'openai'
+    ? (process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1')
+    : 'Qwen/Qwen-Image');
+
 // SiliconFlow API
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || '';
-const IMAGE_MODEL = process.env.IMAGE_MODEL || 'Qwen/Qwen-Image';
 const SILICONFLOW_API_URL = 'https://api.siliconflow.com/v1/images/generations';
+const SILICONFLOW_REQUEST_TIMEOUT_MS = 120_000;
+const SILICONFLOW_DOWNLOAD_TIMEOUT_MS = 30_000;
+const SILICONFLOW_MAX_RETRIES = 2;
+
+// OpenAI-compatible Images API
+const OPENAI_IMAGE_API_KEY = process.env.OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_KEY || '';
+const OPENAI_IMAGE_BASE_URL_RAW =
+  process.env.OPENAI_IMAGE_BASE_URL || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+const OPENAI_IMAGE_BASE_URL = OPENAI_IMAGE_BASE_URL_RAW.replace(/\/+$/, '');
+const OPENAI_IMAGE_API_URL = `${OPENAI_IMAGE_BASE_URL}/images/generations`;
+const OPENAI_IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE || '1536x1024';
+const OPENAI_IMAGE_QUALITY = process.env.OPENAI_IMAGE_QUALITY || 'medium';
+const OPENAI_IMAGE_FORMAT = process.env.OPENAI_IMAGE_FORMAT || 'png';
+const OPENAI_REQUEST_TIMEOUT_MS = Number.parseInt(
+  process.env.OPENAI_IMAGE_TIMEOUT_MS || process.env.OPENAI_TIMEOUT_MS || '120000',
+  10
+);
+const OPENAI_DOWNLOAD_TIMEOUT_MS = Number.parseInt(
+  process.env.OPENAI_IMAGE_DOWNLOAD_TIMEOUT_MS || '30000',
+  10
+);
+const OPENAI_MAX_RETRIES = Number.parseInt(process.env.OPENAI_IMAGE_MAX_RETRIES || '2', 10);
 
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
 const ENABLE_LOCAL_IMAGE_FALLBACK = process.env.ENABLE_LOCAL_IMAGE_FALLBACK !== 'false';
-
-const SILICONFLOW_REQUEST_TIMEOUT_MS = 120_000;
-const SILICONFLOW_DOWNLOAD_TIMEOUT_MS = 30_000;
-const SILICONFLOW_MAX_RETRIES = 2;
+const PROVIDER_API_KEY = IMAGE_PROVIDER === 'openai' ? OPENAI_IMAGE_API_KEY : SILICONFLOW_API_KEY;
+const PROVIDER_NAME = IMAGE_PROVIDER === 'openai' ? 'OpenAI-compatible' : 'SiliconFlow';
 
 if (AI_API_DISABLED) {
   console.log('AI API is disabled via AI_API_DISABLED=true.');
@@ -44,13 +75,13 @@ if (!ENABLE_COVER_IMAGES || !ENABLE_IMAGE_GENERATION) {
   process.exit(0);
 }
 
-if (!SILICONFLOW_API_KEY && !ENABLE_LOCAL_IMAGE_FALLBACK) {
-  console.error('SILICONFLOW_API_KEY not found and local fallback disabled (ENABLE_LOCAL_IMAGE_FALLBACK=false)');
+if (!PROVIDER_API_KEY && !ENABLE_LOCAL_IMAGE_FALLBACK) {
+  console.error(`${PROVIDER_NAME} API key not found and local fallback disabled (ENABLE_LOCAL_IMAGE_FALLBACK=false)`);
   process.exit(1);
 }
 
-if (!SILICONFLOW_API_KEY && ENABLE_LOCAL_IMAGE_FALLBACK) {
-  console.warn('SILICONFLOW_API_KEY not found. Falling back to local placeholder images.');
+if (!PROVIDER_API_KEY && ENABLE_LOCAL_IMAGE_FALLBACK) {
+  console.warn(`${PROVIDER_NAME} API key not found. Falling back to local placeholder images.`);
 }
 
 interface PostMeta {
@@ -116,7 +147,7 @@ async function fetchJsonWithRetry<T>(
       if (!response.ok && isRetryableStatus(response.status) && attempt < options.retries) {
         const backoffMs = Math.min(30_000, 1500 * 2 ** attempt) + Math.floor(Math.random() * 600);
         console.warn(
-          `[SiliconFlow] ${options.label} HTTP ${response.status}. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+          `[ImageAPI] ${options.label} HTTP ${response.status}. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
         );
         await sleep(backoffMs);
         continue;
@@ -137,7 +168,7 @@ async function fetchJsonWithRetry<T>(
       if (isRetryableNetworkError(error) && attempt < options.retries) {
         const backoffMs = Math.min(30_000, 1500 * 2 ** attempt) + Math.floor(Math.random() * 600);
         console.warn(
-          `[SiliconFlow] ${options.label} network error. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+          `[ImageAPI] ${options.label} network error. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
         );
         await sleep(backoffMs);
         continue;
@@ -158,7 +189,7 @@ async function fetchBufferWithRetry(url: string, options: { timeoutMs: number; r
         if (isRetryableStatus(response.status) && attempt < options.retries) {
           const backoffMs = Math.min(20_000, 1200 * 2 ** attempt) + Math.floor(Math.random() * 600);
           console.warn(
-            `[SiliconFlow] ${options.label} download HTTP ${response.status}. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+            `[ImageAPI] ${options.label} download HTTP ${response.status}. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
           );
           await sleep(backoffMs);
           continue;
@@ -176,7 +207,7 @@ async function fetchBufferWithRetry(url: string, options: { timeoutMs: number; r
       if (isRetryableNetworkError(error) && attempt < options.retries) {
         const backoffMs = Math.min(20_000, 1200 * 2 ** attempt) + Math.floor(Math.random() * 600);
         console.warn(
-          `[SiliconFlow] ${options.label} download network error. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
+          `[ImageAPI] ${options.label} download network error. Retrying after ${backoffMs}ms... (${attempt + 1}/${options.retries})`
         );
         await sleep(backoffMs);
         continue;
@@ -458,11 +489,12 @@ function generateLocalFallbackImage(post: PostMeta): string | null {
 }
 
 /**
- * Generate image using SiliconFlow API
+ * Generate image using configured provider API
  */
 async function generateImage(post: PostMeta): Promise<string | null> {
   console.log(`\n🎨 Generating image for: ${post.title}`);
   console.log(`📷 Using model: ${IMAGE_MODEL}`);
+  console.log(`🌐 Provider: ${PROVIDER_NAME}`);
 
   try {
     // Generate prompt with AI
@@ -470,34 +502,75 @@ async function generateImage(post: PostMeta): Promise<string | null> {
     const prompt = await generateImagePromptWithAI(post);
     console.log(`📝 Prompt: ${prompt.substring(0, 100)}...`);
 
-    if (!SILICONFLOW_API_KEY) {
+    if (!PROVIDER_API_KEY) {
       if (!ENABLE_LOCAL_IMAGE_FALLBACK) {
-        console.error('❌ SILICONFLOW_API_KEY not configured');
+        console.error(`❌ ${PROVIDER_NAME} API key not configured`);
         return null;
       }
       return generateLocalFallbackImage(post);
     }
 
-    const { response, json, text } = await fetchJsonWithRetry<{ images?: Array<{ url?: string; b64_json?: string }> }>(
-      SILICONFLOW_API_URL,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SILICONFLOW_API_KEY}`,
+    let response: Response;
+    let json: { images?: Array<{ url?: string; b64_json?: string }>; data?: Array<{ url?: string; b64_json?: string }> } | null;
+    let text: string;
+
+    if (IMAGE_PROVIDER === 'openai') {
+      const openaiPayload: Record<string, unknown> = {
+        model: IMAGE_MODEL,
+        prompt,
+        n: 1,
+        size: OPENAI_IMAGE_SIZE,
+      };
+
+      if (/^dall-e/i.test(IMAGE_MODEL)) {
+        openaiPayload.response_format = 'b64_json';
+      } else {
+        openaiPayload.output_format = OPENAI_IMAGE_FORMAT;
+        openaiPayload.quality = OPENAI_IMAGE_QUALITY;
+      }
+
+      ({ response, json, text } = await fetchJsonWithRetry<{
+        data?: Array<{ url?: string; b64_json?: string }>;
+      }>(
+        OPENAI_IMAGE_API_URL,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_IMAGE_API_KEY}`,
+          },
+          body: JSON.stringify(openaiPayload),
         },
-        body: JSON.stringify({
-          model: IMAGE_MODEL,
-          prompt: prompt,
-          negative_prompt:
-            'text, letters, words, numbers, watermark, logo, signature, label, caption, title, subtitle, writing, font, typography, alphabet, characters, symbols, icons with text, blurry, low quality',
-          image_size: '1024x576', // 16:9 aspect ratio
-          num_inference_steps: 8,
-          batch_size: 1,
-        }),
-      },
-      { label: 'generate', timeoutMs: SILICONFLOW_REQUEST_TIMEOUT_MS, retries: SILICONFLOW_MAX_RETRIES }
-    );
+        {
+          label: 'generate',
+          timeoutMs: Number.isFinite(OPENAI_REQUEST_TIMEOUT_MS) ? OPENAI_REQUEST_TIMEOUT_MS : 120_000,
+          retries: Number.isFinite(OPENAI_MAX_RETRIES) ? OPENAI_MAX_RETRIES : 2,
+        }
+      ));
+    } else {
+      ({ response, json, text } = await fetchJsonWithRetry<{
+        images?: Array<{ url?: string; b64_json?: string }>;
+      }>(
+        SILICONFLOW_API_URL,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SILICONFLOW_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: IMAGE_MODEL,
+            prompt,
+            negative_prompt:
+              'text, letters, words, numbers, watermark, logo, signature, label, caption, title, subtitle, writing, font, typography, alphabet, characters, symbols, icons with text, blurry, low quality',
+            image_size: '1024x576', // 16:9 aspect ratio
+            num_inference_steps: 8,
+            batch_size: 1,
+          }),
+        },
+        { label: 'generate', timeoutMs: SILICONFLOW_REQUEST_TIMEOUT_MS, retries: SILICONFLOW_MAX_RETRIES }
+      ));
+    }
 
     if (!response.ok) {
       const errorText = (text || '').trim().slice(0, 800);
@@ -519,9 +592,14 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       return null;
     }
 
-    // SiliconFlow returns images in data.images array with url or b64_json
-    if (data.images && data.images.length > 0) {
-      const imageInfo = data.images[0];
+    // Provider response supports either data.images (SiliconFlow) or data.data (OpenAI).
+    const imageInfo = Array.isArray(data.images) && data.images.length > 0
+      ? data.images[0]
+      : Array.isArray(data.data) && data.data.length > 0
+        ? data.data[0]
+        : null;
+
+    if (imageInfo) {
 
       const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
       if (!fs.existsSync(outputDir)) {
@@ -534,7 +612,10 @@ async function generateImage(post: PostMeta): Promise<string | null> {
         // Download from URL
         const imageBuffer = await fetchBufferWithRetry(imageInfo.url, {
           label: 'image',
-          timeoutMs: SILICONFLOW_DOWNLOAD_TIMEOUT_MS,
+          timeoutMs:
+            IMAGE_PROVIDER === 'openai'
+              ? (Number.isFinite(OPENAI_DOWNLOAD_TIMEOUT_MS) ? OPENAI_DOWNLOAD_TIMEOUT_MS : 30_000)
+              : SILICONFLOW_DOWNLOAD_TIMEOUT_MS,
           retries: 2,
         });
         fs.writeFileSync(outputPath, imageBuffer);
@@ -550,7 +631,7 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       return `/images/posts/${post.slug}.png`;
     }
 
-    console.log(`❌ No images in response for: ${post.title}`);
+    console.log(`❌ No images in response for: ${post.title} (${PROVIDER_NAME})`);
     if (ENABLE_LOCAL_IMAGE_FALLBACK) {
       console.log('↩️ Falling back to local placeholder image...');
       return generateLocalFallbackImage(post);
@@ -592,7 +673,11 @@ async function main() {
   console.log('🔍 Finding posts without images...\n');
   console.log(`📷 Using model: ${IMAGE_MODEL}`);
   console.log(`🤖 Using AI for prompt generation`);
-  console.log(`🌐 API: SiliconFlow\n`);
+  if (IMAGE_PROVIDER === 'openai') {
+    console.log(`🌐 API: OpenAI-compatible (${OPENAI_IMAGE_BASE_URL})\n`);
+  } else {
+    console.log(`🌐 API: SiliconFlow\n`);
+  }
 
   const { slugs, limit, all } = parseArgs();
 
