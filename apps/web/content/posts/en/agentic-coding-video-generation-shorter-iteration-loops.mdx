@@ -1,0 +1,172 @@
+---
+title: 'Agentic Coding And Video Generation: Shorter Iteration Loops'
+slug: agentic-coding-video-generation-shorter-iteration-loops
+date: '2026-02-12'
+lastReviewedAt: '2026-02-12'
+locale: en
+description: >-
+  Explains agentic coding and video generation as iteration-loop gains,
+  emphasizing sandbox control, logs/tests, and evaluation checklists.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '966870'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=966870'
+verificationScore: 0.8066666666666666
+alternateLocale: /ko/posts/agentic-coding-video-generation-shorter-iteration-loops
+coverImage: /images/posts/agentic-coding-video-generation-shorter-iteration-loops.png
+---
+
+## TL;DR
+
+- Agentic tools can edit files, run commands in a sandbox, and leave logs and test results.  
+- This can matter because iteration cost can drop when verification traces are retained.  
+- Run the same tasks before and after tool use, and store logs, tests, and provenance evidence.  
+
+Example: A team iterates on a code change and a video draft in parallel. The code side loops through edits and tests. The video side loops through revisions and approvals. The team compares where rework seems to shrink.  
+
+---
+
+In a team repo, a single change request can lead to a commit plus a “tests passed” log.  
+That visible output can appear within minutes.  
+Video work can also be judged by reduced retakes and re-edits.  
+This article breaks down the “quantum jump” feeling into capabilities and metrics.  
+It also proposes an evaluation checklist and workflow for adoption.  
+
+---
+
+## Current state
+
+In code generation, the shift is clearer with a connected working environment.  
+Codex is described as reading and editing files in an isolated cloud sandbox.  
+The repository is pre-loaded in that environment.  
+It also supports command execution.  
+This includes test harnesses, linters, and type checkers.  
+It is designed to leave verification traces.  
+These traces include citations, terminal logs, and test results.  
+
+Context length is another observable point.  
+OpenAI documentation says codex-1 was tested up to a 192k-token context length.  
+This does not imply that 192k tokens are used in all situations.  
+In code work, context can span more than one file.  
+It can include dependencies, call relationships, and tests.  
+This can matter for refactoring, bug fixing, and code review.  
+
+Control mechanisms are also described.  
+In the Codex app, the agent can edit only files in the working folder or branch.  
+Commands that require privilege escalation can request user approval.  
+Network access is given as an example of such escalation.  
+So “it executes code” and “it does arbitrary work” should be separated.  
+The product description emphasizes permissions and scope.  
+
+In video generation, verifiable details can be harder to confirm.  
+Users report a quality shift using names like “Seedance 2.0.”  
+This investigation did not verify official specs for Seedance 2.0.  
+It did not confirm video length, resolution, FPS, or control options.  
+So this article does not claim numeric leaps for that model.  
+
+For Sora, the system card focuses on safety and risk evaluations.  
+It lists areas like nudity, election-related deception, self-harm, and violence.  
+The Sora app help says outputs include a visible moving watermark by default.  
+The same help says outputs include C2PA provenance by default.  
+
+---
+
+## Analysis
+
+The “quantum jump” is hard to explain as one-shot plausibility.  
+The change often shows up as a shorter iteration loop.  
+In coding, the loop can include edits, test runs, failure logs, and fixes.  
+Codex documentation emphasizes command execution and verification traces.  
+Those traces include terminal logs and test results.  
+
+So the metrics can be operational, not impression-based.  
+Examples include time to produce a PR that includes tests.  
+Another is recurrence of the same error class flagged by reviewers.  
+Another is the share of issues reproducible via execution logs.  
+Retention of logs and test results affects whether measurement is feasible.  
+
+Video can show a similar pattern across the revision process.  
+The change can appear in editing, instruction, and consistency maintenance.  
+Video lacks tests that resemble code tests.  
+So reproducibility and controllability can be harder to quantify.  
+At distribution time, watermarking and provenance become practical variables.  
+Sora help says a default watermark and C2PA provenance are included.  
+Policy pages also describe prohibited uses, including impersonation and deception.  
+So evaluation can include approval, distribution, and compliance checks.  
+
+Limitations should be stated.  
+Public benchmarks can be hard to verify and reproduce.  
+Sora’s system card mentions source categories for evaluation prompts.  
+This investigation did not confirm publishable, reproducible prompt sets.  
+For Codex, this investigation did not confirm official public scores.  
+Instead, the emphasis is on verification via logs and test results.  
+More permissions can increase the blast radius of accidents.  
+Folder or branch restrictions and approval prompts can reduce that risk.  
+They also suggest limits on unattended operation.  
+
+---
+
+## Practical application
+
+Adoption can benefit from comparing before and after on the same tasks.  
+For code, repo work with tests can be compared directly.  
+Pick one bug-fix ticket and compare human-only work vs. Codex-assisted work.  
+Codex can run commands in a sandbox and leave logs and test results.  
+That can make evidence retention easier.  
+
+For video, internal evaluation can still be structured.  
+This can apply even when official specs are unclear, including Seedance 2.0.  
+Define the task as a full revision loop, not a single generation.  
+Record revision rounds and consistency failures across drafts.  
+Also check distribution variables like watermarking and C2PA provenance.  
+
+**Checklist for Today:**  
+- Choose one coding task, run a human vs. tool comparison, and store logs and test results.  
+- Define one video task as a revision loop, and record revisions and consistency failures in a template.  
+- If distributing externally, confirm watermark and C2PA provenance, and review impersonation and deception prohibitions.  
+
+---
+
+## FAQ
+
+**Q1. How should we measure the “quantum jump” numerically?**  
+A. Public benchmark scores can be unavailable or hard to reproduce.  
+Operational metrics can be easier to control.  
+For code, track iterations until tests pass.  
+Also track review change requests.  
+Also track the share of fixes reproducible via logs.  
+For video, track revision rounds.  
+Also track consistency-failure categories like style, person, background, and motion.  
+Also track steps until approval.  
+
+**Q2. How far does Codex run automatically? Isn’t it risky?**  
+A. Official documentation describes file editing and command execution in a sandbox.  
+The Codex app restricts edits to the working folder or branch by default.  
+Commands requiring privilege escalation can request user approval.  
+Network access is listed as an example.  
+Automation can be useful, but control and approval flows still matter.  
+
+**Q3. Can video outputs be used commercially? What about watermarks?**  
+A. OpenAI Terms (
+
+## Further Reading
+- [Defending Agent Link Clicks From Leakage And Injection](/en/posts/ai-agent-web-security-guide)
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [Android 17 Shifts Locking Into an OS Security State](/en/posts/android-17-locking-os-security-state)
+- [Claude Code Brings Agentic Loops to the Terminal](/en/posts/claude-code-agentic-loops-terminal)
+- [Designing Rewards for Agentic RL in GPT-OSS](/en/posts/gpt-oss-agentic-rl-prm-strategy)
+---
+
+## References
+
+- 🛡️ [Introducing Codex | OpenAI](https://openai.com/index/introducing-codex/)
+- 🛡️ [Introducing the Codex app | OpenAI](https://openai.com/index/introducing-the-codex-app/)
+- 🛡️ [Introducing upgrades to Codex | OpenAI](https://openai.com/index/introducing-upgrades-to-codex/)
+- 🛡️ [Sora System Card | OpenAI](https://openai.com/index/sora-system-card/)
+- 🛡️ [Terms of use | OpenAI](https://platform.openai.com/policies/terms-of-use)
+- 🛡️ [Business terms - May 2025 | OpenAI](https://openai.com/policies/may-2025-business-terms/)
+- 🛡️ [Creating videos with Sora | OpenAI Help Center](https://help.openai.com/en/articles/12460853-creating-videos-on-the-sora-app)
+- 🛡️ [Creating images and videos in line with our policies | OpenAI](https://openai.com/policies/sora-usage-policies/)

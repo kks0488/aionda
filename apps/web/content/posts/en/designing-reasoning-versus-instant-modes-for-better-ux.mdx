@@ -1,0 +1,147 @@
+---
+title: Designing Reasoning Versus Instant Modes For Better UX
+slug: designing-reasoning-versus-instant-modes-for-better-ux
+date: '2026-02-12'
+lastReviewedAt: '2026-02-12'
+locale: en
+description: >-
+  Reasoning vs instant modes trade quality, latency, and cost. Use If/Then
+  defaults, streaming, and progress cues to keep user trust.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '967151'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=967151'
+verificationScore: 0.86
+alternateLocale: /ko/posts/designing-reasoning-versus-instant-modes-for-better-ux
+coverImage: /images/posts/designing-reasoning-versus-instant-modes-for-better-ux.png
+---
+
+## TL;DR
+
+- Reasoning and instant modes can shift answer quality based on the user’s mode choice.  
+- The trade-off involves latency, cost, and metrics like `pass@1` and `pass@10`.  
+- Add mode defaults, clearer explanations, and streaming, then track `budget_tokens` with latency.  
+
+A user clicks **“Thinking (Reasoning)…”** and sees only a waiting indicator.  
+They often switch to **“Instant response”** to move faster.  
+That choice can shape perceived quality over time.  
+
+Example: A user asks for help checking a long argument. The screen shows a vague waiting state. The user switches to fast mode and gets a shallow reply. They later avoid the slow mode.
+
+There is one core issue.  
+UX for choosing between “think-more” and speed-first options can affect trust.  
+Documentation describes reasoning models using internal chain-of-thought tokens before answering.  
+It also lists tasks where reasoning can help, like coding and multi-step planning.  
+Some docs present success rates as `pass@1` and `pass@n`, such as `pass@10`.  
+Anthropic docs note `budget_tokens` can exceed `max_tokens`.  
+Users may click “Instant” if the UI does not explain these trade-offs.  
+
+---
+
+## Current state
+
+Documentation defines Thinking or Reasoning as internal chain-of-thought generation before answering.  
+Instant response is framed as lower extra reasoning and lower latency.  
+The UI label may vary, and that detail can need verification.  
+Even with the same question, some categories can benefit from more thinking time.  
+That benefit often comes with extra latency.  
+
+Docs also describe where gaps can appear.  
+OpenAI API guides say reasoning models excel at complex problem solving.  
+They also highlight coding, scientific reasoning, and multi-step planning.  
+Some system card text contrasts “Instant” and “Thinking” behaviors.  
+It suggests “Instant” targets conversational flow and adaptive reasoning.  
+It suggests “Thinking” calibrates thinking time more directly per question.  
+
+Performance and cost framing connects to UX decisions.  
+Some docs use `pass@1` to describe success in one attempt.  
+Some use `pass@n`, including `pass@10`, for multiple attempts.  
+Anthropic documentation says `budget_tokens` can exceed `max_tokens`.  
+That implies internal thinking budget can grow beyond output token limits.  
+That growth can increase latency and cost.  
+
+---
+
+## Analysis
+
+This looks like behavior design, not only a mode toggle.  
+Users may choose instant response for tasks where reasoning helps.  
+That choice can reduce the effective `pass@1` experience in the product.  
+If reasoning is used for simple chat, latency and cost can rise.  
+Docs describe how `budget_tokens` can grow independently of `max_tokens`.  
+The UX goal can be waiting mainly when the task benefits.  
+
+The risks can split into two categories.  
+
+First, unclear waiting can look like malfunction.  
+OpenAI documentation says streaming helps for long outputs.  
+Streaming can make progress visible, not just delayed.  
+
+Second, metrics can mislead product decisions.  
+`pass@1` and `pass@10` assume multiple attempts are possible.  
+Many users do not run multiple attempts in a UI.  
+The product can decide to “try more internally” by thinking longer.  
+That decision can shift latency, cost, and perceived reliability.  
+
+---
+
+## Practical application
+
+If you reduce it to If/Then rules, the design can get simpler.  
+
+- **If** intent suggests correctness needs, **Then** default to reasoning for that request.  
+- **If** intent suggests light conversation or summarization, **Then** default to instant response.  
+- **If** the user is waiting, **Then** use streaming to show visible progress.  
+
+**Checklist for Today:**
+- Add one sentence explaining the speed versus quality trade-off near the mode control.  
+- Enable streaming for long responses to show progress while reasoning runs.  
+- Log `budget_tokens` with latency and mode choice for later UX tuning.  
+
+---
+
+## FAQ
+
+**Q1. What exactly is different about ‘Reasoning/Thinking’?**  
+A1. Docs describe internal chain-of-thought tokens before answering.  
+They describe step-by-step solving before the final response.  
+Instant response is contrasted as using less extra reasoning for speed.  
+
+**Q2. For which tasks is it beneficial to turn on reasoning mode?**  
+A2. OpenAI API guides list complex problem solving as a strong area.  
+They also list coding, scientific reasoning, and multi-step planning.  
+Quantitative comparisons can need separate validation per product context.  
+
+**Q3. How do you reduce users repeatedly clicking ‘Instant’ via UX?**  
+A3. Use streaming to turn waiting into visible progress.  
+Consider mode defaults that follow question type, not manual choice alone.  
+Track `budget_tokens` growth as an operational factor tied to latency.  
+
+---
+
+## Conclusion
+
+Reasoning-mode UX can be shaped on the screen, not only in the model.  
+`pass@1` and `pass@10` imply benefits from additional attempts or effort.  
+Users may still click “Instant” without understanding compute trade-offs.  
+A practical next step is clearer explanations, streaming progress, and mode defaults.  
+If/Then rules can reduce accidental quality loss from repeated speed-first choices.
+
+## Further Reading
+- [Defending Agent Link Clicks From Leakage And Injection](/en/posts/ai-agent-web-security-guide)
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [Android 17 Shifts Locking Into an OS Security State](/en/posts/android-17-locking-os-security-state)
+- [Claude Code Brings Agentic Loops to the Terminal](/en/posts/claude-code-agentic-loops-terminal)
+- [Designing Rewards for Agentic RL in GPT-OSS](/en/posts/gpt-oss-agentic-rl-prm-strategy)
+---
+
+## References
+
+- 🛡️ [Reasoning models | OpenAI API](https://platform.openai.com/docs/guides/reasoning)
+- 🛡️ [GPT-5.1 Instant and GPT-5.1 Thinking System Card Addendum | OpenAI](https://openai.com/index/gpt-5-system-card-addendum-gpt-5-1/)
+- 🛡️ [OpenAI o1 System Card | OpenAI](https://openai.com/index/openai-o1-system-card/)
+- 🛡️ [Building with extended thinking - Anthropic](https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking)
+- 🛡️ [Streaming API responses | OpenAI API](https://platform.openai.com/docs/guides/streaming-responses)
