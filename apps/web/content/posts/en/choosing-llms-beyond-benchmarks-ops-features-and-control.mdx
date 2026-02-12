@@ -1,0 +1,111 @@
+---
+title: 'Choosing LLMs Beyond Benchmarks: Ops Features And Control'
+slug: choosing-llms-beyond-benchmarks-ops-features-and-control
+date: '2026-02-12'
+lastReviewedAt: '2026-02-12'
+locale: en
+description: >-
+  LLM choice increasingly hinges on structured output, tool calling,
+  caching/batching, rate limits, and data governance—not benchmarks.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: evergreen-llm-selection-checklist
+sourceUrl: ''
+verificationScore: 0.86
+alternateLocale: /ko/posts/choosing-llms-beyond-benchmarks-ops-features-and-control
+coverImage: /images/posts/choosing-llms-beyond-benchmarks-ops-features-and-control.png
+---
+
+## TL;DR
+
+- LLM selection often depends on API features and operations, not only benchmark tables.  
+- Documented cache and batch limits can change latency, cost, and reliability.  
+- Split workloads, verify behavior in logs, and confirm data controls in source documentation.
+
+There are incidents where schema breaks, latency jumps, or costs spike. These issues can appear even when accuracy looks acceptable. Selection can align to accuracy, latency, cost, security, and operational features.
+
+Example: A team ships a feature that looks fine in demos. Then responses drift during real traffic. Another team reviews spending and storage expectations. They compare operational controls before model names.
+
+This article compares major provider APIs such as OpenAI, Google Gemini, and Anthropic (Claude). It focuses on tool calling, structured outputs, cache and batch features, rate limits, and data controls. It also frames comparison around failure modes, not only performance tables.
+
+---
+
+## Current state
+
+Some product failures relate to format errors, latency, cost, and data handling. This shifts provider comparison toward operations and controls. OpenAI, Gemini, and Anthropic commonly support tool use or function calling. Tool calling lets the model output structured requests for functions and arguments. The application can then execute searches, DB queries, or internal calls.
+
+Differences often appear in output control. OpenAI states outputs can conform to a developer-provided JSON Schema. OpenAI also says the first response with a new schema adds latency. It then says the schema is cached for reuse. In this review, we could not confirm an equivalent JSON Schema enforcement feature for Anthropic. This point needs verification from official documentation. For work that should land in a schema, support becomes a decision gate. Examples include form filling, order creation, and ticket classification.
+
+Operational capabilities like cache and batch can affect cost and latency. OpenAI documents Prompt Caching. It says caching is automatically enabled for prompts of 1,024 tokens or more. It also reports up to 80% latency reduction. It also reports up to 90% input cost reduction. It notes usage fields such as `cached_tokens`. Anthropic documents Message Batches. It says batches can run asynchronously for up to 24 hours. It also states up to 100,000 requests per batch. It also states a maximum batch size of 256 MB. Bulk processing teams can notice these constraints. Examples include summarization, classification, and cleaning.
+
+Costs and policies can affect product planning and procurement. OpenAI’s pricing page lists examples like Input $1.750 / 1M tokens. It lists Cached input $0.175 / 1M tokens. It lists Output $14.000 / 1M tokens. It also notes 50% savings on inputs and outputs with the Batch API. It describes that batch as 24-hour async. The page can change by time or model. Teams should re-check before applying those numbers.
+
+Rate limits can shape reliability. OpenAI indicates multiple limit axes such as RPM, RPD, TPM, TPD, and IPM. Anthropic describes rate limits plus an organization monthly spend limit axis. OpenAI’s Usage Policies state accounts may be suspended or terminated for violations.
+
+Data control matters in enterprise settings. OpenAI states API data after March 1, 2023 is not used for training by default. It adds that explicit opt-in is an exception. OpenAI also discusses default abuse monitoring logs. For Gemini and Anthropic, this review cannot confirm retention or training defaults from used snippets. This requires verification during security review. This point should be confirmed in source documentation.
+
+---
+
+## Analysis
+
+LLM selection often fails when focusing only on average correctness. Real incidents often come from failure modes. A schema break can send a payment amount as a string. Slow responses can increase churn even with strong offline evals. Costs can jump under certain usage patterns. That can limit experiments and feature rollout.
+
+From this view, OpenAI’s 1,024-token caching threshold matters operationally. The reported up to 80% latency reduction can affect UX planning. The reported up to 90% input cost reduction can affect budget assumptions. Anthropic’s up to 24-hour batch window also matters. The up to 100,000 requests per batch can shape throughput planning. The 256 MB maximum can constrain payload and metadata.
+
+These figures can be misread when generalized. Caching benefits can vary by prompt repetition and structure. Batching can conflict with real-time UX needs. Structured outputs can be format-correct but semantically wrong. This can happen with weak schemas and weak validation. Policy enforcement risks can also be difficult to control. OpenAI notes suspension or termination for violations. Many teams therefore consider routing by workload requirements. They also add telemetry and guardrails for failure modes.
+
+---
+
+## Practical application
+
+A validation-friendly approach is to split work and route. Use three buckets for routing decisions. Use real-time chat or search as one bucket. Use transactional schema-bound work as a second bucket. Use bulk asynchronous processing as a third bucket. The second bucket depends on structured output support. The third bucket depends on batch and cost options. The first bucket often depends on rate limits and latency. Cache applicability can also matter for the first bucket.
+
+Example: Suppose a chatbot answers explanations and generates form JSON. It also summarizes logs into reports. Route explanations to a general-purpose path. Route form JSON to a path that supports schema enforcement. Route summarization to a batch path. You can split within a provider or mix providers. The choice can depend on requirements and controls.
+
+**Checklist for Today:**
+- Split your workloads into real-time, schema-required, and bulk async paths, and write one success metric each.  
+- Verify cache and batch behavior using fields like `cached_tokens` and batch status logs.  
+- Confirm retention, training use, and enforcement terms in primary provider documentation during review.  
+
+---
+
+## FAQ
+
+**Q1. If providers support tool calling, do differences largely disappear?**  
+A. Differences can remain in output control, cache and batch options, rate limits, and data controls. These can affect cost and reliability.
+
+**Q2. If structured outputs exist, does hallucination disappear?**  
+A. Structured outputs can reduce broken JSON and similar format errors. They do not help ensure content accuracy. Schemas constrain shape, not truth. Accuracy can require grounding, validation, and tests.
+
+**Q3. In enterprise settings, where should security checks start?**  
+A. Start with retention, training use, and access controls in provider documentation. Then map them to internal governance requirements.
+
+## Further Reading
+- [Agentic Coding And Video Generation: Shorter Iteration Loops](/en/posts/agentic-coding-video-generation-shorter-iteration-loops)
+- [Defending Agent Link Clicks From Leakage And Injection](/en/posts/ai-agent-web-security-guide)
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [Android 17 Shifts Locking Into an OS Security State](/en/posts/android-17-locking-os-security-state)
+- [Claude Code Brings Agentic Loops to the Terminal](/en/posts/claude-code-agentic-loops-terminal)
+---
+
+## References
+
+- 🛡️ [Introducing Structured Outputs in the API | OpenAI](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+- 🛡️ [Prompt Caching in the API | OpenAI](https://openai.com/index/api-prompt-caching/)
+- 🛡️ [Prompt caching | OpenAI API](https://platform.openai.com/docs/guides/prompt-caching)
+- 🛡️ [How to implement tool use - Anthropic](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use)
+- 🛡️ [Create a Message Batch - Anthropic](https://docs.anthropic.com/en/api/creating-message-batches)
+- 🛡️ [Pricing | OpenAI](https://openai.com/api/pricing/)
+- 🛡️ [Data controls in the OpenAI platform](https://platform.openai.com/docs/guides/your-data)
+- 🛡️ [Rate limits - OpenAI API](https://platform.openai.com/docs/guides/rate-limits/rate-limits%20.jar)
+- 🛡️ [Rate limits - Anthropic](https://docs.anthropic.com/en/api/rate-limits)
+- 🛡️ [Usage policies | OpenAI](https://openai.com/policies/usage-policies/revisions/2025-01-29/)
+- 🛡️ [Artificial Intelligence Risk Management Framework (AI RMF 1.0) | NIST](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10)
+- 🛡️ [NIST AI RMF Playbook | NIST](https://www.nist.gov/itl/ai-risk-management-framework/nist-ai-rmf-playbook)
+- 🛡️ [Manage - AIRC (NIST AI RMF Playbook)](https://airc.nist.gov/airmf-resources/playbook/manage/)
+- 🛡️ [OpenAI Data Processing Addendum | OpenAI](https://openai.com/policies/data-processing-addendum/)
+- 🛡️ [New Standard Contractual Clauses - Questions and Answers overview - European Commission](https://commission.europa.eu/law/law-topic/data-protection/international-dimension-data-protection/new-standard-contractual-clauses-questions-and-answers-overview_cs)
