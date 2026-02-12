@@ -20,6 +20,17 @@ const LEGACY_MODEL_PATTERN =
 const MODERN_MODEL_PATTERN =
   /\b(gpt[-\s]?5(?:\.\d+)?|gemini\s*3(?:\.\d+)?|claude\s*4(?:\.\d+)?|kimi\s*2(?:\.\d+)?|qwen\s*2(?:\.\d+)?|llama\s*3(?:\.\d+)?)\b|제미나이\s*3(?:\.\d+)?|클로드\s*4(?:\.\d+)?|키미\s*2(?:\.\d+)?|큐웬\s*2(?:\.\d+)?|라마\s*3(?:\.\d+)?/i;
 const HISTORICAL_MARKER_PATTERN = /(과거\s*사례|당시|historical(?:\s+example)?|in\s+earlier\s+generations|previous\s+generation)/i;
+const SOURCES_HEADING_PATTERN = /^##\s*(참고\s*자료|References|Sources)\s*$/im;
+const BODY_REFERENCE_MATCH_RULES: Array<{ label: string; body: RegExp; ref: RegExp[] }> = [
+  { label: 'OpenAI', body: /\bopenai|chatgpt|gpt\b/i, ref: [/(^|\.)openai\.com$/i] },
+  { label: 'Anthropic', body: /\banthropic|claude\b/i, ref: [/(^|\.)anthropic\.com$/i] },
+  { label: 'Google', body: /\bgoogle|gemini|deepmind\b/i, ref: [/(^|\.)google\.com$/i, /(^|\.)deepmind\.google$/i, /(^|\.)ai\.google\.dev$/i] },
+  { label: 'Microsoft', body: /\bmicrosoft|azure|copilot\b/i, ref: [/(^|\.)microsoft\.com$/i] },
+  { label: 'Meta', body: /\bmeta|llama\b/i, ref: [/(^|\.)meta\.com$/i] },
+  { label: 'NVIDIA', body: /\bnvidia\b/i, ref: [/(^|\.)nvidia\.com$/i] },
+  { label: 'Hugging Face', body: /\bhugging\s*face|huggingface\b/i, ref: [/(^|\.)huggingface\.co$/i] },
+  { label: 'AWS', body: /\baws|amazon web services\b/i, ref: [/(^|\.)aws\.amazon\.com$/i, /(^|\.)amazon\.com$/i] },
+];
 
 function parseFrontmatterBlock(raw: string): { frontmatter: Record<string, any>; body: string } {
   const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -51,10 +62,284 @@ function parseFrontmatterDate(value: unknown): Date | null {
 }
 
 function extractUrls(raw: string): string[] {
-  const urls = new Set<string>();
-  for (const m of raw.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)) urls.add(String(m[1] || '').trim());
-  for (const m of raw.matchAll(/https?:\/\/[^\s)]+/g)) urls.add(String(m[0] || '').trim());
-  return Array.from(urls).filter((u) => u.startsWith('http'));
+  const urls: string[] = [];
+  for (const m of raw.matchAll(/\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)]+)/g)) {
+    urls.push(String(m[1] || m[2] || '').trim());
+  }
+  return urls.filter((u) => u.startsWith('http'));
+}
+
+function extractHeadingSection(markdown: string, heading: RegExp): string {
+  const match = heading.exec(markdown);
+  if (!match || typeof match.index !== 'number') return '';
+
+  const after = markdown.slice(match.index + match[0].length);
+  const nextHeadingIndex = after.search(/^##\s+/m);
+  return nextHeadingIndex === -1 ? after : after.slice(0, nextHeadingIndex);
+}
+
+function stripHeadingSection(markdown: string, heading: RegExp): string {
+  const match = heading.exec(markdown);
+  if (!match || typeof match.index !== 'number') return markdown;
+  return markdown.slice(0, match.index);
+}
+
+function normalizeUrlForCompare(input: string): string {
+  try {
+    const parsed = new URL(input.trim());
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return input.trim();
+  }
+}
+
+function getHostname(input: string): string {
+  try {
+    return new URL(input).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+function parseReferences(markdown: string): {
+  urls: string[];
+  uniqueUrls: string[];
+  duplicateUrls: string[];
+  trustedDomains: string[];
+  hostnames: string[];
+} {
+  const section = extractHeadingSection(markdown, SOURCES_HEADING_PATTERN);
+  const urls = extractUrls(section);
+
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  const uniqueUrls: string[] = [];
+
+  for (const rawUrl of urls) {
+    const normalized = normalizeUrlForCompare(rawUrl);
+    if (seen.has(normalized)) {
+      duplicates.add(normalized);
+      continue;
+    }
+    seen.add(normalized);
+    uniqueUrls.push(normalized);
+  }
+
+  const trustedDomains = new Set<string>();
+  const hostnames = new Set<string>();
+  for (const url of uniqueUrls) {
+    const hostname = getHostname(url);
+    if (!hostname) continue;
+    hostnames.add(hostname);
+    const tier = classifySource(url);
+    if (tier === SourceTier.S || tier === SourceTier.A) {
+      trustedDomains.add(hostname);
+    }
+  }
+
+  return {
+    urls,
+    uniqueUrls,
+    duplicateUrls: Array.from(duplicates),
+    trustedDomains: Array.from(trustedDomains),
+    hostnames: Array.from(hostnames),
+  };
+}
+
+function checkTrustedReferenceCoverage(files: string[]) {
+  const repoRoot = process.cwd();
+  const offenders: Array<{
+    file: string;
+    title: string;
+    slug: string;
+    refs: number;
+    trustedDomains: number;
+    trustedDomainList: string[];
+  }> = [];
+
+  for (const relPath of files.map(normalizePath)) {
+    const abs = path.isAbsolute(relPath) ? relPath : path.join(repoRoot, relPath);
+    if (!fs.existsSync(abs)) continue;
+
+    const raw = fs.readFileSync(abs, 'utf8');
+    const { frontmatter } = parseFrontmatterBlock(raw);
+    const title = String(frontmatter.title || '');
+    const slug = String(frontmatter.slug || '');
+    const refs = parseReferences(raw);
+
+    if (refs.trustedDomains.length >= 2) continue;
+    offenders.push({
+      file: relPath,
+      title,
+      slug,
+      refs: refs.uniqueUrls.length,
+      trustedDomains: refs.trustedDomains.length,
+      trustedDomainList: refs.trustedDomains,
+    });
+  }
+
+  if (offenders.length === 0) return;
+
+  console.log('\n❌ Gate failed: "참고 자료" must include at least 2 trusted domains (tier S/A).');
+  console.log('   Rationale: prevent publication with weak or single-source evidence.');
+  console.log('');
+  for (const o of offenders) {
+    const label = o.title || o.slug || o.file;
+    console.log(
+      `   - ${label} (${o.file}) | refs=${o.refs}, trustedDomains=${o.trustedDomains} [${o.trustedDomainList.join(', ') || 'none'}]`
+    );
+  }
+  throw new Error('Trusted references gate failed.');
+}
+
+function warnDuplicateReferenceUrls(files: string[]) {
+  const repoRoot = process.cwd();
+  const offenders: Array<{ file: string; title: string; slug: string; duplicates: string[] }> = [];
+
+  for (const relPath of files.map(normalizePath)) {
+    const abs = path.isAbsolute(relPath) ? relPath : path.join(repoRoot, relPath);
+    if (!fs.existsSync(abs)) continue;
+
+    const raw = fs.readFileSync(abs, 'utf8');
+    const { frontmatter } = parseFrontmatterBlock(raw);
+    const title = String(frontmatter.title || '');
+    const slug = String(frontmatter.slug || '');
+    const refs = parseReferences(raw);
+
+    if (refs.duplicateUrls.length === 0) continue;
+    offenders.push({
+      file: relPath,
+      title,
+      slug,
+      duplicates: refs.duplicateUrls,
+    });
+  }
+
+  if (offenders.length === 0) return;
+
+  console.log('\n⚠️ Warning: Duplicate URLs detected in "참고 자료".');
+  for (const o of offenders) {
+    const label = o.title || o.slug || o.file;
+    console.log(`   - ${label} (${o.file})`);
+    for (const dup of o.duplicates) {
+      console.log(`     • ${dup}`);
+    }
+  }
+}
+
+function warnBodyReferenceMismatch(files: string[]) {
+  const repoRoot = process.cwd();
+  const warnings: Array<{ file: string; title: string; slug: string; missing: string[] }> = [];
+
+  for (const relPath of files.map(normalizePath)) {
+    const abs = path.isAbsolute(relPath) ? relPath : path.join(repoRoot, relPath);
+    if (!fs.existsSync(abs)) continue;
+
+    const raw = fs.readFileSync(abs, 'utf8');
+    const { frontmatter, body } = parseFrontmatterBlock(raw);
+    const title = String(frontmatter.title || '');
+    const slug = String(frontmatter.slug || '');
+    const bodyWithoutSources = stripHeadingSection(body, SOURCES_HEADING_PATTERN);
+    const refs = parseReferences(body);
+    if (refs.hostnames.length === 0) continue;
+
+    const missing = BODY_REFERENCE_MATCH_RULES
+      .filter((rule) => rule.body.test(bodyWithoutSources))
+      .filter((rule) => !refs.hostnames.some((hostname) => rule.ref.some((pattern) => pattern.test(hostname))))
+      .map((rule) => rule.label);
+
+    if (missing.length === 0) continue;
+    warnings.push({ file: relPath, title, slug, missing });
+  }
+
+  if (warnings.length === 0) return;
+
+  console.log('\n⚠️ Warning: Body mentions detected without matching reference domains.');
+  console.log('   (Warning only; publication is not blocked)');
+  for (const w of warnings) {
+    const label = w.title || w.slug || w.file;
+    console.log(`   - ${label} (${w.file}) | missing refs: ${w.missing.join(', ')}`);
+  }
+}
+
+function parsePostLocaleSlug(relPath: string): { locale: 'ko' | 'en'; slug: string } | null {
+  const normalized = normalizePath(relPath);
+  const prefix = `${['apps', 'web', 'content', 'posts'].join(path.sep)}${path.sep}`;
+  const idx = normalized.indexOf(prefix);
+  if (idx < 0) return null;
+  const rest = normalized.slice(idx + prefix.length);
+  const parts = rest.split(path.sep).filter(Boolean);
+  if (parts.length < 2) return null;
+  const locale = parts[0];
+  if (locale !== 'ko' && locale !== 'en') return null;
+  const fileName = parts[1];
+  const slug = fileName.replace(/\.mdx?$/i, '');
+  if (!slug || slug === fileName) return null;
+  return { locale, slug };
+}
+
+function resolvePostPath(repoRoot: string, locale: 'ko' | 'en', slug: string): string | null {
+  const mdx = path.join(repoRoot, 'apps', 'web', 'content', 'posts', locale, `${slug}.mdx`);
+  if (fs.existsSync(mdx)) return mdx;
+  const md = path.join(repoRoot, 'apps', 'web', 'content', 'posts', locale, `${slug}.md`);
+  return fs.existsSync(md) ? md : null;
+}
+
+function countBodyChars(filePath: string): number {
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const { body } = parseFrontmatterBlock(raw);
+    return String(body || '').replace(/\s+/g, '').length;
+  } catch {
+    return 0;
+  }
+}
+
+function warnEnglishLengthRatio(files: string[]) {
+  const repoRoot = process.cwd();
+  const slugs = new Set<string>();
+
+  for (const relPath of files.map(normalizePath)) {
+    const parsed = parsePostLocaleSlug(relPath);
+    if (!parsed) continue;
+    slugs.add(parsed.slug);
+  }
+
+  if (slugs.size === 0) return;
+
+  const warnings: Array<{ slug: string; koChars: number; enChars: number; ratio: number; koFile: string; enFile: string }> = [];
+  for (const slug of slugs) {
+    const koPath = resolvePostPath(repoRoot, 'ko', slug);
+    const enPath = resolvePostPath(repoRoot, 'en', slug);
+    if (!koPath || !enPath) continue;
+
+    const koChars = countBodyChars(koPath);
+    const enChars = countBodyChars(enPath);
+    if (koChars <= 0) continue;
+
+    const ratio = enChars / koChars;
+    if (ratio >= 0.6) continue;
+
+    warnings.push({
+      slug,
+      koChars,
+      enChars,
+      ratio,
+      koFile: path.relative(repoRoot, koPath),
+      enFile: path.relative(repoRoot, enPath),
+    });
+  }
+
+  if (warnings.length === 0) return;
+
+  console.log('\n⚠️ Warning: English article length is below 60% of Korean.');
+  console.log('   (Warning only; publication is not blocked)');
+  for (const w of warnings) {
+    console.log(
+      `   - ${w.slug} | en/ko=${w.ratio.toFixed(2)} (${w.enChars}/${w.koChars}) | ko=${w.koFile} | en=${w.enFile}`
+    );
+  }
 }
 
 function checkLegacyAnchoring(files: string[]) {
@@ -558,10 +843,17 @@ function main() {
     run(`pnpm content:style-fix -- --files=${filesArg}`);
   }
 
+  const qualityTargets = lastWritten.files.length > 0 ? lastWritten.files : changedPostFiles;
+  if (qualityTargets.length > 0) {
+    warnDuplicateReferenceUrls(qualityTargets);
+    warnBodyReferenceMismatch(qualityTargets);
+    warnEnglishLengthRatio(qualityTargets);
+  }
+
   if (strict) {
-    const targets = lastWritten.files.length > 0 ? lastWritten.files : changedPostFiles;
-    checkLegacyAnchoring(targets);
-    checkCommunitySourcing(targets);
+    checkLegacyAnchoring(qualityTargets);
+    checkCommunitySourcing(qualityTargets);
+    checkTrustedReferenceCoverage(qualityTargets);
   }
 
   try {

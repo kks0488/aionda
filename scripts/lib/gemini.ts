@@ -620,9 +620,14 @@ ${content.substring(0, 3000)}
  */
 export async function translateToEnglish(
   title: string,
-  content: string
+  content: string,
+  options?: { extraRules?: string[] }
 ): Promise<{ title_en: string; content_en: string }> {
   assertAiEnabled();
+  const extraRules = (options?.extraRules || [])
+    .map((rule) => String(rule || '').trim())
+    .filter(Boolean);
+  const extraRuleBlock = extraRules.length > 0 ? `\n${extraRules.map((rule) => `- ${rule}`).join('\n')}` : '';
 
   const prompt = `<task>한→영 기술 글 번역</task>
 
@@ -636,6 +641,7 @@ export async function translateToEnglish(
 - 코드 블록/URL: 그대로 유지
 - 비격식체 → 전문적 영어
 - 마크다운 형식 유지
+${extraRuleBlock}
 </critical_rules>
 
 <title>

@@ -85,7 +85,6 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'mit-tech-review', name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/', tier: 'A', type: 'news', enabled: true },
   { id: 'wired-ai', name: 'Wired AI', url: 'https://www.wired.com/feed/tag/ai/latest/rss', tier: 'A', type: 'news', enabled: true },
   { id: 'zdnet-ai', name: 'ZDNet AI', url: 'https://www.zdnet.com/topic/artificial-intelligence/rss.xml', tier: 'A', type: 'news', enabled: true },
-  { id: 'reuters-tech', name: 'Reuters Tech', url: 'https://www.reutersagency.com/feed/?taxonomy=best-topics&post_type=best&best-topics=tech', tier: 'A', type: 'news', enabled: true },
 ];
 
 interface FeedItem {

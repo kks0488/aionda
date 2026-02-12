@@ -25,11 +25,11 @@ export async function generateContent(prompt: string): Promise<string> {
 
 export async function translateToEnglish(
   title: string,
-  content: string
+  content: string,
+  options?: { extraRules?: string[] }
 ): Promise<{ title_en: string; content_en: string }> {
   const provider = getAiTextProvider();
-  if (provider === 'openai') return openaiTranslateToEnglish(title, content);
-  if (provider === 'deepseek') return deepseekTranslateToEnglish(title, content);
-  return geminiTranslateToEnglish(title, content);
+  if (provider === 'openai') return openaiTranslateToEnglish(title, content, options);
+  if (provider === 'deepseek') return deepseekTranslateToEnglish(title, content, options);
+  return geminiTranslateToEnglish(title, content, options);
 }
-

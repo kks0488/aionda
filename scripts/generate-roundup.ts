@@ -1,5 +1,5 @@
 /**
- * Deterministic “materials roundup” post generator (no AI).
+ * Materials roundup post generator.
  *
  * Goal:
  * - Publish the materials we already crawl (official/news RSS) as a daily curated roundup.
@@ -18,6 +18,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import { config } from 'dotenv';
+import { generateContent } from './lib/ai-text';
 
 type SourceType = 'official' | 'news';
 type SourceTier = 'S' | 'A' | 'B' | 'C';
@@ -33,6 +35,8 @@ type FeedItem = {
   pubDate?: string;
   fetchedAt?: string;
   categories?: string[];
+  contentSnippet?: string;
+  content?: string;
 };
 
 const OFFICIAL_DIR = './data/official';
@@ -40,6 +44,50 @@ const NEWS_DIR = './data/news';
 const POSTS_DIR = './apps/web/content/posts';
 const VC_DIR = './.vc';
 const LAST_WRITTEN_PATH = path.join(VC_DIR, 'last-written.json');
+const MIN_LINKS_TO_PUBLISH = 8;
+const AI_TECH_KEYWORD_PATTERNS: RegExp[] = [
+  /\bai\b/i,
+  /\bmachine learning\b/i,
+  /\bllm\b/i,
+  /\bmodels?\b/i,
+  /\bneural\b/i,
+  /\bgpu\b/i,
+  /\binference\b/i,
+  /\btraining\b/i,
+  /\bagent(?:ic)?s?\b/i,
+  /\bautomation\b/i,
+  /\brobotics?\b/i,
+  /\bquantum\b/i,
+  /\bdeep learning\b/i,
+  /\btransformers?\b/i,
+  /\bdiffusion\b/i,
+  /\bfine[-\s]?tuning\b/i,
+  /\brag\b/i,
+  /\bembeddings?\b/i,
+  /\bvectors?\b/i,
+  /\bchatbots?\b/i,
+  /\bcopilot\b/i,
+  /\bgemini\b/i,
+  /\bclaude\b/i,
+  /\bgpt\b/i,
+  /\bopenai\b/i,
+  /\banthropic\b/i,
+  /\bnvidia\b/i,
+  /\bmeta\s*ai\b/i,
+];
+
+type LocaleRoundupInsights = {
+  tldr: string[];
+  actions: string[];
+  comments: Record<string, string>;
+};
+
+type RoundupInsights = {
+  ko: LocaleRoundupInsights;
+  en: LocaleRoundupInsights;
+};
+
+config({ path: '.env.local' });
 
 function tierIcon(tier?: SourceTier): string {
   switch (tier) {
@@ -144,6 +192,202 @@ function normalizeTitle(raw?: string): string {
   return String(raw || '').replace(/\s+/g, ' ').trim();
 }
 
+function normalizeOneLine(raw: string): string {
+  return String(raw || '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\-\*\d.\s]+/, '')
+    .trim();
+}
+
+function aiKeywordText(item: FeedItem): string {
+  return [
+    normalizeTitle(item.title),
+    String(item.sourceName || ''),
+    String(item.sourceId || ''),
+    Array.isArray(item.categories) ? item.categories.join(' ') : '',
+    String(item.contentSnippet || ''),
+    String(item.content || ''),
+  ]
+    .join(' ')
+    .toLowerCase();
+}
+
+function isAiTechRelevant(item: FeedItem): boolean {
+  const haystack = aiKeywordText(item);
+  if (!haystack) return false;
+  return AI_TECH_KEYWORD_PATTERNS.some((pattern) => pattern.test(haystack));
+}
+
+function fallbackComment(item: FeedItem, locale: 'ko' | 'en'): string {
+  const title = normalizeTitle(item.title).toLowerCase();
+  if (locale === 'ko') {
+    if (/(benchmark|latency|throughput|performance|inference|training)/i.test(title)) {
+      return '성능/비용 판단에 바로 쓸 수 있는 기준점을 제공한다.';
+    }
+    if (/(release|launch|preview|update|announce|roadmap)/i.test(title)) {
+      return '로드맵과 제품 방향 변화 신호를 빠르게 파악할 수 있다.';
+    }
+    if (/(security|safety|policy|regulation|compliance)/i.test(title)) {
+      return '도입 시 리스크와 정책 대응 포인트를 점검하는 데 유용하다.';
+    }
+    return '실무 의사결정에 참고할 핵심 변화와 맥락을 확인할 수 있다.';
+  }
+
+  if (/(benchmark|latency|throughput|performance|inference|training)/i.test(title)) {
+    return 'Useful for concrete performance and cost decisions.';
+  }
+  if (/(release|launch|preview|update|announce|roadmap)/i.test(title)) {
+    return 'Shows near-term product direction and roadmap signals.';
+  }
+  if (/(security|safety|policy|regulation|compliance)/i.test(title)) {
+    return 'Helps assess rollout risks and policy/compliance impact.';
+  }
+  return 'Provides practical context for current product and strategy decisions.';
+}
+
+function fallbackInsights(items: FeedItem[], ymd: string, sinceLabel: string): RoundupInsights {
+  const urls = items.map((item) => normalizeUrl(item.link)).filter(Boolean);
+  const sourceSet = new Set(
+    items
+      .map((item) => String(item.sourceName || item.sourceId || '').trim())
+      .filter(Boolean)
+  );
+  const topSource = Array.from(sourceSet).slice(0, 2).join(', ') || '주요 소스';
+
+  const koComments: Record<string, string> = {};
+  const enComments: Record<string, string> = {};
+  for (const item of items) {
+    const url = normalizeUrl(item.link);
+    if (!url) continue;
+    koComments[url] = fallbackComment(item, 'ko');
+    enComments[url] = fallbackComment(item, 'en');
+  }
+
+  return {
+    ko: {
+      tldr: [
+        `${ymd} 기준 최근 ${sinceLabel} 자료에서 AI/기술 링크 ${urls.length}개를 선별했다.`,
+        `공식 업데이트와 기술 뉴스를 함께 묶어 제품/시장 변화를 한 번에 파악할 수 있게 정리했다.`,
+        `${topSource}를 포함한 핵심 소스 중심으로 후속 분석 후보를 빠르게 고를 수 있다.`,
+      ],
+      actions: [
+        '오늘 링크 중 우리 서비스와 직접 연결되는 항목 2개를 골라 팀 공유 메모로 남긴다.',
+        '벤치마크/정책 수치가 나온 링크 1개를 선정해 원문 근거를 캡처해 둔다.',
+        '내일 심층 분석할 주제 1개를 선택하고 근거 링크 2개를 함께 큐에 등록한다.',
+      ],
+      comments: koComments,
+    },
+    en: {
+      tldr: [
+        `As of ${ymd}, this roundup selects ${urls.length} AI/tech links from the last ${sinceLabel}.`,
+        'Official updates and tech-news signals are combined so you can scan product and market shifts quickly.',
+        `The set is source-prioritized (${topSource}) to help pick strong follow-up analysis topics.`,
+      ],
+      actions: [
+        'Pick 2 links that directly affect your roadmap and post a short team note today.',
+        'Choose 1 link with metrics/policy details and capture exact primary-source evidence.',
+        'Queue 1 deep-dive topic for tomorrow with at least 2 supporting links from this batch.',
+      ],
+      comments: enComments,
+    },
+  };
+}
+
+function parseInsightsResponse(
+  response: string,
+  fallback: RoundupInsights,
+  urls: string[]
+): RoundupInsights {
+  const jsonMatch = String(response || '').match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return fallback;
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as any;
+    const normalizeLocale = (locale: 'ko' | 'en'): LocaleRoundupInsights => {
+      const source = parsed?.[locale] || {};
+      const fallbackLocale = fallback[locale];
+      const tldr = Array.isArray(source?.tldr)
+        ? source.tldr.map((x: unknown) => normalizeOneLine(String(x || ''))).filter(Boolean).slice(0, 3)
+        : [];
+      const actions = Array.isArray(source?.actions)
+        ? source.actions.map((x: unknown) => normalizeOneLine(String(x || ''))).filter(Boolean).slice(0, 3)
+        : [];
+      const commentsRaw = source?.comments && typeof source.comments === 'object' ? source.comments : {};
+      const comments: Record<string, string> = {};
+      for (const url of urls) {
+        const v = normalizeOneLine(String(commentsRaw[url] || ''));
+        comments[url] = v || fallbackLocale.comments[url] || '';
+      }
+      return {
+        tldr: tldr.length === 3 ? tldr : fallbackLocale.tldr,
+        actions: actions.length === 3 ? actions : fallbackLocale.actions,
+        comments,
+      };
+    };
+
+    return {
+      ko: normalizeLocale('ko'),
+      en: normalizeLocale('en'),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+async function generateRoundupInsights(
+  itemsOfficial: FeedItem[],
+  itemsNews: FeedItem[],
+  ymd: string,
+  sinceLabel: string
+): Promise<RoundupInsights> {
+  const all = [...itemsOfficial, ...itemsNews];
+  const fallback = fallbackInsights(all, ymd, sinceLabel);
+  if (all.length === 0) return fallback;
+
+  const links = all
+    .map((item) => ({
+      url: normalizeUrl(item.link),
+      title: normalizeTitle(item.title),
+      source: String(item.sourceName || item.sourceId || '').trim(),
+      tier: String(item.sourceTier || ''),
+      type: String(item.sourceType || ''),
+    }))
+    .filter((item) => item.url && item.title);
+
+  const linkLines = links
+    .map((item, idx) => `${idx + 1}. [${item.type}/${item.tier}] ${item.title} | ${item.source} | ${item.url}`)
+    .join('\n');
+
+  const prompt = [
+    '<task>Generate daily AI roundup copy from provided links only.</task>',
+    `<date>${ymd}</date>`,
+    `<window>${sinceLabel}</window>`,
+    '<rules>',
+    '- Use ONLY given title/source/url signals. Do not invent facts, numbers, releases, or policies.',
+    '- Keep each bullet/action/comment to one concise sentence.',
+    '- Return valid JSON only.',
+    '- For each URL, include one comment explaining why it is worth reading.',
+    '</rules>',
+    '<output_schema>',
+    '{',
+    '  "ko": {"tldr": ["", "", ""], "actions": ["", "", ""], "comments": {"<url>": ""}},',
+    '  "en": {"tldr": ["", "", ""], "actions": ["", "", ""], "comments": {"<url>": ""}}',
+    '}',
+    '</output_schema>',
+    '<links>',
+    linkLines,
+    '</links>',
+  ].join('\n');
+
+  try {
+    const response = await generateContent(prompt);
+    return parseInsightsResponse(response, fallback, links.map((l) => l.url));
+  } catch (error: any) {
+    console.log(`⚠️ AI roundup synthesis failed. Falling back to deterministic copy. (${error?.message || 'unknown error'})`);
+    return fallback;
+  }
+}
+
 function pickItems(items: FeedItem[], options: { since: Date | null; limit: number; maxPerSource: number }): FeedItem[] {
   const uniqueByUrl = new Set<string>();
   const perSource = new Map<string, number>();
@@ -175,7 +419,13 @@ function pickItems(items: FeedItem[], options: { since: Date | null; limit: numb
   return out;
 }
 
-function renderKo(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string, sinceLabel: string): string {
+function renderKo(
+  itemsOfficial: FeedItem[],
+  itemsNews: FeedItem[],
+  ymd: string,
+  sinceLabel: string,
+  insights: LocaleRoundupInsights
+): string {
   const title = `AI 자료 모음 (${sinceLabel}) - ${ymd}`;
   const slug = slugForDate(ymd);
 
@@ -195,9 +445,9 @@ function renderKo(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
   lines.push('---');
   lines.push('');
   lines.push('## 세 줄 요약');
-  lines.push('- 지난 수집 자료 중 “공식/신뢰 출처” 중심으로 링크를 추렸다.');
-  lines.push('- 실무/세일즈에 바로 쓸 수 있도록 제목 기반으로 빠르게 훑을 수 있게 구성했다.');
-  lines.push('- 관심 항목은 본문 링크를 열어 원문을 확인하고, 필요한 부분만 따로 메모/요약해서 활용하자.');
+  for (const bullet of insights.tldr) {
+    lines.push(`- ${bullet}`);
+  }
   lines.push('');
   lines.push(`이번 글은 최근 ${sinceLabel} 동안 수집된 자료를 기반으로 한 **링크 아카이브**다. 본문은 “요약 기사”가 아니라, 빠르게 원문으로 들어가기 위한 정리본이다.`);
   lines.push('');
@@ -211,6 +461,7 @@ function renderKo(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
       const source = String(item.sourceName || item.sourceId || '').trim();
       const suffix = source ? ` — ${source}` : '';
       lines.push(`- ${icon} [${t}](${url})${suffix}`);
+      lines.push(`  - 왜 읽어야 하는가: ${insights.comments[url] || fallbackComment(item, 'ko')}`);
     }
     lines.push('');
   }
@@ -224,14 +475,16 @@ function renderKo(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
       const source = String(item.sourceName || item.sourceId || '').trim();
       const suffix = source ? ` — ${source}` : '';
       lines.push(`- ${icon} [${t}](${url})${suffix}`);
+      lines.push(`  - 왜 읽어야 하는가: ${insights.comments[url] || fallbackComment(item, 'ko')}`);
     }
     lines.push('');
   }
 
-  lines.push('## 오늘 바로 할 일:');
-  lines.push('- 우리 제품/서비스에 연결될 키워드 3개를 뽑아 내부 메모(세일즈 포인트)로 저장');
-  lines.push('- 관심 링크 1~2개를 깊게 읽고, 다음 글(심층 분석) 후보로 큐에 추가');
-  lines.push('- “용어/숫자/정책”은 반드시 원문에서 1차 확인 후 인용');
+  lines.push('## 실전 적용');
+  lines.push('**오늘 바로 할 일:**');
+  for (const action of insights.actions) {
+    lines.push(`- ${action}`);
+  }
   lines.push('');
 
   lines.push('## 참고 자료');
@@ -248,7 +501,13 @@ function renderKo(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
   return lines.join('\n');
 }
 
-function renderEn(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string, sinceLabel: string): string {
+function renderEn(
+  itemsOfficial: FeedItem[],
+  itemsNews: FeedItem[],
+  ymd: string,
+  sinceLabel: string,
+  insights: LocaleRoundupInsights
+): string {
   const title = `AI Resource Roundup (${sinceLabel}) - ${ymd}`;
   const slug = slugForDate(ymd);
 
@@ -268,9 +527,9 @@ function renderEn(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
   lines.push('---');
   lines.push('');
   lines.push('## TL;DR');
-  lines.push('- Curated links from recently collected materials (official sources first).');
-  lines.push('- Optimized for fast scanning: open the source and take notes for your use-case.');
-  lines.push('- Treat this as an index, not a substitute for reading the original.');
+  for (const bullet of insights.tldr) {
+    lines.push(`- ${bullet}`);
+  }
   lines.push('');
   lines.push(`This post is a link archive based on materials collected over the last ${sinceLabel}. It is meant to help you jump into primary sources quickly.`);
   lines.push('');
@@ -284,6 +543,7 @@ function renderEn(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
       const source = String(item.sourceName || item.sourceId || '').trim();
       const suffix = source ? ` — ${source}` : '';
       lines.push(`- ${icon} [${t}](${url})${suffix}`);
+      lines.push(`  - Why it matters: ${insights.comments[url] || fallbackComment(item, 'en')}`);
     }
     lines.push('');
   }
@@ -297,14 +557,16 @@ function renderEn(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
       const source = String(item.sourceName || item.sourceId || '').trim();
       const suffix = source ? ` — ${source}` : '';
       lines.push(`- ${icon} [${t}](${url})${suffix}`);
+      lines.push(`  - Why it matters: ${insights.comments[url] || fallbackComment(item, 'en')}`);
     }
     lines.push('');
   }
 
-  lines.push('## Checklist for Today:');
-  lines.push('- Extract 3 keywords for internal notes (sales/research hooks)');
-  lines.push('- Pick 1–2 links for deep reading and queue a follow-up “analysis” post');
-  lines.push('- Verify any numbers/policy claims directly from the primary source before quoting');
+  lines.push('## Practical Application');
+  lines.push('**Checklist for Today:**');
+  for (const action of insights.actions) {
+    lines.push(`- ${action}`);
+  }
   lines.push('');
 
   lines.push('## References');
@@ -490,7 +752,7 @@ function writeLastWritten(payload: { writtenCount: number; files: string[]; entr
   console.log(`Wrote ${LAST_WRITTEN_PATH}`);
 }
 
-function main() {
+async function main() {
   const { since, limit } = parseArgs();
   const sinceLabel = since ? `${Math.round((Date.now() - since.getTime()) / (60 * 60 * 1000))}h` : 'all';
   const ymd = todayYmdLocal();
@@ -506,10 +768,17 @@ function main() {
 
   const officialItems = officialFiles.map(safeReadJson).filter((x): x is FeedItem => Boolean(x));
   const newsItems = newsFiles.map(safeReadJson).filter((x): x is FeedItem => Boolean(x));
+  const officialRelevant = officialItems.filter(isAiTechRelevant);
+  const newsRelevant = newsItems.filter(isAiTechRelevant);
+  const filteredOut = officialItems.length + newsItems.length - (officialRelevant.length + newsRelevant.length);
+
+  console.log(
+    `🧹 AI/Tech keyword filter: kept ${officialRelevant.length + newsRelevant.length} / ${officialItems.length + newsItems.length} (excluded ${filteredOut})`
+  );
 
   const half = Math.max(1, Math.floor(limit / 2));
-  const officialPicked = pickItems(officialItems, { since, limit: half, maxPerSource: 3 });
-  const newsPicked = pickItems(newsItems, { since, limit: limit - officialPicked.length, maxPerSource: 3 });
+  const officialPicked = pickItems(officialRelevant, { since, limit: half, maxPerSource: 3 });
+  const newsPicked = pickItems(newsRelevant, { since, limit: limit - officialPicked.length, maxPerSource: 3 });
 
   const total = officialPicked.length + newsPicked.length;
   if (total === 0) {
@@ -517,6 +786,15 @@ function main() {
     writeLastWritten({ writtenCount: 0, files: [], entries: [] });
     return;
   }
+  if (total < MIN_LINKS_TO_PUBLISH) {
+    console.log(
+      `⚠️ Roundup publish skipped: picked ${total} link(s), below minimum ${MIN_LINKS_TO_PUBLISH}. Increase window or wait for more items.`
+    );
+    writeLastWritten({ writtenCount: 0, files: [], entries: [] });
+    return;
+  }
+
+  const insights = await generateRoundupInsights(officialPicked, newsPicked, ymd, sinceLabel);
 
   const koDir = path.join(POSTS_DIR, 'ko');
   const enDir = path.join(POSTS_DIR, 'en');
@@ -526,8 +804,8 @@ function main() {
   const koPath = path.join(koDir, `${slug}.mdx`);
   const enPath = path.join(enDir, `${slug}.mdx`);
 
-  fs.writeFileSync(koPath, `${renderKo(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
-  fs.writeFileSync(enPath, `${renderEn(officialPicked, newsPicked, ymd, sinceLabel)}\n`);
+  fs.writeFileSync(koPath, `${renderKo(officialPicked, newsPicked, ymd, sinceLabel, insights.ko)}\n`);
+  fs.writeFileSync(enPath, `${renderEn(officialPicked, newsPicked, ymd, sinceLabel, insights.en)}\n`);
 
   console.log(`✅ Wrote roundup post: ${slug} (official=${officialPicked.length}, news=${newsPicked.length})`);
 
@@ -541,4 +819,7 @@ function main() {
   writeLastWritten({ writtenCount: 1, files: [koPath, enPath], entries: [entry] });
 }
 
-main();
+main().catch((error) => {
+  console.error(`❌ Roundup generation failed: ${error instanceof Error ? error.message : String(error)}`);
+  process.exit(1);
+});
