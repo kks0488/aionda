@@ -1,0 +1,151 @@
+---
+title: OpenAI Codex Runs on WSE-3 for Lower Latency
+slug: openai-codex-wse-3-lower-latency
+date: '2026-02-12'
+lastReviewedAt: '2026-02-12'
+locale: en
+description: >-
+  OpenAI Codex reportedly runs on Cerebras WSE-3, highlighting lower TTFT and
+  reduced round-trip overhead for faster agent UX.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - openai
+author: AI온다
+sourceId: techcrunch-ai-8m5z4gg
+sourceUrl: >-
+  https://techcrunch.com/2026/02/12/a-new-version-of-openais-codex-is-powered-by-a-new-dedicated-chip/
+verificationScore: 0.8133333333333334
+alternateLocale: /ko/posts/openai-codex-wse-3-lower-latency
+coverImage: /images/posts/openai-codex-wse-3-lower-latency.png
+---
+
+## TL;DR
+- OpenAI’s Codex “Spark” is reported to run on Cerebras WSE‑3, with latency positioned as a key metric.  
+- The disclosed reductions, like **50% TTFT** and **80% round-trip overhead**, suggest workflow speed can matter alongside benchmarks.  
+- Check whether TTFT or round-trip overhead slows your tasks, then run small A/B tests on latency-sensitive work.
+
+A short edit–test loop can feel slow when the cursor pauses and the terminal seems unresponsive.  
+This framing emphasizes perceived latency, not only model accuracy.  
+Reported metrics include **50% lower TTFT**, **80% lower round-trip overhead**, and **30% lower per-token overhead**.  
+TechCrunch reported that a new Codex version runs inference on Cerebras **Wafer Scale Engine 3 (WSE‑3)**.  
+This may signal more focus on serving stacks, not only benchmarks or parameter counts.
+
+Example: You request a patch in a review, apply it, and ask again about tests. The pause feels disruptive.
+
+- **What changed / key issue?** Reports describe Codex Spark running on Cerebras **WSE‑3**, with a focus on lower latency.  
+- **Why does it matter?** Responsiveness can affect coding agent workflows, especially TTFT and round-trip overhead.  
+- **What should readers do?** Define which tasks depend on low latency, then A/B test on small, repeatable cases.
+
+## Status
+
+Latency work appears to extend into hardware selection and serving choices.  
+TechCrunch reported OpenAI is running a new Codex version on a “dedicated chip.”  
+The article identified the chip as Cerebras **Wafer Scale Engine 3 (WSE‑3)**.  
+The wording alone does not confirm an OpenAI in-house ASIC.  
+TechCrunch also quoted OpenAI calling this a “first milestone” with Cerebras.  
+That phrasing does not confirm a long-term roadmap.
+
+In an OpenAI introduction post, GPT‑5.3‑Codex‑Spark is described as targeting a near-instant feel.  
+OpenAI described **1000+ tokens per second** on “ultra-low latency hardware.”  
+OpenAI also cited pipeline changes.  
+Those include **80% reduction in client/server round-trip overhead**.  
+They also include **30% reduction in per-token overhead**.  
+They also include **50% reduction in TTFT**.  
+This framing emphasizes response feel more than increased “smarts.”
+
+Benchmark numbers appear in the Codex introduction materials.  
+OpenAI published **SWE‑Bench Pro (Public) 56.8%**.  
+OpenAI published **Terminal‑Bench 2.0 77.3%**.  
+OpenAI published **OSWorld‑Verified 64.7%**.  
+The documents do not clearly attribute these scores to Spark.  
+They also do not clearly establish identical comparison conditions.  
+OpenAI says Spark finishes tasks in “less time.”  
+The materials do not provide a specific time delta.
+
+Pricing and quotas are not concretely verifiable from the cited public materials.  
+Enterprise deployment options are also not concretely verifiable there.  
+Security design changes are also not concretely verifiable there.  
+OpenAI describes cloud sandboxing and preloaded repositories for tasks.  
+The documents do not clarify how this changes under WSE‑3-based Spark serving.
+
+## Analysis
+
+Public materials do not support a cost-based claim about dedicated chips.  
+They also do not confirm pricing-policy changes.  
+The observable shift is emphasis on perceived performance.  
+OpenAI described Spark as “faster inference” and “as low latency as possible.”  
+OpenAI also presented **80% / 30% / 50%** reductions for overhead and TTFT.  
+That suggests bottlenecks can include the request pipeline, not only model quality.  
+The chip may be one lever in that pipeline.
+
+The materials also suggest trade-offs by workload pattern.  
+Short, frequent interactions can be sensitive to TTFT.  
+In that case, **1000+ tokens/s** and lower overhead may help productivity.  
+Long batch jobs can depend more on throughput, concurrency, and reliability.  
+Public materials provide fewer details on concurrency and failure recovery.  
+Team-level decisions may need more evidence than tokens/s and TTFT deltas.
+
+Lock-in dynamics could shift toward serving characteristics.  
+Workflows can become tuned to a specific “chip + runtime + scheduling” stack.  
+TechCrunch quoted the Cerebras relationship as a “first milestone.”  
+That does not confirm deeper coupling.  
+It also does not confirm broader hardware options.
+
+## Practical application
+
+Example: You ask for a patch, apply it, and then ask for test results. If pauses disrupt the loop, the tool feels slow.
+
+For team decisions, it can help to break evaluation into steps.  
+First, check whether latency is the main bottleneck.  
+Then, test low-latency serving only where it should help.  
+Measure changes in TTFT and end-to-end completion time.  
+If security, audit, or on-prem constraints matter, confirm details before broad rollout.  
+Public materials do not fully specify those changes under Spark.
+
+**Checklist for Today:**
+- Segment logs by short round trips, and record TTFT alongside end-to-end task time.  
+- Select a small set of loop-shaped tasks, and run an A/B test with identical prompts.  
+- Write a verification list for pricing, quotas, sandboxing, and audit logs, then request confirmation.
+
+## FAQ
+
+**Q1. Is the “dedicated chip” an ASIC designed directly by OpenAI?**  
+A. TechCrunch wrote that Spark runs on Cerebras **WSE‑3**.  
+Public materials do not confirm it as an OpenAI in-house designed ASIC.
+
+**Q2. How can users verify the performance changes they will feel?**  
+A. OpenAI stated a target of **1000+ tokens/s** on ultra-low latency hardware.  
+OpenAI also reported **80% round-trip overhead**, **30% per-token overhead**, and **50% TTFT** reductions.  
+Users may still need to validate results on their own workloads.
+
+**Q3. Does this change pricing or enterprise deployment options (on-prem / dedicated instances)?**  
+A. Public materials do not confirm Spark pricing or quotas.  
+They also do not confirm on-prem or dedicated instance changes.  
+Baseline sandboxing is described for Codex tasks.  
+Differences under WSE‑3-based Spark serving need confirmation.
+
+## Conclusion
+
+The Codex Spark framing highlights latency as a product axis.  
+TechCrunch reported OpenAI serving on Cerebras **WSE‑3**.  
+OpenAI published latency-oriented metrics.  
+Those include **50% lower TTFT** and **80% lower round-trip overhead**.  
+They also include **30% lower per-token overhead** and **1000+ tokens/s**.  
+Adoption decisions can depend on whether those deltas show up in your workflows.
+
+## Further Reading
+- [Agentic Coding And Video Generation: Shorter Iteration Loops](/en/posts/agentic-coding-video-generation-shorter-iteration-loops)
+- [Defending Agent Link Clicks From Leakage And Injection](/en/posts/ai-agent-web-security-guide)
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [Android 17 Shifts Locking Into an OS Security State](/en/posts/android-17-locking-os-security-state)
+- [Choosing LLMs Beyond Benchmarks: Ops Features And Control](/en/posts/choosing-llms-beyond-benchmarks-ops-features-and-control)
+---
+
+## References
+
+- 🛡️ [techcrunch.com](https://techcrunch.com/2026/02/12/a-new-version-of-openais-codex-is-powered-by-a-new-dedicated-chip/)
+- 🛡️ [Introducing GPT‑5.3‑Codex‑Spark | OpenAI](https://openai.com/index/introducing-gpt-5-3-codex-spark/)
+- 🛡️ [Introducing GPT‑5.3‑Codex | OpenAI](https://openai.com/index/introducing-gpt-5-3-codex/)
+- 🛡️ [Introducing Codex](https://openai.com/index/introducing-codex/)
