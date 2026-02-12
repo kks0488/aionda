@@ -1,0 +1,138 @@
+---
+title: "Trick Questions Expose Hallucination Risks Across Popular AI Models"
+slug: "trick-questions-expose-hallucination-risks-across-popular-ai-models"
+date: "2026-02-12"
+lastReviewedAt: "2026-02-12"
+locale: "en"
+description: "ZDNET tests six popular AIs with trick questions, highlighting hallucination risk and why teams need RAG, CoT, self-checks, and evaluation rules."
+tags: ["agi", "hardware", "llm", "deep-dive", "rag"]
+author: "AI온다"
+sourceId: "zdnet-ai-5a3yjx8"
+sourceUrl: "https://www.zdnet.com/article/ai-hallucination-test/"
+verificationScore: 0.6333333333333333
+alternateLocale: "/ko/posts/trick-questions-expose-hallucination-risks-across-popular-ai-models"
+coverImage: "/images/posts/trick-questions-expose-hallucination-risks-across-popular-ai-models.png"
+---
+
+## TL;DR
+- ZDNET tested a trick question on **six** popular AIs to observe hallucination-like failures.  
+- Plausible errors can raise verification costs and reduce trust, and one snippet reports **0%** vs **6%** rates.  
+- Build If/Then rules, add evidence workflows like RAG, and validate with a small evaluation set.  
+
+A user reads a confident answer to a trick question and makes a decision without checking sources.  
+That situation can turn a plausible mistake into operational risk.  
+ZDNET explored this pattern by posing a trick question to **six** popular AIs.  
+The setup reflects common workplace inputs that look simple but hide traps.  
+The key issue is how systems handle uncertainty and evidence.  
+
+Example: A team drafts a report from internal materials. The model adds convincing support. Later, reviewers find the support is incorrect. The team rewrites the report and adjusts the workflow.  
+
+## Current state
+
+Trick questions can expose how a model produces plausible errors.  
+Those errors can increase a user’s verification burden.  
+In ZDNET excerpts, the author frames chatbot errors as a known risk.  
+The author then tests a trick question on leading tools.  
+The excerpt supports only a small set of checkable claims.  
+
+- The test targeted **six** “popular AIs.”  
+- The experiment is framed as “hallucination roulette.”  
+
+The excerpt does not confirm model names, prompts, or scoring.  
+It also does not provide accuracy or error rates for the six models.  
+Those details require the full article or related materials.  
+
+Mitigations are often discussed in research and practice.  
+They commonly fall into four groups.  
+
+- **RAG (Retrieval-Augmented Generation)**: The model can cite external sources, not only parameters.  
+- **CoT (Chain-of-Thought)**: The model can show steps that create intermediate checks.  
+- **Self-Correction**: The model can re-check its answer for inconsistencies.  
+- **Knowledge Graph**: Structured entities and relationships can improve traceability and consistency.  
+
+Quantitative evidence is limited in the cited scope.  
+One PubMed-indexed snippet reports a specific comparison under CIS information use.  
+It reports **GPT-4 at 0%** hallucination and **GPT-3.5 at 6%** hallucination.  
+These results are conditional and may not generalize across tasks.  
+They also do not directly validate results for the six-AI ZDNET test.  
+
+## Analysis
+
+The decision risk is not only model capability.  
+It is also operating rules for when to trust outputs.  
+Trick questions can resemble real work inputs.  
+Examples include policies, contract clauses, and specifications.  
+Risk rises when answers sound plausible and go unchecked.  
+That gap can increase QA effort and rework time.  
+It can also raise customer support costs and compliance exposure.  
+
+Mitigations can add costs and trade-offs.  
+
+- RAG depends on search quality, indexing, and access control.  
+- RAG also depends on source credibility and citation handling.  
+- CoT and self-correction can increase token and latency costs.  
+- Longer outputs can still be wrong in some cases.  
+- Knowledge graphs can add build and maintenance overhead.  
+- They also require updates as the domain changes.  
+
+The goal can shift from eliminating hallucinations to managing them.  
+Tasks can be separated by risk and evidence needs.  
+Some tasks can justify RAG by default.  
+Some tasks can benefit from human approval.  
+Some tasks can remain manual if risk is high.  
+
+## Practical application
+
+A task-level memo can be easier to reproduce than model ranking.  
+A few trick questions rarely match real organizational workloads.  
+Instead, classify your question types and likely failure modes.  
+Then attach safeguards by category.  
+
+- **If** the answer depends on facts **Then** use RAG and require citations.  
+- **If** the answer needs multi-step reasoning **Then** use step structure and checkpoints.  
+- **If** the answer includes a decision **Then** add self-correction or human approval.  
+
+**Checklist for Today:**
+- Categorize frequent questions into fact, reasoning, and decision types.  
+- Add RAG for fact-type questions and block submission without citations.  
+- Create a small evaluation set and log correctness and citation presence.  
+
+## FAQ
+
+**Q1. What is the most realistic single prescription to reduce hallucinations?**  
+A. RAG is often a practical starting point.  
+It can reduce unsupported fabrication by attaching sources.  
+The effect can be limited if retrieval and source design are weak.  
+
+**Q2. Does using CoT (Chain-of-Thought) make it more accurate?**  
+A. Step structure can help reveal mistakes earlier.  
+It creates checkpoints for targeted verification.  
+Longer explanations do not automatically imply correctness.  
+
+**Q3. Which is the safest among the ‘six popular AIs’?**  
+A. The excerpt does not support a ranked comparison.  
+A separate snippet reports **0%** versus **6%** under a specific condition.  
+That difference may not transfer to your tasks or datasets.  
+You can test stability on your data with the same safeguards.  
+
+## Conclusion
+
+Trick-question testing highlights a user-facing failure mode.  
+A plausible answer can become operational risk without evidence checks.  
+Start with rules that require evidence for factual claims.  
+Use RAG for citations, and use structured reasoning for checkpoints.  
+Add self-correction and knowledge graphs where traceability matters.  
+Then measure consistency of evidenced answers across your evaluation set.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [AI Resource Roundup (6h) - 2026-02-11](/en/posts/ai-resources-roundup-2026-02-11)
+- [AI Resource Roundup (24h) - 2026-02-10](/en/posts/ai-resources-roundup-2026-02-10)
+- [Enhancing Code Refactoring and Functional Integrity With AI Models](/en/posts/ai-code-refactoring-and-functional-integrity)
+- [Balancing Productivity and Security in AI Assisted Software Development](/en/posts/ai-coding-security-for-solo-developers)
+---
+
+## References
+
+- 🛡️ [zdnet.com](https://www.zdnet.com/article/ai-hallucination-test/)
+- 🏛️ [Reducing Hallucinations and Trade-Offs in Responses in Generative AI Chatbots - PubMed](https://pubmed.ncbi.nlm.nih.gov/40934488/)

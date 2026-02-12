@@ -1,68 +1,159 @@
 ---
-title: How OpenAI Scales PostgreSQL to Handle Millions of Requests
-slug: openai-postgresql-scaling-millions-requests
-date: '2026-01-22'
-locale: en
-description: >-
-  Learn how OpenAI scales PostgreSQL to handle millions of QPS and 800 million
-  users using replicas, caching, and workload isolation.
-tags:
-  - postgresql
-  - openai
-  - infrastructure
-  - llm
-  - database
-  - agi
-author: AI온다
-sourceId: openai-oldwdq
-sourceUrl: 'https://openai.com/index/scaling-postgresql'
+title: "Scaling PostgreSQL to Millions of Queries per Second"
+slug: "openai-postgresql-scaling-millions-requests"
+date: "2026-02-12"
+lastReviewedAt: "2026-02-12"
+locale: "en"
+description: "OpenAI shares scaling PostgreSQL to millions of QPS using replicas, caching, rate limiting, and workload isolation to protect DB paths."
+tags: ["hardware", "llm", "robotics", "deep-dive"]
+author: "AI온다"
+sourceId: "openai-oldwdq"
+sourceUrl: "https://openai.com/index/scaling-postgresql"
 verificationScore: 0.75
-coverImage: /images/posts/openai-postgresql-scaling-millions-requests.png
+alternateLocale: "/ko/posts/openai-postgresql-scaling-millions-requests"
+coverImage: "/images/posts/openai-postgresql-scaling-millions-requests.png"
 ---
 
-# How to Sustain Millions of Requests Per Second: OpenAI’s PostgreSQL Breakthrough
-
-Example: Warning lights flicker on the control center screen. As access requests surge, the graph representing the data storage load spikes upward. Engineers manage the system by opening and closing virtual pathways to shard the data flow.
-
 ## TL;DR
-- **Maximizing Data Throughput**: Handled millions of queries per second (QPS) by leveraging replicas and building strategic caching layers.
-- **Ensuring System Stability**: Prevented the load of specific services from cascading to the entire system through workload isolation and rate limiting.
-- **Overcoming Scalability Limits**: Accommodated a user base of over 200 million weekly active users by designing PostgreSQL, a relational database, into a distributed architecture.
 
-## Current Status
-The infrastructure architecture disclosed by OpenAI has addressed the scalability limits of PostgreSQL. They utilized replication technology to stably process millions of queries per second. Read requests were distributed across multiple replicas, while write requests were concentrated on the primary database to manage bottlenecks.
+- **What changed / what this is:** A PostgreSQL scaling case described **millions of queries per second**, using replicas, caching, rate limiting, and isolation.  
+- **Why it matters:** LLM services can bottleneck on DB paths like sessions and billing, not only inference.  
+- **What to do next:** Review read/write separation, cache coverage, surge controls, and isolation as a single plan.  
 
-A key pillar of performance is the caching layer. Data that is frequently queried is designed to be handled in a high-speed memory layer before reaching the main database. This reduces the direct load on the database while providing fast response times to users. This was combined with rate-limiting functionality, setting caps to prevent abnormal traffic or specific API calls from monopolizing overall system resources.
+When users see slower responses, engineers often suspect load concentrating on one database.  
+Internally, query volume can spike.  
+Lock contention can increase.  
+Cache misses can rise at the same time.  
+A described case scaled PostgreSQL to **millions of queries per second**.  
+It highlighted **replicas, caching, rate limiting, workload isolation** as key levers.  
 
-Another component for service stability is workload isolation. OpenAI separated data paths based on the nature of the service. Logical and physical barriers were established to ensure that general chat requests and internal management queries do not compete for resources. This architecture serves as the foundation for managing the data of hundreds of millions of ChatGPT users.
+Example: A user opens a chat screen and the list feels slow. The team checks read hotspots and background jobs sharing resources.
+
+## Current state
+
+A disclosed case described scaling PostgreSQL to **millions of queries per second (millions of queries per second)**.  
+The described measures were four items.  
+They were **replicas, caching, rate limiting, workload isolation**.  
+These four items are directly stated in the excerpts used here.  
+The only numeric scale claim in these excerpts is **“millions of queries per second.”**  
+
+This text does not specify the detailed architecture.  
+It does not identify a cache product.  
+It does not indicate whether sharding was used.  
+It does not describe a cloud or deployment model.  
+Those missing details limit what can be inferred from this write-up alone.  
+
+This text also does not provide other scale metrics.  
+It does not mention user counts.  
+It does not mention request counts outside the DB query rate.  
+For now, the verifiable scale expression remains **“millions of queries per second.”**  
 
 ## Analysis
-OpenAI’s case presents a significant example to the database industry. It demonstrated that large-scale services can be operated using PostgreSQL, a proven tool, instead of opting for NoSQL or distributed databases from the beginning. This suggests that layering and isolation are more essential in infrastructure design than the type of tool used.
 
-However, this approach is not suitable for all situations. In the process of managing replicas to handle millions of QPS, "replication lag" can occur, which causes data inconsistency. Additionally, as the caching layer becomes more complex, the management cost for the entire system increases. The architecture built by OpenAI is efficient but requires high-level operational capabilities.
+This case suggests the bottleneck in AI services can include the database layer.  
+It suggests the bottleneck is not only GPUs.  
+Conversational products include non-generation paths.  
+They include authentication and sessions.  
+They can include message indexing.  
+They can include policy or abuse checks.  
+They can include billing.  
+Some of these paths can involve relational DB transactions.  
 
-## Practical Application
-If you are considering database expansion, it is worth reviewing "workload isolation" among OpenAI’s strategies. Introducing read-only replicas can lead to performance improvements depending on the service characteristics.
+When load concentrates on a single DB, query tuning may not be enough.  
+Recovery can require structural controls.  
+That context makes a bundled approach plausible.  
+The bundle is **replication + caching + rate limiting + isolation**.  
+Confirming details would require the full original source.  
+
+The trade-offs can be framed explicitly.  
+
+- **Replicas / Caching** can reduce read latency.  
+  Replication lag can create consistency risks.  
+  Cache invalidation failures can also create consistency risks.  
+- **Rate limiting** can reduce spikes and abuse.  
+  Coarse settings can block legitimate users.  
+  That creates false positives.  
+- **Workload isolation** can limit blast radius.  
+  Isolation boundaries still need ongoing management.  
+  This includes resources, permissions, and procedures.  
+
+The message leans away from “tune the DB harder.”  
+It leans toward “set operating boundaries first.”  
+Those boundaries can reduce collapse risk under surges.  
+
+### Decision Memo: Selection criteria in If/Then form
+
+- **If** the read ratio is high and lookups repeat, **Then** design replica + caching first.  
+  - Benefits: reduced DB read load, improved response latency  
+  - Costs: replication lag, cache invalidation risks, added operational complexity  
+
+- **If** traffic spikes are frequent or abuse is a concern, **Then** treat rate limiting as a safety guardrail.  
+  - Benefits: higher failure threshold, mitigated cost spikes  
+  - Costs: false-positive blocking risk, possible increases in failure-rate metrics  
+
+- **If** batch workloads and online requests compete on the same DB, **Then** create boundaries via workload isolation.  
+  - Benefits: reduced chance one incident propagates into the other side’s SLA  
+  - Costs: more synchronization work, pipelines, and operating procedures  
+
+## Practical application
+
+A reasonable sequence is stability first, then throughput, then fine tuning.  
+Stability can include surge control and isolation.  
+Throughput can include replication and caching.  
+Then detailed tuning can become easier to validate.  
+
+If you run a PostgreSQL service, start with observability.  
+Try to separate likely bottlenecks.  
+They can be CPU, IO, locks, or network.  
+Then review rate limiting policies.  
+Also review structural choices.  
+Those include isolation, replication, and caching.  
+This approach can reduce trial-and-error cycles.  
 
 **Checklist for Today:**
-- Analyze the current system's ratio of read and write queries to review the timing for introducing read-only replicas.
-- Check if appropriate rate-limiting policies are set for each API endpoint to reduce database load.
-- Inspect whether low-priority background tasks are occupying resources for real-time user requests and attempt isolation.
+- Map read and write paths, and note where a replica or cache could serve reads.  
+- Review rate limiting rules, and confirm logs can distinguish abuse from false positives.  
+- Define workload isolation boundaries, and document which jobs belong to each boundary.  
 
 ## FAQ
-**Q: Why was PostgreSQL chosen instead of NoSQL?**
-A: PostgreSQL offers high data consistency and a rich ecosystem. OpenAI chose the direction of increasing reliability by optimizing a well-known tool rather than introducing new technology.
 
-**Q: Does rate limiting affect the user experience?**
-A: Excessive restrictions can be a hindrance, but they are protective measures that prevent total system paralysis. They help distribute resources and block failures caused by abnormal traffic.
+**Q1. How far can PostgreSQL scale?**  
+A. These excerpts mention **millions of queries per second**.  
+The configuration and query mix are not specified here.  
+So the conditions behind that figure remain unclear.  
 
-**Q: Are replicas and caching necessary for small to medium-sized services?**
-A: They are not essential if traffic is not high. However, a design that separates database connections at the application level in preparation for user growth is useful.
+**Q2. Which should we do first: replica or caching?**  
+A. Caching can help when repeated reads are common.  
+It can help when freshness requirements are lower.  
+A replica can help when freshness needs are higher.  
+It can help when read traffic is structurally large.  
+If you use both, treat lag and invalidation as separate incident scenarios.  
+
+**Q3. Is rate limiting performance optimization or a security feature?**  
+A. It can function as both.  
+It can protect stability by delaying failure under spikes.  
+It can also limit cost growth under abuse.  
+False-positive blocking remains possible.  
+Design thresholds, exceptions, and observability together.  
 
 ## Conclusion
-OpenAI’s PostgreSQL scaling strategy demonstrates a practical approach to infrastructure operation. By applying the principles of replication, caching, and isolation, they built an environment for 800 million users. As the AI industry expands, the importance of database architecture will continue. Technical organizations should prepare efficient data flow control measures along with software optimization.
+
+The emphasis is a protective posture for the database layer.  
+It combines **replicas, caching, rate limiting, workload isolation**.  
+The next decision inputs are operational details.  
+They include consistency criteria.  
+They include isolation boundaries.  
+They include observability metrics.  
+If more primary material becomes available, those details can be checked.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [AI Resource Roundup (6h) - 2026-02-11](/en/posts/ai-resources-roundup-2026-02-11)
+- [AI Resource Roundup (24h) - 2026-02-10](/en/posts/ai-resources-roundup-2026-02-10)
+- [Enhancing Code Refactoring and Functional Integrity With AI Models](/en/posts/ai-code-refactoring-and-functional-integrity)
+- [Balancing Productivity and Security in AI Assisted Software Development](/en/posts/ai-coding-security-for-solo-developers)
 ---
 
 ## References
 
-- 🛡️ [Source](https://openai.com/index/scaling-postgresql)
+- 🛡️ [openai.com](https://openai.com/index/scaling-postgresql)

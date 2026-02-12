@@ -1,65 +1,148 @@
 ---
-title: Securing AI Agents Against Indirect Prompt Injection and Data Leaks
-slug: ai-agent-web-security-guide
-date: '2026-01-29'
-locale: en
-description: >-
-  Learn about security protocols protecting AI agents from indirect prompt
-  injection and unauthorized data exfiltration during web browsing.
-tags:
-  - llm
-  - security
-  - ai-agent
-  - data-protection
-  - deep-dive
-  - hardware
-author: AI온다
-sourceId: openai-2zv3jxs
-sourceUrl: 'https://openai.com/index/ai-agent-link-safety'
-verificationScore: 0.75
-alternateLocale: /ko/posts/ai-agent-web-security-guide
-coverImage: /images/posts/ai-agent-web-security-guide.png
+title: "Defending Agent Link Clicks From Leakage And Injection"
+slug: "ai-agent-web-security-guide"
+date: "2026-02-12"
+lastReviewedAt: "2026-02-12"
+locale: "en"
+description: "How agent link-opening expands the attack surface, and how instruction hierarchy, URL constraints, and sandboxing reduce leakage and injection."
+tags: ["agi", "hardware", "llm", "deep-dive"]
+author: "AI온다"
+sourceId: "openai-2zv3jxs"
+sourceUrl: "https://openai.com/index/ai-agent-link-safety"
+verificationScore: 0.9166666666666666
+alternateLocale: "/ko/posts/ai-agent-web-security-guide"
+coverImage: "/images/posts/ai-agent-web-security-guide.png"
 ---
 
 ## TL;DR
-- New security technologies help prevent data exfiltration resulting from indirect prompt injection.
-- Malicious web content can misuse agent permissions to leak sensitive information.
-- Users should verify security protocols and establish data verification procedures.
 
-Example: An agent reads a webpage containing text the same color as the background. These hidden words tell the agent to send private data to an external site. The agent follows these instructions because it cannot tell them apart from real user commands.
+- Link-opening by agents highlights URL-based exfiltration and indirect prompt injection as practical attack surfaces.  
+- Public reports show mitigations alongside performance, including **62% → 23%**, **73.2% → 8.7%**, and **94.3%** baseline performance.  
+- Split link-opening paths by purpose and output, then review and log allowlists, sandboxing, and instruction priority together.  
 
-## Current Status
-Technical details have been established to protect user data when agents open links. These measures focus on defending against security threats during autonomous content reading. Link Protection serves as a defense-in-depth mechanism against unauthorized data leaks and indirect prompt injection. 
+A browser tab used as an agent “task button” can become a data-exfiltration path.  
+Clicking a link is not just browsing.  
+It can open external text that changes behavior.  
+It can also create a URL channel for data transport.  
+OpenAI described built-in guardrails for link-opening agents.  
+The theme was protecting user data during browsing.  
+As agents move into product UIs, link clicks can become security design events.  
 
-The system isolates retrieved information to prevent it from acting like executable commands. It activates a protective shield to intercept data sent to untrusted external locations. This design aims to prevent attackers from intercepting user session data or private information.
+Example: An agent reads a web page and treats its wording as a user request. It then takes an unintended action or sends information outward. The link becomes a boundary between learning and acting.
+
+- **What changed / what is the core issue?** Agents opening external links raise risks of **URL-based data exfiltration** and **(indirect) prompt injection**. Designs combining **Instruction Hierarchy**, **URL restrictions**, and **sandboxing** are discussed more often.  
+- **Why does it matter?** Public materials report mitigations reducing **susceptibility 62% → 23%** and **attack success 73.2% → 8.7%**. They also report **94.3%** baseline task performance. Evaluation conditions may differ across sources.  
+- **What should readers do?** Decompose link-opening by purpose, domain, and transmission output. Apply operational rules to review, test, and log **network allowlist + sandbox + instruction hierarchy** together.  
+
+## Status
+
+As more agents open links, external web content more often enters as **untrusted input**.  
+An OpenAI excerpt describes built-in protections when agents open links.  
+It frames the goal as protecting user data.  
+It mentions reducing “URL-based data theft” and “prompt injection.”  
+The excerpt does not describe the full implementation.  
+The core idea is to distrust external content.  
+It also aims to limit rule changes or outward data movement after clicks.  
+
+From the investigation, two axes are described more concretely.  
+First, OpenAI describes **Instruction Hierarchy** as prompt-injection defense research.  
+It is dated **2025-11-07** in the cited material.  
+It separates trusted instructions from untrusted external content.  
+It assigns priorities to reduce steering by external text.  
+Second, developer documentation describes Codex running in an **OS-enforced sandbox**.  
+The sandbox limits what it can access, including files and network resources.  
+This can reduce the range of actions, even when the model is misled.  
+
+Some outcome metrics are also reported in documents and research.  
+The Operator System Card reports **62%** susceptibility without mitigations.  
+It reports **23%** susceptibility for the final model.  
+A separate study described as **2025-11 arXiv** reports **73.2% → 8.7%** attack success.  
+It also reports **94.3%** baseline task performance.  
+These numbers may come from different evaluation conditions.  
+Applying them directly to a specific product could over-interpret results.  
+Verification before adoption can reduce that risk.  
+
+In the competitive landscape, one theme is managing browsing and tool calls as risk.  
+OpenAI says it tracks risks from advanced capabilities.  
+It published a Preparedness Framework update on **2025-04-15**.  
+The investigation also notes differing emphases by other vendors.  
+It mentions Anthropic focusing on protocol-level connectivity via MCP.  
+It mentions Microsoft and Google using cloud security and compliance tools.  
+Quantitative comparisons were not confirmed in the cited materials.  
 
 ## Analysis
-Agent security depends on solving the problem of trust transfer. Users trust the agent, but external websites may be difficult to trust. External content can interfere with the agent decision system. Traditional firewalls or antivirus solutions often struggle to perform effectively here. 
 
-The built-in security protocol acts as a checkpoint for information flow. Limitations exist even with these security measures. Attack techniques change, and filtering all sophisticated injections can be difficult. Strengthened security might restrict agent autonomy or decrease performance. Advanced reasoning models could help agents distinguish external information as untrusted input.
+Agent link security depends on the role you assign the model.  
+It can be treated as a text engine.  
+It can also be treated as a privileged automation actor.  
+Once link clicking is allowed, a page can become a command channel.  
+Instruction Hierarchy targets what the system treats as trusted.  
+Sandbox and network controls target what actions remain technically reachable.  
+These controls address different failure modes.  
 
-## Practical Application
-Developers and users can change their security models for external connections. Granting limited permissions helps ensure external data does not overwrite system commands.
+Using both controls together can be defensible, because they are separable.  
+Rules alone may leave tool calls, file writes, or networking as escape hatches.  
+Isolation alone may still allow wrong conclusions or unsafe choices.  
+The reported **23%** residual susceptibility suggests incomplete mitigation.  
+It can also suggest a need for operational design alongside model changes.  
+
+Trade-offs are also worth organizing.  
+(1) **Functionality vs. blocking strength** can shift with allowlist tightness.  
+Tighter allowlists can reduce risk.  
+They can also shrink exploration and solution space.  
+(2) **Observability vs. privacy/cost** depends on logging scope.  
+Logging can help auditing and incident response.  
+It can also increase stored data scope and operational costs.  
+(3) **Policy vs. technology** can drift as attack patterns evolve.  
+Instruction priority is a useful direction in public materials.  
+Disguised instruction patterns can still change over time.  
+A single control may not cover all cases.  
+
+## Practical application
+
+For developers, securing link access is often about narrowing the **action surface**.  
+It is less about making the browser itself safe.  
+External page text can become an attack surface once ingested.  
+A practical baseline combines three elements.  
+It can include instruction priority statements.  
+It can include sandboxed tool calls and constrained networking.  
+It can include URL restrictions to reduce data transport paths.  
+The “OS-enforced sandbox” concept can reduce reachable actions.  
+That can improve operational predictability in some environments.  
+
+For users and operators, separating permissions by task can help.  
+“Read-only research” and “updates or purchases” have different risks.  
+Research tasks can allow broader domains with strong exfiltration controls.  
+High-impact actions can use narrower allowlists and human approval.  
+The reported metrics, including **62% → 23%**, **73.2% → 8.7%**, and **94.3%**, suggest mitigation potential.  
+They can also imply residual risk that operations should absorb.  
+That can include permissions, approvals, and audits.  
 
 **Checklist for Today:**
-- Check configuration settings to ensure exfiltration protection protocols are currently active.
-- Separate sensitive data access from external web browsing permissions for the agent.
-- Verify whether link analysis outputs contain any suspicious requests to external sites.
+- Split link-opening into read-only outputs and action outputs, and add approvals for action outputs.  
+- Default to a network domain allowlist, and review exceptions before adding them.  
+- Define trusted versus untrusted instruction sources, then log and review suspected violations.  
 
 ## FAQ
-**Q: What exactly is indirect prompt injection?**
-A: Attackers hide malicious instructions in web pages that the agent reads. The agent might accept these hidden commands as legitimate instructions.
 
-**Q: Do built-in safeguards block all security threats?**
-A: No technology can defend against every possible security threat. Protective measures aim to block known patterns, but new attack types can emerge. Users should minimize access permissions to critical information for better safety.
+**Q1. Prompt injection is the model being tricked. Can technology block it completely?**  
+A. Public materials support mitigation, and they also suggest residual risk.  
+The Operator System Card reports **23%** susceptibility after mitigation.  
+A practical goal can be risk reduction with operational backstops.
 
-**Q: Does a general user need to adjust separate settings to enable this security feature?**
-A: This feature is built into the infrastructure for general users. Developers should review their architecture to ensure security policies apply correctly.
-
-## Conclusion
-Security is an essential infrastructure for agents using the web. Link security measures attempt to block risks from autonomous data exfiltration. AI technology value will likely depend on its ability to perform safely for users. Users can decide the scope of authority granted to agents within provided guidelines.
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [AI Resource Roundup (6h) - 2026-02-11](/en/posts/ai-resources-roundup-2026-02-11)
+- [AI Resource Roundup (24h) - 2026-02-10](/en/posts/ai-resources-roundup-2026-02-10)
+- [Enhancing Code Refactoring and Functional Integrity With AI Models](/en/posts/ai-code-refactoring-and-functional-integrity)
+- [Balancing Productivity and Security in AI Assisted Software Development](/en/posts/ai-coding-security-for-solo-developers)
 ---
 
 ## References
 
+- 🛡️ [Understanding prompt injections: a frontier security challenge | OpenAI](https://openai.com/index/understanding-prompt-injections/)
+- 🛡️ [Security - OpenAI for developers](https://platform.openai.com/docs/guides/security)
+- 🛡️ [Operator System Card | OpenAI](https://openai.com/index/operator-system-card/)
+- 🛡️ [Our updated Preparedness Framework | OpenAI](https://openai.com/index/updating-our-preparedness-framework/)
 - 🛡️ [openai.com](https://openai.com/index/ai-agent-link-safety)
+- 🏛️ [Securing AI Agents Against Prompt Injection Attacks](https://arxiv.org/abs/2511.15759)

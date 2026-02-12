@@ -1,0 +1,118 @@
+---
+title: "Claude Code Brings Agentic Loops to the Terminal"
+slug: "claude-code-agentic-loops-terminal"
+date: "2026-02-12"
+lastReviewedAt: "2026-02-12"
+locale: "en"
+description: "Claude Code introduces an agentic CLI loop with shell and filesystem access, shifting development toward permissions, verification, and review."
+tags: ["hardware", "llm", "robotics", "deep-dive"]
+author: "AI온다"
+sourceId: "wired-ai-hddsqi"
+sourceUrl: "https://www.wired.com/story/claude-code-success-anthropic-business-model/"
+verificationScore: 0.9499999999999998
+alternateLocale: "/ko/posts/claude-code-agentic-loops-terminal"
+coverImage: "/images/posts/claude-code-agentic-loops-terminal.png"
+---
+
+## TL;DR
+- Claude Code is described as a CLI agent that uses shell and file access with a plan–execute–verify loop.  
+- This shifts focus toward permissions, verification evidence, and review standards over raw code output.  
+- Run a PoC around permissions, verification, and review templates before broader adoption.  
+
+A user runs a CLI agent that executes commands, reads logs, and edits files in one loop.  
+This behavior is described in an Anthropic engineering document dated 2025-04-18.  
+WIRED also discussed this workflow through an interview with Claude Code lead Boris Cherny.  
+
+Example: A developer sees recurring failures in a build. The agent reads logs and drafts changes. A reviewer checks intent and evidence before merging.  
+
+## Current state
+Terminal-based development flows increasingly treat AI as an executing actor, not only an assistant.  
+Claude Code is described as a “command line tool for agentic coding.”  
+That phrasing appears in an Anthropic engineering document dated 2025-04-18.  
+The workflow is premised on shell and file system access.  
+
+Two distinguishing traits are Tool Use and a plan–execute–verify loop.  
+After code changes, the agent can run tests, read errors, and iterate further.  
+An Anthropic newsroom post describes team use cases for this workflow.  
+One example is Security Engineering parsing a Terraform plan for review work.  
+Another example is the Inference team generating unit tests with edge cases.  
+
+Public materials also mention internal scale in limited terms.  
+Anthropic has said that about 95% of Claude Code’s own code is written by AI.  
+This number appears in Anthropic news posts and introductory write-ups.  
+It reflects one organization’s internal context, not a general industry baseline.  
+
+## Analysis
+The main change is the interface where engineering work gets evaluated.  
+Line-level code output becomes less central for explaining progress.  
+More attention moves to task decomposition, tool choices, and permissions used.  
+Verification artifacts matter more, including tests run, logs read, and diffs produced.  
+
+Reviews can shift toward intent and verification, not only syntax or style.  
+That framing appears aligned with the “working change” loop described above.  
+
+Risks appear from the same structure.  
+- First, broader permissions can increase the blast radius of errors.  
+Shell and file system access can enable incorrect commands and path mistakes.  
+It can also raise the chance of poor secret handling.  
+- Second, the plan–execute–verify loop depends on a verification floor.  
+Weak tests or weak observability can increase human verification time.  
+- Third, external quantitative evidence remains limited in this text.  
+The about 95% figure is internal to Anthropic’s Claude Code codebase.  
+External adoption rates or productivity changes are not established here.  
+
+## Practical application
+Adopting an agentic CLI tool can resemble operating an executing actor with permissions.  
+It can be framed around permissions, tools, and verification gates.  
+Permissions define what it can execute and which files it can access.  
+Tools define standardized commands and scripts the agent can call.  
+Verification defines which tests and checks should pass before review.  
+
+Anthropic also notes tool extensions via MCP, the Model Context Protocol.  
+That can help modularize repeatable tasks into callable tools.  
+Examples include running tests, linting, and infrastructure plan review.  
+Sandboxing can reduce risk when permissions expand.  
+
+**Checklist for Today:**
+- Limit shell and file permissions, and document forbidden commands and paths.  
+- Add evidence requirements to reviews, including tests run, logs, and diff summaries.  
+- Standardize one repetitive task as a script, and expose it via a tool like MCP.  
+
+## FAQ
+**Q1. How is Claude Code’s “agentic” different from IDE autocompletion?**  
+A. Autocompletion often focuses on suggesting snippets.  
+Claude Code is described as using shell access for multi-step execution.  
+It is organized around a plan–execute–verify loop.  
+
+**Q2. From a security team perspective, is this a win or a loss?**  
+A. Outcomes can vary by permission design and review practice.  
+Anthropic describes Security Engineering parsing Terraform plans to reduce bottlenecks.  
+Shell and file access can also increase the blast radius if controls are weak.  
+Least privilege, sandboxing, and evidence-based reviews can reduce risk.  
+
+**Q3. Should we take internal numbers like “95% of code changes” at face value?**  
+A. It is more accurate to treat about 95% as an internal Anthropic claim.  
+It is tied to Claude Code’s own codebase, per cited public materials.  
+It does not establish averages for other organizations.  
+External effects would need separate validation beyond this text.  
+
+## Conclusion
+Claude Code illustrates a shift toward AI acting as an executing CLI workflow participant.  
+It is described as holding shell access and using tools to finish tasks.  
+The operational question becomes permissioning, verification, and review design.  
+These elements can help turn speed into controllable execution.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [AI Resource Roundup (6h) - 2026-02-11](/en/posts/ai-resources-roundup-2026-02-11)
+- [AI Resource Roundup (24h) - 2026-02-10](/en/posts/ai-resources-roundup-2026-02-10)
+- [Enhancing Code Refactoring and Functional Integrity With AI Models](/en/posts/ai-code-refactoring-and-functional-integrity)
+- [Balancing Productivity and Security in AI Assisted Software Development](/en/posts/ai-coding-security-for-solo-developers)
+---
+
+## References
+
+- 🛡️ [Claude Code: Best practices for agentic coding - Anthropic](https://www.anthropic.com/engineering/claude-code-best-practices)
+- 🛡️ [How Anthropic Teams Use Claude Code](https://www.anthropic.com/news/how-anthropic-teams-use-claude-code)
+- 🛡️ [Introducing Claude 3.7 Sonnet and Claude Code](https://www.anthropic.com/news/claude-3-7-sonnet)
+- 🛡️ [wired.com](https://www.wired.com/story/claude-code-success-anthropic-business-model/)
