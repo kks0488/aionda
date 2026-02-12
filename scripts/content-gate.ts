@@ -535,7 +535,7 @@ function readLastWrittenPostFiles(): { exists: boolean; files: string[] } {
       files: existing,
     };
   } catch {
-    return { exists: true, files: [] };
+    return { exists: false, files: [] };
   }
 }
 
@@ -843,7 +843,7 @@ function main() {
     run(`pnpm content:style-fix -- --files=${filesArg}`);
   }
 
-  const qualityTargets = lastWritten.files.length > 0 ? lastWritten.files : changedPostFiles;
+  const qualityTargets = [...new Set([...lastWritten.files, ...changedPostFiles])];
   if (qualityTargets.length > 0) {
     warnDuplicateReferenceUrls(qualityTargets);
     warnBodyReferenceMismatch(qualityTargets);

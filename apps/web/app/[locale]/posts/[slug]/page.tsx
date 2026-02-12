@@ -6,6 +6,7 @@ import { getAllSlugs, getAvailableLocalesForSlug, getPostBySlug, getPostSummarie
 import { getTagColor } from '@/lib/tag-utils';
 import { getTopicConfig, normalizeTopicId } from '@/lib/topics';
 import { BASE_URL } from '@/lib/site';
+import { safeJsonLd } from '@/lib/json-ld';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
@@ -502,24 +503,24 @@ export default async function PostPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(articleJsonLd) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       {faqJsonLd && (
         <script
           id="ld-faq"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
         />
       )}
       {howToJsonLd && (
         <script
           id="ld-howto"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(howToJsonLd) }}
         />
       )}
       <ReadingProgress />

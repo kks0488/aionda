@@ -7,6 +7,7 @@ import SearchDataSetter from '@/components/SearchDataSetter';
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
+import { safeJsonLd } from '@/lib/json-ld';
 
 export async function generateMetadata({
   params: { locale },
@@ -66,7 +67,7 @@ export default function TagsPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
         <SearchDataSetter posts={searchPosts} locale={locale as Locale} />

@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from './CodeBlock';
 import { toHeadingId } from '@/lib/heading-utils';
+import { sanitizeHref } from '@/lib/url-safe';
 
 interface MDXContentProps {
   source: string;
@@ -68,16 +69,22 @@ export function MDXContent({ source }: MDXContentProps) {
           ),
 
           // Links
-          a: ({ href, children }) => (
-            <a
-              href={href}
-              target={href?.startsWith('http') ? '_blank' : undefined}
-              rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-              className="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent transition-colors"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            const safeHref = sanitizeHref(href);
+            if (!safeHref) return <>{children}</>;
+
+            const isExternalHttp = safeHref.startsWith('http://') || safeHref.startsWith('https://');
+            return (
+              <a
+                href={safeHref}
+                target={isExternalHttp ? '_blank' : undefined}
+                rel={isExternalHttp ? 'noopener noreferrer' : undefined}
+                className="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent transition-colors"
+              >
+                {children}
+              </a>
+            );
+          },
 
           // Blockquotes - styled as pull quotes
           blockquote: ({ children }) => (

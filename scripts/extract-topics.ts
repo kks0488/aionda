@@ -103,6 +103,16 @@ function parseSinceArg(raw?: string): Date | null {
 // Source types
 type SourceType = 'raw' | 'official' | 'news';
 type SourceTier = 'S' | 'A' | 'B' | 'C';
+const VALID_TIERS = new Set<SourceTier>(['S', 'A', 'B', 'C']);
+
+function validateTier(value: unknown): SourceTier {
+  const normalized = String(value || '').trim().toUpperCase();
+  return VALID_TIERS.has(normalized as SourceTier) ? (normalized as SourceTier) : 'C';
+}
+
+function buildSourceKey(sourceType: string, sourceId: string): string {
+  return `${sourceType || 'unknown'}:${sourceId}`;
+}
 
 interface UnifiedPost {
   id: string;
@@ -284,7 +294,7 @@ function loadRawPosts(): UnifiedPost[] {
         return {
           id: data.id,
           sourceType: 'raw' as SourceType,
-          sourceTier: 'C' as SourceTier,
+          sourceTier: 'C',
           sourceName: 'DC Inside 특이점갤러리',
           title: data.title || '',
           content: data.contentText || '',
@@ -315,7 +325,7 @@ function loadOfficialPosts(): UnifiedPost[] {
         return {
           id: data.id,
           sourceType: 'official' as SourceType,
-          sourceTier: (data.sourceTier || 'S') as SourceTier,
+          sourceTier: validateTier(data.sourceTier || 'S'),
           sourceName: data.sourceName || 'Official Blog',
           title: data.title || '',
           content: data.contentSnippet || data.content || '',
@@ -343,7 +353,7 @@ function loadNewsPosts(): UnifiedPost[] {
         return {
           id: data.id,
           sourceType: 'news' as SourceType,
-          sourceTier: (data.sourceTier || 'A') as SourceTier,
+          sourceTier: validateTier(data.sourceTier || 'A'),
           sourceName: data.sourceName || 'Tech News',
           title: data.title || '',
           content: data.contentSnippet || data.content || '',
@@ -368,7 +378,7 @@ function getProcessedIds(): Set<string> {
     for (const file of readdirSync(TOPICS_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
       try {
         const topic = JSON.parse(readFileSync(join(TOPICS_DIR, file), 'utf-8'));
-        processed.add(topic.sourceId);
+        processed.add(buildSourceKey(topic.sourceType || 'unknown', topic.sourceId));
       } catch {}
     }
   }
@@ -378,7 +388,7 @@ function getProcessedIds(): Set<string> {
     for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
       try {
         const pub = JSON.parse(readFileSync(join(PUBLISHED_DIR, file), 'utf-8'));
-        processed.add(pub.sourceId);
+        processed.add(buildSourceKey(pub.sourceType || 'unknown', pub.sourceId));
       } catch {}
     }
   }
@@ -480,7 +490,15 @@ async function main() {
   // Parse CLI arguments
   const args = process.argv.slice(2);
   const sourceArg = args.find(a => a.startsWith('--source='));
-  const sourceFilter = sourceArg ? sourceArg.split('=')[1] as SourceType : undefined;
+  const sourceRaw = sourceArg ? sourceArg.split('=')[1]?.trim().toLowerCase() : undefined;
+  let sourceFilter: SourceType | undefined;
+  if (sourceArg) {
+    if (!sourceRaw || !['raw', 'official', 'news'].includes(sourceRaw)) {
+      console.error(`❌ Invalid --source value: "${sourceRaw}". Allowed values: raw, official, news`);
+      process.exit(1);
+    }
+    sourceFilter = sourceRaw as SourceType;
+  }
   const limitArg = args.find(a => a.startsWith('--limit='));
   const limitOverride = limitArg ? parseInt(limitArg.split('=')[1], 10) : undefined;
   const maxTopics = Number.isFinite(limitOverride) && (limitOverride as number) > 0
@@ -521,7 +539,7 @@ async function main() {
   }
 
   // Filter out already processed
-  const unprocessedPosts = allPosts.filter(p => !processedIds.has(p.id));
+  const unprocessedPosts = allPosts.filter(p => !processedIds.has(buildSourceKey(p.sourceType, p.id)));
   console.log(`\n📋 Unprocessed: ${unprocessedPosts.length} posts`);
 
   const filteredPosts = since
@@ -658,4 +676,7 @@ async function main() {
   console.log('═'.repeat(60));
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});

@@ -150,8 +150,13 @@ function parseArgs() {
 
   const limitParsed = limitRaw ? Number.parseInt(limitRaw, 10) : NaN;
   const limit = Number.isFinite(limitParsed) && limitParsed > 0 ? limitParsed : 12;
+  const since = parseSince(sinceArg ? sinceRaw : '24h');
+  if (sinceArg && since === null && sinceRaw?.trim().toLowerCase() !== 'all') {
+    console.error(`❌ Invalid --since value: "${sinceRaw}". Examples: today, 24h, 7d, 2026-02-12, all`);
+    process.exit(1);
+  }
 
-  return { since: parseSince(sinceRaw || '24h'), limit };
+  return { since, limit };
 }
 
 function safeReadJson(filePath: string): FeedItem | null {
@@ -417,6 +422,18 @@ function pickItems(items: FeedItem[], options: { since: Date | null; limit: numb
   }
 
   return out;
+}
+
+function dedupePickedByUrl(items: Array<{ source: SourceType; item: FeedItem }>): Array<{ source: SourceType; item: FeedItem }> {
+  const seen = new Set<string>();
+  const deduped: Array<{ source: SourceType; item: FeedItem }> = [];
+  for (const entry of items) {
+    const url = normalizeUrl(entry.item.link);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    deduped.push(entry);
+  }
+  return deduped;
 }
 
 function renderKo(
@@ -779,8 +796,14 @@ async function main() {
   const half = Math.max(1, Math.floor(limit / 2));
   const officialPicked = pickItems(officialRelevant, { since, limit: half, maxPerSource: 3 });
   const newsPicked = pickItems(newsRelevant, { since, limit: limit - officialPicked.length, maxPerSource: 3 });
+  const globallyDeduped = dedupePickedByUrl([
+    ...officialPicked.map((item) => ({ source: 'official' as SourceType, item })),
+    ...newsPicked.map((item) => ({ source: 'news' as SourceType, item })),
+  ]);
+  const officialPickedFinal = globallyDeduped.filter((entry) => entry.source === 'official').map((entry) => entry.item);
+  const newsPickedFinal = globallyDeduped.filter((entry) => entry.source === 'news').map((entry) => entry.item);
 
-  const total = officialPicked.length + newsPicked.length;
+  const total = officialPickedFinal.length + newsPickedFinal.length;
   if (total === 0) {
     console.log('✅ No recent materials found. Skipping roundup generation.');
     writeLastWritten({ writtenCount: 0, files: [], entries: [] });
@@ -794,7 +817,7 @@ async function main() {
     return;
   }
 
-  const insights = await generateRoundupInsights(officialPicked, newsPicked, ymd, sinceLabel);
+  const insights = await generateRoundupInsights(officialPickedFinal, newsPickedFinal, ymd, sinceLabel);
 
   const koDir = path.join(POSTS_DIR, 'ko');
   const enDir = path.join(POSTS_DIR, 'en');
@@ -804,10 +827,10 @@ async function main() {
   const koPath = path.join(koDir, `${slug}.mdx`);
   const enPath = path.join(enDir, `${slug}.mdx`);
 
-  fs.writeFileSync(koPath, `${renderKo(officialPicked, newsPicked, ymd, sinceLabel, insights.ko)}\n`);
-  fs.writeFileSync(enPath, `${renderEn(officialPicked, newsPicked, ymd, sinceLabel, insights.en)}\n`);
+  fs.writeFileSync(koPath, `${renderKo(officialPickedFinal, newsPickedFinal, ymd, sinceLabel, insights.ko)}\n`);
+  fs.writeFileSync(enPath, `${renderEn(officialPickedFinal, newsPickedFinal, ymd, sinceLabel, insights.en)}\n`);
 
-  console.log(`✅ Wrote roundup post: ${slug} (official=${officialPicked.length}, news=${newsPicked.length})`);
+  console.log(`✅ Wrote roundup post: ${slug} (official=${officialPickedFinal.length}, news=${newsPickedFinal.length})`);
 
   const entry = {
     topicId: `roundup-${ymd.replace(/-/g, '')}`,

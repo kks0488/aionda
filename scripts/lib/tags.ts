@@ -98,7 +98,9 @@ const ALLOWED_TAGS = new Set<string>([
   'review',
   'workflow',
   'tooling',
+  'ai-tools',
   'postmortem',
+  'prompt-injection',
 
   // Major companies / ecosystems
   'openai',

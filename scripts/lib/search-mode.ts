@@ -63,6 +63,47 @@ const TIER_S_DOMAINS = [
   'frontiersin.org',
 ];
 
+const TIER_A_DOMAINS = [
+  'europa.eu',
+  'eur-lex.europa.eu',
+  'ilo.org',
+  'oecd.org',
+  'who.int',
+  'un.org',
+  'unicef.org',
+  'undp.org',
+  'worldbank.org',
+  'imf.org',
+  'wto.org',
+  'kiet.re.kr',
+  'openai.com',
+  'anthropic.com',
+  'tsmc.com',
+  'meta.com',
+  'nvidia.com',
+  'huggingface.co',
+  'd2.naver.com',
+  'tech.kakao.com',
+  'toss.tech',
+  'techblog.woowahan.com',
+  'techblog.gccompany.co.kr',
+  'techcrunch.com',
+  'arstechnica.com',
+  'venturebeat.com',
+  'technologyreview.com',
+  'wired.com',
+  'zdnet.com',
+  'theverge.com',
+  'time.com',
+  'thekurzweillibrary.com',
+  'klri.re.kr',
+  'reuters.com',
+  'apnews.com',
+  'bbc.com',
+  'nytimes.com',
+  'yonhapnews.co.kr',
+];
+
 // Tier A: Official/Trusted Sources (🛡️)
 const TIER_A_PATTERNS = [
   /\.gov$/,
@@ -113,6 +154,10 @@ const TIER_A_PATTERNS = [
   /(^|\.)yonhapnews\.co\.kr$/,
 ];
 
+function isDomainOrSubdomain(domain: string, candidate: string): boolean {
+  return domain === candidate || domain.endsWith(`.${candidate}`);
+}
+
 // Tier B: Caution Required (⚠️)
 const TIER_B_PATTERNS = [
   /twitter\.com|x\.com/,
@@ -141,8 +186,15 @@ export function classifySource(url: string): SourceTier {
 
     // Check Tier S (Academic)
     for (const sDomain of TIER_S_DOMAINS) {
-      if (domain.includes(sDomain)) {
+      if (isDomainOrSubdomain(domain, sDomain)) {
         return SourceTier.S;
+      }
+    }
+
+    // Check Tier A (Official/Trusted) domain boundary
+    for (const aDomain of TIER_A_DOMAINS) {
+      if (isDomainOrSubdomain(domain, aDomain)) {
+        return SourceTier.A;
       }
     }
 

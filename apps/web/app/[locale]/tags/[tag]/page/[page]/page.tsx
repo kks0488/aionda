@@ -9,6 +9,7 @@ import { DEFAULT_PAGE_SIZE, getTotalPages, parsePageParam, sliceForPage } from '
 import { BASE_URL } from '@/lib/site';
 import { locales, type Locale } from '@/i18n';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
+import { safeJsonLd } from '@/lib/json-ld';
 
 function normalizeTag(value: string): string {
   return String(value || '').trim().toLowerCase();
@@ -102,7 +103,7 @@ export default function TagPageNumber({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
         <SearchDataSetter posts={searchPosts} locale={typedLocale} />

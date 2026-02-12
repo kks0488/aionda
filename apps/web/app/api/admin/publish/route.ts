@@ -9,6 +9,8 @@ const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 const AUTO_MERGE_ENABLED = process.env.GITHUB_AUTO_MERGE !== 'false';
 const MERGE_METHOD = String(process.env.GITHUB_MERGE_METHOD || 'SQUASH').toUpperCase();
 const PUBLISH_ENABLED = process.env.ADMIN_PUBLISH_ENABLED === 'true';
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ALLOWED_LOCALES = new Set(['ko', 'en']);
 
 const ADMIN_HEADERS = {
   'Cache-Control': 'no-store',
@@ -168,6 +170,14 @@ export async function POST(request: NextRequest) {
 
   if (!slug || !locale) {
     return adminJson({ error: 'Missing slug or locale' }, { status: 400 });
+  }
+
+  if (!SLUG_PATTERN.test(slug)) {
+    return adminJson({ error: 'Invalid slug' }, { status: 400 });
+  }
+
+  if (!ALLOWED_LOCALES.has(locale)) {
+    return adminJson({ error: 'Invalid locale' }, { status: 400 });
   }
 
   if (action !== 'update' && action !== 'delete') {

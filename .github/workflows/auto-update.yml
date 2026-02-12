@@ -80,7 +80,12 @@ jobs:
             fi
           done
 
-          TOPIC_COUNT=$(ls -1 data/topics/*.json 2>/dev/null | wc -l)
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ Topic extraction failed after $MAX_RETRIES attempts"
+            exit 1
+          fi
+
+          TOPIC_COUNT=$(find data/topics -maxdepth 1 -type f -name '*.json' 2>/dev/null | wc -l)
           echo "topic_count=$TOPIC_COUNT" >> $GITHUB_OUTPUT
           echo "📋 Extracted $TOPIC_COUNT topic(s)"
         env:
@@ -106,7 +111,7 @@ jobs:
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             if pnpm research-topic; then
               echo "✅ Research completed successfully"
-              PUBLISHABLE=$(ls -1 data/researched/*.json 2>/dev/null | xargs -I {} sh -c 'grep -l "\"canPublish\": true" {}' 2>/dev/null | wc -l)
+              PUBLISHABLE=$(find data/researched -maxdepth 1 -type f -name '*.json' 2>/dev/null | xargs -r -I {} sh -c 'grep -l "\"canPublish\": true" {}' 2>/dev/null | wc -l)
               echo "publishable_count=$PUBLISHABLE" >> $GITHUB_OUTPUT
               break
             else
@@ -175,6 +180,11 @@ jobs:
               sleep 15
             fi
           done
+
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ Image generation failed after $MAX_RETRIES attempts"
+            exit 1
+          fi
         env:
           GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
@@ -229,9 +239,9 @@ jobs:
           echo "Changes: ${{ steps.check_changes.outputs.has_changes }}"
           echo ""
           echo "📁 Current stats:"
-          echo "- Raw posts: $(ls data/raw/*.json 2>/dev/null | wc -l)"
-          echo "- Topics: $(ls data/topics/*.json 2>/dev/null | wc -l)"
-          echo "- Researched: $(ls data/researched/*.json 2>/dev/null | wc -l)"
-          echo "- Published: $(ls data/published/*.json 2>/dev/null | wc -l)"
-          echo "- Posts (ko): $(ls apps/web/content/posts/ko/*.mdx 2>/dev/null | wc -l)"
-          echo "- Posts (en): $(ls apps/web/content/posts/en/*.mdx 2>/dev/null | wc -l)"
+          echo "- Raw posts: $(find data/raw -maxdepth 1 -type f -name '*.json' 2>/dev/null | wc -l)"
+          echo "- Topics: $(find data/topics -maxdepth 1 -type f -name '*.json' 2>/dev/null | wc -l)"
+          echo "- Researched: $(find data/researched -maxdepth 1 -type f -name '*.json' 2>/dev/null | wc -l)"
+          echo "- Published: $(find data/published -maxdepth 1 -type f -name '*.json' 2>/dev/null | wc -l)"
+          echo "- Posts (ko): $(find apps/web/content/posts/ko -maxdepth 1 -type f -name '*.mdx' 2>/dev/null | wc -l)"
+          echo "- Posts (en): $(find apps/web/content/posts/en -maxdepth 1 -type f -name '*.mdx' 2>/dev/null | wc -l)"

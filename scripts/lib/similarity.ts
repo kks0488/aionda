@@ -11,6 +11,17 @@ interface PostMeta {
   date: string;
 }
 
+function normalizeTags(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((tag) => String(tag || '').trim()).filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    const one = raw.trim();
+    return one ? [one] : [];
+  }
+  return [];
+}
+
 export function getAllPosts(): PostMeta[] {
   // 디렉토리 존재 여부 먼저 확인
   if (!existsSync(POSTS_DIR)) {
@@ -24,7 +35,7 @@ export function getAllPosts(): PostMeta[] {
     return {
       slug: file.replace('.mdx', ''),
       title: data.title || '',
-      tags: data.tags || [],
+      tags: normalizeTags(data.tags),
       date: data.date || '',
     };
   });
@@ -48,11 +59,13 @@ function calculateSimilarity(str1: string, str2: string): number {
   return overlap / Math.max(words1.size, words2.size);
 }
 
-function calculateTagOverlap(tags1: string[], tags2: string[]): number {
-  if (tags1.length === 0 || tags2.length === 0) return 0;
+function calculateTagOverlap(tags1: string[] | string | undefined, tags2: string[] | string | undefined): number {
+  const normalizedTags1 = normalizeTags(tags1);
+  const normalizedTags2 = normalizeTags(tags2);
+  if (normalizedTags1.length === 0 || normalizedTags2.length === 0) return 0;
 
-  const set1 = new Set(tags1.map(t => t.toLowerCase()));
-  const set2 = new Set(tags2.map(t => t.toLowerCase()));
+  const set1 = new Set(normalizedTags1.map(t => t.toLowerCase()));
+  const set2 = new Set(normalizedTags2.map(t => t.toLowerCase()));
 
   let overlap = 0;
   for (const tag of set1) {

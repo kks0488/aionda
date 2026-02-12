@@ -12,6 +12,7 @@ import SearchProvider from '@/components/SearchProvider';
 import MobileNav from '@/components/MobileNav';
 import { BASE_URL } from '@/lib/site';
 import AnalyticsEvents from '@/components/AnalyticsEvents';
+import { safeJsonLd } from '@/lib/json-ld';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -82,12 +83,12 @@ export default async function LocaleLayout({
         <script
           id="ld-org"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
         />
         <script
           id="ld-website"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
         />
       </head>
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden font-body">

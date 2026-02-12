@@ -3,8 +3,23 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export function GET() {
+  const isProduction =
+    process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+
+  if (isProduction) {
+    return NextResponse.json(
+      { status: 'ok' },
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      }
+    );
+  }
+
   return NextResponse.json(
     {
+      status: 'ok',
       commitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
       deploymentUrl: process.env.VERCEL_URL ?? null,

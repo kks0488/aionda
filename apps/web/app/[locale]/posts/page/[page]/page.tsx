@@ -8,6 +8,7 @@ import { DEFAULT_PAGE_SIZE, getTotalPages, parsePageParam, sliceForPage } from '
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
+import { safeJsonLd } from '@/lib/json-ld';
 
 export async function generateMetadata({
   params: { locale, page },
@@ -79,7 +80,7 @@ export default function PostsPageNumber({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
         <SearchDataSetter posts={searchPosts} locale={typedLocale} />

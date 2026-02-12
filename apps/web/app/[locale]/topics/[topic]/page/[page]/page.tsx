@@ -11,6 +11,7 @@ import { DEFAULT_PAGE_SIZE, getTotalPages, parsePageParam, sliceForPage } from '
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
+import { safeJsonLd } from '@/lib/json-ld';
 
 export const dynamicParams = true;
 
@@ -141,7 +142,7 @@ export default function TopicPageNumber({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
         <section className="w-full py-12 px-6 border-b border-gray-100 dark:border-gray-800">

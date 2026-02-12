@@ -9,6 +9,7 @@ const MEMU_API_URL = process.env.MEMU_API_URL || 'http://localhost:8100';
 const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 30000);
 const MEMU_HEALTH_TIMEOUT_MS = Number(process.env.MEMU_HEALTH_TIMEOUT_MS || 2000);
 const MEMU_MAX_RETRIES = 1;
+const MEMU_FAIL_OPEN = ['true', '1'].includes(String(process.env.MEMU_FAIL_OPEN || '').toLowerCase());
 
 async function fetchWithTimeout(url: string, init?: RequestInit, timeoutMs = MEMU_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -284,7 +285,7 @@ export async function checkBeforePublish(
   const result = await checkSimilar({ content: checkContent, threshold });
 
   if (!result) {
-    return { isDuplicate: false, shouldPublish: true, similarItems: [] };
+    return { isDuplicate: false, shouldPublish: MEMU_FAIL_OPEN, similarItems: [] };
   }
 
   return {
