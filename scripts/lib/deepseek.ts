@@ -1,4 +1,6 @@
 import OpenAI from 'openai';
+import { extractJsonObject } from './json-extract.js';
+import { parseFloatEnv, parseIntEnv } from './env-utils';
 
 const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
@@ -8,14 +10,12 @@ const API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1';
 const MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
-const DEEPSEEK_TIMEOUT_MS = Number.parseInt(process.env.DEEPSEEK_TIMEOUT_MS || '45000', 10);
-const DEEPSEEK_MAX_RETRIES = Number.parseInt(process.env.DEEPSEEK_MAX_RETRIES || '2', 10);
-const DEEPSEEK_TEMPERATURE = Number.parseFloat(process.env.DEEPSEEK_TEMPERATURE || '0.2');
+const DEEPSEEK_TIMEOUT_MS = parseIntEnv('DEEPSEEK_TIMEOUT_MS', 45_000, 1);
+const DEEPSEEK_MAX_RETRIES = parseIntEnv('DEEPSEEK_MAX_RETRIES', 2, 0);
+const DEEPSEEK_TEMPERATURE = parseFloatEnv('DEEPSEEK_TEMPERATURE', 0.2, 0, 2);
 const DEEPSEEK_MAX_OUTPUT_TOKENS = (() => {
-  const raw = process.env.DEEPSEEK_MAX_OUTPUT_TOKENS;
-  if (!raw) return undefined;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  const parsed = parseIntEnv('DEEPSEEK_MAX_OUTPUT_TOKENS', 0, 1);
+  return parsed > 0 ? parsed : undefined;
 })();
 
 const TODAY = new Date().toISOString().split('T')[0];
@@ -79,7 +79,7 @@ export async function translateToEnglish(
   title: string,
   content: string,
   options?: { extraRules?: string[] }
-): Promise<{ title_en: string; content_en: string }> {
+): Promise<{ title_en: string; content_en: string; translationFailed?: boolean }> {
   const extraRules = (options?.extraRules || [])
     .map((rule) => String(rule || '').trim())
     .filter(Boolean);
@@ -105,22 +105,36 @@ ${title}
 </title>
 
 <content>
-${content.substring(0, 6000)}
+${content.substring(0, 10000)}
 </content>
 
 <output_format>
 {"title_en": "영어 제목", "content_en": "영어 본문 (마크다운 유지)"}
 </output_format>`;
 
+  const hasHighKoreanRatio = (value: string): boolean => {
+    const text = String(value || '');
+    const total = text.length;
+    if (total === 0) return false;
+    const koreanCount = (text.match(/[가-힣]/g) || []).length;
+    return koreanCount / total > 0.3;
+  };
+
   try {
     const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const jsonText = extractJsonObject(response);
+    if (jsonText) {
+      const parsed = JSON.parse(jsonText) as { title_en?: string; content_en?: string };
+      const titleEn = String(parsed.title_en || title);
+      const contentEn = String(parsed.content_en || content);
+      if (hasHighKoreanRatio(contentEn)) {
+        return { title_en: title, content_en: content, translationFailed: true };
+      }
+      return { title_en: titleEn, content_en: contentEn };
     }
-    return { title_en: title, content_en: content };
+    return { title_en: title, content_en: content, translationFailed: true };
   } catch (error) {
     console.error('Error translating (DeepSeek):', error);
-    return { title_en: title, content_en: content };
+    return { title_en: title, content_en: content, translationFailed: true };
   }
 }

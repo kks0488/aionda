@@ -7,6 +7,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import { config } from 'dotenv';
+import { OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL } from './ai-config.js';
+import { extractJsonArray, extractJsonObject } from './json-extract.js';
 import {
   buildSearchStrategy,
   classifySource,
@@ -22,9 +24,6 @@ const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
 );
 const API_KEY = process.env.GEMINI_API_KEY || '';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.2';
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'http://localhost:8317/v1';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 
 if (!AI_API_DISABLED && !OPENAI_API_KEY && !API_KEY) {
@@ -81,6 +80,14 @@ function extractErrorText(error: unknown): string {
   } catch {
     return String(error);
   }
+}
+
+function hasHighKoreanRatio(value: string): boolean {
+  const text = String(value || '');
+  const total = text.length;
+  if (total === 0) return false;
+  const koreanCount = (text.match(/[가-힣]/g) || []).length;
+  return koreanCount / total > 0.3;
 }
 
 function isRetryableGeminiError(error: unknown): { retryable: boolean; reason: string } {
@@ -379,10 +386,10 @@ ${question}
       useSearchTool: true,
     });
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonText = extractJsonObject(text);
 
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+    if (jsonText) {
+      const parsed = JSON.parse(jsonText);
 
       const rawSources: SearchSource[] = (parsed.sources || [])
         .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
@@ -506,10 +513,10 @@ ${contextSnippet}
       useSearchTool: true,
     });
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonText = extractJsonObject(text);
 
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
+    if (jsonText) {
+      const parsed = JSON.parse(jsonText);
 
       const rawSources: UrlTitle[] = (parsed.sources || [])
         .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
@@ -604,9 +611,9 @@ ${content.substring(0, 3000)}
       timeoutMs: GEMINI_TIMEOUT_MS,
       temperature: 0,
     });
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const jsonText = extractJsonArray(response);
+    if (jsonText) {
+      return JSON.parse(jsonText);
     }
     return [];
   } catch (error) {
@@ -622,7 +629,7 @@ export async function translateToEnglish(
   title: string,
   content: string,
   options?: { extraRules?: string[] }
-): Promise<{ title_en: string; content_en: string }> {
+): Promise<{ title_en: string; content_en: string; translationFailed?: boolean }> {
   assertAiEnabled();
   const extraRules = (options?.extraRules || [])
     .map((rule) => String(rule || '').trim())
@@ -649,7 +656,7 @@ ${title}
 </title>
 
 <content>
-${content.substring(0, 6000)}
+${content.substring(0, 10000)}
 </content>
 
 <output_format>
@@ -658,14 +665,20 @@ ${content.substring(0, 6000)}
 
   try {
     const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const jsonText = extractJsonObject(response);
+    if (jsonText) {
+      const parsed = JSON.parse(jsonText) as { title_en?: string; content_en?: string };
+      const titleEn = String(parsed.title_en || title);
+      const contentEn = String(parsed.content_en || content);
+      if (hasHighKoreanRatio(contentEn)) {
+        return { title_en: title, content_en: content, translationFailed: true };
+      }
+      return { title_en: titleEn, content_en: contentEn };
     }
-    return { title_en: title, content_en: content };
+    return { title_en: title, content_en: content, translationFailed: true };
   } catch (error) {
     console.error('Error translating:', error);
-    return { title_en: title, content_en: content };
+    return { title_en: title, content_en: content, translationFailed: true };
   }
 }
 

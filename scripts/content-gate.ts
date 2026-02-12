@@ -102,6 +102,17 @@ function getHostname(input: string): string {
   }
 }
 
+function getRegistrableDomain(hostname: string): string {
+  const parts = hostname.split('.');
+  if (parts.length >= 3) {
+    const sld = parts[parts.length - 2];
+    if (['co', 'com', 'org', 'net', 'ac', 'gov', 'edu'].includes(sld)) {
+      return parts.slice(-3).join('.');
+    }
+  }
+  return parts.slice(-2).join('.');
+}
+
 function parseReferences(markdown: string): {
   urls: string[];
   uniqueUrls: string[];
@@ -134,7 +145,7 @@ function parseReferences(markdown: string): {
     hostnames.add(hostname);
     const tier = classifySource(url);
     if (tier === SourceTier.S || tier === SourceTier.A) {
-      trustedDomains.add(hostname);
+      trustedDomains.add(getRegistrableDomain(hostname));
     }
   }
 

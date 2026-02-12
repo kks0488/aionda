@@ -326,8 +326,18 @@ async function main() {
   const researchedIds = new Set<string>();
   if (existsSync(RESEARCHED_DIR)) {
     for (const file of readdirSync(RESEARCHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
-      const data = JSON.parse(readFileSync(join(RESEARCHED_DIR, file), 'utf-8'));
-      researchedIds.add(data.topicId);
+      const filePath = join(RESEARCHED_DIR, file);
+      try {
+        const data = JSON.parse(readFileSync(filePath, 'utf-8')) as { topicId?: string };
+        if (typeof data.topicId === 'string' && data.topicId.trim()) {
+          researchedIds.add(data.topicId);
+        } else {
+          console.warn(`⚠️ Skipping researched file with missing topicId: ${filePath}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Skipping corrupted JSON file: ${filePath}`, error);
+        continue;
+      }
     }
   }
 
@@ -336,9 +346,16 @@ async function main() {
   const topicFiles = readdirSync(TOPICS_DIR)
     .filter(f => f.endsWith('.json') && !f.startsWith('._'))
     .map(f => {
-      const topic = JSON.parse(readFileSync(join(TOPICS_DIR, f), 'utf-8')) as ExtractedTopic;
-      return { file: f, topic };
+      const filePath = join(TOPICS_DIR, f);
+      try {
+        const topic = JSON.parse(readFileSync(filePath, 'utf-8')) as ExtractedTopic;
+        return { file: f, topic };
+      } catch (error) {
+        console.warn(`⚠️ Skipping corrupted JSON file: ${filePath}`, error);
+        return null;
+      }
     })
+    .filter((entry): entry is { file: string; topic: ExtractedTopic } => Boolean(entry))
     .filter(({ topic }) => {
       if (lastExtractedIds && !lastExtractedIds.has(topic.id)) return false;
       const matchesTarget =

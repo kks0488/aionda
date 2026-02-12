@@ -27,7 +27,7 @@ export async function translateToEnglish(
   title: string,
   content: string,
   options?: { extraRules?: string[] }
-): Promise<{ title_en: string; content_en: string }> {
+): Promise<{ title_en: string; content_en: string; translationFailed?: boolean }> {
   const provider = getAiTextProvider();
   if (provider === 'openai') return openaiTranslateToEnglish(title, content, options);
   if (provider === 'deepseek') return deepseekTranslateToEnglish(title, content, options);

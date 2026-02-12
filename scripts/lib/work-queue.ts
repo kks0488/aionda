@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { lockSync } from 'proper-lockfile';
 
 const QUEUE_FILE = './data/work-queue.json';
 
@@ -55,24 +56,50 @@ export function cleanupStaleClaims(): number {
 }
 
 export function claimWork(postId: string, by: 'crawler' | 'external-ai', task?: string): boolean {
-  const queue = loadQueue();
-
-  // 먼저 stale claims 정리
-  cleanupStaleClaimsInternal(queue);
-
-  if (queue.claimed[postId] || queue.completed[postId]) {
-    return false; // Already claimed or completed
+  if (!existsSync(QUEUE_FILE)) {
+    saveQueue({ claimed: {}, completed: {}, lastUpdated: new Date().toISOString() });
   }
-  queue.claimed[postId] = { by, at: new Date().toISOString(), task };
-  saveQueue(queue);
-  return true;
+
+  let release: (() => void) | undefined;
+  try {
+    release = lockSync(QUEUE_FILE, {
+      retries: { retries: 3, minTimeout: 200, maxTimeout: 1000 },
+    });
+
+    const queue = loadQueue();
+
+    // 먼저 stale claims 정리
+    cleanupStaleClaimsInternal(queue);
+
+    if (queue.claimed[postId] || queue.completed[postId]) {
+      return false; // Already claimed or completed
+    }
+    queue.claimed[postId] = { by, at: new Date().toISOString(), task };
+    saveQueue(queue);
+    return true;
+  } finally {
+    if (release) release();
+  }
 }
 
 export function completeWork(postId: string, by: string, postSlug?: string): void {
-  const queue = loadQueue();
-  delete queue.claimed[postId];
-  queue.completed[postId] = { by, at: new Date().toISOString(), postSlug, slug: postSlug };
-  saveQueue(queue);
+  if (!existsSync(QUEUE_FILE)) {
+    saveQueue({ claimed: {}, completed: {}, lastUpdated: new Date().toISOString() });
+  }
+
+  let release: (() => void) | undefined;
+  try {
+    release = lockSync(QUEUE_FILE, {
+      retries: { retries: 3, minTimeout: 200, maxTimeout: 1000 },
+    });
+
+    const queue = loadQueue();
+    delete queue.claimed[postId];
+    queue.completed[postId] = { by, at: new Date().toISOString(), postSlug, slug: postSlug };
+    saveQueue(queue);
+  } finally {
+    if (release) release();
+  }
 }
 
 export function getAvailablePosts(allPostIds: string[]): string[] {

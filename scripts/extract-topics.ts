@@ -26,6 +26,7 @@ import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 
 import { join } from 'path';
 import { config } from 'dotenv';
 import { generateContent } from './lib/ai-text';
+import { extractJsonObject } from './lib/json-extract.js';
 import { EXTRACT_TOPIC_PROMPT, EXTRACT_TOPIC_FROM_NEWS_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });
@@ -412,14 +413,14 @@ async function extractTopicFromPost(post: UnifiedPost): Promise<ExtractedTopic |
 
   try {
     const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonText = extractJsonObject(response);
 
-    if (!jsonMatch) {
+    if (!jsonText) {
       console.log('    ⚠️ Failed to parse response');
       return null;
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    const result = JSON.parse(jsonText);
 
     if (!result.worthDiscussing) {
       console.log(`    ❌ Not worth discussing: ${result.reason}`);

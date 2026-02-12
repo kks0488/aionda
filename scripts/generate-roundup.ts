@@ -164,7 +164,8 @@ function safeReadJson(filePath: string): FeedItem | null {
     const raw = fs.readFileSync(filePath, 'utf8');
     const parsed = JSON.parse(raw) as FeedItem;
     return parsed && typeof parsed === 'object' ? parsed : null;
-  } catch {
+  } catch (error) {
+    console.warn(`⚠️ Skipping corrupted JSON file: ${filePath}`, error);
     return null;
   }
 }
@@ -794,8 +795,16 @@ async function main() {
   );
 
   const half = Math.max(1, Math.floor(limit / 2));
-  const officialPicked = pickItems(officialRelevant, { since, limit: half, maxPerSource: 3 });
-  const newsPicked = pickItems(newsRelevant, { since, limit: limit - officialPicked.length, maxPerSource: 3 });
+  let officialPicked = pickItems(officialRelevant, { since, limit: half, maxPerSource: 3 });
+  let newsPicked = pickItems(newsRelevant, { since, limit: half, maxPerSource: 3 });
+  const remaining = limit - officialPicked.length - newsPicked.length;
+  if (remaining > 0) {
+    if (officialPicked.length < half) {
+      newsPicked = pickItems(newsRelevant, { since, limit: half + remaining, maxPerSource: 4 });
+    } else {
+      officialPicked = pickItems(officialRelevant, { since, limit: half + remaining, maxPerSource: 4 });
+    }
+  }
   const globallyDeduped = dedupePickedByUrl([
     ...officialPicked.map((item) => ({ source: 'official' as SourceType, item })),
     ...newsPicked.map((item) => ({ source: 'news' as SourceType, item })),

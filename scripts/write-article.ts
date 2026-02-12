@@ -13,6 +13,7 @@ import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import { classifySource, createVerifiedSource, SourceTier } from './lib/search-mode.js';
 import { canonicalizeTags } from './lib/tags.js';
+import { extractJsonObject } from './lib/json-extract.js';
 import matter from 'gray-matter';
 
 config({ path: '.env.local' });
@@ -273,13 +274,13 @@ async function generateMetadata(content: string): Promise<ArticleMetadata> {
 
   try {
     const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonText = extractJsonObject(response);
 
-    if (!jsonMatch) {
+    if (!jsonText) {
       throw new Error('Failed to parse metadata response');
     }
 
-    return JSON.parse(jsonMatch[0]);
+    return JSON.parse(jsonText);
   } catch (error) {
     console.error('Error generating metadata:', error);
     throw error;
@@ -953,8 +954,18 @@ async function main() {
   const publishedIds = new Set<string>();
   if (existsSync(PUBLISHED_DIR)) {
     for (const file of readdirSync(PUBLISHED_DIR).filter(f => f.endsWith('.json') && !f.startsWith('._'))) {
-      const published = JSON.parse(readFileSync(join(PUBLISHED_DIR, file), 'utf-8'));
-      publishedIds.add(published.topicId);
+      const filePath = join(PUBLISHED_DIR, file);
+      try {
+        const published = JSON.parse(readFileSync(filePath, 'utf-8')) as { topicId?: string };
+        if (typeof published.topicId === 'string' && published.topicId.trim()) {
+          publishedIds.add(published.topicId);
+        } else {
+          console.warn(`⚠️ Skipping published file with missing topicId: ${filePath}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Skipping corrupted JSON file: ${filePath}`, error);
+        continue;
+      }
     }
   }
 
@@ -985,9 +996,16 @@ async function main() {
   const researchedFiles = readdirSync(RESEARCHED_DIR)
     .filter(f => f.endsWith('.json') && !f.startsWith('._'))
     .map(f => {
-      const topic = JSON.parse(readFileSync(join(RESEARCHED_DIR, f), 'utf-8')) as ResearchedTopic;
-      return { file: f, topic };
+      const filePath = join(RESEARCHED_DIR, f);
+      try {
+        const topic = JSON.parse(readFileSync(filePath, 'utf-8')) as ResearchedTopic;
+        return { file: f, topic };
+      } catch (error) {
+        console.warn(`⚠️ Skipping corrupted JSON file: ${filePath}`, error);
+        return null;
+      }
     })
+    .filter((entry): entry is { file: string; topic: ResearchedTopic } => Boolean(entry))
     .filter(({ topic }) => {
       if (lastExtractedIds && !lastExtractedIds.has(String(topic.topicId || ''))) return false;
       const matchesTarget =
@@ -1089,7 +1107,22 @@ async function main() {
       const existingSlug =
         (sourceId ? findExistingSlugBySourceId(koDir, sourceId) : null) ||
         (sourceId ? findExistingSlugBySourceId(enDir, sourceId) : null);
-      const slug = existingSlug || metadata.slug;
+      let slug = existingSlug || metadata.slug;
+      if (!existingSlug) {
+        const existingKoFile = join(koDir, `${slug}.mdx`);
+        if (existsSync(existingKoFile)) {
+          try {
+            const existingRaw = readFileSync(existingKoFile, 'utf-8');
+            const existingData = matter(existingRaw).data;
+            const existingSourceId = existingData.sourceId ? String(existingData.sourceId) : '';
+            if (existingSourceId && existingSourceId !== sourceId) {
+              const suffix = Date.now().toString(36).slice(-4);
+              slug = `${slug}-${suffix}`;
+              console.warn(`   Slug collision detected (existing: ${existingSourceId}), using: ${slug}`);
+            }
+          } catch {}
+        }
+      }
       const coverImagePath = getExistingCoverImage(slug);
 
       // Translate to English
@@ -1099,20 +1132,25 @@ async function main() {
           '한국어 원문의 모든 벤치마크 수치, 데이터 포인트, 분석 근거를 빠짐없이 영문에 포함할 것. 요약하지 말고 동등한 깊이로 번역할 것.',
         ],
       });
-      let articleEn = translated.content_en;
-      articleEn = await polishArticleMarkdown('en', articleEn);
-      articleEn = normalizeEnTldr(articleEn);
-      const primaryExcerptEn = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
-      const evidenceTextEn = [
-        primaryExcerptEn?.title,
-        primaryExcerptEn?.excerpt,
-        ...topic.findings.flatMap((f) => (f.sources || []).map((s) => `${s.title}\n${s.snippet || ''}`)),
-      ]
-        .filter(Boolean)
-        .join('\n');
-      articleEn = sanitizeModelMentions('en', articleEn, evidenceTextEn);
-      if (topic.intent === 'troubleshooting' || topic.schema === 'howto') {
-        articleEn = ensureTroubleshootingTldr('en', articleEn);
+      const translationFailed = Boolean(translated.translationFailed);
+      let articleEn = String(translated.content_en || '');
+      if (!translationFailed) {
+        articleEn = await polishArticleMarkdown('en', articleEn);
+        articleEn = normalizeEnTldr(articleEn);
+        const primaryExcerptEn = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
+        const evidenceTextEn = [
+          primaryExcerptEn?.title,
+          primaryExcerptEn?.excerpt,
+          ...topic.findings.flatMap((f) => (f.sources || []).map((s) => `${s.title}\n${s.snippet || ''}`)),
+        ]
+          .filter(Boolean)
+          .join('\n');
+        articleEn = sanitizeModelMentions('en', articleEn, evidenceTextEn);
+        if (topic.intent === 'troubleshooting' || topic.schema === 'howto') {
+          articleEn = ensureTroubleshootingTldr('en', articleEn);
+        }
+      } else {
+        console.warn('Translation failed - skipping EN post');
       }
 
       // Insert internal links (locale-correct), then append sources as the last section.
@@ -1121,31 +1159,41 @@ async function main() {
         topicId: topic.topic ? String(topic.topic) : undefined,
         intent: topic.intent ? String(topic.intent) : undefined,
       });
-      articleEn = insertInternalLinks('en', articleEn, {
-        slug,
-        topicId: topic.topic ? String(topic.topic) : undefined,
-        intent: topic.intent ? String(topic.intent) : undefined,
-      });
+      if (!translationFailed) {
+        articleEn = insertInternalLinks('en', articleEn, {
+          slug,
+          topicId: topic.topic ? String(topic.topic) : undefined,
+          intent: topic.intent ? String(topic.intent) : undefined,
+        });
+      }
 
       articleKo = appendSources('ko', articleKo, topic);
-      articleEn = appendSources('en', articleEn, topic);
+      if (!translationFailed) {
+        articleEn = appendSources('en', articleEn, topic);
+      }
 
       // Generate frontmatter
       const frontmatterKo = generateFrontmatter(metadata, topic, 'ko', slug, articleKo, coverImagePath || undefined, series);
-      const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug, articleEn, coverImagePath || undefined, series);
 
       // Write files
       const koFile = join(koDir, `${slug}.mdx`);
       const enFile = join(enDir, `${slug}.mdx`);
+      const createdFiles = [koFile];
 
       writeFileSync(koFile, `${frontmatterKo}\n\n${articleKo}\n`);
-      writeFileSync(enFile, `${frontmatterEn}\n\n${articleEn}\n`);
+      if (!translationFailed) {
+        const frontmatterEn = generateFrontmatter(metadata, topic, 'en', slug, articleEn, coverImagePath || undefined, series);
+        writeFileSync(enFile, `${frontmatterEn}\n\n${articleEn}\n`);
+        createdFiles.push(enFile);
+      }
 
       console.log(`   ✅ Created: ${slug}.mdx`);
-      writtenFiles.push(koFile, enFile);
+      writtenFiles.push(...createdFiles);
 
       if (sourceId) {
-        removeDuplicatePostsBySourceId(enDir, sourceId, slug);
+        if (!translationFailed) {
+          removeDuplicatePostsBySourceId(enDir, sourceId, slug);
+        }
         removeDuplicatePostsBySourceId(koDir, sourceId, slug);
       }
 
@@ -1170,7 +1218,7 @@ async function main() {
         topicId: String(topic.topicId || ''),
         sourceId: sourceId,
         slug,
-        files: [koFile, enFile],
+        files: createdFiles,
         writtenAt: new Date().toISOString(),
       });
     } catch (error) {

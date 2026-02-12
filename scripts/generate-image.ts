@@ -13,6 +13,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
 import { generateContent } from './lib/ai-text';
+import { parseIntEnv } from './lib/env-utils';
+import { extractJsonObject } from './lib/json-extract.js';
 import { GENERATE_IMAGE_PROMPT_PROMPT } from './prompts/topics';
 
 config({ path: '.env.local' });
@@ -49,15 +51,18 @@ const OPENAI_IMAGE_API_URL = `${OPENAI_IMAGE_BASE_URL}/images/generations`;
 const OPENAI_IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE || '1536x1024';
 const OPENAI_IMAGE_QUALITY = process.env.OPENAI_IMAGE_QUALITY || 'medium';
 const OPENAI_IMAGE_FORMAT = process.env.OPENAI_IMAGE_FORMAT || 'png';
-const OPENAI_REQUEST_TIMEOUT_MS = Number.parseInt(
-  process.env.OPENAI_IMAGE_TIMEOUT_MS || process.env.OPENAI_TIMEOUT_MS || '120000',
-  10
+const OPENAI_REQUEST_TIMEOUT_MS = parseIntEnv(
+  'OPENAI_IMAGE_TIMEOUT_MS',
+  parseIntEnv('OPENAI_TIMEOUT_MS', 120_000, 1),
+  1
 );
-const OPENAI_DOWNLOAD_TIMEOUT_MS = Number.parseInt(
-  process.env.OPENAI_IMAGE_DOWNLOAD_TIMEOUT_MS || '30000',
-  10
-);
-const OPENAI_MAX_RETRIES = Number.parseInt(process.env.OPENAI_IMAGE_MAX_RETRIES || '2', 10);
+const OPENAI_DOWNLOAD_TIMEOUT_MS = parseIntEnv('OPENAI_IMAGE_DOWNLOAD_TIMEOUT_MS', 30_000, 1);
+const OPENAI_MAX_RETRIES = parseIntEnv('OPENAI_IMAGE_MAX_RETRIES', 2, 0);
+const MIME_EXT_MAP: Record<string, '.png' | '.jpg' | '.webp'> = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/webp': '.webp',
+};
 
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
@@ -111,6 +116,21 @@ function extractErrorText(error: unknown): string {
   } catch {
     return String(error);
   }
+}
+
+function extFromMime(contentType?: string | null): '.png' | '.jpg' | '.webp' {
+  const normalized = String(contentType || '')
+    .toLowerCase()
+    .split(';')[0]
+    .trim();
+  return MIME_EXT_MAP[normalized] || '.png';
+}
+
+function extFromFormat(format?: string): '.png' | '.jpg' | '.webp' {
+  const normalized = String(format || '').toLowerCase().trim();
+  if (normalized === 'jpeg' || normalized === 'jpg') return '.jpg';
+  if (normalized === 'webp') return '.webp';
+  return '.png';
 }
 
 function isRetryableStatus(status: number): boolean {
@@ -179,7 +199,10 @@ async function fetchJsonWithRetry<T>(
   throw lastError;
 }
 
-async function fetchBufferWithRetry(url: string, options: { timeoutMs: number; retries: number; label: string }): Promise<Buffer> {
+async function fetchBufferWithRetry(
+  url: string,
+  options: { timeoutMs: number; retries: number; label: string }
+): Promise<{ buffer: Buffer; contentType: string }> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= options.retries; attempt++) {
     try {
@@ -197,11 +220,15 @@ async function fetchBufferWithRetry(url: string, options: { timeoutMs: number; r
         throw new Error(`Download failed (HTTP ${response.status}): ${body}`);
       }
 
+      const contentType = String(response.headers.get('content-type') || '')
+        .toLowerCase()
+        .split(';')[0]
+        .trim();
       const buf = Buffer.from(await response.arrayBuffer());
       if (buf.length < 1024) {
         throw new Error(`Downloaded image too small (${buf.length} bytes)`);
       }
-      return buf;
+      return { buffer: buf, contentType };
     } catch (error) {
       lastError = error;
       if (isRetryableNetworkError(error) && attempt < options.retries) {
@@ -351,15 +378,7 @@ function getPostsWithoutImages(options?: { slugs?: Set<string> }): PostMeta[] {
       const { data } = matter(content);
 
       const slug = file.replace(/\.mdx?$/, '');
-
-      let hasImage = false;
-      if (data.coverImage) {
-        const imagePathRel = data.coverImage.startsWith('/') ? data.coverImage.slice(1) : data.coverImage;
-        const absolutePath = path.join(process.cwd(), 'apps/web/public', imagePathRel);
-        if (fs.existsSync(absolutePath)) {
-          hasImage = true;
-        }
-      }
+      const hasImage = hasImageForSlug(slug, data.coverImage);
 
       if (hasImage) {
         console.log(`⏭️ Skip (image exists): ${slug}`);
@@ -394,10 +413,10 @@ async function generateImagePromptWithAI(post: PostMeta): Promise<string> {
 
   try {
     const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const jsonText = extractJsonObject(response);
 
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
+    if (jsonText) {
+      const result = JSON.parse(jsonText);
       if (result.imagePrompt) {
         return result.imagePrompt;
       }
@@ -600,17 +619,15 @@ async function generateImage(post: PostMeta): Promise<string | null> {
         : null;
 
     if (imageInfo) {
-
       const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }
-
-      const outputPath = path.join(outputDir, `${post.slug}.png`);
-
+      let imageExt: '.png' | '.jpg' | '.webp' = '.png';
+      let outputPath: string;
       if (imageInfo.url) {
         // Download from URL
-        const imageBuffer = await fetchBufferWithRetry(imageInfo.url, {
+        const { buffer, contentType } = await fetchBufferWithRetry(imageInfo.url, {
           label: 'image',
           timeoutMs:
             IMAGE_PROVIDER === 'openai'
@@ -618,9 +635,13 @@ async function generateImage(post: PostMeta): Promise<string | null> {
               : SILICONFLOW_DOWNLOAD_TIMEOUT_MS,
           retries: 2,
         });
-        fs.writeFileSync(outputPath, imageBuffer);
+        imageExt = extFromMime(contentType);
+        outputPath = path.join(outputDir, `${post.slug}${imageExt}`);
+        fs.writeFileSync(outputPath, buffer);
       } else if (imageInfo.b64_json) {
         // Decode base64
+        imageExt = extFromFormat(IMAGE_PROVIDER === 'openai' ? OPENAI_IMAGE_FORMAT : 'png');
+        outputPath = path.join(outputDir, `${post.slug}${imageExt}`);
         fs.writeFileSync(outputPath, Buffer.from(imageInfo.b64_json, 'base64'));
       } else {
         console.log(`❌ No image data in response`);
@@ -628,7 +649,7 @@ async function generateImage(post: PostMeta): Promise<string | null> {
       }
 
       console.log(`✅ Saved: ${outputPath}`);
-      return `/images/posts/${post.slug}.png`;
+      return `/images/posts/${post.slug}${imageExt}`;
     }
 
     console.log(`❌ No images in response for: ${post.title} (${PROVIDER_NAME})`);

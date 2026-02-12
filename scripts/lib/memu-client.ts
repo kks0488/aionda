@@ -5,9 +5,11 @@
  * 콘텐츠 중복 체크 및 메모리 관리를 수행합니다.
  */
 
+import { parseIntEnv } from './env-utils';
+
 const MEMU_API_URL = process.env.MEMU_API_URL || 'http://localhost:8100';
-const MEMU_TIMEOUT_MS = Number(process.env.MEMU_TIMEOUT_MS || 30000);
-const MEMU_HEALTH_TIMEOUT_MS = Number(process.env.MEMU_HEALTH_TIMEOUT_MS || 2000);
+const MEMU_TIMEOUT_MS = parseIntEnv('MEMU_TIMEOUT_MS', 30_000, 1);
+const MEMU_HEALTH_TIMEOUT_MS = parseIntEnv('MEMU_HEALTH_TIMEOUT_MS', 2_000, 1);
 const MEMU_MAX_RETRIES = 1;
 const MEMU_FAIL_OPEN = ['true', '1'].includes(String(process.env.MEMU_FAIL_OPEN || '').toLowerCase());
 
