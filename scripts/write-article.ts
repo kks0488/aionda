@@ -393,25 +393,25 @@ function generateFrontmatter(
   const topicId = topic.topic ? String(topic.topic).trim() : '';
   const schema = topic.schema ? String(topic.schema).trim() : '';
   const evergreenLines = [
-    primaryKeyword ? `\tprimaryKeyword: "${primaryKeyword.replace(/"/g, '\\"')}"` : '',
-    intent ? `\tintent: "${intent.replace(/"/g, '\\"')}"` : '',
-    topicId ? `\ttopic: "${topicId.replace(/"/g, '\\"')}"` : '',
-    schema ? `\tschema: "${schema.replace(/"/g, '\\"')}"` : '',
+    primaryKeyword ? `primaryKeyword: "${primaryKeyword.replace(/"/g, '\\"')}"` : '',
+    intent ? `intent: "${intent.replace(/"/g, '\\"')}"` : '',
+    topicId ? `topic: "${topicId.replace(/"/g, '\\"')}"` : '',
+    schema ? `schema: "${schema.replace(/"/g, '\\"')}"` : '',
   ]
     .filter(Boolean)
     .join('\n');
   const evergreenBlock = evergreenLines ? `${evergreenLines}\n` : '';
 
-	return `---
-	title: "${title.replace(/"/g, '\\"')}"
-	slug: "${slug}"
-	date: "${new Date().toISOString().split('T')[0]}"
-	lastReviewedAt: "${new Date().toISOString().split('T')[0]}"
-	locale: "${locale}"
-	description: "${description.replace(/"/g, '\\"')}"
-${evergreenBlock}	tags: [${finalTags.map((t) => `"${t}"`).join(', ')}]
-	author: "AI온다"
-	sourceId: "${topic.sourceId}"
+  return `---
+title: "${title.replace(/"/g, '\\"')}"
+slug: "${slug}"
+date: "${new Date().toISOString().split('T')[0]}"
+lastReviewedAt: "${new Date().toISOString().split('T')[0]}"
+locale: "${locale}"
+description: "${description.replace(/"/g, '\\"')}"
+${evergreenBlock}tags: [${finalTags.map((t) => `"${t}"`).join(', ')}]
+author: "AI온다"
+sourceId: "${topic.sourceId}"
 sourceUrl: "${topic.sourceUrl}"
 verificationScore: ${topic.overallConfidence}
 alternateLocale: "/${otherLocale}/posts/${slug}"
@@ -464,7 +464,12 @@ function findExistingSlugBySourceId(localeDir: string, sourceId: string): string
 
   for (const file of files) {
     const raw = readFileSync(join(localeDir, file), 'utf-8');
-    const { data } = matter(raw);
+    let data: Record<string, unknown>;
+    try {
+      data = matter(raw).data as Record<string, unknown>;
+    } catch {
+      continue;
+    }
     const fileSourceId = data.sourceId ? String(data.sourceId) : '';
     if (fileSourceId !== sourceId) continue;
 
@@ -487,7 +492,12 @@ function removeDuplicatePostsBySourceId(localeDir: string, sourceId: string, kee
   for (const file of files) {
     const fullPath = join(localeDir, file);
     const raw = readFileSync(fullPath, 'utf-8');
-    const { data } = matter(raw);
+    let data: Record<string, unknown>;
+    try {
+      data = matter(raw).data as Record<string, unknown>;
+    } catch {
+      continue;
+    }
     const fileSourceId = data.sourceId ? String(data.sourceId) : '';
     if (fileSourceId !== sourceId) continue;
 

@@ -1,10 +1,3 @@
-/**
- * Gemini API Client - Gemini Flash 전용
- *
- * 모든 텍스트 생성과 웹 검색을 Gemini로 처리
- */
-
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import OpenAI from 'openai';
 import { config } from 'dotenv';
 import {
@@ -21,21 +14,30 @@ config({ path: '.env.local' });
 const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
 );
-const API_KEY = process.env.GEMINI_API_KEY || '';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.2';
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'http://localhost:8317/v1';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const API_KEY = process.env.OPENAI_API_KEY || '';
+const BASE_URL = process.env.OPENAI_BASE_URL || '';
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
-if (!AI_API_DISABLED && !OPENAI_API_KEY && !API_KEY) {
-  console.warn('⚠️ OPENAI_API_KEY/GEMINI_API_KEY not found in .env.local');
+if (!AI_API_DISABLED && !API_KEY) {
+  console.warn('⚠️ OPENAI_API_KEY not found in .env.local');
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY || API_KEY,
-  baseURL: OPENAI_BASE_URL,
-});
+const URL_VALIDATE_TIMEOUT_MS = Number.parseInt(
+  process.env.URL_VALIDATE_TIMEOUT_MS || '7000',
+  10
+);
+const OPENAI_TIMEOUT_MS = Number.parseInt(
+  process.env.OPENAI_SEARCH_TIMEOUT_MS || process.env.OPENAI_TIMEOUT_MS || '120000',
+  10
+);
+const OPENAI_MAX_RETRIES = Number.parseInt(process.env.OPENAI_MAX_RETRIES || '1', 10);
+const OPENAI_TEMPERATURE = Number.parseFloat(process.env.OPENAI_TEMPERATURE || '0');
+const OPENAI_MAX_OUTPUT_TOKENS = (() => {
+  const raw = process.env.OPENAI_MAX_OUTPUT_TOKENS;
+  if (!raw) return undefined;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+})();
 
 const TODAY = new Date().toISOString().split('T')[0];
 const CONTEXT_INJECTION = `
@@ -45,27 +47,37 @@ Rules:
 - 입력/조사 결과에 없는 모델명·버전·출시 일정·수치·정책/규정은 만들지 말 것
 - 모델을 "최신"이라고 단정하지 말 것 (근거 날짜가 없으면 중립적으로 서술)
 - 시스템 컨텍스트를 본문에 노출하지 말 것
-</system_context>`;
-
-const URL_VALIDATE_TIMEOUT_MS = Number.parseInt(
-  process.env.URL_VALIDATE_TIMEOUT_MS || '7000',
-  10
-);
-
-const GEMINI_TIMEOUT_MS = Number.parseInt(
-  process.env.GEMINI_TIMEOUT_MS || '45000',
-  10
-);
-
-const GEMINI_SEARCH_TIMEOUT_MS = Number.parseInt(
-  process.env.GEMINI_SEARCH_TIMEOUT_MS || '120000',
-  10
-);
+</system_context>`.trim();
 
 const URL_VALIDATION_CACHE = new Map<string, boolean>();
 
 type SearchSource = { url: string; title: string; snippet?: string; tier?: string };
 type UrlTitle = { url: string; title: string };
+
+function createClient() {
+  return new OpenAI({
+    apiKey: API_KEY,
+    baseURL: BASE_URL || undefined,
+    maxRetries: Math.max(0, OPENAI_MAX_RETRIES),
+    timeout: OPENAI_TIMEOUT_MS,
+  });
+}
+
+function pickTemperature() {
+  if (!Number.isFinite(OPENAI_TEMPERATURE)) return 0;
+  return Math.min(2, Math.max(0, OPENAI_TEMPERATURE));
+}
+
+function assertAiEnabled() {
+  if (AI_API_DISABLED) {
+    const error = new Error('AI API disabled (AI_API_DISABLED=true)');
+    (error as Error & { code?: string }).code = 'AI_API_DISABLED';
+    throw error;
+  }
+  if (!API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+}
 
 function isAbortError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
@@ -83,29 +95,25 @@ function extractErrorText(error: unknown): string {
   }
 }
 
-function isRetryableGeminiError(error: unknown): { retryable: boolean; reason: string } {
+function isRetryableOpenAiError(error: unknown): { retryable: boolean; reason: string } {
   if (isAbortError(error)) return { retryable: true, reason: 'timeout' };
 
   const text = extractErrorText(error);
   const lower = text.toLowerCase();
 
-  // Do not retry obvious auth/config mistakes.
-  if (/\b401\b|\b403\b|api key|unauthorized|permission|forbidden|invalid api key/i.test(lower)) {
+  if (/(\b401\b|\b403\b|api key|unauthorized|permission|forbidden|invalid api key|authentication)/i.test(lower)) {
     return { retryable: false, reason: 'auth/config' };
   }
 
-  // Retry: rate limits / quota.
-  if (/\b429\b|too many requests|rate limit|quota|resource_exhausted/i.test(lower)) {
+  if (/(\b429\b|too many requests|rate limit|quota|resource_exhausted)/i.test(lower)) {
     return { retryable: true, reason: 'rate_limit' };
   }
 
-  // Retry: transient network-ish failures.
   if (/(fetch failed|socket hang up|econnreset|etimedout|eai_again|enotfound|econnrefused)/i.test(lower)) {
     return { retryable: true, reason: 'network' };
   }
 
-  // Retry: transient server errors.
-  if (/\b5\d\d\b|service unavailable|internal|unavailable|backend error|temporar/i.test(lower)) {
+  if (/(\b5\d\d\b|service unavailable|internal|unavailable|backend error|temporar)/i.test(lower)) {
     return { retryable: true, reason: 'server' };
   }
 
@@ -116,32 +124,92 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function generateWithRetry<T>(
+async function runWithRetry<T>(
   fn: () => Promise<T>,
   { label, retries = 1 }: { label: string; retries?: number }
 ): Promise<T> {
   let lastError: unknown;
+
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      const verdict = isRetryableGeminiError(error);
+      const verdict = isRetryableOpenAiError(error);
       if (verdict.retryable && attempt < retries) {
         const base = Math.min(60_000, 1500 * 2 ** attempt);
         const jitter = Math.floor(Math.random() * 600);
         const backoffMs = base + jitter;
         const message = error instanceof Error ? error.message : extractErrorText(error);
         console.warn(
-          `[Gemini] ${label} failed (${verdict.reason}). Retrying after ${backoffMs}ms... (${attempt + 1}/${retries})`
+          `[OpenAI Search] ${label} failed (${verdict.reason}). Retrying after ${backoffMs}ms... (${attempt + 1}/${retries})`
         );
-        if (message) console.warn(`[Gemini] ${label} error: ${message}`.slice(0, 500));
+        if (message) console.warn(`[OpenAI Search] ${label} error: ${message}`.slice(0, 500));
         await sleep(backoffMs);
         continue;
       }
       throw error;
     }
   }
+
+  throw lastError;
+}
+
+async function createResponse(
+  prompt: string,
+  {
+    withWebSearch,
+    retries,
+    label,
+  }: {
+    withWebSearch: boolean;
+    retries: number;
+    label: string;
+  }
+) {
+  assertAiEnabled();
+  const client = createClient();
+
+  const searchToolCandidates = withWebSearch
+    ? ['web_search_preview', 'web_search']
+    : [undefined];
+
+  let lastError: unknown;
+
+  for (let index = 0; index < searchToolCandidates.length; index++) {
+    const toolType = searchToolCandidates[index];
+
+    try {
+      return await runWithRetry(async () => {
+        const response = await client.responses.create({
+          model: MODEL as any,
+          instructions: CONTEXT_INJECTION,
+          input: prompt,
+          tools: toolType ? ([{ type: toolType }] as any) : undefined,
+          temperature: pickTemperature(),
+          max_output_tokens: OPENAI_MAX_OUTPUT_TOKENS,
+          store: false,
+        } as any);
+
+        if ((response as any).error) {
+          throw new Error(`OpenAI response error: ${(response as any).error?.message || 'unknown'}`);
+        }
+
+        return String((response as any).output_text || '').trim();
+      }, { label, retries });
+    } catch (error) {
+      lastError = error;
+      const hasFallback = index + 1 < searchToolCandidates.length;
+      if (toolType && hasFallback) {
+        console.warn(
+          `[OpenAI Search] ${label}: tool '${toolType}' failed, trying '${searchToolCandidates[index + 1]}'`
+        );
+        continue;
+      }
+      throw error;
+    }
+  }
+
   throw lastError;
 }
 
@@ -196,85 +264,6 @@ async function isUrlReachable(url: string): Promise<boolean> {
   return ok;
 }
 
-function assertAiEnabled() {
-  if (AI_API_DISABLED) {
-    const error = new Error('AI API disabled (AI_API_DISABLED=true)');
-    (error as Error & { code?: string }).code = 'AI_API_DISABLED';
-    throw error;
-  }
-  if (!OPENAI_API_KEY && !API_KEY) {
-    throw new Error('OPENAI_API_KEY or GEMINI_API_KEY not configured');
-  }
-}
-
-function extractOpenAIText(content: unknown): string {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .map((item: any) => (item?.type === 'text' && typeof item.text === 'string' ? item.text : ''))
-      .join('');
-  }
-  return '';
-}
-
-async function generateTextWithFallback(options: {
-  prompt: string;
-  label: string;
-  retries: number;
-  timeoutMs: number;
-  temperature?: number;
-  useSearchTool?: boolean;
-}): Promise<string> {
-  const {
-    prompt,
-    label,
-    retries,
-    timeoutMs,
-    temperature = 0.7,
-    useSearchTool = false,
-  } = options;
-
-  try {
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
-    }
-
-    const response = await generateWithRetry(
-      () =>
-        openai.chat.completions.create(
-          {
-            model: OPENAI_MODEL,
-            messages: [{ role: 'user', content: prompt }],
-            temperature,
-          },
-          { timeout: timeoutMs }
-        ),
-      { label: `${label}(openai)`, retries }
-    );
-
-    const text = extractOpenAIText(response.choices?.[0]?.message?.content);
-    if (!text.trim()) throw new Error('OpenAI returned empty response');
-    return text;
-  } catch (openaiError) {
-    if (!API_KEY) {
-      throw openaiError;
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: MODEL,
-      generationConfig: { temperature },
-      ...(useSearchTool ? { tools: [{ googleSearch: {} } as any] } : {}),
-    }, { timeout: timeoutMs });
-
-    const result = await generateWithRetry(
-      () => model.generateContent(prompt, { timeout: timeoutMs }),
-      { label, retries }
-    );
-    const response = await result.response;
-    return response.text();
-  }
-}
-
 async function mapWithConcurrency<T, R>(
   items: T[],
   concurrency: number,
@@ -306,47 +295,64 @@ function dedupeByUrl<T extends { url: string }>(sources: T[]): T[] {
   return out;
 }
 
-/**
- * 텍스트 생성 (Gemini Flash)
- */
-export async function generateContent(prompt: string): Promise<string> {
-  assertAiEnabled();
+function parseJsonObject(text: string): any | null {
+  const block = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (block) {
+    try {
+      return JSON.parse(block[1]);
+    } catch {
+      // fall through
+    }
+  }
+
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+
   try {
-    const fullPrompt = CONTEXT_INJECTION + '\n' + prompt;
-    return await generateTextWithFallback({
-      prompt: fullPrompt,
-      label: 'generateContent',
-      retries: 1,
-      timeoutMs: GEMINI_TIMEOUT_MS,
-      temperature: 0.7,
-    });
-  } catch (error) {
-    console.error('Gemini API error:', error);
-    throw error;
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
   }
 }
 
-/**
- * 웹 검색 + 답변 (Google Search 도구 사용)
- */
+function parseJsonArray(text: string): any[] | null {
+  const block = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (block) {
+    try {
+      const parsed = JSON.parse(block[1]);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      // fall through
+    }
+  }
+
+  const match = text.match(/\[[\s\S]*\]/);
+  if (!match) return null;
+
+  try {
+    const parsed = JSON.parse(match[0]);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function searchAndVerify(question: string, context?: string): Promise<{
   answer: string;
   confidence: number;
   sources: Array<{ url: string; title: string; snippet?: string; tier?: string }>;
   unverified: string[];
 }> {
-  assertAiEnabled();
-
   const contextSection = context ? `\n<context>\n${context.substring(0, 1500)}\n</context>` : '';
 
-  const prompt = CONTEXT_INJECTION + `\n<task>질문에 대한 검색 및 답변</task>
+  const prompt = `<task>질문에 대한 검색 및 답변</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
 </instruction>
 
 <critical_rules>
-- 검색 결과에서 확인된 정보만 사용
+- web_search_preview 검색 결과에서 확인된 정보만 사용
 - 추측/가정 금지 - 확인 안 되면 "확인되지 않음"으로 명시
 - 가짜 URL 생성 절대 금지
 - 숫자/날짜/퍼센트/가격을 언급하면 sources.snippet에 그 숫자가 포함된 근거 문구를 넣어라. 근거가 없으면 숫자를 빼고 서술하라.
@@ -367,23 +373,17 @@ ${question}
   ],
   "unverified": ["확인되지 않은 부분이 있다면 명시"]
 }
-  </output_format>`;
+</output_format>`;
 
   try {
-    const text = await generateTextWithFallback({
-      prompt,
-      label: 'searchAndVerify',
+    const text = await createResponse(prompt, {
+      withWebSearch: true,
       retries: 6,
-      timeoutMs: GEMINI_SEARCH_TIMEOUT_MS,
-      temperature: 0,
-      useSearchTool: true,
+      label: 'searchAndVerify',
     });
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-
+    const parsed = parseJsonObject(text);
+    if (parsed) {
       const rawSources: SearchSource[] = (parsed.sources || [])
         .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
         .map((s: any) => ({
@@ -392,23 +392,33 @@ ${question}
           snippet: typeof s.snippet === 'string' ? s.snippet : undefined,
         }));
 
-      const normalized = await mapWithConcurrency<SearchSource, SearchSource>(rawSources, 3, async (source) => {
-        const url = await normalizeSourceUrl(source.url);
-        const tier = classifySource(url);
-        return { ...source, url, tier };
-      });
+      const normalized = await mapWithConcurrency<SearchSource, SearchSource>(
+        rawSources,
+        3,
+        async (source) => {
+          const url = await normalizeSourceUrl(source.url);
+          const tier = classifySource(url);
+          return { ...source, url, tier };
+        }
+      );
 
-      const validated = await mapWithConcurrency<SearchSource, SearchSource | null>(normalized, 3, async (source) => {
-        const ok = await isUrlReachable(source.url);
-        return ok ? source : null;
-      });
+      const validated = await mapWithConcurrency<SearchSource, SearchSource | null>(
+        normalized,
+        3,
+        async (source) => {
+          const ok = await isUrlReachable(source.url);
+          return ok ? source : null;
+        }
+      );
 
       const finalSources = dedupeByUrl(validated.filter((s): s is NonNullable<typeof s> => s !== null));
       const hasTrusted = finalSources.some((s) => s.tier === 'S' || s.tier === 'A');
-      let confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0.5;
+
+      let confidence =
+        typeof parsed.confidence === 'number' ? parsed.confidence : Number(parsed.confidence);
+      if (!Number.isFinite(confidence)) confidence = 0.5;
       if (finalSources.length === 0) confidence = Math.min(confidence, 0.2);
       if (finalSources.length > 0 && !hasTrusted) confidence = Math.min(confidence, 0.75);
-      if (!Number.isFinite(confidence)) confidence = 0;
       confidence = Math.max(0, Math.min(1, confidence));
 
       return {
@@ -426,7 +436,7 @@ ${question}
       unverified: [question],
     };
   } catch (error) {
-    console.error('Error in searchAndVerify:', error);
+    console.error('Error in searchAndVerify (OpenAI):', error);
     return {
       answer: 'Search failed due to error',
       confidence: 0,
@@ -436,9 +446,6 @@ ${question}
   }
 }
 
-/**
- * 주장 검증 (Google Search 도구 사용)
- */
 export async function verifyClaim(
   claim: any,
   originalContent: string,
@@ -451,24 +458,32 @@ export async function verifyClaim(
   sources: VerifiedSource[];
   strategy: SearchStrategy;
 }> {
-  assertAiEnabled();
   const strategy = buildSearchStrategy(claim);
 
   const preferredSection = preferredSources.length > 0
     ? `\n<preferred_sources>\n${preferredSources.slice(0, 8).map((u) => `- ${u}`).join('\n')}\n</preferred_sources>`
     : '\n<preferred_sources>\nN/A\n</preferred_sources>';
 
+  const strategySection = `
+<search_strategy>
+keywords: ${(strategy.keywords || []).join(', ') || 'N/A'}
+focus: ${strategy.focus || 'general'}
+academicRequired: ${strategy.academicRequired ? 'true' : 'false'}
+domainFilters: ${(strategy.domainFilters || []).join(', ') || 'N/A'}
+</search_strategy>`;
+
   const head = originalContent.substring(0, 800);
   const tail = originalContent.length > 1400 ? originalContent.substring(originalContent.length - 600) : '';
   const contextSnippet = tail ? `${head}\n...\n${tail}` : head;
 
-  const prompt = CONTEXT_INJECTION + `\n<task>사실 주장 검증</task>
+  const prompt = `<task>사실 주장 검증</task>
 
 <instruction>
 반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
 </instruction>
 
 <critical_rules>
+- web_search_preview 검색 결과 기반으로만 검증
 - 확신도 90% 미만이면 verified: false
 - 가짜 URL 생성 절대 금지
 - 출처 모르면 sources: []
@@ -476,7 +491,7 @@ export async function verifyClaim(
 - preferred_sources에 포함된 URL(특히 1차/공식/원문)이 있으면, 먼저 확인하고 가능하면 sources에 포함해라.
 - 2026년 현재 시점에서 더 이상 유효하지 않은 정보(구식 모델 성능 등)는 허위 정보로 간주하여 verified: false 처리
 - correctedText는 **claim.text와 같은 언어**로 작성한다. (영문 claim이면 correctedText도 영어)
-- correctedText는 원문에 끼워 넣을 수 있는 1~2문장짜리 “드롭인 교체 문장”이어야 한다.
+- correctedText는 원문에 끼워 넣을 수 있는 1~2문장짜리 "드롭인 교체 문장"이어야 한다.
 - 수정안이 안전하지 않거나 근거를 특정하기 어렵다면 correctedText를 비워라.
 </critical_rules>
 
@@ -485,6 +500,8 @@ export async function verifyClaim(
 유형: ${claim.type}
 엔티티: ${claim.entities?.join(', ') || 'N/A'}
 </claim>
+
+${strategySection}
 
 ${preferredSection}
 
@@ -497,20 +514,15 @@ ${contextSnippet}
 </output_format>`;
 
   try {
-    const text = await generateTextWithFallback({
-      prompt,
-      label: 'verifyClaim',
+    const text = await createResponse(prompt, {
+      withWebSearch: true,
       retries: 6,
-      timeoutMs: GEMINI_SEARCH_TIMEOUT_MS,
-      temperature: 0,
-      useSearchTool: true,
+      label: 'verifyClaim',
     });
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const parsed = parseJsonObject(text);
 
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-
+    if (parsed) {
       const rawSources: UrlTitle[] = (parsed.sources || [])
         .filter((s: any) => s.url && typeof s.url === 'string' && s.url.startsWith('http'))
         .map((s: any) => ({
@@ -555,7 +567,7 @@ ${contextSnippet}
       strategy,
     };
   } catch (error) {
-    console.error('Error verifying claim:', error);
+    console.error('Error verifying claim (OpenAI):', error);
     return {
       verified: false,
       confidence: 0,
@@ -566,9 +578,6 @@ ${contextSnippet}
   }
 }
 
-/**
- * 검증 가능한 주장 추출
- */
 export async function extractClaims(content: string): Promise<any[]> {
   const prompt = `<task>검증 가능한 사실 주장 추출</task>
 
@@ -595,104 +604,15 @@ ${content.substring(0, 3000)}
 </output_format>`;
 
   try {
-    assertAiEnabled();
-    const fullPrompt = CONTEXT_INJECTION + '\n' + prompt;
-    const response = await generateTextWithFallback({
-      prompt: fullPrompt,
+    const text = await createResponse(prompt, {
+      withWebSearch: false,
+      retries: 2,
       label: 'extractClaims',
-      retries: 1,
-      timeoutMs: GEMINI_TIMEOUT_MS,
-      temperature: 0,
     });
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-    return [];
+    const parsed = parseJsonArray(text);
+    return parsed || [];
   } catch (error) {
-    console.error('Error extracting claims:', error);
+    console.error('Error extracting claims (OpenAI):', error);
     return [];
   }
-}
-
-/**
- * 한→영 번역
- */
-export async function translateToEnglish(
-  title: string,
-  content: string
-): Promise<{ title_en: string; content_en: string }> {
-  assertAiEnabled();
-
-  const prompt = `<task>한→영 기술 글 번역</task>
-
-<instruction>
-반드시 JSON 형식으로만 응답하세요. 다른 텍스트 없이 순수 JSON만 출력합니다.
-</instruction>
-
-<critical_rules>
-- 기술 용어: 표준 영어 (언어모델 → Language Model)
-- 제품명/회사명/모델 버전: 원문 표기 그대로 유지 (임의로 최신 버전으로 바꾸지 말 것)
-- 코드 블록/URL: 그대로 유지
-- 비격식체 → 전문적 영어
-- 마크다운 형식 유지
-</critical_rules>
-
-<title>
-${title}
-</title>
-
-<content>
-${content.substring(0, 6000)}
-</content>
-
-<output_format>
-{"title_en": "영어 제목", "content_en": "영어 본문 (마크다운 유지)"}
-</output_format>`;
-
-  try {
-    const response = await generateContent(prompt);
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-    return { title_en: title, content_en: content };
-  } catch (error) {
-    console.error('Error translating:', error);
-    return { title_en: title, content_en: content };
-  }
-}
-
-/**
- * 검증 요약 생성
- */
-export function generateVerificationSummary(
-  claims: any[],
-  overallScore: number
-): string {
-  const tierCounts = { S: 0, A: 0, B: 0, C: 0 };
-
-  for (const claim of claims) {
-    if (claim.sources) {
-      for (const source of claim.sources) {
-        const tier = source.tier as keyof typeof tierCounts;
-        if (tier in tierCounts) {
-          tierCounts[tier]++;
-        }
-      }
-    }
-  }
-
-  return [
-    `## 검증 요약`,
-    `- 총 주장: ${claims.length}개`,
-    `- 검증 완료: ${claims.filter((c) => c.verified).length}개`,
-    `- 전체 점수: ${Math.round(overallScore * 100)}%`,
-    ``,
-    `## 출처 신뢰도 분포`,
-    `- 🏛️ Tier S (학술): ${tierCounts.S}개`,
-    `- 🛡️ Tier A (공식): ${tierCounts.A}개`,
-    `- ⚠️ Tier B (주의): ${tierCounts.B}개`,
-    `- Tier C (일반): ${tierCounts.C}개`,
-  ].join('\n');
 }

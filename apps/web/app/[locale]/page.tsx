@@ -1,5 +1,4 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import Link from 'next/link';
 import { deriveSeries, getPostSummaries } from '@/lib/posts';
 import HomeContent from '@/components/HomeContent';
 import SearchDataSetter from '@/components/SearchDataSetter';
@@ -101,37 +100,6 @@ export default function HomePage({
               ? '한국 테크 커뮤니티의 신호를 가장 먼저 포착하고, 공식/신뢰 소스로 교차검증해 “지금 필요한 것”만 정리합니다.'
               : 'We catch early signals, then triangulate with trusted sources to publish what actually matters.'}
           </p>
-
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href={`/${locale}/posts`}
-              className="inline-flex items-center justify-center h-11 px-5 rounded-lg bg-primary text-white font-bold shadow-sm hover:opacity-95 transition-opacity w-full sm:w-auto"
-            >
-              {locale === 'ko' ? '최신 글 보기' : 'Read Latest'}
-            </Link>
-            <Link
-              href={`/${locale}/topics`}
-              data-analytics-event="topic_click"
-              data-analytics-params={JSON.stringify({ from: 'home_hero', locale })}
-              className="inline-flex items-center justify-center h-11 px-5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-900/40 backdrop-blur text-slate-900 dark:text-white font-bold hover:border-gray-300 dark:hover:border-gray-600 transition-colors w-full sm:w-auto"
-            >
-              {locale === 'ko' ? '토픽으로 탐색' : 'Explore Topics'}
-            </Link>
-            <Link
-              href={`/${locale}/tags`}
-              className="inline-flex items-center justify-center h-11 px-5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-900/40 backdrop-blur text-slate-900 dark:text-white font-bold hover:border-gray-300 dark:hover:border-gray-600 transition-colors w-full sm:w-auto"
-            >
-              {locale === 'ko' ? '태그로 탐색' : 'Explore Tags'}
-            </Link>
-            <a
-              href={`/${locale}/feed.xml`}
-              data-analytics-event="rss_click"
-              data-analytics-params={JSON.stringify({ from: 'home_hero', locale })}
-              className="inline-flex items-center justify-center h-11 px-5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-900/40 backdrop-blur text-slate-700 dark:text-slate-200 font-bold hover:border-gray-300 dark:hover:border-gray-600 hover:text-primary transition-colors w-full sm:w-auto"
-            >
-              RSS
-            </a>
-          </div>
 
           <div className="mt-8 text-sm text-slate-600 dark:text-slate-300">
             {locale === 'ko' ? (

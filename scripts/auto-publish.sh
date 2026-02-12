@@ -9,11 +9,70 @@ export HOME="/home/kkaemo"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SOURCE_REPO_ROOT="$REPO_ROOT"
+
+AUTO_PUBLISH_ISOLATED_REPO_ENABLED="${AUTO_PUBLISH_ISOLATED_REPO_ENABLED:-true}"
+AUTO_PUBLISH_ISOLATED_REPO="${AUTO_PUBLISH_ISOLATED_REPO:-/home/kkaemo/aionda-publisher-automation}"
+AUTO_PUBLISH_ISOLATED_CONTEXT="${AUTO_PUBLISH_ISOLATED_CONTEXT:-0}"
+AUTO_PUBLISH_LOG_DIR="${AUTO_PUBLISH_LOG_DIR:-$SOURCE_REPO_ROOT/logs}"
+
+bootstrap_isolated_repo_and_reexec() {
+  local isolated="$AUTO_PUBLISH_ISOLATED_REPO"
+  local origin_url=""
+  local clone_source="$SOURCE_REPO_ROOT"
+
+  origin_url="$(git -C "$SOURCE_REPO_ROOT" remote get-url origin 2>/dev/null || true)"
+  if [ -n "$origin_url" ]; then
+    clone_source="$origin_url"
+  fi
+
+  mkdir -p "$(dirname "$isolated")"
+
+  if [ ! -d "$isolated/.git" ]; then
+    rm -rf "$isolated"
+    if ! git clone "$clone_source" "$isolated" >/dev/null 2>&1; then
+      echo "Failed to bootstrap isolated auto-publish repo: $isolated" >&2
+      exit 1
+    fi
+  fi
+
+  if [ -n "$origin_url" ]; then
+    git -C "$isolated" remote set-url origin "$origin_url" >/dev/null 2>&1 || true
+  fi
+
+  if ! git -C "$isolated" fetch origin main >/dev/null 2>&1; then
+    echo "Failed to fetch origin/main in isolated auto-publish repo: $isolated" >&2
+    exit 1
+  fi
+
+  if ! git -C "$isolated" checkout -B main origin/main >/dev/null 2>&1; then
+    echo "Failed to checkout origin/main in isolated auto-publish repo: $isolated" >&2
+    exit 1
+  fi
+
+  git -C "$isolated" reset --hard origin/main >/dev/null 2>&1 || true
+  git -C "$isolated" clean -fd >/dev/null 2>&1 || true
+
+  if [ ! -x "$isolated/scripts/auto-publish.sh" ]; then
+    chmod +x "$isolated/scripts/auto-publish.sh" >/dev/null 2>&1 || true
+  fi
+
+  exec env \
+    AUTO_PUBLISH_ISOLATED_CONTEXT=1 \
+    AUTO_PUBLISH_LOG_DIR="$AUTO_PUBLISH_LOG_DIR" \
+    bash "$isolated/scripts/auto-publish.sh"
+}
+
+if [ "$AUTO_PUBLISH_ISOLATED_REPO_ENABLED" = "true" ] \
+  && [ "$AUTO_PUBLISH_ISOLATED_CONTEXT" != "1" ] \
+  && [ "$REPO_ROOT" != "$AUTO_PUBLISH_ISOLATED_REPO" ]; then
+  bootstrap_isolated_repo_and_reexec
+fi
 
 cd "$REPO_ROOT"
 
-LOG_FILE="$REPO_ROOT/logs/auto-publish-$(date +%Y%m%d).log"
-mkdir -p "$REPO_ROOT/logs"
+LOG_FILE="$AUTO_PUBLISH_LOG_DIR/auto-publish-$(date +%Y%m%d).log"
+mkdir -p "$AUTO_PUBLISH_LOG_DIR"
 
 exec >> "$LOG_FILE" 2>&1
 

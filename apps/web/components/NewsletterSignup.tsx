@@ -29,14 +29,16 @@ export default function NewsletterSignup({
         <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{description}</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <a
-            href={`/${locale}/feed.xml`}
-            className="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-primary text-white font-bold hover:opacity-95 transition-opacity"
-            data-analytics-event="rss_click"
-            data-analytics-params={JSON.stringify({ from: `${from}_newsletter_fallback`, locale })}
-          >
-            {locale === 'ko' ? 'RSS로 구독' : 'Subscribe via RSS'}
-          </a>
+          {from !== 'home' && (
+            <a
+              href={`/${locale}/feed.xml`}
+              className="inline-flex items-center justify-center h-10 px-4 rounded-lg bg-primary text-white font-bold hover:opacity-95 transition-opacity"
+              data-analytics-event="rss_click"
+              data-analytics-params={JSON.stringify({ from: `${from}_newsletter_fallback`, locale })}
+            >
+              {locale === 'ko' ? 'RSS로 구독' : 'Subscribe via RSS'}
+            </a>
+          )}
           <a
             href={`mailto:kks0488@gmail.com?subject=${encodeURIComponent(locale === 'ko' ? 'Aionda 업데이트 문의' : 'Aionda updates')}`}
             className="inline-flex items-center justify-center h-10 px-4 rounded-lg border border-gray-200 dark:border-gray-700 text-slate-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
@@ -88,4 +90,3 @@ export default function NewsletterSignup({
     </section>
   );
 }
-

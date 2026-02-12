@@ -18,8 +18,10 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
-import { searchAndVerify } from './lib/gemini';
+import { searchAndVerify as geminiSearchAndVerify } from './lib/gemini';
+import { searchAndVerify as openaiSearchAndVerify } from './lib/openai-search.js';
 import { classifySource, SourceTier } from './lib/search-mode.js';
+import { getAiTextProvider } from './lib/ai-text.js';
 
 config({ path: '.env.local' });
 
@@ -32,6 +34,7 @@ const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 const MIN_CONFIDENCE = 0.6;
 const DEFAULT_SINCE = (process.env.TOPICS_SINCE || '14d').trim();
 const TIER_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
+const AI_PROVIDER = getAiTextProvider();
 
 type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
 type EvergreenSchema = 'howto' | 'faq';
@@ -176,14 +179,17 @@ function readLastExtractedTopicIds(): Set<string> | null {
   }
 }
 
-async function researchQuestionWithGemini(
+async function researchQuestion(
   question: string,
   context: string
 ): Promise<ResearchFinding> {
   console.log(`    🔍 Researching: "${question.substring(0, 50)}..."`);
 
   try {
-    const result = await searchAndVerify(question, context);
+    const result =
+      AI_PROVIDER === 'openai'
+        ? await openaiSearchAndVerify(question, context)
+        : await geminiSearchAndVerify(question, context);
 
     // 실제 웹 검색 결과를 VerifiedSource 형식으로 변환
     const sources: VerifiedSource[] = result.sources.map(s => ({
@@ -230,7 +236,7 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   const context = `${topic.title}\n${topic.description}\n${topic.keyInsights.join('\n')}`;
 
   for (const question of topic.researchQuestions) {
-    const finding = await researchQuestionWithGemini(question, context);
+    const finding = await researchQuestion(question, context);
     findings.push(finding);
 
     // Rate limiting
@@ -302,7 +308,8 @@ async function main() {
   const since = parseSinceArg(sinceArg ? sinceArg.split('=')[1] : DEFAULT_SINCE);
 
   console.log('\n' + '═'.repeat(60));
-  console.log('  Research Pipeline (Gemini + Google Search)');
+  const providerLabel = AI_PROVIDER === 'openai' ? 'OpenAI + web_search_preview' : 'Gemini + Google Search';
+  console.log(`  Research Pipeline (${providerLabel})`);
   console.log('  Real-time web search for topic research');
   console.log('═'.repeat(60) + '\n');
 

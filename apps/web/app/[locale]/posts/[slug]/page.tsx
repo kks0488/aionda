@@ -79,7 +79,8 @@ export async function generateMetadata({
     const ogImageUrl = buildOgImageUrl(canonicalPost);
     const languageAlternates = Object.fromEntries(
       available.map((l) => [l, `${BASE_URL}/${l}/posts/${slug}`])
-    );
+    ) as Record<string, string>;
+    languageAlternates['x-default'] = canonicalUrl;
 
     return {
       title: canonicalPost.title,
@@ -122,7 +123,8 @@ export async function generateMetadata({
   const available = getAvailableLocalesForSlug(slug);
   const languageAlternates = Object.fromEntries(
     (available.length > 0 ? available : [requestedLocale]).map((l) => [l, `${BASE_URL}/${l}/posts/${slug}`])
-  );
+  ) as Record<string, string>;
+  languageAlternates['x-default'] = `${BASE_URL}/${defaultLocale}/posts/${slug}`;
 
   return {
     title: post.title,
@@ -393,7 +395,7 @@ export default async function PostPage({
   // JSON-LD structured data for SEO
   const articleJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     headline: post.title,
     description: post.description,
     datePublished: post.date,
@@ -418,6 +420,9 @@ export default async function PostPage({
       '@type': 'WebPage',
       '@id': postUrl,
     },
+    isAccessibleForFree: true,
+    articleSection: postTopicConfig?.title || (post.tags[0] || 'AI'),
+    wordCount: String(post.content || '').split(/\s+/).filter(Boolean).length,
     keywords: post.tags.join(', '),
     inLanguage: locale === 'ko' ? 'ko-KR' : 'en-US',
   };
@@ -443,6 +448,7 @@ export default async function PostPage({
         '@type': 'ListItem',
         position: 3,
         name: post.title,
+        item: postUrl,
       },
     ],
   };

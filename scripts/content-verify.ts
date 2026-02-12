@@ -14,7 +14,15 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { execSync } from 'child_process';
-import { extractClaims, verifyClaim } from './lib/gemini.js';
+import {
+  extractClaims as geminiExtractClaims,
+  verifyClaim as geminiVerifyClaim,
+} from './lib/gemini.js';
+import {
+  extractClaims as openaiExtractClaims,
+  verifyClaim as openaiVerifyClaim,
+} from './lib/openai-search.js';
+import { getAiTextProvider } from './lib/ai-text.js';
 import { filterValidSources, meetsConfidenceThreshold } from './lib/search-mode.js';
 
 type Priority = 'high' | 'medium' | 'low';
@@ -49,6 +57,15 @@ interface FileReport {
 }
 
 const POSTS_PREFIX = `${['apps', 'web', 'content', 'posts'].join(path.sep)}${path.sep}`;
+const AI_PROVIDER = getAiTextProvider();
+
+const extractClaims = (content: string) =>
+  AI_PROVIDER === 'openai' ? openaiExtractClaims(content) : geminiExtractClaims(content);
+
+const verifyClaim = (claim: any, originalContent: string, preferredSources: string[] = []) =>
+  AI_PROVIDER === 'openai'
+    ? openaiVerifyClaim(claim, originalContent, preferredSources)
+    : geminiVerifyClaim(claim, originalContent, preferredSources);
 
 function isPostFile(file: string): boolean {
   return (
@@ -294,7 +311,7 @@ async function verifyFile(filePath: string, maxClaims: number): Promise<FileRepo
   let confidenceSum = 0;
   let failedHighPriority = 0;
 
-  // Verify sequentially to reduce rate limit risk (the verifyClaim itself uses Google Search tool).
+  // Verify sequentially to reduce rate limit risk (the verifyClaim itself uses provider search tool).
   for (const claim of claims) {
     console.log(`  🔎 ${rel}: ${claim.text.slice(0, 70)}${claim.text.length > 70 ? '…' : ''}`);
     const verification = await verifyClaim(claim, content, preferredSources);
@@ -372,7 +389,8 @@ async function main() {
   }
 
   console.log('\n' + '═'.repeat(60));
-  console.log(`  Content Verification (SearchMode)`);
+  const providerLabel = AI_PROVIDER === 'openai' ? 'OpenAI+WebSearch' : 'Gemini+GoogleSearch';
+  console.log(`  Content Verification (SearchMode | ${providerLabel})`);
   console.log(`  Files: ${targets.length} | Max claims/file: ${maxClaims}`);
   console.log('═'.repeat(60) + '\n');
 

@@ -52,7 +52,7 @@ export async function generateMetadata({
   const posts = getPostSummaries(locale as Locale);
   const matched = posts.filter((post) => post.tags.some((t) => normalizeTag(t) === normalizedTag));
   const count = matched.length;
-  const shouldIndex = count >= 3;
+  const shouldIndex = count >= 1;
   const lastUsedAtMs = matched.reduce((max, post) => {
     const t = new Date(post.lastReviewedAt || post.date).getTime();
     return Number.isNaN(t) ? max : Math.max(max, t);

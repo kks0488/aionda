@@ -14,7 +14,6 @@ interface HomeContentProps {
 }
 
 const CATEGORIES = [
-  { id: 'all', label: { en: 'Latest', ko: '최신' } },
   { id: 'agi', label: { en: 'AGI', ko: 'AGI' } },
   { id: 'llm', label: { en: 'LLM', ko: 'LLM' } },
   { id: 'robotics', label: { en: 'Robotics', ko: '로보틱스' } },
