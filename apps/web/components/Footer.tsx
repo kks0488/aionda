@@ -17,7 +17,7 @@ export default function Footer() {
           </span>
         </div>
 
-        <div className="flex gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
+        <div className="flex flex-wrap gap-6 text-sm font-medium text-slate-500 dark:text-slate-400">
           <Link href={`/${locale}/topics`} className="hover:text-primary transition-colors">
             {locale === 'ko' ? '토픽' : 'Topics'}
           </Link>

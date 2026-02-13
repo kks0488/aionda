@@ -33,8 +33,8 @@ For operational troubleshooting (status/logs/candidate pool), see `docs/AUTOMATI
 
 ```bash
 crontab -l
-# Recommended: run from a dedicated clean clone (e.g., /home/kkaemo/aionda-publisher)
-# 0 * * * * /home/kkaemo/aionda-publisher/scripts/auto-publish.sh
+# Recommended: run from a dedicated clean clone (e.g., /home/kkaemo/aionda-publisher-automation)
+# 0 * * * * /home/kkaemo/aionda-publisher-automation/scripts/auto-publish.sh
 ```
 
 ### Trend slot (라이브 토픽 1/3)
@@ -51,8 +51,8 @@ crontab -l
 - `AUTO_PUBLISH_TREND_EVERY=5`
 - `AUTO_PUBLISH_TREND_SINCE=2h`
 - `AUTO_PUBLISH_TREND_FALLBACK_SINCE=24h`
-- `AUTO_PUBLISH_STANDARD_SINCE=72h`
-- `AUTO_PUBLISH_WRITE_LIMIT=1` (한 번에 최대 1개 글만 생성)
+- `AUTO_PUBLISH_STANDARD_SINCE=48h`
+- `AUTO_PUBLISH_WRITE_LIMIT=2` (한 번에 최대 2개 글만 생성)
 - `AUTO_PUBLISH_STATE_DIR` (slot 파일 위치 커스텀)
 
 ## Manual run (publish pipeline)

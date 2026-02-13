@@ -1,94 +1,52 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { codeToHtml } from 'shiki';
+import { CodeCopyButton } from './CodeCopyButton';
 
 interface CodeBlockProps {
   code: string;
   language?: string;
 }
 
-export function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
-  const [html, setHtml] = useState<string>('');
-  const [copied, setCopied] = useState(false);
+const SHIKI_THEMES = {
+  light: 'github-light',
+  dark: 'github-dark',
+} as const;
 
-  useEffect(() => {
-    const highlight = async () => {
-      try {
-        const highlighted = await codeToHtml(code.trim(), {
-          lang: language,
-          theme: 'github-dark',
-        });
-        setHtml(highlighted);
-      } catch {
-        // Fallback for unsupported languages
-        const escaped = code
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-        setHtml(`<pre class="shiki"><code>${escaped}</code></pre>`);
-      }
-    };
-    highlight();
-  }, [code, language]);
+function escapeHtml(value: string): string {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
-  const handleCopy = async () => {
-    try {
-      const text = code.trim();
-      if (!text) return;
+async function highlightCode(code: string, language: string): Promise<string> {
+  try {
+    return await codeToHtml(code, {
+      lang: language,
+      themes: SHIKI_THEMES,
+    });
+  } catch {
+    return `<pre class="shiki"><code>${escapeHtml(code)}</code></pre>`;
+  }
+}
 
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        const success = document.execCommand('copy');
-        document.body.removeChild(textarea);
-        if (!success) {
-          throw new Error('Copy failed');
-        }
-      }
-
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  };
+export async function CodeBlock({ code, language = 'text' }: CodeBlockProps) {
+  const text = code.trim();
+  const highlightedHtml = await highlightCode(text, language);
 
   return (
     <div className="relative group my-6">
-      {/* Language badge */}
       {language && language !== 'text' && (
-        <div className="absolute top-0 left-4 px-2 py-1 text-xs font-mono text-muted-foreground bg-zinc-800 rounded-b">
+        <div className="absolute top-0 left-4 z-10 px-2 py-1 text-xs font-mono text-muted-foreground bg-zinc-800 rounded-b">
           {language}
         </div>
       )}
 
-      {/* Copy button */}
-      <button
-        onClick={handleCopy}
-        className="absolute top-2 right-2 px-2 py-1 text-xs font-mono text-muted-foreground bg-zinc-700 hover:bg-zinc-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        {copied ? 'Copied!' : 'Copy'}
-      </button>
+      <CodeCopyButton code={text} />
 
-      {/* Code content */}
-      {html ? (
-        <div
-          className="rounded-lg overflow-hidden [&>pre]:p-4 [&>pre]:pt-8 [&>pre]:overflow-x-auto [&>pre]:text-sm [&>pre]:leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-      ) : (
-        <pre className="bg-zinc-900 rounded-lg p-4 pt-8 overflow-x-auto text-sm leading-relaxed">
-          <code className="text-zinc-300">{code}</code>
-        </pre>
-      )}
+      <div
+        className="rounded-lg overflow-hidden [&_.shiki]:m-0 [&_.shiki]:p-4 [&_.shiki]:pt-8 [&_.shiki]:overflow-x-auto [&_.shiki]:text-sm [&_.shiki]:leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+      />
     </div>
   );
 }

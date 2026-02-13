@@ -6,7 +6,7 @@
 
 - GitHub Actions: `.github/workflows/auto-update.yml`의 `schedule`은 주석 처리되어 있으며, 현재는 `workflow_dispatch`(수동 실행)만 활성입니다.
 - 로컬 cron: 매시간 `scripts/auto-publish.sh`가 실행됩니다.
-  - 권장: 개발용 워크트리와 분리된 전용 클론(예: `/home/kkaemo/aionda-publisher`)에서 실행
+  - 권장: 개발용 워크트리와 분리된 전용 클론(예: `/home/kkaemo/aionda-publisher-automation`)에서 실행
   - 확인: `crontab -l`
   - env 로드 순서: `~/.config/claude-projects/global.env` → `<repo>/.env.local`
 
@@ -99,7 +99,7 @@
 pnpm -s crawl-github --since=7d --limit=20
 
 # 지금 당장 한 번 돌려보기(빌드는 스킵 가능)
-cd /home/kkaemo/aionda-publisher
+cd /home/kkaemo/aionda-publisher-automation
 AUTO_PUBLISH_SKIP_BUILD=true bash scripts/auto-publish.sh
 
 # 발행량/리듬 튜닝 예시(과발행 방지)

@@ -243,8 +243,12 @@ async function writeArticle(topic: ResearchedTopic, series: EditorialSeries): Pr
   const primaryExcerpt = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
   const primaryTitle = primaryExcerpt?.title || '';
   const primaryText = primaryExcerpt?.excerpt || 'N/A';
+  const articlePromptTemplate = `${WRITE_ARTICLE_PROMPT}
 
-  const prompt = WRITE_ARTICLE_PROMPT
+## 참고 자료 포맷 규칙 (중요):
+- 참고 자료를 작성해야 할 때는 모든 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 작성한다.`;
+
+  const prompt = articlePromptTemplate
     .replace('{series}', formatSeriesForPrompt(series))
     .replace('{topic}', `${topic.title}\n${topic.description}\n\nKey Insights:\n${topic.keyInsights.map(i => `- ${i}`).join('\n')}`)
     .replace('{sourceTitle}', primaryTitle)
@@ -832,7 +836,13 @@ function appendSources(locale: 'ko' | 'en', content: string, topic: ResearchedTo
     '',
     locale === 'en' ? '## References' : '## 참고 자료',
     '',
-    ...trustedSources.map(s => `- ${s.icon} [${s.title}](${s.url})`),
+    ...trustedSources.map((s) => {
+      const title = String(s.title || s.url).replace(/\s+/g, ' ').trim();
+      const sourceName = String(s.domain || '')
+        .replace(/^www\./, '')
+        .trim() || 'Source';
+      return `- [${title} - ${sourceName}](${s.url})`;
+    }),
   ].join('\n');
 
   return cleaned + sourcesSection;

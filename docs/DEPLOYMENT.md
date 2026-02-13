@@ -112,7 +112,10 @@ Vercel/Coolify 모두 도메인 연결 후 Google Search Console에 사이트맵
 ## 배포 전 로컬 체크(권장)
 
 ```bash
+# Root tsconfig checks only scripts/packages (apps are excluded).
 pnpm -s tsc --noEmit
+
+# Web(apps) type checks run during Next.js build.
 pnpm -s build
 ```
 

@@ -9,20 +9,22 @@
  *   pnpm crawl-rss --source=news      # Fetch only news
  */
 
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs';
+import { createHash } from 'crypto';
+import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 import Parser from 'rss-parser';
 
 config({ path: '.env.local' });
 
-const parser = new Parser({
-  timeout: 10000,
-  headers: {
-    'User-Agent': 'AIOnda/1.0 (AI News Aggregator)',
-    Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
-  },
-});
+const parser = new Parser();
+const RSS_FETCH_TIMEOUT_MS = 10000;
+const RSS_RETRY_MAX = 3;
+const RSS_RETRY_INITIAL_BACKOFF_MS = 2000;
+const RSS_FETCH_HEADERS = {
+  'User-Agent': 'AIOnda/1.0 (AI News Aggregator)',
+  Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
+};
 
 // Keep RSS ingestion bounded (some feeds include years of history).
 const DEFAULT_RSS_SINCE = (process.env.RSS_SINCE || process.env.TOPICS_SINCE || '30d').trim();
@@ -136,11 +138,12 @@ function parseItemDate(item: FeedItem): Date | null {
 }
 
 function generateItemId(sourceId: string, link: string): string {
-  // Create a unique ID from source and link
-  const hash = link.split('').reduce((acc, char) => {
-    return ((acc << 5) - acc) + char.charCodeAt(0);
-  }, 0);
-  return `${sourceId}-${Math.abs(hash).toString(36)}`;
+  // Stronger deterministic ID hash (64-bit hex slice from SHA-256).
+  const hash = createHash('sha256')
+    .update(link)
+    .digest('hex')
+    .slice(0, 16);
+  return `${sourceId}-${hash}`;
 }
 
 function getExistingIds(dir: string): Set<string> {
@@ -156,7 +159,8 @@ function getExistingIds(dir: string): Set<string> {
 async function fetchFeed(source: RSSSource): Promise<FeedItem[]> {
   try {
     console.log(`  📡 Fetching: ${source.name}...`);
-    const feed = await parser.parseURL(source.url);
+    const xml = await fetchWithRetry(source.url);
+    const feed = await parser.parseString(xml);
 
     const items: FeedItem[] = (feed.items || []).map(item => ({
       id: generateItemId(source.id, item.link || item.guid || ''),
@@ -197,6 +201,42 @@ async function fetchFeed(source: RSSSource): Promise<FeedItem[]> {
     console.log(`     ❌ Failed: ${error.message}`);
     return [];
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+async function fetchWithRetry(url: string): Promise<string> {
+  let backoffMs = RSS_RETRY_INITIAL_BACKOFF_MS;
+
+  for (let attempt = 0; attempt <= RSS_RETRY_MAX; attempt++) {
+    const response = await fetch(url, {
+      headers: RSS_FETCH_HEADERS,
+      signal: AbortSignal.timeout(RSS_FETCH_TIMEOUT_MS),
+    });
+
+    if (response.ok) {
+      return await response.text();
+    }
+
+    const canRetry = attempt < RSS_RETRY_MAX && isRetryableStatus(response.status);
+    if (!canRetry) {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
+
+    console.warn(
+      `     ⚠️ Retryable HTTP ${response.status} for ${url} (attempt ${attempt + 1}/${RSS_RETRY_MAX}, backoff ${Math.round(backoffMs / 1000)}s)`
+    );
+    await sleep(backoffMs);
+    backoffMs *= 2;
+  }
+
+  throw new Error(`Failed to fetch feed after retries: ${url}`);
 }
 
 async function main() {

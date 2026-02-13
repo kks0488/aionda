@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { defaultLocale } from '@/i18n';
 
 export default function NotFound() {
   return (
@@ -8,7 +9,7 @@ export default function NotFound() {
           <div className="text-6xl font-bold mb-4">404</div>
           <h2 className="text-xl mb-4">Page Not Found</h2>
           <Link
-            href="/"
+            href={`/${defaultLocale}`}
             className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 inline-block"
           >
             Go Home

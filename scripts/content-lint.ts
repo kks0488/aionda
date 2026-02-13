@@ -83,6 +83,21 @@ const VAGUE_WORDS = [
   '다양한',
 ];
 
+type ForbiddenExpressionRule = {
+  phrase: string;
+  suggestions: string[];
+};
+
+const FORBIDDEN_EXPRESSION_RULES: ForbiddenExpressionRule[] = [
+  { phrase: '쉽게', suggestions: ['수월하게', '부담을 낮춰'] },
+  { phrase: '간단하게', suggestions: ['단계를 줄여', '짧은 절차로'] },
+  { phrase: '효과적으로', suggestions: ['근거 기반으로', '목표 대비 성과를 높여'] },
+  { phrase: '다양한', suggestions: ['여러', '서로 다른'] },
+  { phrase: '일반적으로', suggestions: ['대체로', '보통'] },
+  { phrase: '대등한', suggestions: ['비슷한 수준의', '유사한 성능의'] },
+  { phrase: '탁월한', suggestions: ['강점이 있는', '우수한'] },
+];
+
 function stripSourcesSection(markdown: string): string {
   const idx = markdown.search(SOURCES_HEADING);
   return idx === -1 ? markdown : markdown.slice(0, idx);
@@ -305,6 +320,30 @@ function includesAny(textLower: string, terms: string[]): string | null {
   return null;
 }
 
+function offsetToLineCol(text: string, offset: number): { line: number; col: number } {
+  const normalized = text.slice(0, Math.max(0, offset));
+  const lines = normalized.split('\n');
+  return {
+    line: lines.length,
+    col: (lines[lines.length - 1] || '').length + 1,
+  };
+}
+
+function warnForbiddenExpressions(file: string, body: string) {
+  for (const rule of FORBIDDEN_EXPRESSION_RULES) {
+    let startAt = 0;
+    while (startAt < body.length) {
+      const idx = body.indexOf(rule.phrase, startAt);
+      if (idx === -1) break;
+      const { line, col } = offsetToLineCol(body, idx);
+      console.warn(
+        `⚠️ ${file}:${line}:${col} [forbidden_expression] "${rule.phrase}" 감지됨. 대체 제안: ${rule.suggestions.join(' | ')}`
+      );
+      startAt = idx + rule.phrase.length;
+    }
+  }
+}
+
 function main() {
   const args = process.argv.slice(2);
   const lintAll = args.includes('--all');
@@ -461,6 +500,7 @@ function main() {
     const lintableContent = stripSourcesSection(content);
     const text = stripMarkdown(lintableContent);
     const textLower = text.toLowerCase();
+    warnForbiddenExpressions(rel, lintableContent);
 
     if (!TLDR_HEADING.test(content)) {
       issues.push({

@@ -71,6 +71,7 @@ export default function NewsletterSignup({
           type="email"
           required
           name="email"
+          aria-label={locale === 'ko' ? '이메일 주소' : 'Email address'}
           placeholder={locale === 'ko' ? '이메일 주소' : 'Email address'}
           className="flex-1 h-11 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-slate-950/30 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary"
         />

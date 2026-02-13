@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { defaultLocale } from '@/i18n';
 
 export default function NotFound() {
   return (
@@ -11,7 +12,7 @@ export default function NotFound() {
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
       <Link
-        href="/"
+        href={`/${defaultLocale}`}
         className="px-6 py-2 bg-accent text-accent-foreground rounded-lg hover:opacity-90 transition-opacity"
       >
         Go Home

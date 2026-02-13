@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 import type { SearchPost } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import SearchModal from './SearchModal';
@@ -34,9 +34,13 @@ export default function SearchProvider({ children }: SearchProviderProps) {
 
   const openSearch = useCallback(() => setIsOpen(true), []);
   const closeSearch = useCallback(() => setIsOpen(false), []);
+  const value = useMemo(
+    () => ({ isOpen, openSearch, closeSearch, setPosts, setLocale }),
+    [isOpen, openSearch, closeSearch, setPosts, setLocale]
+  );
 
   return (
-    <SearchContext.Provider value={{ isOpen, openSearch, closeSearch, setPosts, setLocale }}>
+    <SearchContext.Provider value={value}>
       {children}
       <SearchModal isOpen={isOpen} onClose={closeSearch} posts={posts} locale={locale} />
     </SearchContext.Provider>

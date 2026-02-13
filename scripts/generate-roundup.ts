@@ -198,6 +198,24 @@ function normalizeTitle(raw?: string): string {
   return String(raw || '').replace(/\s+/g, ' ').trim();
 }
 
+function normalizeSourceName(item: FeedItem, url: string): string {
+  const source = String(item.sourceName || item.sourceId || '').trim();
+  if (source) return source;
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return 'Source';
+  }
+}
+
+function buildReferenceLine(item: FeedItem): string | null {
+  const url = normalizeUrl(item.link);
+  if (!url) return null;
+  const title = normalizeTitle(item.title) || url;
+  const sourceName = normalizeSourceName(item, url);
+  return `- [${title} - ${sourceName}](${url})`;
+}
+
 function normalizeOneLine(raw: string): string {
   return String(raw || '')
     .replace(/\s+/g, ' ')
@@ -508,11 +526,8 @@ function renderKo(
   lines.push('## 참고 자료');
   const all = [...itemsOfficial, ...itemsNews];
   for (const item of all) {
-    const url = normalizeUrl(item.link);
-    if (!url) continue;
-    const t = normalizeTitle(item.title) || url;
-    const icon = tierIcon(item.sourceTier);
-    lines.push(`- ${icon} [${t}](${url})`);
+    const line = buildReferenceLine(item);
+    if (line) lines.push(line);
   }
   lines.push('');
 
@@ -590,11 +605,8 @@ function renderEn(
   lines.push('## References');
   const all = [...itemsOfficial, ...itemsNews];
   for (const item of all) {
-    const url = normalizeUrl(item.link);
-    if (!url) continue;
-    const t = normalizeTitle(item.title) || url;
-    const icon = tierIcon(item.sourceTier);
-    lines.push(`- ${icon} [${t}](${url})`);
+    const line = buildReferenceLine(item);
+    if (line) lines.push(line);
   }
   lines.push('');
 
@@ -663,11 +675,8 @@ function renderJa(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
   lines.push('## References');
   const all = [...itemsOfficial, ...itemsNews];
   for (const item of all) {
-    const url = normalizeUrl(item.link);
-    if (!url) continue;
-    const t = normalizeTitle(item.title) || url;
-    const icon = tierIcon(item.sourceTier);
-    lines.push(`- ${icon} [${t}](${url})`);
+    const line = buildReferenceLine(item);
+    if (line) lines.push(line);
   }
   lines.push('');
 
@@ -736,11 +745,8 @@ function renderEs(itemsOfficial: FeedItem[], itemsNews: FeedItem[], ymd: string,
   lines.push('## References');
   const all = [...itemsOfficial, ...itemsNews];
   for (const item of all) {
-    const url = normalizeUrl(item.link);
-    if (!url) continue;
-    const t = normalizeTitle(item.title) || url;
-    const icon = tierIcon(item.sourceTier);
-    lines.push(`- ${icon} [${t}](${url})`);
+    const line = buildReferenceLine(item);
+    if (line) lines.push(line);
   }
   lines.push('');
 
