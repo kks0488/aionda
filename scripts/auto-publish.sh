@@ -64,6 +64,11 @@ bootstrap_isolated_repo_and_reexec() {
     (cd "$isolated" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install)
   fi
 
+  # Copy .env.local from source repo (gitignored, not cloned)
+  if [ ! -f "$isolated/.env.local" ] && [ -f "$SOURCE_REPO_ROOT/.env.local" ]; then
+    cp "$SOURCE_REPO_ROOT/.env.local" "$isolated/.env.local"
+  fi
+
   if [ ! -x "$isolated/scripts/auto-publish.sh" ]; then
     chmod +x "$isolated/scripts/auto-publish.sh" >/dev/null 2>&1 || true
   fi
