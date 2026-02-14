@@ -1,0 +1,194 @@
+---
+title: 'Beyond Rate Limits: Continuous Access Policy Engine Design'
+slug: beyond-rate-limits-continuous-access-policy-engine-design
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  How combining rate limits, real-time usage tracking, and credits enables
+  continuous access for costly models while meeting SLOs.
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: openai-338aaf898d6c0242
+sourceUrl: 'https://openai.com/index/beyond-rate-limits'
+verificationScore: 0.7266666666666666
+alternateLocale: /ko/posts/beyond-rate-limits-continuous-access-policy-engine-design
+coverImage: /images/posts/beyond-rate-limits-continuous-access-policy-engine-design.png
+---
+
+They saw only `429 (Too Many Requests)`, with no result.  
+The rate limit may have been fair.  
+The experience still ended abruptly.
+
+The OpenAI blog post *Beyond rate limits: scaling access to Codex and Sora* frames this as more than rate limits.  
+It says rate limits alone are not enough.  
+It describes a real-time access system for Sora and Codex.  
+It combines rate limits, real-time usage tracking, and credits.  
+It aims to support continuous access.
+
+This is not only about billing UI.  
+It suggests a shift toward a policy engine.  
+That engine can connect SLOs, abuse prevention, and capacity planning.  
+This document summarizes design implications.  
+It avoids claims not supported by the excerpt.
+
+Example: A user starts a generation task and leaves the page. They return to a failure message about limits. They retry without understanding the cause. The service then feels slower for everyone.
+
+## TL;DR
+
+- This describes a move toward continuous access using rate limits, usage tracking, and credits.  
+- It matters because `429` rates and p99 latency can shift together under policy choices.  
+- Next, map burst rules, dynamic rates, and metering idempotency into explicit If/Then operations.  
+
+---
+
+## Current state
+
+The shift is from rate limits only toward real-time access control.  
+That control can combine rate limits, usage tracking, and credits.  
+The excerpt supports this framing for Sora and Codex.  
+It also uses the term continuous access.  
+
+The excerpt does not confirm several specifics.  
+It does not confirm UI behavior, pricing, or rollout scope.  
+It does not confirm window length or burst size.  
+It does not confirm any credit policy parameters.  
+
+Rate limits alone can struggle with some workloads.  
+Short spikes can fail at the peak.  
+Long sessions can exceed a fixed window.  
+Large jobs can collide with transient congestion.  
+
+Common options include burst allowance.  
+They also include rolling windows.  
+They can also include dynamic allocation.  
+These choices can affect `429` frequency and p99 latency.  
+More validation is needed to generalize superiority.
+
+Some quantitative evidence is cited in the investigation results.  
+One study reported throughput improved by 23.7%.  
+Those values depend on the paper’s conditions.  
+They may not reproduce in other systems.
+
+Metering can also be affected by duplicates and retries.  
+Google Cloud describes Pub/Sub exactly-once delivery as GA.  
+That can reduce duplicate delivery at the transport layer.  
+It does not imply end-to-end exactly-once meaning across a domain workflow.
+
+---
+
+## Analysis
+
+### 1) “Continuous access” can be a policy engine problem
+Credits in access control can require real-time allow or deny decisions.  
+Rate limiting can act like speed limiting.  
+Metering can act like usage calculation.  
+Credits can act like remaining allowance.  
+
+Combining the three shifts failure modes.  
+Access can be adjusted based on balance and policy.  
+It can reduce sudden “blocked and done” experiences.  
+It can also introduce new edge cases around reconciliation.
+
+Trade-offs remain.  
+Burst allowance can absorb short spikes.  
+It can also reduce `429` responses.  
+It may increase instantaneous load.  
+That can worsen p99 tail latency.
+
+Fairness can be defined in multiple ways.  
+Some policies prioritize per-user fairness.  
+Others prioritize per-organization fairness.  
+Others prioritize per-job fairness.  
+The investigation results did not confirm a single standard definition.
+
+### 2) Metering is closer to a recoverable ledger
+Real-time metering often assumes retries and delays.  
+That resembles at-least-once delivery patterns.  
+The goal is often resilient outcomes under duplication.  
+Idempotency is one common technique.
+
+Two directions commonly mentioned are below.  
+
+- **Idempotent consumption**: Record processed message IDs to reduce duplicate charges.  
+- **Transactional Outbox**: Record first to reduce omissions between DB updates and event publication.  
+
+Exactly-once transport can reduce operational burden.  
+It can reduce duplicate delivery in some pipelines.  
+End-to-end reliability still depends on domain logic.  
+Authorization, debit, and refund flows can remain idempotent end-to-end.
+
+---
+
+## Practical application
+
+This work is not only about tighter rate limits.  
+It is about separating policies and designing failure modes.  
+It can be treated as a decision memo.  
+It can guide implementation order.
+
+- **If** a user journey depends on one large job, **Then** evaluate burst allowance.  
+Static per-minute limits may not be enough.  
+If p99 latency is sensitive, pair burst with queuing or degradation.  
+- **If** demand fluctuates and customer segments differ, **Then** consider dynamic allocation.  
+Adaptive rate limiting may reduce operational burden versus fixed thresholds.  
+Include diagnostic reason codes for allow and deny decisions.  
+- **If** payments or credits apply, **Then** start metering as a ledger.  
+Assume duplicates and delays.  
+Plan idempotency and reprocessing from the start.
+
+**Checklist for Today:**
+- Add reason codes to `429` events, and store them for later analysis.  
+- Add idempotency keys to metering events, and log processing IDs during retries.  
+- Create one dashboard showing p99 latency, rejection rate, and queue depth together.  
+
+---
+
+## FAQ
+
+**Q1. Will turning on burst allowance improve user experience?**  
+A. It may reduce `429` rejections.  
+It can also increase instantaneous load.  
+That may worsen p99 latency.  
+You should choose which risk matters more for your product.
+
+**Q2. Why can a rolling window be fair but expensive?**  
+A. It can enforce limits across any rolling window.  
+That can feel fairer than coarse fixed windows.  
+It can also increase state and compute costs.  
+Those costs can affect latency and availability.
+
+**Q3. Should real-time credit debiting use exactly-once?**  
+A. Exactly-once transport can help in some cases.  
+Many systems still assume duplicates and delays.  
+Idempotency in domain logic often remains the key.  
+A Transactional Outbox can support recovery-oriented designs.
+
+---
+
+## Conclusion
+
+Access scaling for high-cost models like Sora and Codex appears to be evolving.  
+It moves from “where to place a rate limit” toward a real-time policy engine.  
+That engine can manage continuous access, fairness, and reliability together.  
+
+The next items to watch are user-visible explainability.  
+One example is clear reasons for blocked access.  
+Another is recovery paths like queuing, degradation, and retry guidance.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Agentic Coding And Video Generation: Shorter Iteration Loops](/en/posts/agentic-coding-video-generation-shorter-iteration-loops)
+- [Defending Agent Link Clicks From Leakage And Injection](/en/posts/ai-agent-web-security-guide)
+- [AI Resource Roundup (24h) - 2026-02-12](/en/posts/ai-resources-roundup-2026-02-12)
+- [Android 17 Shifts Locking Into an OS Security State](/en/posts/android-17-locking-os-security-state)
+---
+
+## References
+
+- [Cloud Pub/Sub Exactly-once Delivery feature is now Generally Available (GA) | Google Cloud Blog - cloud.google.com](https://cloud.google.com/blog/products/data-analytics/cloud-pub-sub-exactly-once-delivery-feature-is-now-ga)
+- [Rate limits - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/rate-limits/overview%20.pdf)
+- [openai.com - openai.com](https://openai.com/index/beyond-rate-limits)
+- [Multi-Objective Adaptive Rate Limiting in Microservices Using Deep Reinforcement Learning - arxiv.org](https://arxiv.org/abs/2511.03279)
