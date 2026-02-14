@@ -1,0 +1,134 @@
+---
+title: OpenAI Codex Spark Runs on Cerebras WSE-3 Chips
+slug: openai-codex-spark-cerebras-wse-3-inference
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  TechCrunch says Codex Spark inference runs on Cerebras WSE-3, highlighting
+  serving bottlenecks and PoC latency metrics.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - inference
+author: AI온다
+sourceId: techcrunch-ai-2e89e0378b595389
+sourceUrl: >-
+  https://techcrunch.com/2026/02/12/a-new-version-of-openais-codex-is-powered-by-a-new-dedicated-chip/
+verificationScore: 0.8066666666666666
+alternateLocale: /ko/posts/openai-codex-spark-cerebras-wse-3-inference
+coverImage: /images/posts/openai-codex-spark-cerebras-wse-3-inference.png
+---
+
+## TL;DR
+
+- Codex-Spark inference is reported to run on Cerebras Wafer Scale Engine 3, not only on typical GPU infrastructure.  
+- Hardware and serving choices can affect decode latency, especially when KV cache and memory bandwidth become constraints.  
+- Measure prefill, decode, and tool-call round trips separately, then set a PoC bar for low-latency tiers.
+
+When responses lag during an interactive coding loop, perceived speed can matter as much as model quality.  
+This report focuses on serving infrastructure, not parameter counts.  
+TechCrunch reports that inference for OpenAI’s Codex variant GPT-5.3-Codex-Spark runs on Cerebras Wafer Scale Engine 3.  
+OpenAI described this as a “first milestone” with the chipmaker.
+
+Example: You iterate on code reviews, paste patches, and refine prompts in your editor. When replies slow down, your attention breaks, and the workflow feels costly.
+
+This may shift attention from only “smarter models” toward faster, more efficient serving stacks.  
+It still seems early to treat this as a broad market shift.
+
+## Current status
+
+The key claim is that perceived performance can vary by serving infrastructure, not only by model.  
+TechCrunch reported two items.  
+It described GPT-5.3-Codex-Spark as a smaller version for faster inference.  
+It also said Spark inference runs on Cerebras Wafer Scale Engine 3.  
+OpenAI called the relationship milestone a “first milestone.”
+
+The deployment form factor is not confirmed in the cited material.  
+The article does not specify data center, edge, or on-premises placement.  
+“Fast inference” could suggest low-latency interactive use.  
+That remains an inference, not a quoted fact.
+
+The available wording does not clarify the scope of dedicated-chip serving.  
+It is unclear whether it applies to all Codex or only the Spark variant.  
+Phrases like “migrated to a dedicated chip” need scope confirmation.
+
+Pricing, rate limits, and SLAs are also not confirmed as changed.  
+The cited material does not state an immediate policy or fee change.  
+OpenAI separately offers Priority Processing as an option.  
+It uses phrases like “Predictably low latency.”  
+It also uses “Priority processing generates tokens faster.”  
+A linkage to WSE-3 is not documented in the cited material.
+
+## Analysis
+
+Coding agents can hit different bottlenecks than general chatbots.  
+Long context plus iterative decoding increases KV cache use.  
+NVIDIA’s technical blog describes KV cache as a potential bottleneck.  
+It also points to memory bandwidth as a constraint during decode.  
+Under those conditions, chips and serving runtime can affect latency and throughput.
+
+OpenAI’s “smaller version” and “faster inference” positioning can fit that framing.  
+Running inference on WSE-3 could also fit that framing.  
+Several parts remain unverified.
+
+- **Lack of technical detail:** Codex-specific WSE-3 optimizations are not confirmed in the cited material.  
+- **Multi-factor nature of perceived latency:** Tool-call round trips, plugins, and cache policy can dominate latency.  
+- **Operational risk:** Dedicated hardware depends on supply, regions, and incident handling.  
+- Predictability can matter as much as speed.  
+- help ensure and conditions are not stated in the cited material.
+
+## Practical application
+
+In practice, the question is where your bottleneck sits.  
+It can be inference, tool calls, or context and cache policy.  
+Low-latency variants and dedicated-chip serving can be options.  
+Adoption without measurement can raise cost without improving latency.
+
+Example: Repeated revision prompts can make responses feel slower over time, and interruptions become harder. In that case, you can trim context, add summaries, or split tasks before switching tiers.
+
+**Checklist for Today:**
+- Measure prefill time, decode time, and tool-call round-trip time separately in your coding flow.  
+- Reduce KV-cache pressure by summarizing, splitting work units, or reusing stable context segments.  
+- Write PoC pass or fail criteria for consistent latency, and include Priority Processing as a comparison tier.  
+
+## FAQ
+
+**Q1. What exactly is a “dedicated chip,” and where is it installed?**  
+A. TechCrunch reported that Codex-Spark inference runs on Cerebras Wafer Scale Engine 3.  
+The cited material does not specify data center, edge, or on-premises deployment.  
+It also does not specify the regions.
+
+**Q2. Why are coding agents more affected by hardware?**  
+A. Long context and iterative decoding grow the KV cache.  
+NVIDIA’s technical blog describes KV cache bottlenecks.  
+It also describes memory bandwidth constraints during the decode phase.  
+Interactive coding can make latency spikes more noticeable.
+
+**Q3. Does this change pricing or SLAs?**  
+A. The cited material does not state pricing, rate limit, or SLA changes.  
+OpenAI separately markets Priority Processing for predictably low latency.  
+It also claims faster token generation under that option.  
+A linkage to the WSE-3 deployment is not confirmed in the cited material.
+
+## Conclusion
+
+The report that Codex-Spark inference runs on Cerebras WSE-3 points to infrastructure as a differentiator.  
+It suggests competition can include chips plus serving, not only models.  
+The scope and operational implications remain unclear from the cited material.  
+Key questions include which tiers expose benefits and under what conditions.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Designing Prompts to Reduce Version Anchoring Risks](/en/posts/designing-prompts-to-reduce-version-anchoring-risks)
+- [GABRIEL Toolkit Turns Qualitative Data Into Quantitative Metrics](/en/posts/gabriel-toolkit-turns-qualitative-data-into-quantitative-metrics)
+- [Operational Loop for LLM Change Detection and Response](/en/posts/operational-loop-monitoring-llm-provider-change-logs)
+---
+
+## References
+
+- [techcrunch.com - techcrunch.com](https://techcrunch.com/2026/02/12/a-new-version-of-openais-codex-is-powered-by-a-new-dedicated-chip/)
+- [Optimizing Inference for Long Context and Large Batch Sizes with NVFP4 KV Cache | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache/)
+- [Priority Processing for API Customers | OpenAI - openai.com](https://openai.com/api-priority-processing/)

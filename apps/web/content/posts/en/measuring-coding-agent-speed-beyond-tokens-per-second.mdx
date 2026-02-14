@@ -1,0 +1,119 @@
+---
+title: Measuring Coding Agent Speed Beyond Tokens Per Second
+slug: measuring-coding-agent-speed-beyond-tokens-per-second
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  Break coding agent latency into output, prefill, tool time, and network
+  overhead to measure end-to-end duration.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: arstechnica-515b2198b04c8ed6
+sourceUrl: >-
+  https://arstechnica.com/ai/2026/02/openai-sidesteps-nvidia-with-unusually-fast-coding-model-on-plate-sized-chips/
+verificationScore: 0.7666666666666666
+alternateLocale: /ko/posts/measuring-coding-agent-speed-beyond-tokens-per-second
+coverImage: /images/posts/measuring-coding-agent-speed-beyond-tokens-per-second.png
+---
+
+## TL;DR
+
+- **What changed / what this is:** Reports describe GPT‑5.3‑Codex‑Spark as “15× faster,” plus a WSE‑3 “latency-first” serving tier.  
+- **Why it matters:** OpenAI breaks task duration into four parts, including network overhead with 80%, 30%, and 50% reductions.  
+- **What you should do next:** Measure end-to-end duration by component, then test serving and connectivity changes before switching models.  
+
+---
+
+A code agent can feel slow when tool calls and round trips stack up. This can happen even when token generation looks fast. Ars Technica summarized OpenAI’s GPT‑5.3‑Codex‑Spark as “15× faster than before.” OpenAI also described a “latency-first” serving tier on Cerebras WSE‑3.
+
+Example: A team runs a code agent in a shared environment. The model responds quickly in isolation. The workflow still drags due to tool waits and network chatter. The team improves request shaping and connection reuse. The agent then feels more responsive.
+
+Public reporting leaves some uncertainty about the “15×” baseline and test conditions. The available material does not fully connect speed to quality, cost, or power. A clearer approach is to decompose time into components. That helps separate model speed from serving and hardware effects.
+
+---
+
+## Current status
+
+Perceived speed in coding agents depends on more than output token speed. It also depends on total duration with prefill, tools, and network overhead. Ars Technica described GPT‑5.3‑Codex‑Spark as “15× faster” at coding than its predecessor. The same article reported output at over 1,000 tokens per second.
+
+The article alone does not clarify measurement conditions for those figures. Prompt, context length, and success rate could differ. The article also notes limited independent reproducibility materials.
+
+OpenAI’s framing treats “speed” as a duration budget with multiple components. OpenAI defined total task duration as the sum of:
+
+1. Output generation time (output tokens ÷ sampling speed)  
+2. Prefill time (prefill tokens ÷ prefill speed)  
+3. Tool execution time  
+4. Network overhead  
+
+On networking, OpenAI mentioned persistent WebSocket connections. OpenAI cited an 80% reduction in client/server round-trip overhead. OpenAI also cited a 30% reduction in per-token overhead. OpenAI also cited a 50% reduction in TTFT (time-to-first-token). The text does not fully specify the measured workloads for these percentages.
+
+
+---
+
+## Analysis
+
+The main point is not only that a coding model may feel faster. The key point is how latency is defined and managed. OpenAI’s decomposition suggests tokens/sec is an incomplete metric for agent workflows. Agents often run tests, edit files, and search. Each step can add tool time and network round trips. In that setting, an 80% reduction in round-trip overhead could matter.
+
+Some interpretations still need caution. Claims like “it bypasses GPUs” are hard to confirm from these summaries. Reporting suggests WSE‑3 is used. Reporting also implies GPUs remain important in some capacity. That leaves limited basis for claiming a complete replacement.
+
+OpenAI also described Spark as a smaller version of GPT‑5.3‑Codex. Smaller models can reduce latency. Serving optimizations can also reduce latency. Hardware choices can also contribute. Public material does not isolate these factors cleanly.
+
+At least two questions remain:
+
+1) How does speed relate to code quality, such as test pass rate?  
+2) How does speed relate to cost and power per task?  
+
+The included material does not provide quality metrics or cost and power figures. That makes it hard to quantify trade-offs. Workload-specific measurement can reduce guesswork.
+
+---
+
+## Practical application
+
+Define “fast” in terms of duration for your workload. Use end-to-end task time as the primary KPI. Then break it into output generation, prefill, tool execution, and network overhead. This structure can make bottlenecks easier to locate. It can also prevent over-weighting tokens/sec.
+
+It can also help avoid simplistic hardware categories. “GPU vs non-GPU” can be a distraction for system tuning. WSE‑3 emphasizes on-chip memory and bandwidth in IEEE Spectrum’s summary. GPUs are often discussed for ecosystem and generality. The practical target is still the latency components in your pipeline.
+
+**Checklist for Today:**
+- Log output, prefill, tool, and network times separately for one representative agent workflow.  
+- Re-run the same workflow under a few controlled conditions and compare duration-to-completion, not tokens/sec alone.  
+- Try connection persistence, request batching, and caching to reduce round trips before changing the model.  
+
+---
+
+## FAQ
+
+**Q1. What exactly is “15× faster” benchmarked against?**  
+A. The cited material does not fully specify the baseline or conditions. It could refer to perceived coding speed in a broader workflow. It could also reflect a narrower benchmark. Without prompts, context lengths, and quality criteria, interpretation stays uncertain.
+
+**Q2. Why might a wafer-scale chip like WSE‑3 help latency?**  
+A. IEEE Spectrum reports 44GB on-chip memory for WSE‑3. It also reports 21PB/s memory bandwidth. It also reports 214Pb/s fabric bandwidth. High on-chip capacity and bandwidth can reduce data movement. Public material does not show OpenAI’s exact serving configuration.
+
+**Q3. If speed improves, does code quality improve, and does cost go down?**  
+A. That relationship is not established by the included sources. OpenAI described Spark as a smaller version tuned for speed. That leaves open a quality–latency trade-off. Cost and power per task are also not provided here. Measuring quality, duration, and cost together can reduce risk.
+
+---
+
+## Conclusion
+
+Codex‑Spark is difficult to summarize as only “faster tokens.” OpenAI frames latency as output generation, prefill, tool execution, and network overhead. OpenAI also cites 80%, 30%, and 50% reductions tied to networking and serving changes. Two practical watch points remain. One is whether the “15×” claim is reproducible under comparable conditions. Another is how the “latency-first” tier trades off with quality, cost, and power.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Designing Prompts to Reduce Version Anchoring Risks](/en/posts/designing-prompts-to-reduce-version-anchoring-risks)
+- [GABRIEL Toolkit Turns Qualitative Data Into Quantitative Metrics](/en/posts/gabriel-toolkit-turns-qualitative-data-into-quantitative-metrics)
+- [Operational Loop for LLM Change Detection and Response](/en/posts/operational-loop-monitoring-llm-provider-change-logs)
+---
+
+## References
+
+- [Introducing GPT‑5.3‑Codex‑Spark | OpenAI - openai.com](https://openai.com/index/introducing-gpt-5-3-codex-spark/)
+- [arstechnica.com - arstechnica.com](https://arstechnica.com/ai/2026/02/openai-sidesteps-nvidia-with-unusually-fast-coding-model-on-plate-sized-chips/)
+- [Cerebras WSE-3: Third Generation Superchip for AI - IEEE Spectrum - spectrum.ieee.org](https://spectrum.ieee.org/cerebras-chip-cs3)
+- [Energy Use of AI Inference: Efficiency Pathways and Test-Time Compute - arxiv.org](https://arxiv.org/abs/2509.20241)
