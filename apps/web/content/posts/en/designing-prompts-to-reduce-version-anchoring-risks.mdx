@@ -1,0 +1,152 @@
+---
+title: Designing Prompts to Reduce Version Anchoring Risks
+slug: designing-prompts-to-reduce-version-anchoring-risks
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  Avoid model-name anchoring by defining success criteria, output format, and
+  failure handling, then running evals on every change.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+  - evals
+author: AI온다
+sourceId: evergreen-prompt-futureproofing
+sourceUrl: ''
+verificationScore: 0.8066666666666666
+alternateLocale: /ko/posts/designing-prompts-to-reduce-version-anchoring-risks
+coverImage: /images/posts/designing-prompts-to-reduce-version-anchoring-risks.png
+---
+
+## TL;DR
+- Version anchoring is prompt coupling to a specific model name or version, which can drift tone or break JSON.  
+- Delimiters like `###` and `"""`, plus Evals, can reduce instruction confusion and regressions.  
+- Rewrite prompts around success criteria and formats, then rerun Evals for each model, prompt, or code change.  
+
+After one prompt-line edit in a meeting room, users may see a new tone and invalid JSON.  
+The model may be unchanged.  
+The product can still look unreliable.  
+This article explains prompt design that can reduce version anchoring.  
+
+Example: A team writes a summarization request that names a specific model. The model later changes. The summaries shift in tone and formatting. The team blames the model. The prompt may lack clear success criteria and formatting rules.  
+
+## Current state
+Outputs can fluctuate even when the model seems unchanged.  
+One common practice is to structure prompts with instructions at the start.  
+Another practice is to separate instructions and context with delimiters.  
+OpenAI Help recommends delimiters like `###` and `"""`.  
+It describes them as a way to separate instructions and context.  
+Longer generations can increase confusion when instructions and context mix.  
+This can make prioritization harder for the model.  
+
+Another theme is model-agnostic prompt design.  
+Anthropic documents recommend defining success criteria clearly.  
+They also recommend empirically testing against those criteria.  
+The goal is to avoid prompts based on impressions.  
+Impressions include “this model is good at X.”  
+Instead, define success criteria and failure conditions.  
+A model name can reduce perceived need to specify requirements.  
+Operations can drift toward brand-centric decisions.  
+
+From an operations view, Evals can serve as a safety net.  
+OpenAI evaluation documentation suggests building evaluation sets from multiple sources.  
+It mentions mixing production data with domain-expert datasets.  
+It also recommends defining what you should support and what you should block.  
+It also says to run evaluations each time a change occurs.  
+OpenAI Cookbook describes “continuous model upgrades.”  
+It frames evals as a way to improve stability under model or code changes.  
+
+## Analysis
+Version anchoring can make documentation look stale.  
+A larger risk is replacing requirements with a model name.  
+That can remove verifiable criteria from the product.  
+“Do it with this model” is hard to test.  
+Requirements like “use this format” are easier to verify.  
+They can remain stable across model changes.  
+Teams can align on an output contract instead of a model identity.  
+
+Hiding model names is not often beneficial.  
+Some bugs may reproduce only on specific models.  
+Model information can help debugging in those cases.  
+Heavy routing can also increase operational complexity.  
+It can increase the cost of managing evaluation sets.  
+Model-agnostic is often best treated as a guideline.  
+It can be applied where it is cost-effective.  
+It may be less useful as an absolute goal.  
+
+## Practical application
+The core can be organized into three patterns.  
+They are requirements-based, policy separation, and routing.  
+These categories may not be a fixed standard taxonomy.  
+They can still be useful operational design axes.  
+
+Requirements-based prompts describe success criteria, output format, and failure handling.  
+They avoid relying on a model name as a requirement proxy.  
+Policy separation uses delimiters like `###` or `"""`.  
+This helps reduce mixing rules with situational context.  
+Routing classifies inputs and sends them to specialized prompts or processes.  
+Even with routing, Evals can help detect regressions after changes.  
+
+A “version anchoring removal template” often uses three principles.  
+First, if an as-of timepoint is needed, you should state it first.  
+Second, you should specify an output contract instead of a model name.  
+Third, you should specify how to say “I don’t know.”  
+If a specific model name is needed, it can move to code or routing.  
+That keeps operational constraints separate from functional requirements.  
+Prompts that contain only requirements can be easier to replace.  
+
+**Checklist for Today:**
+- Replace model names or “generation” wording with success criteria, prohibitions, format, and failure handling.  
+- Move instructions to the top and separate instructions and context using `###` or `"""`.  
+- Rerun Evals on the same dataset for each model, prompt, or code change, then add failures.  
+
+## FAQ
+**Q1. Should we largely exclude model names from prompts?**  
+A. Not necessarily.  
+A model name is often closer to an operational choice than a requirement.  
+You can keep verifiable conditions in the prompt body.  
+You can keep model selection in routing or configuration layers.  
+This can reduce operational risk.  
+
+**Q2. Why do delimiters (###, """) help?**  
+A. Mixed instructions and context can cause rule confusion.  
+Rules can be treated like reference text.  
+Context can be misread like rules.  
+OpenAI recommends putting instructions first.  
+It also recommends separating them with `###` or `"""`.  
+This is often a low-cost way to reduce structural confusion.  
+
+**Q3. Are Evals something only an ML team can do?**  
+A. Not necessarily.  
+OpenAI documents describe building evaluation sets from production and expert data.  
+They also describe running comparisons after changes to detect regressions.  
+Small teams can start with format, prohibitions, and edge-case tests.  
+They can add cases that should remain stable.  
+
+## Conclusion
+Reducing version anchoring is not only about mentioning models less.  
+It is about not treating model names like requirements.  
+It shifts prompts toward an output contract and a verification loop.  
+Evals can provide that verification loop.  
+This habit can reduce wobble when models change.  
+It treats prompts more like a specification than prose.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [GABRIEL Toolkit Turns Qualitative Data Into Quantitative Metrics](/en/posts/gabriel-toolkit-turns-qualitative-data-into-quantitative-metrics)
+- [Agentic Coding And Video Generation: Shorter Iteration Loops](/en/posts/agentic-coding-video-generation-shorter-iteration-loops)
+- [Defending Agent Link Clicks From Leakage And Injection](/en/posts/ai-agent-web-security-guide)
+---
+
+## References
+
+- [Best practices for prompt engineering with the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6654000-best-practices-for-prompting)
+- [Improve your prompts in the developer console \ Anthropic - anthropic.com](https://www.anthropic.com/news/prompt-improver)
+- [Prompt engineering overview - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/prompt-engineering)
+- [Evaluation best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evaluation-best-practices)
+- [Getting Started with OpenAI Evals | OpenAI Cookbook - cookbook.openai.com](https://cookbook.openai.com/examples/evaluation/getting_started_with_openai_evals)
+- [Prompt management in Playground | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9824968-generate-prompts-function-definitions-and-structured-output-schemas-in-the-playground)
