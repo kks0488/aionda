@@ -1,0 +1,103 @@
+---
+title: AI 리스크를 세 축으로 분해하기
+slug: decomposing-ai-risks-tasks-transparency-safety-testing
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: ko
+description: 'AI 우려를 task 자동화, 고위험 투명성·감사, 안전 TEVV로 나눠 도입 요건을 정리한다.'
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: '975421'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=975421'
+verificationScore: 0.7866666666666667
+alternateLocale: /en/posts/decomposing-ai-risks-tasks-transparency-safety-testing
+coverImage: /images/posts/decomposing-ai-risks-tasks-transparency-safety-testing.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** AI 관련 우려를 하나로 묶지 말고, **업무(task) 자동화 vs 직업(job) 대체**, **고위험 의사결정의 투명성·감사**, **안전(정렬 실패·오용) 테스트**로 분해해 봐야 한다.  
+- **왜 중요한가?** 구분이 없으면 “AI가 사람을 없앤다” 같은 단정이 도입·정책·규제 논의를 흐리고, **감사 불가능한 의사결정**이나 **안전장치 우회** 같은 관리 항목이 뒤로 밀릴 수 있다.  
+- **독자는 뭘 하면 되나?** **(1) 직업이 아니라 task 단위로 영향도를 기록**하고, **(2) 고위험 영역은 문서화·로깅·설명 제공을 도입 요건**으로 두고, **(3) 배포 전·후 레드팀을 TEVV(Testing, Evaluation, Verification, Validation)로 운영**하라.
+
+---
+
+회의실 화면에 **채용 자동화 도구 결과 1개**가 띄워지는 순간, 질문이 바로 나온다. “이건 사람을 대체하는가, 아니면 사람을 돕는가?” 이 질문은 종종 “일자리 붕괴”나 “디스토피아”로 빠르게 이어진다. 그러나 같은 ‘AI’라도 **노동시장 충격**, **고위험 의사결정의 오류·편향**, **안전(정렬 실패·오용)**은 서로 다른 리스크 축이다. 축을 나눠야 관측과 점검이 가능해진다.
+
+예: 한 조직이 자동화 도구 결과를 보고, 채용의 공정성과 책임 소재를 두고 논쟁이 커진다. 누군가는 효율을 말하고, 다른 누군가는 편향과 설명 책임을 묻는다. 결국 무엇을 기록하고 무엇을 시험해야 하는지가 쟁점이 된다.
+
+---
+
+## 현황
+
+논의의 방향을 바꾸는 첫 지점은 “직업 단위”가 아니라 “업무(task) 단위”로 영향을 보는 것이다. 미국 노동통계국(BLS)이 제기하는 문제의식은, 기술 충격을 측정하려면 **task를 기본 단위로 하는 데이터베이스**가 필요하다는 쪽에 가깝다. “어떤 직업이 사라지는가”보다 “직업을 구성하는 어떤 업무가 바뀌는가”가 관측의 출발점이 된다.
+
+국제노동기구(ILO)도 유사한 축을 잡는다. ILO는 생성형 AI의 영향이 **직업 전체 수준에서는 노출이 낮게 보일 수 있지만**, **task별로는 변동성이 클 수 있다**고 본다. 그래서 결론은 직업 “대체”보다는 **일부 task 자동화에 따른 보완(augment)** 가능성 쪽에 무게가 실린다. 이는 공포를 누그러뜨리기 위한 수사가 아니라, 변화가 먼저 관측되는 단위를 잡기 위한 측정 전략으로 읽을 수 있다.
+
+고위험 의사결정 영역은 “노동 대체”와 다른 트랙에서 다뤄야 한다. OECD AI 원칙은 투명성과 설명가능성을 **이해·이의제기 가능성을 위한 의미 있는 정보 제공** 취지로 설명한다. NIST AI RMF 플레이북은 거버넌스에서 **문서화·투명성·표준화된 기록**을 강조한다. IEEE **7001-2021**은 투명성을 **측정 가능하고 테스트 가능한 수준**으로 다루려는 목표를 제시한다. 같은 방향을 말하지만, OECD는 이의제기 가능성, NIST는 운영 거버넌스, IEEE는 측정·검증에 초점을 둔다.
+
+
+---
+
+## 분석
+
+이 분해가 필요한 이유는, 두려움의 대상이 서로 다르기 때문이다. **노동 대체** 우려는 “직업이 통째로 사라진다”는 이미지에 기대기 쉽다. 반면 BLS·ILO가 시사하는 측정 방식은 “직업 내부의 task가 재배치된다”는 관측으로 논의를 돌린다. 이 관점은 낙관론이라기보다 관리에 유리하다. task 단위로 보면 기업은 재훈련·업무 재설계를 계획할 수 있고, 정책은 직업별 존폐 논쟁보다 전환 비용과 보호 장치를 설계하기 쉬워진다.
+
+반대로 **고위험 의사결정** 우려는 “대체”가 아니라 “책임”에 가깝다. 채용·행정·사법적 판단에 준하는 결정에 AI가 관여하면, 쟁점은 정확도만이 아니다. **누가 어떤 근거로 결정을 내렸는지**, 그리고 **기록이 남아 감사가 가능한지**가 핵심이 된다. 이때 NIST의 문서화·투명성 요구, IEEE 7001-2021의 “측정 가능한 투명성” 같은 접근은 운영 요건으로 연결될 여지가 있다.
+
+**안전** 우려도 “모델이 엇나간다”는 한 문장으로 끝나지 않는다. 실무에서는 최소 두 갈래로 나뉜다. (1) 사용자가 안전장치를 우회하는가(오용·우회), (2) 시스템이 의도와 다른 방식으로 행동하는가(정렬/강건성). CISA가 정리한 TEVV 맥락에서 레드팀을 운영하면, 막연한 공포를 **테스트 가능한 실패 모드**로 바꾸는 데 도움이 된다. 다만 어떤 지표가 “충분한 안전”을 뜻하는지, 산업별 최소 기준을 무엇으로 둘지는 합의가 단단하다고 보기 어렵다(추가 확인 필요).
+
+---
+
+## 실전 적용
+
+조직에서 흔한 실수는 “툴을 먼저 고르고, 나중에 책임을 정리하는 것”이다. 순서를 바꾸는 편이 낫다. 먼저 **task 영향도**, 다음으로 **고위험 여부와 설명·감사 설계**, 마지막으로 **레드팀(TEVV)과 운영 모니터링**을 붙인다. 이 순서는 서로 다른 우려를 서로 다른 점검 항목으로 바꾸는 데 도움이 된다.
+
+예: 한 팀이 문서 작성과 고객 응대를 AI로 보조하려 한다고 하자. 문서 초안 생성은 task 자동화로 분류하고, 최종 승인과 대외 발송은 사람의 책임으로 남긴다. 고객 응대는 민감 정보가 섞일 수 있으니 기록과 검토 절차를 둔다. 배포 전에는 우회 시도와 금지 요청을 집중적으로 던져 실패 패턴을 모은다.
+
+**오늘 바로 할 일:**
+- 직업명이 아니라 **업무(task) 목록**을 만들고, AI가 바꾸는 지점을 항목별로 표시한다.  
+- 채용·평가·자격 부여처럼 고위험 결정을 건드리는 경우 **문서화·로깅·설명 제공(이의제기 포함)**을 도입 요건으로 명시한다.  
+- 배포 전 **레드팀(TEVV)**을 수행하고, 배포 후에도 같은 시나리오로 재평가하는 운영 루프를 정한다.  
+
+---
+
+## FAQ
+
+**Q1. “task 자동화”와 “job 대체”를 왜 구분해야 하나?**  
+A. 이번 글에서 인용한 BLS·ILO의 문제의식은, 기술 영향이 직업 전체보다 직업을 구성하는 task에서 먼저 드러나기 쉽다는 쪽에 있다. 구분이 있어야 “어떤 업무가 줄고 어떤 업무가 늘어나는지”를 기록할 수 있고, 재설계·재교육 같은 대응도 설계하기 쉬워진다.
+
+**Q2. 고위험 의사결정에서 ‘설명가능성’은 무엇을 뜻하나?**  
+A. 이번 조사 범위에서 OECD는 투명성과 설명가능성을 “이해·이의제기 가능성을 위한 의미 있는 정보 제공” 취지로 설명한다. NIST는 이를 운영 거버넌스(문서화·절차·통제)로 구체화한다. IEEE 7001-2021은 투명성을 측정·검증 가능한 수준으로 다루려 한다. 요지는 “그럴듯한 설명 문장”보다 “이의제기·감사를 가능하게 하는 정보와 기록”에 가깝다.
+
+**Q3. 정렬 실패와 오용(misuse)을 공식적으로 나눠 테스트하는 표준이 있나?**  
+A. 이번 조사 범위에서는 둘을 단일 표준에서 엄밀히 이분법으로 정의하고 필수 지표까지 규정한 문서는 확인되지 않았다(추가 확인 필요). 다만 NIST AI RMF의 위험관리 흐름, CISA가 정리한 TEVV로서의 레드팀, HarmBench 같은 자동 레드팀/거부 강건성 평가가 실무에서 참고 프레임으로 언급된다.
+
+---
+
+## 결론
+
+AI에 대한 우려는 줄어들지 않을 수 있다. 다만 더 구체적인 점검 항목으로 바꿀 수는 있다. ‘노동 대체’는 task 단위로, ‘디스토피아’는 고위험 의사결정의 문서화·감사 가능성으로, ‘안전’은 TEVV와 레드팀으로 분해하면 논쟁은 감정적 언어에서 운영 규칙으로 옮겨가기 쉽다. 다음 단계는 단순하다. 조직 안에서 이 3가지가 **문서로 남아 있는지**부터 확인한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-02-14](/ko/posts/ai-resources-roundup-2026-02-14)
+- [레이트리밋을 넘는 지속 접근 설계](/ko/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [버전 앵커링 줄이는 프롬프트 설계](/ko/posts/designing-prompts-to-reduce-version-anchoring-risks)
+- [GABRIEL로 정성자료를 정량화](/ko/posts/gabriel-toolkit-turns-qualitative-data-into-quantitative-metrics)
+- [코딩 에이전트 속도, duration으로 쪼개 보기](/ko/posts/measuring-coding-agent-speed-beyond-tokens-per-second)
+---
+
+## 참고 자료
+
+- [Assessing the Impact of New Technologies on the Labor Market: Key Constructs, Gaps, and Data Collection Strategies for the Bureau of Labor Statistics - bls.gov](https://www.bls.gov/bls/congressional-reports/assessing-the-impact-of-new-technologies-on-the-labor-market.htm)
+- [How might generative AI impact different occupations? | International Labour Organization - ilo.org](https://www.ilo.org/resource/article/how-might-generative-ai-impact-different-occupations)
+- [Generative AI likely to augment rather than destroy jobs | International Labour Organization - ilo.org](https://www.ilo.org/resource/news/generative-ai-likely-augment-rather-destroy-jobs)
+- [Govern - AIRC (NIST AI RMF Playbook) - airc.nist.gov](https://airc.nist.gov/airmf-resources/playbook/govern/)
+- [NIST AI Resource Center - AIRC - airc.nist.gov](https://airc.nist.gov/)
+- [AI RMF Core - AIRC (NIST AI RMF 1.0 excerpt) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [AI Red Teaming: Applying Software TEVV for AI Evaluations | CISA - cisa.gov](https://www.cisa.gov/news-events/news/ai-red-teaming-applying-software-tevv-ai-evaluations)
+- [Our updated Preparedness Framework | OpenAI - openai.com](https://openai.com/index/updating-our-preparedness-framework/)
+- [IEEE SA - IEEE 7001-2021 - standards.ieee.org](https://standards.ieee.org/standard/7001-2021.html)
+- [HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal - arxiv.org](https://arxiv.org/abs/2402.04249)

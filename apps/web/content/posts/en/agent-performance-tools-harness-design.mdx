@@ -1,0 +1,182 @@
+---
+title: Agent Performance Depends on Tools and Harness Design
+slug: agent-performance-tools-harness-design
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  Agent outcomes can hinge more on harness design—tools, permissions, runtime
+  limits, and session/compaction rules—than on the model alone.
+tags:
+  - llm
+  - explainer
+  - tooling
+author: AI온다
+sourceId: '975428'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=975428'
+verificationScore: 0.8233333333333333
+alternateLocale: /ko/posts/agent-performance-tools-harness-design
+coverImage: /images/posts/agent-performance-tools-harness-design.png
+---
+
+## TL;DR
+
+- Agent results can shift due to harness design, including tools, permissions, runtime, and orchestration.  
+- That shift can change completion rates, even with the same mission and model.  
+- Map mission steps to required tools first, then compare systems including the harness.  
+
+A user sees an agent reach the final publishing step and then stall.  
+The stall can happen even when earlier reasoning looks strong.  
+The cause is often missing tools, blocked permissions, or runtime constraints.  
+This makes harness design a key factor in agent outcomes.  
+
+Example: A team automates research, drafting, and publishing. The system reaches the publishing screen, then stops. One setup blocks screen control. Another setup blocks file access. The outcome depends on tool access and permissions.  
+
+There are cases where an end-to-end agent stops at the last step.  
+That can happen even when the model answers well in earlier steps.  
+The likely cause is missing browser access, file access, or execution rights.  
+This points to the harness, not only model capability.  
+
+The core point is about stack differences.  
+Some stacks bundle web search and file search as tools.  
+Some stacks add function calling and remote MCP servers as tools.  
+Some stacks enable screen control as a beta feature.  
+Some stacks offer code execution with explicit constraints.  
+These differences can explain outcomes beyond benchmark scores.  
+
+---
+
+## Current state
+
+More documentation now describes tool access and constraints.  
+This suggests harness components matter in real deployments.  
+
+OpenAI API documentation describes the Responses API.  
+It groups built-in Tools, function calling, and remote MCP servers under “tools.”  
+The built-in Tools include web search and file search.  
+This framing treats runtime calls as part of normal operation.  
+
+Anthropic documentation describes the Messages API.  
+It supports Tool use, including function or tool calling.  
+It describes Computer use as being in beta.  
+Computer use supports screenshots and mouse or keyboard control.  
+It also shows workflows that combine bash and a text editor.  
+The bash tool provides a persistent bash session.  
+It also states it does not support interactive commands.  
+It also states it cannot run GUI apps.  
+
+Google Gemini API documentation is often summarized similarly.  
+It includes function calling and code execution.  
+It also supports combinations with Google Search-based grounding.  
+The documentation still matters because it states constraints.  
+Those constraints can shape design choices and outcomes.  
+
+Context operation is also described as part of the harness.  
+The OpenAI Cookbook shows an Agents SDK pattern using Session.  
+It shows repeated calls with `session.run(...)`.  
+It describes compaction when history grows.  
+It mentions OpenAIResponsesCompactionSession as an approach.  
+It cautions about streaming or async behavior.  
+It says auto-compaction can delay stream termination.  
+It suggests manual compaction during idle time between turns.  
+
+One explicit reference point is a dated help article.  
+An OpenAI help article says that, as of **March 11, 2025**, it introduced Agents building blocks.  
+It mentions the Responses API with Web Search, File Search, and Computer Use.  
+This supports “agent = tool calling + runtime” as a documented product view.  
+Permission models may still need verification beyond these documents.  
+
+---
+
+## Analysis
+
+Mission comparisons can surface gaps that benchmarks miss.  
+Consider “research → images → publishing” as a mission chain.  
+Research is more stable when web search exists.  
+Without file search, evidence from internal documents can be missing.  
+Images can be produced via a separate generator or function call.  
+Publishing can fail without browser automation or external API permissions.  
+In that case, a stronger model can still fail to deliver.  
+
+A practical issue is long wandering behavior.  
+A model can explore longer and raise cost and time.  
+Without timeouts or stop rules, a pipeline can appear stuck.  
+Documentation may differ on retries, checkpointing, and timeouts.  
+This text does not support a detailed cross-product claim there.  
+Teams can design harness safeguards, including stop conditions.  
+Teams can also add fallback paths and human approval points.  
+
+More harness capability can increase risk surface.  
+Remote MCP servers add extensibility and delegated actions.  
+Approval models and token scopes can vary by product.  
+This text does not include enough detail for a firm comparison.  
+Screen-control tools widen automation scope.  
+Failure recovery can be hard without observability design.  
+Click reasons and recognition traces may need separate logging.  
+
+---
+
+## Practical application
+
+Harness design can come before choosing a model.  
+Start by splitting the mission into steps.  
+Then list required tools and permissions per step.  
+Decide whether you need web search, file search, or function calling.  
+Decide whether you need computer use and code execution.  
+This makes model comparisons easier to interpret.  
+Even with the same model, harness changes can shift behavior.  
+
+**Checklist for Today:**
+- Split the mission into steps and map each step to required tools and permissions.  
+- Use `session.run(...)` with an explicit plan for compaction during idle turns.  
+- Write stop conditions and fallback paths, then compare systems including the harness.  
+
+---
+
+## FAQ
+
+**Q1. If it “supports tool calling,” are all agents the same?**  
+A. Not necessarily.  
+OpenAI documents built-in Tools, function calling, and remote MCP servers under “tools.”  
+Anthropic documents Computer use as a beta feature and separate from Tool use.  
+It also states bash limits, including interactive commands and GUI apps.  
+These constraints can change outcomes across similar missions.  
+
+A. They may be reduced, but it is hard to help ensure.  
+If permissions block execution, work can still stop.  
+Longer exploration can also raise cost without stop rules.  
+
+**Q3. When context grows long, what should I fix first?**  
+A. Consider session-based operation first.  
+The OpenAI Cookbook describes Session for history continuity.  
+It also describes compaction when history grows.  
+It warns that auto-compaction can delay stream termination.  
+If latency matters, manual compaction between turns can help.  
+
+---
+
+## Conclusion
+
+Agent performance is not explained by model capability alone.  
+Harness design can strongly influence outcomes and failure modes.  
+Focus on how tools are bundled and constrained.  
+Review permissions for web search, file search, and function calling.  
+Review permissions for computer use and code execution.  
+Define operational rules for sessions, compaction, and stop conditions.  
+Then compare systems, including both model and harness behavior.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Designing Prompts to Reduce Version Anchoring Risks](/en/posts/designing-prompts-to-reduce-version-anchoring-risks)
+- [GABRIEL Toolkit Turns Qualitative Data Into Quantitative Metrics](/en/posts/gabriel-toolkit-turns-qualitative-data-into-quantitative-metrics)
+- [Measuring Coding Agent Speed Beyond Tokens Per Second](/en/posts/measuring-coding-agent-speed-beyond-tokens-per-second)
+---
+
+## References
+
+- [Using tools - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/tools/file-search)
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517)
+- [Computer use tool - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/computer-use)
+- [Bash tool - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/bash-tool)
+- [Context Engineering - Short-Term Memory Management with Sessions from OpenAI Agents SDK (OpenAI Cookbook) - cookbook.openai.com](https://cookbook.openai.com/examples/agents_sdk/session_memory)
