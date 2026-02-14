@@ -6,6 +6,8 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 export HOME="/home/kkaemo"
+# PATH must be set early so bootstrap can find pnpm/node in cron environment
+export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
