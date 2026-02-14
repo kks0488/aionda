@@ -38,8 +38,7 @@ bootstrap_isolated_repo_and_reexec() {
     fi
 
     if [ ! -d "$isolated/node_modules" ]; then
-      cd "$isolated" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install
-      cd - >/dev/null
+      (cd "$isolated" && { pnpm install --frozen-lockfile 2>/dev/null || pnpm install; })
     fi
   fi
 
@@ -61,11 +60,11 @@ bootstrap_isolated_repo_and_reexec() {
   git -C "$isolated" clean -fd >/dev/null 2>&1 || true
 
   if [ ! -d "$isolated/node_modules" ] || [ "$isolated/pnpm-lock.yaml" -nt "$isolated/node_modules/.pnpm/lock.yaml" ]; then
-    (cd "$isolated" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install)
+    (cd "$isolated" && { pnpm install --frozen-lockfile 2>/dev/null || pnpm install; })
   fi
 
-  # Copy .env.local from source repo (gitignored, not cloned)
-  if [ ! -f "$isolated/.env.local" ] && [ -f "$SOURCE_REPO_ROOT/.env.local" ]; then
+  # Sync .env.local from source repo (gitignored, source is SSOT)
+  if [ -f "$SOURCE_REPO_ROOT/.env.local" ]; then
     cp "$SOURCE_REPO_ROOT/.env.local" "$isolated/.env.local"
   fi
 
@@ -82,6 +81,12 @@ bootstrap_isolated_repo_and_reexec() {
 if [ "$AUTO_PUBLISH_ISOLATED_REPO_ENABLED" = "true" ] \
   && [ "$AUTO_PUBLISH_ISOLATED_CONTEXT" != "1" ] \
   && [ "$REPO_ROOT" != "$AUTO_PUBLISH_ISOLATED_REPO" ]; then
+  # Acquire bootstrap-specific lock to prevent concurrent cron races
+  exec 8>/tmp/aionda-auto-publish-bootstrap.lock
+  if ! flock -n 8; then
+    echo "Another bootstrap is running. Exiting." >&2
+    exit 0
+  fi
   bootstrap_isolated_repo_and_reexec
 fi
 
@@ -385,8 +390,7 @@ fi
 
 set_status "running: synced origin/main"
 
-# 환경변수 로드
-export PATH="/home/kkaemo/.nvm/versions/node/v22.21.1/bin:/home/kkaemo/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin:$PATH"
+# 환경변수 로드 (PATH는 스크립트 상단에서 이미 설정됨)
 source /home/kkaemo/.bashrc 2>/dev/null || true
 GLOBAL_ENV="/home/kkaemo/.config/claude-projects/global.env"
 if [ -f "$GLOBAL_ENV" ]; then
