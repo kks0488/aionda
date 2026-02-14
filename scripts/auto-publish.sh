@@ -34,6 +34,11 @@ bootstrap_isolated_repo_and_reexec() {
       echo "Failed to bootstrap isolated auto-publish repo: $isolated" >&2
       exit 1
     fi
+
+    if [ ! -d "$isolated/node_modules" ]; then
+      cd "$isolated" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+      cd - >/dev/null
+    fi
   fi
 
   if [ -n "$origin_url" ]; then
@@ -52,6 +57,10 @@ bootstrap_isolated_repo_and_reexec() {
 
   git -C "$isolated" reset --hard origin/main >/dev/null 2>&1 || true
   git -C "$isolated" clean -fd >/dev/null 2>&1 || true
+
+  if [ ! -d "$isolated/node_modules" ] || [ "$isolated/pnpm-lock.yaml" -nt "$isolated/node_modules/.pnpm/lock.yaml" ]; then
+    (cd "$isolated" && pnpm install --frozen-lockfile 2>/dev/null || pnpm install)
+  fi
 
   if [ ! -x "$isolated/scripts/auto-publish.sh" ]; then
     chmod +x "$isolated/scripts/auto-publish.sh" >/dev/null 2>&1 || true
