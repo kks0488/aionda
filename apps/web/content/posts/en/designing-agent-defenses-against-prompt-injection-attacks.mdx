@@ -1,0 +1,204 @@
+---
+title: Designing Agent Defenses Against Prompt Injection Attacks
+slug: designing-agent-defenses-against-prompt-injection-attacks
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  How prompt injection rides untrusted content into tool calls, and how to
+  mitigate it with least privilege, sandboxing, fixed schemas, and output
+  validation.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - prompt-injection
+author: AI온다
+sourceId: evergreen-prompt-injection-defense
+sourceUrl: ''
+verificationScore: 0.8866666666666667
+alternateLocale: /ko/posts/designing-agent-defenses-against-prompt-injection-attacks
+coverImage: /images/posts/designing-agent-defenses-against-prompt-injection-attacks.png
+---
+
+## TL;DR
+
+- Tool-using agents can treat untrusted text as instructions, which can enable hijacking or data exfiltration.  
+- The risk often grows with tool permissions, weak isolation, and missing output validation.  
+- Review your input and tool-call paths, and add isolation, schemas, and pre-execution checks.  
+
+Example: A user pastes a document for summarization. The document contains a hidden instruction. The agent treats it as an action request. It then tries to use available tools. The user expected only a summary.
+
+---
+
+When you paste **one** document into a notes app and click summarize, hidden instructions can enter the input.  
+A sentence like “send this content elsewhere” can destabilize an agent.  
+The user wants a summary.  
+The system may still process embedded instructions as part of the same input.  
+Prompt injection can start at this point.  
+
+Tool calls can expand the impact.  
+This includes browsing, file access, and network requests.  
+The issue can extend beyond “writing prompts well.”  
+**Permission and boundary design** becomes a risk factor.  
+
+This post summarizes recurring prompt injection and data exfiltration patterns.  
+It also offers a checklist for product and agent design.  
+The key point is the data flow.  
+Incidents can follow when untrusted input reaches privileged execution paths.  
+
+---
+
+## Current landscape
+
+External content often enters agent inputs.  
+Examples include web pages, documents, and emails.  
+This can increase the blast radius of indirect injection.  
+Indirect injection hides instructions inside external content.  
+Those instructions can steer agent behavior.  
+
+OpenAI explains that injection can “override or redirect” agent behavior.  
+It can push behavior toward an attacker’s intent.  
+This can include ignoring the user’s request.  
+It can also include transmitting information.  
+The path is not limited to chat input.  
+
+In practice, attack types are often grouped into **three** categories.  
+This grouping may not be an official standard taxonomy.  
+It may need separate verification.  
+
+First, **instruction theft or context hijacking**.  
+This can push the agent to ignore system instructions or guardrails.  
+Second, **data exfiltration**.  
+This can induce disclosure of sensitive information or send it externally.  
+Third, **policy bypass**.  
+This can push the agent toward jailbreak behavior or prohibited actions.  
+
+Defensive guidance often shifts toward hardening data flow.  
+OpenAI’s guidance recommends routing untrusted inputs through user messages.  
+This can limit the inputs’ influence.  
+It also recommends constraining data flow with structured outputs.  
+Examples include enums, fixed schemas, and required field names.  
+
+Anthropic notes that injection risk can increase with broader access privileges.  
+It emphasizes sandbox boundaries.  
+Examples include filesystem isolation and network isolation.  
+
+---
+
+## Analysis
+
+Prompt injection is sometimes framed as model deception.  
+That framing can keep mitigations at prompt wording.  
+The risk can look more like **boundary collapse**.  
+Untrusted inputs can include web pages, documents, or RAG results.  
+Privileged paths can include tool execution, file reads, or network requests.  
+Text manipulation alone can then induce execution.  
+
+Industry guidance often converges on several controls.  
+These include structured output plus validation.  
+They also include sandboxing and least privilege.  
+
+Some research proposals point in a similar direction.  
+AgenTRIM proposes per-step least-privilege tool access at runtime.  
+It also proposes filtering tool calls with status-aware validation.  
+RTBAS proposes executing only tool calls that preserve integrity and confidentiality.  
+It also proposes user confirmation when those help ensure cannot be met.  
+These approaches shift control to policy and validation layers.  
+They reduce reliance on the agent’s judgment alone.  
+
+There are tradeoffs and limits.  
+Structured output and validation can reduce flexibility.  
+They can also increase development cost.  
+Sandboxing can increase operational complexity.  
+This can include permissions, logs, exception handling, and debugging.  
+Definitions of “untrusted” can also vary by product.  
+Even internal documents can embed instructions.  
+That risk can increase with broad editing permissions.  
+Defense can include technical controls and threat modeling.  
+It can also include operational policy.  
+
+---
+
+## Practical application
+
+Risk can rise when “text” becomes executable parameters.  
+A model response can become tool parameters in the next step.  
+Those parameters can become network requests.  
+Results can then flow back into the prompt.  
+This chain can improve productivity.  
+It can also turn injection into execution without verification.  
+
+A consistent defensive design often combines three elements.  
+Use **(1) input labeling, (2) privilege reduction, and (3) output and tool-call validation**.  
+
+When an agent reads a document, it can encounter a hidden instruction.  
+An example is “share it externally.”  
+You can classify that sentence as an **untrusted instruction**.  
+You can block external transmission tools by default.  
+You can open them through user confirmation when needed.  
+
+**Checklist for Today:**
+- Label web, documents, RAG, and email as untrusted inputs, and isolate them from system instructions.  
+- Reduce tool privileges per step, and narrow scope through runtime policy.  
+- Use fixed schemas for tool calls, and execute only after deterministic validation or approval.  
+
+---
+
+## FAQ
+
+**Q1. Is prompt injection the same as a ‘jailbreak’?**  
+A. There is overlap, but they may not be identical.  
+Under this post’s framing, prompt injection is broader.  
+Policy bypass can appear as an outcome.  
+Injection can also support goals beyond safety policy.  
+Examples include data exfiltration or instruction theft.  
+
+**Q2. Isn’t it enough to write in the prompt, ‘Ignore external instructions’?**  
+A. That alone may be insufficient.  
+This is why OpenAI guidance emphasizes structured output.  
+It also emphasizes data-flow constraints.  
+Text-only guards can be bypassed.  
+Tool calls can translate harm into execution.  
+Defense often centers on boundaries that can be checked.  
+Examples include permissions, validation, and isolation.  
+
+**Q3. My agent really needs file and network access. Is there no answer then?**  
+A. Removing access entirely may not be required.  
+Splitting boundaries is frequently discussed.  
+Anthropic mentions sandboxes as separation boundaries.  
+Examples include filesystem isolation and network isolation.  
+Combine this with per-step least privilege.  
+Also combine it with tool-call validation.  
+This can allow access in a controlled way.  
+
+---
+
+## Conclusion
+
+Prompt injection is not only a chat UI problem.  
+It can grow in agent designs with weak input boundaries.  
+It can also grow with weak permission boundaries.  
+If web, documents, or RAG connect to tool execution, invest in controls.  
+Those controls can include structured output, least privilege, and sandboxing.  
+They can also include policy and validation layers.  
+Map the product flow end to end.  
+Identify paths where untrusted input can reach execution.  
+Encode blocking, approval, and user-confirmation rules at each path.
+
+## Further Reading
+- [Agent Performance Depends on Tools and Harness Design](/en/posts/agent-performance-tools-harness-design)
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Decomposing AI Risks: Tasks, Transparency, And Safety Testing](/en/posts/decomposing-ai-risks-tasks-transparency-safety-testing)
+- [Designing Prompts to Reduce Version Anchoring Risks](/en/posts/designing-prompts-to-reduce-version-anchoring-risks)
+---
+
+## References
+
+- [Continuously hardening ChatGPT Atlas against prompt injection attacks | OpenAI - openai.com](https://openai.com/index/hardening-atlas-against-prompt-injection/)
+- [Understanding prompt injections: a frontier security challenge | OpenAI - openai.com](https://openai.com/index/prompt-injections/)
+- [Safety in building agents | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agent-builder-safety)
+- [Beyond permission prompts: making Claude Code more secure and autonomous - anthropic.com](https://www.anthropic.com/engineering/claude-code-sandboxing)
+- [AgenTRIM: Tool Risk Mitigation for Agentic AI - arxiv.org](https://arxiv.org/abs/2601.12449)
+- [RTBAS: Defending LLM Agents Against Prompt Injection and Privacy Leakage - arxiv.org](https://arxiv.org/abs/2502.08966)

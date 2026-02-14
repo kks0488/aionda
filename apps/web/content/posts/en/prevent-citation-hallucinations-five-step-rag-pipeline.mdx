@@ -1,0 +1,184 @@
+---
+title: Prevent Citation Hallucinations Across The Five-Step RAG Pipeline
+slug: prevent-citation-hallucinations-five-step-rag-pipeline
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  Practical checklist to reduce citation hallucinations in long-form RAG by
+  auditing chunking, retrieval/reranking, and refusal when evidence is thin.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - rag
+author: AI온다
+sourceId: evergreen-rag-pipeline-basics
+sourceUrl: ''
+verificationScore: 0.7933333333333333
+alternateLocale: /ko/posts/prevent-citation-hallucinations-five-step-rag-pipeline
+coverImage: /images/posts/prevent-citation-hallucinations-five-step-rag-pipeline.png
+---
+
+## TL;DR
+
+- RAG can fail across five stages, which can lead to wrong answers with unsupported citations.  
+- Papers like arXiv:2601.05866 and arXiv:2510.10390 frame citation hallucination and refusal as key risks.  
+- Validate chunking, retrieval, and refusal behavior with targeted tests before relying on citations.  
+
+---
+
+A chatbot answers a refund-policy question with a confident quote that is not in the document.  
+That mismatch can reduce trust in RAG outputs.
+
+Example: During a team meeting, someone asks for a policy summary. The reply sounds precise. A colleague checks the document. The cited sentence is missing.
+
+This article breaks RAG into ingestion/indexing → chunking → embedding → retrieval → generation.  
+It summarizes failure patterns that can reduce accuracy at each stage.  
+It also suggests ways to reduce these failures.
+
+The point is narrow.  
+RAG quality can fail due to document structure, chunking, queries, ranking, and evidence control.  
+Model choice can matter, but it is not the only factor.
+
+---
+
+## Current state
+
+As RAG adoption grows, plausible answers with conflicting evidence can become an operational risk.  
+The OpenAI Help Center describes chunking and embedding during file-based retrieval.  
+This supports treating RAG as a five-stage pipeline.
+
+A longer pipeline can add more failure points.  
+Surveyed findings group failures into four branches.
+
+(1) Indexing and ingestion can lose structure or operational metadata.  
+Examples include permissions or version fields.  
+That loss can destabilize later stages.
+
+(2) Chunking can be too small, too large, or structure-blind.  
+That can break context.  
+It can reduce embedding and retrieval quality.
+
+(3) Retrieval can fail due to ambiguous queries or weak ranking.  
+Reranking and filtering design can also be weak.  
+Relevant documents may not surface.
+
+(4) Generation can fail when retrieved context is insufficient.  
+The model can hallucinate.  
+Unsupported citations and sources are a common symptom.
+
+Academic work addresses these failures more concretely.  
+FACTUM (arXiv:2601.05866) discusses citation hallucination in long-form RAG.  
+It defines a case where a cited source does not support the claim.  
+RefusalBench (arXiv:2510.10390) evaluates selective refusal under insufficient context.  
+It argues this behavior is tied to safety.
+
+---
+
+## Analysis
+
+Accuracy is not a single metric in RAG.  
+At least three properties should hold together.
+
+(1) Retrieval relevance should be correct.  
+(2) Generation should stay grounded in retrieved evidence.  
+(3) The system should refuse when evidence is insufficient.
+
+Chunking errors can weaken retrieval.  
+Weak retrieval can pressure generation to fill gaps.  
+That chain can produce citation hallucination.  
+A model swap alone may not change this chain.
+
+Operational risk also deserves separate attention.  
+Surveyed findings cite ingestion failures around structure and metadata.  
+Examples include permissions and version information.  
+Quality and safety can diverge here.
+
+An obsolete document can still yield a plausible answer.  
+That can be risky for audits, compliance, or internal policy work.  
+In those settings, the version used can matter.
+
+It is hard to generalize ACL metadata failures across the industry from this text.  
+The source also labels it as Unverified.  
+More confirmation would help.
+
+Limitations remain.  
+RAG does not help ensure correct answers whenever a document exists.  
+The document can be wrong.  
+Chunking can tear necessary context.  
+Correct retrieval can still produce exaggerated citations.
+
+FACTUM’s citation hallucination can be costly.  
+A citation can make an answer look correct.  
+That can increase detection and response costs.
+
+RefusalBench raises a practical question.  
+When evidence is insufficient, does the system stop?  
+In production, this becomes both a quality and safety issue.
+
+---
+
+## Practical application
+
+Teams can treat the pipeline as a product, not only a feature.  
+In ingestion, preserve structure and provenance cues where possible.  
+In chunking, avoid relying only on physical breaks like paragraphs.  
+Design around logical blocks like title, body, tables, and footnotes.
+
+In retrieval, verify more than “it retrieved something.”  
+Check whether the intended document appears near the top.  
+In generation, prioritize evidence control over style.  
+Cite only when the citation exists in the document.  
+Refuse when evidence is insufficient.
+
+**Checklist for Today:**  
+- Review chunking outputs and check that headings and exception clauses stay with their relevant text.  
+- Inspect retrieval filtering and reranking so likely-relevant documents appear near the top for ambiguous queries.  
+- Run refusal test cases and verify the system avoids citing unsupported passages when evidence is thin.  
+
+---
+
+## FAQ
+
+**Q1. What should I fix first in RAG?**  
+A. Surveyed findings often point to chunking as an early lever.  
+Chunks that ignore structure can weaken embedding and retrieval.  
+Start by locating splits that break necessary context.
+
+**Q2. Why is citation hallucination more dangerous?**  
+A. FACTUM describes citations that do not support the claim.  
+Such answers can look credible because they include sources.  
+That can make human review less reliable.
+
+**Q3. Why is “say you don’t know” important in RAG?**  
+A. RefusalBench links selective refusal to safer behavior.  
+If context is insufficient, forcing an answer can break grounding.  
+The system then behaves like plausible writing.
+
+---
+
+## Conclusion
+
+RAG is closer to a production line than search plus a model.  
+Chunking, retrieval design, and evidence control interact.  
+Small choices across chunking → retrieval → generation can cause citation hallucination.  
+They can also cause selective refusal failures.
+
+A practical next step is to treat refusal as a product requirement.  
+Validate it with tests that reflect insufficient evidence.  
+Then iterate on chunking and retrieval to reduce avoidable gaps.
+
+## Further Reading
+- [Agent Performance Depends on Tools and Harness Design](/en/posts/agent-performance-tools-harness-design)
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Decomposing AI Risks: Tasks, Transparency, And Safety Testing](/en/posts/decomposing-ai-risks-tasks-transparency-safety-testing)
+- [Designing Prompts to Reduce Version Anchoring Risks](/en/posts/designing-prompts-to-reduce-version-anchoring-risks)
+---
+
+## References
+
+- [Retrieval Augmented Generation (RAG) and Semantic Search for GPTs | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8868588-retrieval-augmented-generation-rag-and-semantic-search-for-gpts)
+- [FACTUM: Mechanistic Detection of Citation Hallucination in Long-Form RAG - arxiv.org](https://arxiv.org/abs/2601.05866)
+- [RefusalBench: Generative Evaluation of Selective Refusal in Grounded Language Models - arxiv.org](https://arxiv.org/abs/2510.10390)
