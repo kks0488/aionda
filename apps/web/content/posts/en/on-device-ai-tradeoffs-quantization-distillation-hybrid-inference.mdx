@@ -1,0 +1,170 @@
+---
+title: 'On-Device AI Tradeoffs: Quantization, Distillation, and Hybrid Inference'
+slug: on-device-ai-tradeoffs-quantization-distillation-hybrid-inference
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: en
+description: >-
+  How on-device AI reshapes data boundaries, and what quantization, distillation
+  tradeoffs, and hybrid inference mean for deployment baselines.
+tags:
+  - agi
+  - hardware
+  - explainer
+author: AI온다
+sourceId: evergreen-on-device-ai-npu
+sourceUrl: ''
+verificationScore: 0.8366666666666666
+alternateLocale: /ko/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference
+coverImage: >-
+  /images/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference.png
+---
+
+## TL;DR
+
+- On-device AI moves some inference onto the device, and shifts when data leaves the device.  
+- Quantization and distillation can affect accuracy and reasoning behavior, so boundaries and tests matter.  
+- Write data-boundary sentences, build a hybrid PoC, and compare INT8 and distillation results on one eval set.  
+
+---
+
+A phone shows a screen summary within a few seconds after you ask for it.  
+You may then wonder where the request was processed.  
+You may also wonder what data left the device.  
+That question frames on-device AI as a data-boundary design choice.  
+NPUs often support this boundary in practice.  
+
+Example: A user turns on a summary feature in a messaging app. The device tries to keep sensitive text local. It uses a small local model first. It can hand off harder requests when connectivity allows.
+
+---
+
+## Current state
+
+On-device AI often involves more than placing a model on a phone.  
+Deployment adds constraints that interact at once.  
+These include model size, memory bandwidth, power, thermals, and latency.  
+Teams often use inference optimization to fit these constraints.  
+
+A common method is quantization.  
+The NVIDIA TensorRT *Accuracy Considerations* document notes version **10.12.0**.  
+It describes **rounding errors** as one reason accuracy can change.  
+It also describes **clamping errors** as another reason accuracy can change.  
+Quantization often converts FP16 or FP32 into INT8.  
+That conversion can reduce memory and compute load.  
+It can also change outputs when dynamic ranges compress.  
+
+Another common method is distillation.  
+Distillation transfers behavior from a teacher model to a student model.  
+It aims to reduce model size and inference cost.  
+Some work suggests identical behavior is hard to claim.  
+**AdaSwitch (arXiv:2510.07842)** discusses off-policy distillation.  
+It describes a possible trade-off called **training–inference mismatch**.  
+**On the Generalization vs Fidelity Paradox in Knowledge Distillation (arXiv:2505.15442)** raises another concern.  
+It suggests the teacher’s **reasoning fidelity** may not often be preserved.  
+
+Product designs often use hybrid configurations.  
+They often avoid a strict on-device versus cloud split.  
+Three patterns often appear in descriptions and discussions:  
+(1) **Edge hybrid**: core inference runs on-device, and cloud sync runs asynchronously.  
+(2) **Split inference**: the network is split, and intermediate representations are sent.  
+(3) **Selective offloading (fan-out)**: most requests run locally, and hard requests go to a server.  
+
+---
+
+## Analysis
+
+On-device AI is often discussed as faster inference.  
+It can also make data movement a key design variable.  
+A requirement can be, “raw user input is not sent off-device.”  
+That requirement can constrain model size and quality targets.  
+A different priority can be maximum quality.  
+That priority can shift attention to explicit offloading criteria.  
+NPU capacity can then become part of meeting battery, thermals, and latency budgets.  
+
+Several pitfalls can still matter.  
+
+- Quantization is not finished after converting to INT8.  
+  TensorRT highlights **rounding** and **clamping** as accuracy risks.  
+  Effects can vary with data distributions and layer types.  
+- Distillation can raise questions beyond aggregate metrics.  
+  **arXiv:2505.15442** discusses possible loss of **reasoning fidelity**.  
+  **arXiv:2510.07842** discusses **training–inference mismatch** as a trade-off.  
+  These effects can show up in edge cases and safety-sensitive flows.  
+- Hybrid approaches can add costs and risks.  
+  Split inference sends intermediate representations over a channel.  
+  That can increase latency, security concerns, and engineering complexity.  
+  Privacy claims can still depend on logs, caches, and telemetry.  
+
+---
+
+## Practical application
+
+When adding on-device AI or an NPU to a product, start with sentences.  
+Those sentences should describe the data boundary and failure tolerance.  
+Examples include raw inputs, intermediate representations, and logs.  
+Then select patterns like split inference or selective offloading.  
+The pattern choice can follow the boundary choice.  
+
+A development sequence can be realistic.  
+First, define a minimum feature set to run on-device.  
+Second, add a fan-out path for the remaining requests.  
+Third, apply quantization or distillation for performance budgets.  
+Trade-offs should be recorded and reviewed by the team.  
+TensorRT’s rounding and clamping risks can become test items.  
+Distillation mismatch and fidelity risks can also become test items.  
+This can reduce late-stage surprises in perceived quality.  
+
+**Checklist for Today:**
+- Write three data-boundary sentences for raw input, intermediate representations, and logs or caches.  
+- Choose fan-out or split inference, and draft tests for offline use and latency errors.  
+- Compare baseline, INT8 quantized, and distilled outputs on one evaluation set, and log failure modes.  
+
+---
+
+## FAQ
+
+**Q1. Is on-device AI advantageous for privacy?**  
+A. It can help in some designs.  
+It can also fail without clear boundaries.  
+Define how far data moves for raw input and intermediate representations.  
+Also define what logs, caches, and telemetry can contain.  
+Hybrid designs can still send derived data over the network.  
+
+**Q2. Why does quantization reduce accuracy?**  
+A. TensorRT describes **rounding errors** and **clamping errors**.  
+Lower precision approximates values, which can change outputs.  
+Clamping truncates values outside representable ranges.  
+
+**Q3. Does distillation preserve the teacher’s thought process?**  
+A. It can be difficult to claim.  
+**arXiv:2505.15442** raises concerns about **reasoning fidelity**.  
+**arXiv:2510.07842** discusses **training–inference mismatch** trade-offs.  
+If reasoning consistency matters, add separate validation.  
+
+---
+
+## Conclusion
+
+On-device AI and NPUs can be an architecture choice about data boundaries.  
+It can also shift cost and risk across device and cloud.  
+Quantization can introduce rounding and clamping issues, per TensorRT 10.12.0.  
+Distillation can introduce mismatch or fidelity concerns, per cited arXiv papers.  
+Document these as requirements and test items.  
+That can make deployment quality discussions more concrete.
+
+## Further Reading
+- [Agent Performance Depends on Tools and Harness Design](/en/posts/agent-performance-tools-harness-design)
+- [How AI Coding Shifts CS Toward Verification](/en/posts/ai-coding-shifts-cs-toward-verification)
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Decomposing AI Risks: Tasks, Transparency, And Safety Testing](/en/posts/decomposing-ai-risks-tasks-transparency-safety-testing)
+---
+
+## References
+
+- [Accuracy Considerations — NVIDIA TensorRT - docs.nvidia.com](https://docs.nvidia.com/deeplearning/tensorrt/10.12.0/inference-library/accuracy-considerations.html)
+- [Cloud–Edge–End Collaborative Federated Learning: Enhancing Model Accuracy and Privacy in Non-IID Environments - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC11679291/)
+- [AdaSwitch: Adaptive Switching Generation for Knowledge Distillation - arxiv.org](https://arxiv.org/abs/2510.07842)
+- [On the Generalization vs Fidelity Paradox in Knowledge Distillation - arxiv.org](https://arxiv.org/abs/2505.15442)
+- [Efficient and privacy-preserving deep inference towards cloud–edge collaborative - Applied Soft Computing (ScienceDirect) - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S1568494625006921)
+- [Privacy-preserving Security Inference Towards Cloud-Edge Collaborative Using Differential Privacy (arXiv) - arxiv.org](https://arxiv.org/abs/2212.06428)

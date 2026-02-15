@@ -1,0 +1,113 @@
+---
+title: Operating LLM Routing and Cascading for Cost and Latency
+slug: operating-llm-routing-and-cascading-for-cost-and-latency
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: en
+description: >-
+  How to route LLM requests by predicting quality and uncertainty, balancing
+  cost and latency, with safe escalation and auditable logs.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: evergreen-model-routing
+sourceUrl: ''
+verificationScore: 0.8066666666666666
+alternateLocale: /ko/posts/operating-llm-routing-and-cascading-for-cost-and-latency
+coverImage: /images/posts/operating-llm-routing-and-cascading-for-cost-and-latency.png
+---
+
+## TL;DR
+
+- Routing and cascading prioritize request classification across quality, cost, latency, and non-functional criteria.  
+- Routing errors can raise retries and escalations, which can increase cost and latency.  
+- Document SLOs and SLIs by function, then iterate routing with estimators, uncertainty signals, and auditable logs.  
+
+---
+
+When team chat shows “Why is this request so slow?” and “Why did costs spike?” together, routing becomes visible. The “one model handles everything” approach can wobble under these conditions. The focus often shifts toward routing requests to appropriate models. This means classifying requests and selecting models accordingly.
+
+Example: A support team summarizes customer documents. Some requests are short and simple. Others need careful evidence checks. The router tries a lighter path first. If signals look weak, it escalates to a stronger path.
+
+This article organizes routing strategies as **definition → context → misconceptions → practice**. In research, routing is framed as predicting each model’s quality and cost. CARROT and R2‑Router describe this prediction-oriented view. Operational guidance also highlights latency and model size. OpenAI’s latency guide links larger models with slower inference.
+
+---
+
+## Status quo
+
+Model routing is the procedure of selecting a model for a request. The goal is adequate quality within cost or latency targets. CARROT frames the goal as sending queries to the cheapest suitable LLM. R2‑Router describes choices as high quality and low cost. It does so by predicting quality and cost per request.
+
+Routing criteria often center on quality and cost. CARROT and R2‑Router emphasize those axes. Latency is often added as an operational constraint. OpenAI’s latency guide identifies model size as a major inference-speed factor. It says smaller models are usually faster and cheaper. Routing then becomes traffic distribution under cost and latency correlations.
+
+Routing can also include non-functional criteria. OptiRoute includes helpfulness, harmlessness, and honesty. It also includes functional criteria like accuracy, speed, and cost. In enterprise contexts, safety and ethics can shape routing inputs. These inputs can become design requirements.
+
+---
+
+## Analysis
+
+Routing can look like a simple model-selection UI. That framing can lead to weak designs. Research often treats routing as a prediction problem. The key question is expected performance per model for a request. Weak quality estimation can drive premature cheap-model choices. That can lead to retries and escalations. Cost and latency can rise as a result.
+
+*A Unified Approach to Routing and Cascading for LLMs* says a good quality estimator is critical. This aligns with “a router is a classifier.” Misclassification can translate into operational overhead. That overhead can show up as more reruns and longer resolution chains.
+
+Some limitations remain unclear in the reviewed scope. Operational signals like “urgency” lack standardized benchmarks in this write-up. That gap needs additional verification. Safety separation into a guard model also has classifier risk. SafeRoute uses binary classification for easy versus hard examples. It applies a large safety guard model only to hard cases. Misjudged hardness can increase policy-violation risk. The design still returns to estimation quality.
+
+Numeric details in the cited material appear as identifiers, not measurements. NIST AI RMF lists Govern 1.4 and Govern 1.5. These map to governance process expectations. They provide traceable references for audits and reviews. They do not provide benchmark numbers in this text.
+
+---
+
+## Practical application
+
+NIST AI RMF Core에서 GOVERN 1.4는 투명한 정책·절차·통제에 기반해 위험관리 프로세스와 그 결과를 수립할 것을 요구하고, GOVERN 1.5는 지속적 모니터링과 정기적 검토 계획 및 조직의 역할·책임(정기 검토 주기 포함)의 명확한 정의를 요구한다.
+
+Routing can encode organizational trade-offs as policy. These trade-offs include quality, cost, latency, and ethical criteria. Weak alignment can create tension between operations and security. Governance can help surface decisions and approvals.
+
+Technical design often follows two routing patterns.
+
+- **Cascading**: Start with a cheaper or lower-latency path. Escalate when quality looks low or failure signals appear. The unified routing and cascading framework discusses this approach.  
+- **Uncertainty-based routing**: CP‑Router uses uncertainty estimation. It uses Conformal Prediction as a basis for routing. It considers both likely correctness and uncertainty level.  
+
+**Checklist for Today:**  
+- Document function-level SLOs and SLIs, and link each to an owner and review cadence.  
+- Implement “primary choice plus cascade on failure” using quality and uncertainty signals.  
+- Record policy changes and routing outcomes in auditable logs for security and compliance review.  
+
+---
+
+## FAQ
+
+**Q1. What do routing criteria ultimately reduce to?**  
+A. In this scope, recurring axes include quality, cost, and latency. CARROT and R2‑Router emphasize quality and cost. OpenAI’s latency guide adds operational latency considerations. OptiRoute also targets non-functional criteria like safety and ethics. It treats these as part of optimization.
+
+**Q2. If “the router is a classifier,” how do we reduce failures?**  
+A. Research often suggests cascading escalation. It also suggests uncertainty estimation as an input. CP‑Router is an example of uncertainty-based routing. Safety designs like SafeRoute appear in the literature. It applies a large guard model only to hard cases. Misclassification remains a risk in that pattern.
+
+**Q3. In enterprises, what should we prepare for auditing or governance when routing?**  
+
+---
+
+## Conclusion
+
+Model routing is not only “use cheaper models more.” It is an operational system for classifying requests. It encodes trade-offs among quality, cost, latency, and safety. The next step should start with function-level SLOs and SLIs. It should also include audit methods, including logs. After that, routing estimators and escalation logic can be iterated.
+
+## Further Reading
+- [Agent Performance Depends on Tools and Harness Design](/en/posts/agent-performance-tools-harness-design)
+- [How AI Coding Shifts CS Toward Verification](/en/posts/ai-coding-shifts-cs-toward-verification)
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Decomposing AI Risks: Tasks, Transparency, And Safety Testing](/en/posts/decomposing-ai-risks-tasks-transparency-safety-testing)
+---
+
+## References
+
+- [Latency optimization | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/latency-optimization)
+- [AI RMF Core - AIRC (NIST) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [Admin and Audit Logs API for the API Platform | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9687866-admin-and-audit-logs-api-for-the-api-platform.webm)
+- [Audit logs | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/audit-logs/object)
+- [Manage - AIRC (NIST AI RMF Playbook) - airc.nist.gov](https://airc.nist.gov/AI_RMF_Knowledge_Base/Playbook/Manage)
+- [CARROT: A Cost AwaRe Rate Optimal RouTer - arxiv.org](https://arxiv.org/abs/2502.03261)
+- [R2-Router: A New Paradigm for LLM Routing with Reasoning - arxiv.org](https://arxiv.org/abs/2602.02823)
+- [Dynamic LLM Routing and Selection based on User Preferences: Balancing Performance, Cost, and Ethics - arxiv.org](https://arxiv.org/abs/2502.16696)
+- [A Unified Approach to Routing and Cascading for LLMs - arxiv.org](https://arxiv.org/abs/2410.10347)
+- [CP-Router: An Uncertainty-Aware Router Between LLM and LRM - arxiv.org](https://arxiv.org/abs/2505.19970)
+- [SafeRoute: Adaptive Model Selection for Efficient and Accurate Safety Guardrails in Large Language Models - arxiv.org](https://arxiv.org/abs/2502.12464)
