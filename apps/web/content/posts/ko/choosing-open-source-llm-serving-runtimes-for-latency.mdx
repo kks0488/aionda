@@ -1,0 +1,91 @@
+---
+title: 오픈소스 LLM 서빙 런타임 선택법
+slug: choosing-open-source-llm-serving-runtimes-for-latency
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: ko
+description: 연속 배칭·스트리밍·KV 캐시로 TTFT/TBT와 처리량이 달라진다. 점검 기준을 정리.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: evergreen-open-source-serving
+sourceUrl: ''
+verificationScore: 0.8300000000000001
+alternateLocale: /en/posts/choosing-open-source-llm-serving-runtimes-for-latency
+coverImage: /images/posts/choosing-open-source-llm-serving-runtimes-for-latency.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심 이슈인가?** 오픈소스 LLM 서빙의 병목은 모델 자체보다 **연속(동적) 배칭, 스트리밍, KV 캐시, 어텐션/디코딩 최적화** 같은 런타임 설계로 옮겨가고 있다.  
+- **왜 중요한가?** 같은 GPU라도 런타임의 **배칭·캐시·스트리밍** 구현에 따라 **처리량, TTFT(Time-to-First-Token), TBT(Time-Between-Tokens)**, 동시성, 운영 난이도가 달라질 수 있고 이는 비용과 장애로 이어진다.  
+- **독자는 뭘 하면 되나?** 도입 후보를 **(1) OpenAI-compatible API 여부, (2) HTTP/REST·gRPC 및 SSE 같은 엔드포인트/스트리밍 방식, (3) TTFT·TBT·꼬리 지연과 배칭/캐시를 관측할 메트릭·트레이싱** 기준으로 점검하고, 트래픽 패턴에 맞게 실험으로 기본값을 정하라.
+
+서빙 지연이 발생하는 상황에서 GPU 사용률이 낮게 유지되는 경우가 있다. 이때 원인은 모델 계산이 아니라 배치 큐, KV 캐시 메모리, 스트리밍 연결 같은 “주변 시스템”에 있을 수 있다. 오픈소스 LLM을 직접 운영하는 순간, 성능과 비용은 모델 선택만으로 결정되지 않고 엔지니어링 선택의 영향을 크게 받는다. 그 출발점 중 하나가 추론 서버(Serving runtime) 선택이다.
+
+예: 대화형 서비스에 모델을 붙였는데, 사용자는 답이 늦다고 말한다. 서버는 바쁘지 않아 보인다. 스트리밍을 켜도 첫 응답이 늦게 오면 불만은 남는다.
+
+이 글은 오픈소스 LLM 서빙에서 자주 언급되는 추론 서버/런타임이 공통으로 제공하는 기능(연속 배칭·스트리밍·KV 캐시 최적화·표준 API/프로토콜)을 기준으로, 무엇을 보고 고르면 되는지 정리한다.
+
+## 현황
+
+오픈소스 LLM 서빙에서는 **동적(연속) 배칭**과 **스트리밍**이 성능·지연에 직접 영향을 주는 기능으로 반복해서 언급된다. 예를 들어 Hugging Face의 Text Generation Inference(TGI) 문서는 **Continuous batching + streaming**을 핵심 특징으로 제시하고, 토큰을 **SSE(Server-Sent Events)**로 스트리밍한다고 적는다. 이 방식은 들어오는 요청을 실행 중인 요청과 합쳐 처리해 처리량을 높이려는 목적이 있고, 사용자에게는 토큰을 먼저 보여줘 **TTFT(Time-to-First-Token)** 관점의 체감 지연을 줄이려는 의도가 있다.
+
+최적화 축은 주로 메모리와 커널로 정리된다. TGI는 **Flash Attention, Paged Attention, KV-caching, Quantization** 같은 항목을 “최적화된 어텐션과 디코딩” 범주로 나열한다. KV 캐시는 이전 토큰들의 key/value 상태를 저장해 오토리그레시브 생성에서 반복 계산을 줄이는 접근이다. 다만 캐시가 커질수록 메모리 병목이 생길 수 있고, 이는 지연과 꼬리 성능에 영향을 줄 수 있다는 점을 운영에서 고려해야 한다.
+
+NVIDIA Triton Inference Server는 “LLM 전용 서버”라기보다 멀티모델/멀티백엔드를 염두에 둔 플랫폼 성격이 강하다. NVIDIA 기술 블로그와 문서는 Triton이 **HTTP/gRPC 엔드포인트**를 제공하고, 처리량을 높이기 위해 **Dynamic batching**과 **Concurrent execution(동시 실행)**을 지원한다고 설명한다. 또한 입력 형태로 **real-time, batch, streaming**을 언급하며, 운영 측면에서는 조합(ensemble)과 커스텀 백엔드 같은 확장 지점을 제공한다고 밝힌다.
+
+## 분석
+
+핵심은 “서빙은 모델만의 문제가 아니라 시스템 문제”라는 점이다. 연속 배칭은 GPU 활용률을 끌어올려 토큰당 비용을 낮출 가능성이 있다. 반면 배치를 구성하는 대기(큐잉)가 생기면 개별 요청 지연이 늘 수 있고, 특히 **TTFT**가 악화될 수 있다.
+
+스트리밍은 전체 생성이 끝나기 전 토큰을 전송하므로 **TTFT 관점의 체감 응답성**을 개선하는 데 유리하다. 하지만 스트리밍이 **총 생성 시간**을 항상 줄인다고 말하기는 어렵다. 또한 서버는 연결을 더 오래 유지해야 하며, 전송 방식(SSE 등)과 타임아웃, 재시도 정책 같은 운영 변수가 늘어난다.
+
+KV 캐시는 효과와 리스크가 함께 있다. KV 캐시는 중복 계산을 줄여 효율을 얻을 수 있지만, 시퀀스 길이와 동시 요청 수에 비례해 메모리를 사용한다. 연구에서는 KV 캐시 병목이 **tail TTFT**와 **TBT(Time-Between-Tokens)** 악화로 이어질 수 있다고 지적한다. 운영에서 장애는 평균이 아니라 꼬리에서 먼저 드러나는 경우가 많다. 캐시가 포화에 가까워지면 배칭 전략도 흔들릴 수 있고, 처리량과 지연이 동시에 나빠질 수 있다.
+
+인터페이스 표준화(OpenAI-compatible 등)는 유행이라기보다 마이그레이션 비용을 줄이는 장치에 가깝다. 모델을 자주 바꾸거나 클라이언트/게이트웨이/옵저버빌리티 스택이 이미 있다면, API 호환성은 교체 비용을 낮출 수 있다. 다만 “호환 API”가 “동일한 동작”을 의미하지는 않는다. 스트리밍 방식(SSE 등), 배칭 정책, 에러 모델, 타임아웃 처리 같은 세부가 달라지면 애플리케이션 레이어에서 추가 작업이 발생할 수 있다.
+
+## 실전 적용
+
+선택 기준은 크게 두 갈래로 정리할 수 있다. “LLM 추론에 특화된 서버(TGI 같은 유형)”는 연속 배칭·스트리밍·어텐션 최적화처럼 LLM의 주요 병목을 직접 다루려는 성격이 있다. “플랫폼형 서빙(Triton 같은 유형)”는 **HTTP/REST, gRPC** 같은 표준 프로토콜, 동시 실행, 배칭 스케줄링, 커스텀 백엔드 같은 운영/확장 기능을 중심으로 설계되는 경우가 많다. 어느 쪽이든 먼저 팀의 병목이 **토큰 생성 자체**인지, **멀티모델 운영과 배포 체계**인지부터 분리해 보는 편이 안전하다.
+
+예: 팀이 챗 UI를 붙였더니 사용자는 답이 늦다고 느낀다. 평균 처리량은 나쁘지 않다. 스트리밍을 켜면 체감은 좋아질 수 있지만, 배칭 큐가 길어져 첫 토큰이 늦어지는 부작용도 가능하다. 이 경우 “스트리밍 유무”만 보지 말고, 연속 배칭이 **TTFT**에 주는 영향과 **KV 캐시** 압박을 함께 관측해야 한다.
+
+**오늘 바로 할 일:**
+- 스트리밍(SSE 등) on/off에서 **TTFT**와 **TBT**를 각각 측정하고, 체감 개선과 총 생성 시간 변화를 분리해 기록하라.  
+- 연속(동적) 배칭을 사용한다면 배치 크기 증가 구간에서 큐잉과 헤드-오브-라인 징후를 확인하고, 정책 변경 전후 **TTFT**와 **tail TTFT**를 비교하라.  
+- KV 캐시가 의심되면 동시성 상한, 최대 컨텍스트, 캐시/메모리 정책을 한 묶음의 가드레일로 정리하고, 운영 문서에 관측 지표(**TTFT/TBT**)와 함께 남겨라.
+
+## FAQ
+
+**Q1. 연속(동적) 배칭을 쓰면 비용이 무조건 내려가나?**  
+아니다. 배칭은 GPU 활용률을 올려 토큰당 비용을 낮출 여지가 있지만, 배치를 만들기 위한 대기나 요청 길이 편차 때문에 개별 요청 지연(특히 **TTFT**)이 늘 수 있다. 비용과 지연을 함께 측정해야 한다.
+
+**Q2. KV 캐시는 왜 “성능 최적화”이면서 동시에 “운영 리스크”인가?**  
+KV 캐시는 과거 토큰에 대한 중복 계산을 줄여 지연과 비용을 줄일 수 있다. 대신 시퀀스가 길어지고 동시 요청이 늘면 캐시 메모리가 커져 동시성을 제한하고, 꼬리 지연(**TTFT/TBT**)을 악화시키는 병목으로 바뀔 수 있다.
+
+**Q3. 스트리밍을 켜면 서버도 빨라지나, UX만 좋아지나?**  
+스트리밍은 전체 생성이 끝나기 전 토큰을 보내 **TTFT** 관점의 체감 응답성을 개선하는 데 강점이 있다. 하지만 총 생성 시간(엔드-투-엔드)이 항상 줄어든다고 단정할 수는 없다. 연결 유지와 전송 방식까지 포함해 실제 트래픽에서 검증해야 한다.
+
+## 결론
+
+오픈소스 LLM 서빙의 차이는 “어떤 모델을 쓰느냐”뿐 아니라 “배칭·캐시·스트리밍을 어떤 기본값과 관측으로 운영하느냐”에서 커질 수 있다. TGI가 **Continuous batching + streaming(SSE)**, **Flash Attention/Paged Attention/KV-caching/Quantization**을 강조하고, Triton이 **HTTP/gRPC**, **Dynamic batching**, **Concurrent execution** 같은 플랫폼 기능을 강조하는 이유도 같은 맥락에서 이해할 수 있다. 다음 단계는 특정 런타임을 단정적으로 고르는 것이 아니라, 당신의 트래픽에서 **TTFT·TBT·tail TTFT**를 먼저 측정하고 그 결과로 런타임과 정책을 선택하는 것이다.
+
+## 다음으로 읽기
+- [AI 코딩 도구, 확장·권한이 성패 가른다](/ko/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [AI 격차가 관계를 망치는 순간](/ko/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+- [가족 AI 온보딩과 데이터 안전 규칙](/ko/posts/family-ai-onboarding-data-safety-rules)
+- [온디바이스 AI: 최적화와 트레이드오프](/ko/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference)
+- [LLM 라우팅/캐스케이딩 운영 핵심](/ko/posts/operating-llm-routing-and-cascading-for-cost-and-latency)
+---
+
+## 참고 자료
+
+- [Text Generation Inference (TGI) - huggingface.co](https://huggingface.co/docs/inference-endpoints/engines/tgi)
+- [Deploying AI Deep Learning Models with NVIDIA Triton Inference Server | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/deploying-ai-deep-learning-models-with-triton-inference-server/)
+- [NVIDIA Triton Inference Server — NVIDIA Triton Inference Server 2.1.0 documentation - docs.nvidia.com](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton_inference_server_1150/user-guide/docs/)
+- [Text Generation Inference (TGI) - huggingface.co](https://huggingface.co/docs/inference-endpoints/main/en/engines/tgi)
+- [MiniCache: KV Cache Compression in Depth Dimension for Large Language Models - arxiv.org](https://arxiv.org/abs/2405.14366)
+- [Mitigating KV Cache Competition to Enhance User Experience in LLM Inference - arxiv.org](https://arxiv.org/abs/2503.13773)

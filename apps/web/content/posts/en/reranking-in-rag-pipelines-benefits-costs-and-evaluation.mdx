@@ -1,0 +1,151 @@
+---
+title: 'Reranking in RAG Pipelines: Benefits, Costs, and Evaluation'
+slug: reranking-in-rag-pipelines-benefits-costs-and-evaluation
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: en
+description: >-
+  Learn how reranking after top-K retrieval improves ranking quality in RAG, and
+  how to evaluate gains against added latency and cost.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - rag
+author: AI온다
+sourceId: evergreen-reranking-playbook
+sourceUrl: ''
+verificationScore: 0.7799999999999999
+alternateLocale: /ko/posts/reranking-in-rag-pipelines-benefits-costs-and-evaluation
+coverImage: /images/posts/reranking-in-rag-pipelines-benefits-costs-and-evaluation.png
+---
+
+## TL;DR
+
+- RAG pipelines often add reranking after top-K retrieval to reorder candidates before prompting the LLM.  
+- This can improve NDCG@10, but compute scales with K and can affect latency and cost.  
+- Set a clear K → rerank → N experiment, then validate with offline metrics and failure analysis.  
+
+---
+
+With **K=100** candidates, the correct document can appear in the set but remain poorly ordered.  
+The LLM often uses only what fits in its context window.  
+So the top few results can matter more than “correct exists somewhere.”  
+This can lead to plausible answers that are incorrect.
+
+Example: A team runs a chatbot with internal search. The results look relevant. The answers still miss key details. Users ask why the top document was selected.
+
+Reranking re-scores candidates from first-stage retrieval using a stronger model.  
+It often pushes more relevant items toward the top.  
+This pattern can help, but it adds inference cost and latency.  
+So it helps to define where to apply it and how to evaluate it.
+
+---
+
+## Current state
+
+Retrieve-and-rerank commonly uses two stages.  
+First, a lightweight method gathers **K** candidates, such as **K=100**.  
+Then a reranker re-scores and reorders those candidates.  
+The ReFIT paper describes this flow using an initial retriever and a stronger reranker.
+
+In RAG, the goal is usually better inputs to the LLM.  
+An NVIDIA technical blog notes that systems often send top **N chunks**, commonly **3–10**, into context.  
+Increasing **N** can raise inclusion odds for the right chunk.  
+It can also increase latency and cost.  
+Reranking shifts focus toward better chunks with the same **N**.
+
+The constraint is straightforward.  
+Reranking changes order only within the top-K from first-stage retrieval.  
+So it cannot directly fix cases where the answer is outside **K**.  
+Before adding reranking, you should test whether the correct answer enters **K**.
+
+---
+
+## Analysis
+
+Reranking often helps when the answer is in candidates but responses remain wrong.  
+This can happen when less relevant documents appear above better ones.  
+The reranker targets top precision by scoring each query–document pair.  
+These models are often cross-encoder style.  
+Ranking metrics like **NDCG@10** can improve.
+
+Reranking can also help keep **N** small.  
+This often stays in ranges like **3–10** chunks.  
+That can limit context bloat while maintaining quality.  
+This outcome still depends on the query and corpus.
+
+There are trade-offs and risks.  
+Compute rises because inference runs per (q,d) pair.  
+So cost tends to scale roughly linearly with **K**, such as **K=100**.  
+Without evaluation data, perceived improvements can be misleading.  
+Small demos can hide regressions on real queries.  
+If recall is the issue, reranking can have limited impact.  
+That happens when the correct answer sits outside **K**.
+
+---
+
+## Practical application
+
+It helps to separate the stage design from the activation conditions.  
+A common template is **K → rerank → N**.  
+You can widen **K**, such as **K=100**, to improve candidate inclusion.  
+Then rerank, then send a smaller **N**, such as **3–10**, to the LLM.  
+After that, vary **K**, **N**, and reranking on or off.  
+Record quality and latency together.  
+You should encode “reranking only works within top-K” into evaluation.
+
+Example: In internal knowledge search, questions are short and documents are long. First-stage retrieval favors keyword overlap. The answer sits in a different document section. A larger candidate set helps inclusion. A larger prompt adds distracting text. Reranking tries to move the right chunk upward.
+
+**Checklist for Today:**  
+- Prepare an offline evaluation set, and measure **NDCG@10** plus answer accuracy.  
+- Fix a **K=100 → rerank → N=3–10** baseline, then vary K and N while logging latency and cost.  
+- Label failures as “answer outside K” or “answer inside K but misordered,” then compare segments.  
+
+---
+
+## FAQ
+
+**Q1. Does reranking largely replace first-stage retrieval?**  
+A. Usually not.  
+Reranking reorders the top-K produced by first-stage retrieval.  
+First-stage retrieval still gathers candidates efficiently.
+
+**Q2. Does using reranking also improve Recall@K?**  
+A. Not directly, in most setups.  
+Reranking only reorders items within top-K.  
+If the answer is outside **K**, reranking cannot bring it in.  
+You should check whether the correct answer enters the candidate set.
+
+**Q3. How do you manage latency/cost?**  
+A. Manage the number of candidates **K** that get reranked.  
+Cross-encoders typically run inference per (q,d) pair.  
+So cost increases with **K**.  
+Some work proposes pruning or caching strategies.  
+Production impact often needs separate validation.
+
+---
+
+## Conclusion
+
+Reranking can help when retrieval succeeds but top results are poorly ordered.  
+It reframes the problem as top-results quality, not only retrieval existence.  
+It also operates only within top-K and can add cost.  
+So you should start with an evaluation set and metrics like **NDCG@10**.  
+Then test a clear **K → rerank → N** structure.  
+Record which queries improve under which **K/N** settings.  
+That record can support ongoing iteration and monitoring.
+
+## Further Reading
+- [Choosing AI Coding Tools: Extensions, Permissions, And Operations](/en/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [Designing AI Conversations Without Hierarchy, Lecturing, Or Isolation](/en/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+- [Family AI Onboarding With Data Safety Rules](/en/posts/family-ai-onboarding-data-safety-rules)
+- [On-Device AI Tradeoffs: Quantization, Distillation, and Hybrid Inference](/en/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference)
+- [Operating LLM Routing and Cascading for Cost and Latency](/en/posts/operating-llm-routing-and-cascading-for-cost-and-latency)
+---
+
+## References
+
+- [How Using a Reranking Microservice Can Improve Accuracy and Costs of Information Retrieval | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/how-using-a-reranking-microservice-can-improve-accuracy-and-costs-of-information-retrieval/)
+- [ReFIT: Relevance Feedback from a Reranker during Inference - arxiv.org](https://arxiv.org/abs/2305.11744)
+- [Col-Bandit: Zero-Shot Query-Time Pruning for Late-Interaction Retrieval - arxiv.org](https://arxiv.org/abs/2602.02827)

@@ -1,0 +1,159 @@
+---
+title: Choosing Open-Source LLM Serving Runtimes For Latency
+slug: choosing-open-source-llm-serving-runtimes-for-latency
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: en
+description: >-
+  Serving bottlenecks shift to continuous batching, streaming, KV cache, and
+  decoding optimizations affecting throughput, TTFT, and TBT.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: evergreen-open-source-serving
+sourceUrl: ''
+verificationScore: 0.8300000000000001
+alternateLocale: /ko/posts/choosing-open-source-llm-serving-runtimes-for-latency
+coverImage: /images/posts/choosing-open-source-llm-serving-runtimes-for-latency.png
+---
+
+## TL;DR
+
+- Bottlenecks in open-source LLM serving can shift from models to runtime choices like batching, streaming, and KV cache behavior.  
+- These runtime choices can change TTFT, TBT, throughput, and incidents, even on the same GPU.  
+- Compare runtimes using OpenAI-compatible APIs, HTTP/REST or gRPC, and TTFT·TBT·tail latency measurements.  
+
+Low GPU utilization can coincide with high serving latency.  
+The cause can be batch queues, KV cache memory pressure, or streaming connections.  
+Once you self-host an open-source LLM, engineering choices can affect performance and cost.  
+Inference server selection is one practical starting point.  
+
+Example: You add a chat feature and users report delays. The GPU appears underused. Streaming exists, yet the first token arrives late. The team investigates server queues and connection handling.  
+
+This article summarizes what to look for in inference servers.  
+It focuses on continuous batching, streaming, KV cache optimization, and standard APIs.  
+
+## Current state
+
+In open-source LLM serving, dynamic batching and streaming often get attention.  
+These features can affect throughput and latency.  
+
+Hugging Face’s Text Generation Inference (TGI) documentation highlights continuous batching and streaming.  
+It also states that it streams tokens via SSE (Server-Sent Events).  
+TGI frames TTFT (Time-to-First-Token) as a user-visible latency measure.  
+It aims to merge new requests into running batches to raise throughput.  
+
+Optimization axes often include memory and kernels.  
+TGI lists Flash Attention, Paged Attention, KV-caching, and Quantization.  
+These appear under “optimized attention and decoding.”  
+
+The KV cache stores key and value states for prior tokens.  
+This can reduce repeated computation during autoregressive decoding.  
+As the cache grows, memory bottlenecks can emerge.  
+These bottlenecks can affect latency and tail behavior.  
+
+NVIDIA Triton Inference Server reads as a platform for multiple backends.  
+It is not positioned only as an LLM-only server.  
+NVIDIA documentation describes HTTP and gRPC endpoints.  
+It also describes dynamic batching and concurrent execution.  
+It also references real-time, batch, and streaming input modes.  
+It provides ensembles and custom backends as extension points.  
+
+## Analysis
+
+Serving is partly a systems problem, not only a model problem.  
+Continuous batching can increase GPU utilization.  
+It can also lower cost per token in some traffic patterns.  
+
+Batching can introduce queueing to form batches.  
+Queueing can increase latency for individual requests.  
+This is often visible in TTFT.  
+
+Streaming sends tokens before full generation finishes.  
+This can improve perceived responsiveness through TTFT.  
+Streaming does not imply lower total generation time.  
+The server may keep connections open longer.  
+Operational variables can expand, including SSE transport, timeouts, and retries.  
+
+KV cache can improve efficiency by reducing redundant computation.  
+It also uses memory proportional to sequence length and concurrency.  
+Research discusses KV cache bottlenecks affecting tail TTFT and TBT.  
+TBT means Time-Between-Tokens.  
+Incidents often appear in tail behavior rather than averages.  
+As cache pressure rises, batching behavior can become less stable.  
+Throughput and latency can both degrade in those conditions.  
+
+OpenAI-compatible interfaces can reduce migration cost.  
+This can help if you swap models or maintain a shared gateway.  
+Compatibility does not imply identical behavior.  
+Differences can include SSE streaming details, batching policy, and error handling.  
+Timeout behavior can also differ.  
+Application-level work can still be needed.  
+
+## Practical application
+
+Selection criteria can be grouped into two broad categories.  
+LLM-specialized servers, like the TGI type, focus on common LLM bottlenecks.  
+These include continuous batching, streaming, and attention optimizations.  
+Platform-style serving, like the Triton type, focuses on extensibility and operations.  
+These include HTTP/REST, gRPC, concurrent execution, and custom backends.  
+
+Start by identifying your primary bottleneck.  
+It can be token generation.  
+It can also be multi-model operations and deployment systems.  
+
+Example: After adding a chat UI, users report slow responses. Average throughput looks acceptable. Streaming can improve perceived responsiveness, yet TTFT can still rise with queueing. The team measures TTFT and KV cache pressure together.  
+
+**Checklist for Today:**
+- Measure TTFT and TBT with streaming on and off, and record perceived responsiveness separately.  
+- Review dynamic batching settings for queueing symptoms, and compare TTFT versus tail TTFT.  
+- Document concurrency limits and context limits, and map them to KV cache memory guardrails.  
+
+## FAQ
+
+**Q1. If I use continuous (dynamic) batching, will cost often go down?**  
+Not necessarily.  
+Batching can raise utilization and reduce cost per token in some cases.  
+Queueing and variable request lengths can increase TTFT.  
+Measure cost and latency together.  
+
+**Q2. Why is KV cache both a “performance optimization” and an “operational risk”?**  
+KV cache can reduce repeated work for previous tokens.  
+This can reduce latency and cost in some scenarios.  
+Cache memory grows with longer sequences and higher concurrency.  
+That growth can limit concurrency and worsen tail TTFT and TBT.  
+
+**Q3. If I enable streaming, does the server become faster too, or only the UX improves?**  
+Streaming can improve perceived responsiveness via TTFT.  
+It sends tokens before full generation completes.  
+Total end-to-end generation time may not decrease.  
+Validate with real traffic and connection behavior, including SSE details.  
+
+## Conclusion
+
+Differences in open-source LLM serving can come from runtime defaults and observability.  
+Batching, caching, and streaming settings can change outcomes materially.  
+TGI emphasizes continuous batching, SSE streaming, and attention and decoding optimizations.  
+These include Flash Attention, Paged Attention, KV-caching, and Quantization.  
+Triton emphasizes HTTP and gRPC endpoints, dynamic batching, and concurrent execution.  
+Select by measuring TTFT, TBT, and tail TTFT on your own traffic.  
+Then choose the runtime and policies based on those results.
+
+## Further Reading
+- [Choosing AI Coding Tools: Extensions, Permissions, And Operations](/en/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [Designing AI Conversations Without Hierarchy, Lecturing, Or Isolation](/en/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+- [Family AI Onboarding With Data Safety Rules](/en/posts/family-ai-onboarding-data-safety-rules)
+- [On-Device AI Tradeoffs: Quantization, Distillation, and Hybrid Inference](/en/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference)
+- [Operating LLM Routing and Cascading for Cost and Latency](/en/posts/operating-llm-routing-and-cascading-for-cost-and-latency)
+---
+
+## References
+
+- [Text Generation Inference (TGI) - huggingface.co](https://huggingface.co/docs/inference-endpoints/engines/tgi)
+- [Deploying AI Deep Learning Models with NVIDIA Triton Inference Server | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/deploying-ai-deep-learning-models-with-triton-inference-server/)
+- [NVIDIA Triton Inference Server — NVIDIA Triton Inference Server 2.1.0 documentation - docs.nvidia.com](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton_inference_server_1150/user-guide/docs/)
+- [Text Generation Inference (TGI) - huggingface.co](https://huggingface.co/docs/inference-endpoints/main/en/engines/tgi)
+- [MiniCache: KV Cache Compression in Depth Dimension for Large Language Models - arxiv.org](https://arxiv.org/abs/2405.14366)
+- [Mitigating KV Cache Competition to Enhance User Experience in LLM Inference - arxiv.org](https://arxiv.org/abs/2503.13773)
