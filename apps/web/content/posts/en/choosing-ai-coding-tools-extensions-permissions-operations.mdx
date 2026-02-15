@@ -1,0 +1,140 @@
+---
+title: 'Choosing AI Coding Tools: Extensions, Permissions, And Operations'
+slug: choosing-ai-coding-tools-extensions-permissions-operations
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: en
+description: >-
+  AI coding tool choice depends on not only model quality but also tool calling,
+  agents, and permission design shaping security and team velocity.
+tags:
+  - llm
+  - explainer
+  - mcp
+  - tool-calling
+author: AI온다
+sourceId: '977028'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=977028'
+verificationScore: 0.8333333333333334
+alternateLocale: /ko/posts/choosing-ai-coding-tools-extensions-permissions-operations
+coverImage: /images/posts/choosing-ai-coding-tools-extensions-permissions-operations.png
+---
+
+## TL;DR
+- Separate model coding quality from extension mechanisms like tool calling, plugins, and agents.  
+- Extension and permission choices can shift security boundaries and operational workload.  
+- Split evaluation into two lanes, document rules, then run a small pilot.  
+
+As of documentation dated March 11, 2025, some agent platform building blocks are described as released.  
+The same documentation notes included tools like Web Search and File Search.  
+This affects team speed through response quality and operational integration effort.  
+It can also affect security and authorization boundaries.  
+A single head-to-head comparison can miss these tradeoffs.  
+A better approach is standardizing by situation and allowing limited exceptions.  
+
+Example: During a feature change, a tool proposes edits and runs commands. A developer approves to keep momentum. The change seems fine, but later side effects appear. The core issue is the approval flow and permissions, not cleverness.
+
+## Current state
+If you pick an AI coding tool only by perceived model “smartness,” workflows can disappoint.  
+Tool types and execution location shape integration and responsibility boundaries.  
+These factors include local versus remote execution.  
+They also include client versus server execution.  
+
+OpenAI documentation describes connecting external tools using function calling.  
+As of March 11, 2025, it describes “building blocks of the new Agents platform” as released.  
+It also notes tools like Web Search and File Search.  
+
+Anthropic documents external tool definition and invocation as tool use in the Messages API.  
+It defines MCP as an open protocol for standardizing application context for LLMs.  
+Google Vertex AI documentation describes tools or functionDeclarations in API requests.  
+GitHub Copilot describes Copilot Extensions for external tools and data integrations.  
+For Copilot, permission and scope details may need more verification.  
+
+Operational use often makes local integration and permissions decisive.  
+MCP documentation assumes a client–server split.  
+For sensitive resources, it documents an optional, recommended OAuth 2.1-based model.  
+Claude Code describes a permission model that starts as read-only locally.  
+It asks for explicit approval for actions like editing and command execution.  
+It describes configuring MCP servers via `.mcp.json` and `~/.claude.json`.  
+It also describes prompts for project-scope server trust approvals.  
+
+## Analysis
+Team value often splits into two lanes.  
+- **Lane A: Pure coding & debugging** (root-cause tracing, safer refactoring, test failure analysis)  
+- **Lane B: Extensibility & orchestration** (issue trackers, code search, docs, deployment pipelines)  
+
+Documentation suggests extensions often become operational design work.  
+More tool calling can make connections easier.  
+It can also require permission, audit, and data-boundary design.  
+Fewer extensions can simplify governance.  
+It can also limit automation the team wants.  
+
+The term “agent” can imply safety and control.  
+Documentation alone may not support that assumption.  
+The same caution applies to MCP.  
+MCP standardizes connections, not execution permissions.  
+Risk depends on what a server executes and with which permissions.  
+Claude Code’s explicit approvals can add control points.  
+They can also introduce approval fatigue and slowdowns.  
+
+Data retention and memory can become operational risks.  
+Documentation describes ChatGPT long-term context via Saved memories.  
+It also describes Reference chat history.  
+It states deleted Saved memory logs can be retained up to **30 days**.  
+If teams treat chats as work logs, this becomes a policy decision.  
+
+## Practical application
+Avoid ending tool selection with a feature checklist comparison.  
+Evaluate work by splitting it into two lanes.  
+- **Lane A: Pure coding/debugging** (local code understanding, test failures, refactoring)  
+- **Lane B: Extensions & automation** (searching issues and docs, connecting ops tools)  
+
+In Lane A, reasoning quality and context management drive perceived performance.  
+In Lane B, tool calling and MCP shape organizational fit.  
+Permission and audit design also shape fit.  
+Mixed evaluation can reduce consistency and blur standards.  
+
+**Checklist for Today:**
+- Split team tasks into two lanes and write one-page success criteria for each lane.  
+- Set approval rules for edits, commands, and deployment triggers, and define log storage.  
+- Define context and memory rules, including Saved memories and Temporary Chat usage.  
+
+## FAQ
+**Q1. If a tool has great “extensibility,” will coding quality follow?**  
+A. It might, but extensibility often means external tool calling.  
+Coding quality depends on separate factors like code understanding and change safety.  
+Lane A and Lane B criteria can keep evaluation clearer.  
+
+**Q2. If we use MCP, is security automatically solved?**  
+A. No.  
+MCP is a standardized connection method.  
+Sensitive-resource auth is documented as optional and recommended under OAuth 2.1 conventions.  
+Teams still design which servers act, and with which permissions.  
+
+**Q3. What risks does conversational “memory” create for teams?**  
+A. Documentation describes Saved memories and Reference chat history for long-term context.  
+It also states deleted Saved memory logs can be retained up to **30 days**.  
+Teams may need rules like disabling memory or using Temporary Chat.  
+
+## Conclusion
+Choosing an AI coding tool can extend beyond model comparison.  
+It can become operational design around extensions and permissions.  
+More tool calling and agents can increase automation opportunities.  
+They can also increase needs for approvals, auditing, and data boundaries.  
+Next steps can be splitting evaluation into Lane A and Lane B.  
+You can then document permission, memory, and context rules.  
+Finally, you can confirm with a small pilot.
+
+## Further Reading
+- [On-Device AI Tradeoffs: Quantization, Distillation, and Hybrid Inference](/en/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference)
+- [Operating LLM Routing and Cascading for Cost and Latency](/en/posts/operating-llm-routing-and-cascading-for-cost-and-latency)
+- [Agent Performance Depends on Tools and Harness Design](/en/posts/agent-performance-tools-harness-design)
+- [How AI Coding Shifts CS Toward Verification](/en/posts/ai-coding-shifts-cs-toward-verification)
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+---
+
+## References
+
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517)
+- [Memory FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8590148-memory-in-chatgpt)
+- [Model Context Protocol (MCP) - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/mcp)
