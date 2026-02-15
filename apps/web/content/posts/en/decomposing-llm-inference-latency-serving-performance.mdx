@@ -1,0 +1,144 @@
+---
+title: Decomposing LLM Inference Latency for Better Serving Performance
+slug: decomposing-llm-inference-latency-serving-performance
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: en
+description: >-
+  Break down LLM latency into queue/compute and prefill/decode, then tune
+  batching, KV cache limits, scheduling, and quantization.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+  - inference
+author: AI온다
+sourceId: evergreen-gpu-inference-optimization
+sourceUrl: ''
+verificationScore: 0.8933333333333334
+alternateLocale: /ko/posts/decomposing-llm-inference-latency-serving-performance
+coverImage: /images/posts/decomposing-llm-inference-latency-serving-performance.png
+---
+
+## TL;DR
+
+- Latency can be split into queue vs compute, and model time into prefill vs decode.  
+- This split helps explain why TTFT, inter-token latency, and throughput can move differently.  
+- Start by measuring each component, then tune batching, KV cache, and quantization with evaluation.  
+
+Example: A user sees a slow first response. The GPU looks active. The delay can come from waiting or computation.
+
+## TL;DR
+
+- **What changed / what’s the core issue?** LLM inference latency is not one number. It can be split into *prefill* and *decode*. Serving latency can also be split into *queue* and *compute*.  
+- **Why does it matter?** Even on the same GPU, settings can shift TTFT, inter-token latency, and throughput differently. Those shifts can oppose each other.  
+- **What should the reader do?** Measure **queue vs compute** and **prefill vs decode** first. Then tune KV cache limits and batching together. Apply quantization only after quality evaluation.  
+
+Teams running LLM services often see users waiting for the first token. The GPU can look busy. Perceived speed may not improve.
+
+A useful first step is to locate where latency forms. That usually means stage-by-stage measurement. Only then do levers like batching, caching, and quantization become clearer.
+
+This article summarizes a framework for GPU inference optimization. Inference can split into **prefill** and **decode**. Serving latency can split into **queue time** and **compute time**.
+
+---
+
+## Current state
+
+In LLM serving, latency is not only one inference time. It can show up differently across stages. The request flow is often split into **prefill** and **decode**.
+
+Prefill processes the full prompt. It is the segment that produces the first output token. Decode is the repeated segment that generates one token at a time afterward.
+
+This distinction matters because optimization points differ. Prefill often affects TTFT. Decode repeats token generation, so cumulative cost can grow.
+
+In decode, batching can increase throughput. But mixed prefill and decode workloads can change TTFT. They can also change inter-token latency, depending on scheduling.
+
+End-to-end server latency includes more than model computation. It can include waiting before execution. NVIDIA Triton describes latency components like **queue** and **compute**.
+
+Queue time is time waiting for scheduling. Compute time is time spent executing inference, including data copies. This frame helps before decisions like adding GPUs.
+
+---
+
+## Analysis
+
+Batching, caching, and scheduling interact. That interaction can mislead single-technique tuning. Measurement can reduce guesswork.
+
+The **KV cache** stores keys and values from previous tokens during decode. That can avoid recomputation for the next token. It can reduce compute and raise throughput.
+
+KV cache also uses memory. Memory usage grows with **batch size** and **context length**. If memory becomes tight, concurrency can drop, and latency can rise.
+
+So “cache makes it faster” can be incomplete. A more careful claim depends on the memory ceiling. Cache pressure can reduce concurrency and hurt speed.
+
+Batching strategy should be evaluated similarly. NVIDIA describes **in-flight batching**. It mixes prefill and decode work on the GPU. This can reduce GPU idle time.
+
+But KV cache growth can constrain how many requests fit. Then “increase batch size” can hit memory limits. Some systems report paged KV cache approaches, like PagedAttention.
+
+Paged KV cache is reported to reduce waste and fragmentation. It aims to support more concurrent requests. It is also reported to limit per-token latency growth with longer sequences.
+
+The effect size can vary by workload and implementation. That variation suggests measurement before broad conclusions.
+
+Compression methods include quantization, pruning, and distillation. They can reduce GPU time. Each comes with different risks and costs.
+
+NVIDIA TensorRT notes quantization can affect quality. It cites rounding and clamping error as causes. That implies a speed and quality trade-off.
+
+A Scientific Reports paper discusses pruning limits. It notes unstructured sparsity may not map to GPU speedups. Many GPUs are tuned for dense computation.
+
+ArXiv studies describe distillation trade-offs. They report a tension between task loss and distillation loss. They also report possible mismatches between accuracy and inference fidelity.
+
+So compression choices often benefit from control and measurement. They can use service-specific quality criteria. They can also use latency and cost targets.
+
+---
+
+## Practical application
+
+A common mistake is optimizing by technique names. A steadier approach starts with a measurement framework. Triton suggests splitting serving latency into **queue vs compute**.
+
+Split model time into **prefill vs decode** as well. Then measure each segment. Choices like batching changes or quantization become easier to justify.
+
+A practical order can look like this. If decode throughput is the issue, check KV cache memory ceilings. If TTFT spikes, inspect prefill and decode mixing.
+
+Consider quantization, pruning, or distillation after confirming compute is the bottleneck. Quality degradation can be possible with quantization. That risk suggests evaluation before production use.
+
+**Checklist for Today:**
+- Measure server latency as queue time and compute time.  
+- Measure model time as prefill and decode, then compare TTFT and inter-token latency.  
+- Define quality criteria for compression, then test configurations before production changes.  
+
+---
+
+## FAQ
+
+**Q1. Why do we need to separate prefill and decode?**  
+A. An LLM request has two stages. Prefill covers prompt processing and first token generation. Decode generates subsequent tokens one by one. The levers can behave differently in each stage.
+
+**Q2. If we increase batch size, will it often get cheaper and faster?**  
+A. In decode, batching can increase throughput. With mixed prefill and decode, TTFT and inter-token latency can change. KV cache growth can also limit concurrency through memory.
+
+**Q3. Isn’t quantization often worth using in the end?**  
+A. It can reduce cost and latency. TensorRT notes quality can drop due to rounding and clamping error. That suggests defining an acceptable quality floor via evaluation.
+
+---
+
+## Conclusion
+
+For GPU inference optimization, decomposition often comes before techniques. Break latency into **queue vs compute** and **prefill vs decode**. Then tune batching, KV cache, scheduling, and compression with measurements.
+
+Next, consider ways to increase concurrency with less KV cache waste. Paging is one reported approach. Tie compression decisions to an evaluation framework and observed bottlenecks.
+
+## Further Reading
+- [Choosing AI Coding Tools: Extensions, Permissions, And Operations](/en/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [Choosing Open-Source LLM Serving Runtimes For Latency](/en/posts/choosing-open-source-llm-serving-runtimes-for-latency)
+- [Designing AI Conversations Without Hierarchy, Lecturing, Or Isolation](/en/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+- [Family AI Onboarding With Data Safety Rules](/en/posts/family-ai-onboarding-data-safety-rules)
+- [On-Device AI Tradeoffs: Quantization, Distillation, and Hybrid Inference](/en/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference)
+---
+
+## References
+
+- [Optimization — NVIDIA Triton Inference Server 2.2.0 documentation - docs.nvidia.com](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton_inference_server_220/user-guide/docs/optimization.html)
+- [Boost Llama 3.3 70B Inference Throughput 3x with NVIDIA TensorRT-LLM Speculative Decoding | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/boost-llama-3-3-70b-inference-throughput-3x-with-nvidia-tensorrt-llm-speculative-decoding/)
+- [Accuracy Considerations — NVIDIA TensorRT - docs.nvidia.com](https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/accuracy-considerations.html)
+- [Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve - arxiv.org](https://arxiv.org/abs/2403.02310)
+- [Efficient self-attention with smart pruning for sustainable large language models | Scientific Reports - nature.com](https://www.nature.com/articles/s41598-025-92586-5)
+- [DOT: A Distillation-Oriented Trainer - arxiv.org](https://arxiv.org/abs/2307.08436)
+- [On the Generalization vs Fidelity Paradox in Knowledge Distillation - arxiv.org](https://arxiv.org/abs/2505.15442)

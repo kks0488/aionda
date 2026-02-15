@@ -1,0 +1,101 @@
+---
+title: LLM 추론 지연 분해와 최적화
+slug: decomposing-llm-inference-latency-serving-performance
+date: '2026-02-15'
+lastReviewedAt: '2026-02-15'
+locale: ko
+description: LLM 지연을 queue/compute·prefill/decode로 나눠 계측하고 배치·KV캐시·양자화를 조정하는 방법
+tags:
+  - hardware
+  - llm
+  - explainer
+  - inference
+author: AI온다
+sourceId: evergreen-gpu-inference-optimization
+sourceUrl: ''
+verificationScore: 0.8933333333333334
+alternateLocale: /en/posts/decomposing-llm-inference-latency-serving-performance
+coverImage: /images/posts/decomposing-llm-inference-latency-serving-performance.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** LLM 추론 지연은 한 덩어리가 아니라 *prefill*과 *decode*로 나뉘고, 서버 지연도 *queue*와 *compute*로 분해해 봐야 한다.  
+- **왜 중요한가?** 같은 GPU에서도 배치·KV 캐시·스케줄링 설정에 따라 TTFT(첫 토큰까지)와 토큰 간 지연, 처리량이 서로 다른 방향으로 변할 수 있다.  
+- **독자는 뭘 하면 되나?** 지연을 **queue vs compute**, **prefill vs decode**로 계측해 병목을 먼저 특정하고, KV 캐시 메모리 상한과 배치 전략을 같이 조정한 뒤, 양자화는 품질 평가를 통과하는 범위에서만 적용한다.
+
+LLM 서비스를 운영하는 팀은 요청 지연을 두고 비슷한 상황을 반복해서 겪는다. 예를 들어 사용자는 첫 토큰을 기다리고, GPU는 바빠 보이는데도 체감 속도는 개선되지 않을 수 있다. 여기서 먼저 할 일은 모델 크기만 보는 것이 아니라, **추론 지연시간이 어디에서 만들어지는지**를 단계별로 분해하는 것이다. 그 다음에 배치·캐시·양자화 같은 “비용/지연 레버”를 만져야 한다.
+
+이 글은 GPU 추론 최적화의 기본 프레임을 정리한다. 특히 추론이 **prefill(첫 토큰까지)**과 **decode(이후 토큰 생성)**로 나뉘고, 서빙 시스템 지연이 **queue 시간**과 **compute 시간**으로 분해된다는 점을 출발점으로 둔다.
+
+예: 한 서비스에서 사용자는 “대답이 늦다”고 말한다. 그런데 실제 병목은 모델 계산이 아니라 요청이 대기열에서 기다리는 시간일 수 있다. 또는 첫 토큰만 늦게 나오는 패턴일 수 있다.
+
+---
+
+## 현황
+
+LLM 서빙에서 지연은 “한 번의 추론 시간”으로 끝나지 않고, 단계별로 다른 형태로 나타난다. 요청 흐름은 보통 **prefill**과 **decode**로 나뉜다. prefill은 프롬프트 전체를 처리해 **첫 출력 토큰을 만드는 구간**이다. decode는 이후 토큰을 **한 번에 1개씩 생성**하는 반복 구간이다. (Sarathi-Serve는 이 단계 구분을 서빙 관점에서 설명한다.)
+
+이 구분이 중요한 이유는 최적화 지점이 다르기 때문이다. prefill은 입력을 한 번에 처리하므로 TTFT(첫 토큰까지 시간)에 직접 영향을 주기 쉽다. decode는 토큰이 **1개씩** 생성되는 반복이어서 누적 비용이 커진다. decode에서는 배치로 처리량을 올릴 여지가 커지지만, prefill과 decode 요청이 섞이면 스케줄링에 따라 **TTFT**와 **토큰 간 지연**이 달라질 수 있다(이 역시 Sarathi-Serve가 서빙의 난제로 다루는 지점이다).
+
+서버 전체 지연은 모델 계산만이 아니라, 운영 경로에서 나뉘어 쌓인다. NVIDIA Triton Inference Server 문서가 소개하듯, 총 지연은 **queue(스케줄 큐에서 기다린 시간)**와 **compute(실제 추론 수행 시간, 데이터 복사 포함)** 같은 구성요소로 나눠 볼 수 있다. 이 프레임을 먼저 잡아두면 “GPU를 더 사야 하나?” 같은 결정을 하기 전에, 병목이 **대기열(queue)**인지 **연산(compute)**인지부터 확인할 수 있다.
+
+---
+
+## 분석
+
+배치·캐시·스케줄링은 서로 영향을 주기 때문에, 한 가지 기법만 떼어 보면 오판하기 쉽다. **KV 캐시**는 decode 단계에서 이전 토큰의 key/value를 저장해 다음 토큰 생성 시 재계산을 줄인다. 이 방식은 연산량을 줄여 처리량을 올릴 수 있다. 다만 KV 캐시는 비용이 있다. KV 캐시는 **배치 크기**와 **컨텍스트 길이**가 커질수록 메모리를 더 사용한다. 메모리가 병목이 되면 동시 요청 수가 줄고, 처리량과 지연이 함께 악화될 수 있다. 그래서 “캐시를 쓰면 빨라진다”보다는 “캐시가 메모리 상한과 충돌하면 느려질 수 있다”가 더 정확한 설명이다.
+
+배치 전략도 같은 방식으로 판단해야 한다. NVIDIA 기술 블로그가 설명하듯 **in-flight batching(컨텍스트/prefill와 생성/decode 요청을 섞어 처리)**은 GPU 유휴를 줄여 활용률을 높이는 데 도움이 될 수 있다. 그러나 KV 캐시가 커질수록 배치 가능한 동시 요청 규모가 제한되므로, 배치만 키우는 접근은 메모리에서 제약을 받을 수 있다. 이때 **PagedAttention처럼 페이징된 KV 캐시**는 KV 메모리 낭비·단편화를 줄여 더 많은 동시 요청을 수용하는 방향으로 보고된다. 또한 시퀀스 길이가 늘 때 토큰당 지연 증가를 완화하는 데 도움이 될 수 있다. 다만 이 효과의 크기는 워크로드와 구현에 따라 달라질 수 있으므로, 단정 대신 계측이 필요하다.
+
+양자화/프루닝/디스틸레이션은 “GPU 시간을 줄이는 압축”이지만, 방식마다 리스크와 비용 구조가 다르다. NVIDIA TensorRT 문서가 설명하듯 **양자화는 반올림·클램핑 오차**로 품질(정확도)에 영향을 줄 수 있고, 속도/비용과 품질 사이에 트레이드오프가 생긴다. 프루닝은 구조적/비구조적 방식에 따라 실제 지연 이득이 달라질 수 있으며, Scientific Reports 논문은 **비구조적 프루닝이 희소 행렬을 만들더라도 GPU가 밀집 연산에 최적화된 경우 하드웨어 효율을 충분히 못 뽑을 수 있다**고 지적한다. 디스틸레이션도 비용을 줄일 수 있지만, arXiv 연구들에서 **task loss와 distillation loss 사이 수렴 트레이드오프**, 그리고 **정확도 향상과 추론 충실도(fidelity) 사이의 불일치** 가능성을 보고한다. 따라서 압축은 “적용 여부”보다 “측정과 통제”가 핵심이다.
+
+---
+
+## 실전 적용
+
+실무에서 자주 발생하는 문제는 최적화를 “기법 이름”부터 시작하는 것이다. 반대로 안정적인 접근은 측정 프레임부터 시작한다. Triton이 제시하는 방식처럼 서버 지연을 **queue vs compute**로 나누고, 모델 구간을 **prefill vs decode**로 나눠 측정하라. 그 다음에야 배치를 바꿀지(스케줄링), KV 캐시를 줄일지(메모리), 양자화를 적용할지(품질) 같은 선택이 근거를 갖는다.
+
+실행 순서는 보통 다음의 형태로 정리된다. (1) decode 처리량이 문제면 KV 캐시가 만드는 메모리 상한을 확인한다. (2) prefill로 TTFT가 튄다면 prefill/decode 섞임(스케줄링)을 점검한다. (3) compute가 실제 병목으로 확인될 때만 양자화/프루닝/디스틸레이션 같은 “모델 변형”을 고려한다. 특히 양자화는 품질 저하 가능성이 구조적으로 존재하므로, 평가 없이 운영에 넣는 판단은 리스크가 커진다.
+
+**오늘 바로 할 일:**
+- 서버 지연을 queue와 compute로 분해해 대기 문제인지 연산 문제인지 먼저 확정한다.  
+- prefill과 decode를 분리 계측해 TTFT와 토큰 간 지연 중 무엇이 사용자 경험을 더 악화시키는지 정리한다.  
+- 양자화/프루닝/디스틸레이션은 품질 평가 기준을 먼저 정하고, 기준을 만족하는 설정만 운영에 반영한다.  
+
+---
+
+## FAQ
+
+**Q1. 왜 prefill과 decode를 굳이 나눠서 봐야 하나요?**  
+A. LLM 요청은 prefill(프롬프트 처리+첫 토큰 생성)과 decode(이후 토큰을 1개씩 생성)로 단계가 다르고, 최적화 레버도 다르게 작동한다. prefill은 TTFT에, decode는 토큰 생성이 누적되면서 처리량과 토큰 간 지연에 더 민감하다.
+
+**Q2. 배치를 키우면 무조건 싸지고 빨라지나요?**  
+A. decode에서는 배치가 처리량을 올리는 수단이 될 수 있다. 하지만 prefill과 decode가 섞이면 스케줄링에 따라 TTFT/토큰 간 지연이 흔들릴 수 있다. 또한 KV 캐시가 커지면 메모리 때문에 동시 요청 수가 제한되어 “배치를 더 키우기 어려운” 상황이 생길 수 있다.
+
+**Q3. 양자화는 결국 쓰는 게 이득 아닌가요?**  
+A. 비용/지연을 줄일 가능성은 있지만, TensorRT가 설명하듯 반올림·클램핑 오차로 품질이 떨어질 수 있고 트레이드오프가 생긴다. 그래서 적용 여부는 기능 선택이 아니라, 서비스가 허용하는 품질 하한을 평가로 정의하고 그 범위 안에서 운영하는 선택에 가깝다.
+
+---
+
+## 결론
+
+GPU 추론 최적화는 요령보다 분해가 먼저다. **queue vs compute**, **prefill vs decode**로 지연을 쪼개고, 그 위에서 **배치·KV 캐시·스케줄링·압축**을 함께 조정할 때 비용과 지연을 함께 개선할 여지가 생긴다. 다음 단계에서 볼 포인트는 KV 캐시 메모리를 덜 낭비하면서 동시성을 늘리는 방법(예: 페이징)과, 압축을 평가 체계로 운영에 묶어 두는 방법이다.
+
+## 다음으로 읽기
+- [AI 코딩 도구, 확장·권한이 성패 가른다](/ko/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [오픈소스 LLM 서빙 런타임 선택법](/ko/posts/choosing-open-source-llm-serving-runtimes-for-latency)
+- [AI 격차가 관계를 망치는 순간](/ko/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+- [가족 AI 온보딩과 데이터 안전 규칙](/ko/posts/family-ai-onboarding-data-safety-rules)
+- [온디바이스 AI: 최적화와 트레이드오프](/ko/posts/on-device-ai-tradeoffs-quantization-distillation-hybrid-inference)
+---
+
+## 참고 자료
+
+- [Optimization — NVIDIA Triton Inference Server 2.2.0 documentation - docs.nvidia.com](https://docs.nvidia.com/deeplearning/triton-inference-server/archives/triton_inference_server_220/user-guide/docs/optimization.html)
+- [Boost Llama 3.3 70B Inference Throughput 3x with NVIDIA TensorRT-LLM Speculative Decoding | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/boost-llama-3-3-70b-inference-throughput-3x-with-nvidia-tensorrt-llm-speculative-decoding/)
+- [Accuracy Considerations — NVIDIA TensorRT - docs.nvidia.com](https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/accuracy-considerations.html)
+- [Taming Throughput-Latency Tradeoff in LLM Inference with Sarathi-Serve - arxiv.org](https://arxiv.org/abs/2403.02310)
+- [Efficient self-attention with smart pruning for sustainable large language models | Scientific Reports - nature.com](https://www.nature.com/articles/s41598-025-92586-5)
+- [DOT: A Distillation-Oriented Trainer - arxiv.org](https://arxiv.org/abs/2307.08436)
+- [On the Generalization vs Fidelity Paradox in Knowledge Distillation - arxiv.org](https://arxiv.org/abs/2505.15442)
