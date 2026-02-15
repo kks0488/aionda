@@ -1,0 +1,195 @@
+---
+title: How AI Coding Shifts CS Toward Verification
+slug: ai-coding-shifts-cs-toward-verification
+date: '2026-02-14'
+lastReviewedAt: '2026-02-14'
+locale: en
+description: >-
+  As AI coding tools improve, CS learning shifts from writing code to
+  understanding, verification, design, and security.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - security
+author: AI온다
+sourceId: '975366'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=975366'
+verificationScore: 0.7433333333333333
+alternateLocale: /ko/posts/ai-coding-shifts-cs-toward-verification
+coverImage: /images/posts/ai-coding-shifts-cs-toward-verification.png
+---
+
+## TL;DR
+
+- AI coding tools can speed implementation, so CS learning can shift toward understanding, verification, and design.  
+- Benchmarks like pass@k, CWE evaluations, and 8K–128K context tests suggest correctness and safety differ.  
+- Start turning coursework into deliverables like tests, reviews, and threat models.  
+
+---
+
+A student sees a completed function appear after a short prompt.  
+The code looks plausible in the chat window.  
+The student pauses before submitting it.  
+They ask if it is correct, safe, and explainable.  
+
+Example: A student uses an AI tool for assignment code. It fails on unusual inputs. The student writes tests, isolates the cause, and updates the code. The student then documents rules to reduce repeats.
+
+The core issue is simple.  
+As AI improves at coding, writing code may carry less learning value.  
+CS learning can shift toward definition, verification, and system understanding.  
+It can also shift toward quality and accountability.  
+
+Industry context points in a similar direction.  
+Public evaluations suggest models can pass tests.  
+They also indicate risks that may translate into costs.  
+Those risks include security vulnerabilities and long-context failures.  
+
+---
+
+## Current state
+
+Benchmarks often focus on functional correctness.  
+They often ask whether code runs and passes tests.  
+The HumanEval family commonly uses **pass@k**.  
+It estimates whether at least one of k samples passes tests.  
+A practical benefit is execution-based evaluation.  
+It does not depend on explanations.  
+
+Functional accuracy alone may not cover real requirements.  
+Security evaluations can probe additional limitations.  
+One approach checks vulnerabilities by **CWE** categories.  
+Benchmarks like VADER classify defects into CWE.  
+They also ask for a cause explanation.  
+They also ask for a patch.  
+They also ask for test plans.  
+That score is one data point, not a full conclusion.  
+It still suggests different skills can diverge.  
+Code generation and vulnerability handling may not align.  
+
+Long context is often described as challenging.  
+It includes long files and long conversations.  
+It also includes multi-module systems.  
+Sequential‑NIAH는 컨텍스트 길이 8K부터 128K 토큰까지 다양한 길이에서 LLM의 순차 정보(needle) 추출 능력을 평가하는 장문 컨텍스트 벤치마크이다.  
+NoLiMa evaluates long context differently.  
+It reports underperformance at **32K** versus short-context baselines.  
+Snippets also show drops like **from 99.3% to 69.7%**.  
+These results suggest project-like work can raise failure risk.  
+
+---
+
+## Analysis
+
+This shift can change CS learning strategy.  
+Product development often extends beyond writing code.  
+It includes decomposing requirements.  
+It includes anticipating failure modes.  
+It includes locking behavior with tests.  
+It includes debugging incidents and handling operations.  
+It includes balancing performance, cost, and security.  
+
+The results above suggest uneven capability profiles.  
+A model can look strong on **pass@k**.  
+It can still vary on CWE tasks.  
+It can also vary in long context like **8K–128K** and **32K**.  
+That pattern can increase the verification burden.  
+It can also increase accountability needs.  
+
+A direct link from CS course grades to job performance is unclear here.  
+This article does not provide a systematic review.  
+It also does not provide direct workplace performance metrics.  
+It instead points to indirect signals.  
+Those signals include industry competency gaps.  
+They also include intervention meta-analyses.  
+They also include curriculum guides like CS2023.  
+A cautious conclusion fits the available evidence.  
+Fundamentals can remain useful when converted into operational capability.  
+
+---
+
+## Practical application
+
+From a first-year perspective, extreme reactions can be risky.  
+Dropping the major because AI writes code can be risky.  
+Doing everything exactly as before can also be risky.  
+A mixed approach can be safer.  
+Combine foundational CS, AI tool use, and a domain area.  
+
+Foundational CS can act like measurement equipment.  
+It can help evaluate AI outputs.  
+Data structures and algorithms can support complexity reasoning.  
+OS and networks can help interpret latency and resource failures.  
+DB work can extend beyond “the query runs.”  
+It can include integrity, transactions, and schema design.  
+
+A practical workflow can use three steps.  
+First, convert requirements into tests.  
+Second, use AI for an initial draft.  
+Third, do a human risk-based review.  
+Security can be treated separately from “it works.”  
+CWE-style benchmarks suggest recurring vulnerability costs are plausible.  
+Long-context results like **8K–128K** and **32K** support modular work.  
+Smaller pieces can reduce compounding errors.  
+Interfaces and contracts can help constrain behavior.  
+
+**Checklist for Today:**
+- For one feature, ask AI for tests first, then revise them into final pass criteria.  
+- For AI-written code, write threat questions and add input validation aligned with those risks.  
+- For large tasks, split work into small modules with interfaces and tests before generating code.  
+
+---
+
+## FAQ
+
+**Q1. If AI scores well on pass@k, do algorithms/data structures become less important now?**  
+A. pass@k estimates the chance of sampling a test-passing solution.  
+Real tests can be incomplete.  
+Requirements can also change.  
+Algorithms and data structures can still help justify trade-offs.  
+They can also help verify performance constraints.  
+
+**Q2. How deep should I go into CS?**  
+A. An “all or nothing” plan can be inefficient.  
+Priorities can follow what you want to build.  
+This article does not confirm a systematic review on grade transfer.  
+A safer approach is deliverable-based learning.  
+Examples include tests, debugging writeups, and performance analysis.  
+
+**Q3. If AI wobbles in long context, should I stop trusting the tools?**  
+A. A safer framing is “trust in smaller pieces.”  
+Sequential‑NIAH reports a challenge shift across **8K–128K**.  
+It reports a maximum accuracy of **63.15%** for the best model.  
+Breaking work into parts can limit blast radius.  
+Interfaces and tests can help catch errors earlier.  
+
+---
+
+## Conclusion
+
+As AI improves at coding, CS value can shift.  
+It can move away from typing speed.  
+It can move toward system understanding and risk reduction.  
+It can also move toward demonstrating quality.  
+Benchmarks show strengths like **pass@k**.  
+They also suggest limitations in CWE and long context.  
+Those limitations include **8K–128K** and **32K** settings.  
+A practical response is to learn verification habits alongside implementation.
+
+## Further Reading
+- [Agent Performance Depends on Tools and Harness Design](/en/posts/agent-performance-tools-harness-design)
+- [AI Resource Roundup (24h) - 2026-02-14](/en/posts/ai-resources-roundup-2026-02-14)
+- [Beyond Rate Limits: Continuous Access Policy Engine Design](/en/posts/beyond-rate-limits-continuous-access-policy-engine-design)
+- [Decomposing AI Risks: Tasks, Transparency, And Safety Testing](/en/posts/decomposing-ai-risks-tasks-transparency-safety-testing)
+- [Designing Agent Defenses Against Prompt Injection Attacks](/en/posts/designing-agent-defenses-against-prompt-injection-attacks)
+---
+
+## References
+
+- [VADER: A Human-Evaluated Benchmark for Vulnerability Assessment, Detection, Explanation, and Remediation - arxiv.org](https://arxiv.org/abs/2505.19395)
+- [Sequential-NIAH: A Needle-In-A-Haystack Benchmark for Extracting Sequential Needles from Long Contexts - arxiv.org](https://arxiv.org/abs/2504.04713)
+- [NoLiMa: Long-Context Evaluation Beyond Literal Matching - arxiv.org](https://arxiv.org/abs/2502.05167)
+- [Aligning software engineering education with industrial needs: A meta-analysis - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0164121219301347)
+- [A meta-analysis of teaching and learning computer programming: Effective instructional approaches and conditions - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0747563220301023)
+- [Software Engineering Education Beyond the Technical: A Systematic Literature Review - arxiv.org](https://arxiv.org/abs/1910.09865)
+- [World’s Leading Technology Associations Publish Comprehensive Curricular Guidelines for Computer Science at the Undergraduate Level - acm.org](https://www.acm.org/media-center/2024/june/cs-2023)
+- [CS2023: ACM/IEEE-CS/AAAI Computer Science Curricula - csed.acm.org](https://csed.acm.org/)
