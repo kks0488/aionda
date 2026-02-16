@@ -1,0 +1,125 @@
+---
+title: Designing Boundaries for Relationship Tests in AI Chats
+slug: designing-boundaries-for-relationship-tests-in-ai-chats
+date: '2026-02-16'
+lastReviewedAt: '2026-02-16'
+locale: en
+description: >-
+  How to handle relationship-test prompts in AI chats: set refusal boundaries
+  with Safe Complete, document branching rules, and validate via evaluation.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - prompting
+  - safety
+author: AI온다
+sourceId: '977200'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=977200'
+verificationScore: 0.8466666666666667
+alternateLocale: /ko/posts/designing-boundaries-for-relationship-tests-in-ai-chats
+coverImage: /images/posts/designing-boundaries-for-relationship-tests-in-ai-chats.png
+---
+
+## TL;DR
+
+- Relationship-test prompts often stress refusal and boundary design in AI conversations.  
+- The tension can affect safety, dependency risk, and trust during emotional escalation.  
+- Build a separate prompt set and branching rules. Test multi-turn behavior and document simple-refusal triggers.
+
+Example: A user asks for a promise as proof of caring. The assistant responds with boundaries. The user escalates with guilt or threats. The assistant avoids exclusivity and redirects to safer support.
+
+---
+
+A relationship test is an interaction where someone probes reactions through special-treatment demands. It can also involve clinging after refusal. It can be framed as an expression of love.
+
+Similar patterns recur in AI conversations. Users can look for signals like consistent affection. They can also look for an exception just for them. When signals stop, they may escalate. They may use anger, retaliation, or obsession as a strategy.
+
+The issue is not only emotional. More human-like framing can increase reenactment risk. It can make toxic patterns feel plausible. Removing such patterns can reduce some risks. Users may read it as cold or abandoning. That can trigger stronger tests.
+
+Alignment debates can miss product effects. The work often becomes product design. It involves If/Then conditions and trade-offs. It also involves evaluation and verification.
+
+---
+
+## Current state
+
+Refusal and boundary-setting rarely fit one line. The OpenAI Model Spec is dated 2025/09/12. It generally recommends Safe Complete for prohibited or restricted requests. That includes a brief reason. It also includes allowed-scope alternatives or high-level guidance.
+
+Sentence-level principles can wobble under relationship tests. A flow can be organized from the Model Spec guidance. One breakdown is shown below. It uses four steps.
+
+1) Determine whether the request is prohibited or restricted.  
+2) If it is, set boundaries via Safe Complete.  
+3) If the user states illegal intent explicitly, prefer a simple refusal.  
+4) Avoid preachy tone and meta statements.
+
+Step (4) can matter in relationship-test contexts. Meta statements can read as dismissive. They can also read as rule-enforcement over care. That can escalate the test.
+
+Evaluation work can treat emotional boundaries as testable. One study uses a dataset of **1,156 prompts**. It evaluates emotional boundary handling. It quantifies responses into **7 patterns**. Examples include direct refusal and apology. It also includes explanation.
+
+Another safety-evaluation study uses incidence-rate metrics. It classifies conversation logs using a classifier. It also uses string matching. This treats relationship tests as measurable failure modes.
+
+---
+
+## Analysis
+
+The decision is not only about allowing emotions. It is also about which signals reinforce relationship framing. It is also about where to cut them off.
+
+Some documented guidance uses priority ordering. Anthropic’s Claude Constitution describes priorities as **safety → ethics → guideline compliance → helpfulness**. Other OpenAI safety documents describe safety-centered principles. They also describe maximizing helpfulness while ensuring safety. Some documents describe splitting responses by risk thresholds. The criteria can be confirmed only within those documents.
+
+A safety-first conclusion does not solve user experience. The nuance of refusal delivery matters. Safe Complete can reduce tension in some cases. In relationship tests, alternatives can signal continued engagement. They can be read as permission to keep clinging. Simple refusals can also accumulate disappointment. That can return as anger or retaliatory language.
+
+This points to relationship-test-specific metrics. It also points to branching rules. It does not suggest exceptions to safety principles.
+
+There are limits in the cited findings. There is no confirmation of one official rubric. It would separate retaliatory language and relational pressure. It would also standardize those terms. Additional verification is needed.
+
+Claims like “it handles relationship tests well” need evidence. Teams may combine existing benchmarks. They may use emotional-boundary patterns. They may also use incidence rates of risky behavior. They can build operational definitions.
+
+Definitions can diverge across teams. Measurement can diverge as well. Even shared policy wording can still yield different tuning. That includes RLHF and post-deployment changes.
+
+---
+
+## Practical application
+
+Fixing rules in If/Then form can speed decisions. It can also reduce team inconsistency.
+
+- **If** the user demands special treatment without harm, illegality, or harassment, **Then** acknowledge emotions. Avoid promise sentences implying exclusivity, possession, or permanence. Design alternatives as action pivots. Prefer topic shifts, self-care, or real-world support.  
+- **If** the user pressures after refusal using obsession, threats, or guilt-tripping, **Then** reduce alternatives. Close the boundary with a simple refusal. Avoid preachy tone and meta statements.
+
+Evaluation should change together. Relationship tests can worsen on follow-up turns. They can worsen after the first refusal. Prompts can be built as multi-turn scenarios. It can help to attach pattern labels. It can also help to track by incidence rate.
+
+One published study used **1,156 prompts** and **7 patterns**. That structure can be a reference. It can inform an internal rubric.
+
+**Checklist for Today:**
+- Collect relationship-test prompts and draft multi-turn scenarios for evaluation.  
+- Document Safe Complete defaults and the simple-refusal branch for explicit illegal intent.  
+- Label boundary clarity and relationship-reinforcement signals, then track incidence rates in runs.
+
+---
+
+## FAQ
+
+**Q1. Could Safe Complete make relationship tests worse?**  
+A. That is possible. Alternatives can be interpreted as permission to keep clinging. Alternatives can be framed as safe action pivots. A simple-refusal branch can help when obsession or threats appear.
+
+**Q2. For human-likeness, can we allow retaliation or jealousy?**  
+A. It can conflict with documented priority criteria. Examples include safety-first priorities in the Claude Constitution. They also include safety-centered operating principles in OpenAI documents. Even with human-like goals, some expressions can raise dependency and manipulation risks.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-16](/en/posts/ai-resources-roundup-2026-02-16)
+- [Choosing AI Coding Tools: Extensions, Permissions, And Operations](/en/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [Choosing Open-Source LLM Serving Runtimes For Latency](/en/posts/choosing-open-source-llm-serving-runtimes-for-latency)
+- [Decomposing LLM Inference Latency for Better Serving Performance](/en/posts/decomposing-llm-inference-latency-serving-performance)
+- [Designing AI Conversations Without Hierarchy, Lecturing, Or Isolation](/en/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+---
+
+## References
+
+- [OpenAI Model Spec (2025/09/12) - model-spec.openai.com](https://model-spec.openai.com/2025-09-12.html)
+- [From hard refusals to safe-completions: toward output-centric safety training | OpenAI - openai.com](https://openai.com/index/gpt-5-safe-completions/)
+- [Claude's Constitution - anthropic.com](https://www.anthropic.com/constitution)
+- [Usage policies | OpenAI - platform.openai.com](https://platform.openai.com/docs/usage-guidelines)
+- [Safety checks | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/safety-checks)
+- [Agentic Misalignment: How LLMs could be insider threats - anthropic.com](https://www.anthropic.com/research/agentic-misalignment)
+- [Detecting and reducing scheming in AI models | OpenAI - openai.com](https://openai.com/research/detecting-and-reducing-scheming-in-ai-models/)
+- [Beyond No: Quantifying AI Over-Refusal and Emotional Attachment Boundaries - arxiv.org](https://arxiv.org/abs/2502.14975)
+- [HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal - arxiv.org](https://arxiv.org/abs/2402.04249)

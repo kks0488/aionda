@@ -1,0 +1,110 @@
+---
+title: '에이전트 실행 루프, 자가구현의 대가'
+slug: building-reliable-agent-loops-without-framework-dependencies
+date: '2026-02-16'
+lastReviewedAt: '2026-02-16'
+locale: ko
+description: 에이전트 실행 루프를 자가구현할 때 필요한 신뢰성 패턴과 평가·로그 기준을 정리한다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: '977195'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=977195'
+verificationScore: 0.7466666666666667
+alternateLocale: /en/posts/building-reliable-agent-loops-without-framework-dependencies
+coverImage: /images/posts/building-reliable-agent-loops-without-framework-dependencies.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심 이슈인가?** 에이전트 실행 루프의 신뢰성을 프레임워크에 맡길지, 실행기·툴링·프로토콜을 직접 구현할지가 운영 안정성에 직접 영향을 준다.  
+- **왜 중요한가?** RAS‑Eval은 **3,802 attack tasks**에서 공격이 **TCR을 36.78%** 낮춘다고 보고했고, SafeAgentBench는 **750 tasks**에서 안전 과제 성공률 **69%**, 유해 과제 거부율 **5%**를 함께 제시한다. “성공률만”으로는 상태 유실·중복 실행·보안 리스크를 놓치기 쉽다.  
+- **독자는 뭘 하면 되나?** 자동 채점 가능한 평가·로그 수집·재현 가능한 실행 조건을 먼저 정하고, 그 결과를 근거로 “프레임워크 채택 vs 자가구현”을 단계적으로 결정한다.  
+
+---
+
+노트북 화면에 에이전트 실행 로그가 계속 쌓인다. “재시도”, “타임아웃”, “이미 처리된 요청” 같은 줄이 섞여 있다. 팀은 한 가지를 확인한다. 에이전트의 실패는 모델만의 문제가 아니라 **실행 루프(계획‑행동‑관측)를 얼마나 내구성 있게 운영하느냐**에서 자주 갈린다. 이때 기성 프레임워크를 쓰지 않고 **실행기·툴링·프로토콜을 직접 구현하는 선택**이 왜 매력적이면서도 위험한지도 드러난다.
+
+이 글은 “에이전트 자가구현(프레임워크 비의존) 전략”을 다룬다. 공식/준공식 문서에서 반복되는 신뢰성 패턴(체크포인팅, 재시도/백오프, 멱등성, 회로차단기)과 평가 방법(명확한 메트릭, 자동 채점, 결정론적 환경, 지속적 평가)을 기준으로, **자가구현이 성과로 이어질 수 있는 조건**과 **책임 경계가 어떻게 이동하는지**를 정리한다.
+
+예: 한 팀이 프레임워크를 빼고 실행기를 직접 만든다. 처음엔 빨리 움직인다. 하지만 중복 실행이 외부 시스템 상태를 꼬이게 만든다. 팀은 멱등성과 체크포인팅을 뒤늦게 보강한다. 재시도가 늘어나자 백오프와 회로차단기를 추가한다. 마지막에는 실패 원인 재현이 어려워져 구조화 로그와 평가 하네스를 붙인다.
+
+---
+
+## 현황
+
+에이전트는 보통 “계획‑행동‑관측” 루프로 돌아가며, 이 루프는 LLM 호출과 툴 호출을 엮는다. 루프가 길어질수록 실패 모드가 늘어나는 경향이 있다. 네트워크 오류, 툴의 일시 장애, 중복 실행, 상태 유실이 한 번만 터져도 에이전트는 같은 행동을 반복하거나 멈추거나 엉뚱한 상태로 진행할 수 있다.
+
+문서에서 반복되는 요지는 “실행을 내구성 있게 만들라”로 수렴한다. 예를 들어 Microsoft Community Hub의 Azure Durable Functions 연동 글은, 에이전트 호출을 “durable orchestration contexts”에서 실행하고 **LLM 호출과 툴 호출을 durable operations**로 다루는 접근을 설명한다. 여기서 핵심은 두 가지로 정리된다. 첫째, 오케스트레이션이 “continue from the …” 같은 **재개(replay/restore) 전제**를 갖는다는 점이다. 둘째, “Built-in retry mechanisms”처럼 **재시도 메커니즘을 내장**해 복원력을 높인다고 명시한다.
+
+평가 쪽도 비슷한 방향을 제시한다. OpenAI의 평가 가이드는 **목표 정의 → 데이터셋 수집 → 메트릭 정의 → 실행/비교 → 지속적 평가(continuous evaluation)** 흐름을 권장한다. “Log everything”, “Automate when possible” 같은 원칙도 함께 제시한다. 연구에서는 REAL이 **결정론적 시뮬레이션(deterministic simulations of real-world websites)**을 통해 “robust, reproducible evaluation”을 노린다고 밝힌다.
+
+보안·안전 평가는 수치로 위험을 드러낸다. RAS‑Eval은 **80 test cases**, **3,802 attack tasks**를 포함한다고 적시한다. 또 공격이 에이전트의 **task completion rates (TCR)**를 **36.78%** 낮췄다는 결과를 제시한다. SafeAgentBench는 **750 tasks**를 포함한다. 그리고 “best-performing baseline gets **69%** success rate for safe tasks, but only **5%** rejection rate for hazardous tasks”라고 쓴다. OpenAI의 Safety evaluations hub는 **Last updated: August 15, 2025**라고 업데이트 시점을 공개한다.
+
+---
+
+## 분석
+
+프레임워크 없이 자가구현이 “가능해 보이는” 이유는 비교적 단순하다. 에이전트의 실패는 모델뿐 아니라 실행기에서 자주 터진다. 체크포인트를 어디에 남길지, 어떤 툴 호출을 원자적으로 다룰지, 재시도를 언제 멈출지, 실패를 어떻게 기록하고 재현할지는 제품·조직마다 다를 수 있다. 이 지점에서 자가구현은 “락인 감소”만의 문제가 아니다. 팀 상황에 맞게 **관측성(로그/트레이싱) 스키마**, **권한/샌드박스 정책**, **비용 최적화 지점**을 더 구체적으로 설계할 수 있다.
+
+다만 책임 경계가 바뀐다. 프레임워크 의존 시, 내구성(재시도·백오프·체크포인팅) 기능을 프레임워크가 제공하는 범위에서는 애플리케이션이 멱등성 보장(부작용 경계)과 로깅 설계에 집중하기 쉽다. 반대로 자가구현을 택하면 체크포인트, 재시도 정책, 회로차단기, 멱등성 키 저장, 감사 가능한 로그 수집을 **실행기·툴링·프로토콜 계층에서 직접** 책임져야 한다. 이는 단순히 코드 양의 문제가 아니다. 장애 시나리오를 제품이 더 직접적으로 떠안는다는 뜻이다.
+
+또 하나 짚을 점이 있다. ‘감사 로그(audit log)’를 에이전트 루프의 신뢰성 패턴으로 **명시적으로** 권장하는 단일 공식 문구는 이번 조사 범위에서 직접 확인되지 않았다(추가 확인 필요). 따라서 팀은 “무엇을 언제 어떤 수준으로 남길지”를 요구사항으로 먼저 정의해야 한다.
+
+---
+
+## 실전 적용
+
+자가구현을 “프레임워크 대체”로만 보면 범위가 흐려질 수 있다. 더 현실적인 정의는 다음에 가깝다. **우리 제품의 실패 모드와 비용 구조에 맞춘 실행 루프를 직접 설계하는 것.** 시작점은 기능 목록이 아니라 “운영 가능성”이다.
+
+- 체크포인팅으로 재시작/재개가 가능한가?  
+- 부작용 있는 툴 호출에 멱등성을 강제하는가?  
+- 재시도는 지수 백오프(+jitter)로 설계했는가?  
+- 반복 실패는 회로차단기로 빠르게 실패시키고, 재시도 재개 조건을 분리했는가?  
+- 변경 전후가 재현 가능한 평가로 비교되는가?
+
+평가는 “모델이 좋아지면 해결” 같은 기대를 줄이는 장치가 된다. OpenAI 가이드처럼 목표·데이터·메트릭을 먼저 정하고, 자동 채점이 가능한 형태로 만들고, 로그를 남기고, 지속적으로 돌리는 접근이 반복해서 권장된다. REAL처럼 결정론적 환경을 쓰면 루프 변경(예: 재시도 정책 변경)이 결과에 미치는 영향을 더 분리해서 볼 수 있다.
+
+보안/안전은 별도 축으로 다루는 편이 낫다. RAS‑Eval이 **3,802 attack tasks**에서 TCR 하락(**36.78%**)을 보고한 것처럼, “정상 상황 성공률”만 보면 놓치는 취약점이 드러날 수 있다. SafeAgentBench가 **750 tasks**에서 안전 과제 성공률(**69%**)과 유해 과제 거부율(**5%**)을 함께 보여준 것도 같은 맥락이다.
+
+**오늘 바로 할 일:**
+- 툴 호출을 “부작용 있음/없음”으로 구분하고, 부작용이 있는 호출에는 멱등성 키의 생성·저장·검증 흐름을 문서화한다.  
+- 재시도(백오프·지터)와 회로차단기(빠른 실패·재개 조건)를 정책으로 분리해, 실행기 코드를 크게 바꾸지 않고도 실험 가능하게 만든다.  
+- 자동 채점 가능한 평가 세트와 로그 포맷을 먼저 고정하고, 정상·공격·안전 시나리오를 분리해 회귀 테스트로 반복 실행한다.  
+
+---
+
+## FAQ
+
+**Q1. 자가구현의 ‘최소 요건’은 뭔가?**  
+A. 체크포인팅(재개 가능), 멱등성(부작용 방지), 재시도/백오프(일시 오류 흡수), 반복 실패에 대한 회로차단기(폭주 방지), 그리고 변경 전후를 비교할 평가 체계가 최소 요건에 가깝다. 프레임워크를 쓰면 일부를 가져오지만, 자가구현이면 전부가 팀 책임으로 이동한다.
+
+**Q2. 프레임워크를 쓰면 멱등성은 신경 안 써도 되나?**  
+A. 아니다. 내구성 오케스트레이션이 재시도를 제공할수록 같은 툴 호출이 다시 실행될 가능성이 커진다. 실행기가 재시도해도 안전하도록 툴/API 계층에서 멱등성 키 같은 장치를 설계해야 한다.
+
+**Q3. 평가는 무엇부터 측정해야 하나?**  
+A. 이번 조사 범위에서 “모든 지표의 표준 계산식”까지 통일해 제시하는 근거는 확인되지 않았다(추가 확인 필요). 대신 문서/논문이 공통으로 강조하는 건 (1) 자동 채점 가능한 성공 기준, (2) 재현 가능한 환경(예: 결정론적 시뮬레이션), (3) 로그 기반 비교, (4) 지속적 평가다. 여기에 보안·안전 축(RAS‑Eval, SafeAgentBench 같은 형태)을 분리해 넣으면 사각지대를 줄일 수 있다.
+
+---
+
+## 결론
+
+에이전트 자가구현은 “프레임워크를 안 쓴다”라기보다, **실패를 다루는 방식(내구성·평가·통제)을 제품에 맞게 소유한다**는 선택에 가깝다. 체크포인팅·재시도·멱등성·회로차단기와 재현 가능한 평가를 먼저 고정하고, 그 다음에야 프레임워크 채택/대체를 판단하는 편이 안전하다. 마지막 기준은 기능 데모가 아니다. **지속적 평가와 운영 로그**로 품질을 설명할 수 있는지가 핵심이다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-02-16](/ko/posts/ai-resources-roundup-2026-02-16)
+- [AI 코딩 도구, 확장·권한이 성패 가른다](/ko/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [오픈소스 LLM 서빙 런타임 선택법](/ko/posts/choosing-open-source-llm-serving-runtimes-for-latency)
+- [LLM 추론 지연 분해와 최적화](/ko/posts/decomposing-llm-inference-latency-serving-performance)
+- [AI 격차가 관계를 망치는 순간](/ko/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+---
+
+## 참고 자료
+
+- [OpenAI Agent SDK Integration with Azure Durable Functions | Microsoft Community Hub - techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/appsonazureblog/openai-agent-sdk-integration-with-azure-durable-functions/4453402)
+- [Evaluation best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/evaluation-best-practices)
+- [Safety evaluations hub | OpenAI - openai.com](https://openai.com/safety/evaluations-hub/)
+- [REAL: Benchmarking Autonomous Agents on Deterministic Simulations of Real Websites - arxiv.org](https://arxiv.org/abs/2504.11543)
+- [RAS-Eval: A Comprehensive Benchmark for Security Evaluation of LLM Agents in Real-World Environments - arxiv.org](https://arxiv.org/abs/2506.15253)
+- [SafeAgentBench: A Benchmark for Safe Task Planning of Embodied LLM Agents - arxiv.org](https://arxiv.org/abs/2412.13178)

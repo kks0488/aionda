@@ -1,0 +1,114 @@
+---
+title: Building Reliable Agent Loops Without Framework Dependencies
+slug: building-reliable-agent-loops-without-framework-dependencies
+date: '2026-02-16'
+lastReviewedAt: '2026-02-16'
+locale: en
+description: >-
+  Explains reliability patterns and evaluation/logging practices needed when
+  implementing agent execution loops without a framework.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: '977195'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=977195'
+verificationScore: 0.7466666666666667
+alternateLocale: /ko/posts/building-reliable-agent-loops-without-framework-dependencies
+coverImage: /images/posts/building-reliable-agent-loops-without-framework-dependencies.png
+---
+
+## TL;DR
+
+- **What changed / what this is:** This summarizes a framework-independent approach to building an agent execution loop.  
+- **Why it matters:** Benchmarks report reliability and safety gaps, including a **36.78%** TCR drop across **3,802** attack tasks.  
+- **What you should do next:** Define auto-gradable evaluations, logging, and reproducible runs before deciding to adopt a framework.
+
+---
+
+Retry lines and timeouts can fill an execution log during agent runs. Duplicate actions can appear as “request already processed.” These failures often relate to loop durability in **plan–act–observe**. The choice between a framework and self-implementation affects stability and accountability.
+
+This article covers an “agent self-implementation (framework-independent) strategy.” It draws on recurring reliability patterns in documentation. Examples include checkpointing, retry or backoff, idempotency, and circuit breakers. It also uses evaluation guidance like clear metrics and deterministic environments. It summarizes when self-implementation can translate into outcomes. It also explains how responsibility boundaries can shift.
+
+Example: A team replaces a framework with its own runner. They move fast at first. Then duplicated actions pollute external state. They add idempotency and checkpointing. Retries rise, so they add backoff and circuit breakers. Debugging becomes harder, so they add structured logs and an evaluation harness.
+
+---
+
+## Current state
+
+Agents often run a “plan–act–observe” loop. The loop coordinates LLM calls and tool calls. Longer loops tend to expose more failure modes. One incident can trigger repeats, stalls, or incorrect state. Examples include network errors and tool outages. Examples also include duplicate execution and state loss.
+
+Many documents converge on “make execution durable.” A Microsoft Community Hub post discusses Azure Durable Functions integration. It describes agent invocations in **durable orchestration contexts**. It treats both **LLM calls and tool calls** as durable operations. It also assumes resumption via replay or restore. It mentions resilience improvements via built-in retry mechanisms.
+
+Evaluation guidance points in a similar direction. OpenAI’s evaluation guide suggests a flow. It uses **define goals → collect datasets → define metrics → run/compare → continuous evaluation**. It also recommends “Log everything.” It also recommends “Automate when possible.” Research like REAL aims for robust and reproducible evaluation. It does so via deterministic simulations of real-world websites.
+
+Security and safety evaluations quantify risk with reported task counts. RAS‑Eval includes **80** test cases. It also includes **3,802** attack tasks. It reports a **36.78%** reduction in task completion rates (TCR) under attacks. SafeAgentBench includes **750** tasks. It reports **69%** success on safe tasks for a best-performing baseline. It reports **5%** rejection on hazardous tasks for that baseline. OpenAI’s Safety evaluations hub shows **Last updated: August 15, 2025**.
+
+---
+
+## Analysis
+
+Self-implementation can appear feasible because failures often occur in the runner. They do not only occur in the model. Checkpoint placement varies by product. Atomicity for tool calls can vary by tool. Retry limits can vary by risk tolerance. Recording and reproducing failures can vary by organization.
+
+Self-implementation is not only about reducing lock-in. It can enable tighter control over observability schemas. It can also enable tailored authorization and sandbox policies. It can also enable cost-control points tied to retries and tool usage. These benefits depend on disciplined engineering. They also depend on measurable evaluation practices.
+
+The responsibility boundary changes with the build choice. Frameworks can provide durability features like retry, backoff, and checkpointing. In that case, applications can focus on idempotency and logging. With self-implementation, teams should implement durability at multiple layers. These include runner, tooling, and protocol layers. The work can include checkpointing and retry policies. It can include circuit breakers and idempotency key storage. It can include collecting auditable logs. This can increase exposure to outage scenarios.
+
+One point needs careful wording. This investigation did not confirm a single official statement. The statement would explicitly recommend an “audit log” as a loop reliability pattern. Additional verification could clarify that point. Teams can still define their own recording requirements. They can specify what to record and when.
+
+---
+
+## Practical application
+
+Self-implementation can look like “framework replacement.” That framing can blur scope. A narrower definition may help. It is designing a loop for your failure modes and cost structure. The starting point is operability.
+
+- Can you restart or resume via checkpointing?  
+- Do you enforce idempotency for tool calls with side effects?  
+- Are retries designed with exponential backoff and jitter?  
+- Do you fail fast on repeated failures with a circuit breaker?  
+- Are changes compared with reproducible evaluations before and after?
+
+Evaluation can reduce the belief that a better model will fix everything. OpenAI’s guide emphasizes defining goals, data, and metrics. It also emphasizes auto-grading where possible. It also emphasizes logging and continuous runs. Deterministic environments like REAL can separate loop changes from other factors. A retry policy change is one example.
+
+Security and safety can be treated as a separate axis. RAS‑Eval reports a **36.78%** TCR drop across **3,802** attack tasks. That suggests normal success rates can miss vulnerabilities. SafeAgentBench reports **69%** safe-task success and **5%** hazardous-task rejection. It reports these on **750** tasks. That gap can inform evaluation design.
+
+**Checklist for Today:**
+- Classify tool calls by side effects, and define an idempotency key flow for side-effectful calls.  
+- Separate retry and circuit breaker policies, so you can test changes without rewriting the runner.  
+- Fix one auto-gradable evaluation set and one log schema, then run regressions across normal and attack cases.
+
+---
+
+## FAQ
+
+**Q1. What are the ‘minimum requirements’ for self-implementation?**  
+A. A reasonable baseline includes resumable checkpointing. It also includes idempotency for side effects. It also includes retry or backoff for transient failures. It also includes a circuit breaker for repeated failures. It also includes evaluation that compares before and after changes. Frameworks can provide some of these. Self-implementation shifts responsibility toward the team.
+
+**Q2. If we use a framework, can we ignore idempotency?**  
+A. It is risky to ignore idempotency. Durable orchestration can retry the same tool call. A retried call can repeat side effects. Idempotency keys at the tool or API layer can reduce that risk. This remains relevant even with a framework.
+
+**Q3. What should we measure first in evaluation?**  
+A. This investigation did not confirm a unified formula for all metrics. Additional verification could change that view. Many documents still emphasize shared themes. These include auto-gradable success criteria. They include reproducible environments like deterministic simulations. They include log-based comparisons. They include continuous evaluation. Adding a security and safety axis can reduce blind spots. RAS‑Eval and SafeAgentBench are examples.
+
+---
+
+## Conclusion
+
+Agent self-implementation is less about “not using a framework.” It is more about choosing to own product-level loop reliability. It also means owning evaluation and operational evidence. This choice can support tailored controls and optimizations. It can also increase operational responsibility and risk.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-16](/en/posts/ai-resources-roundup-2026-02-16)
+- [Choosing AI Coding Tools: Extensions, Permissions, And Operations](/en/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [Choosing Open-Source LLM Serving Runtimes For Latency](/en/posts/choosing-open-source-llm-serving-runtimes-for-latency)
+- [Decomposing LLM Inference Latency for Better Serving Performance](/en/posts/decomposing-llm-inference-latency-serving-performance)
+- [Designing AI Conversations Without Hierarchy, Lecturing, Or Isolation](/en/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+---
+
+## References
+
+- [OpenAI Agent SDK Integration with Azure Durable Functions | Microsoft Community Hub - techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/appsonazureblog/openai-agent-sdk-integration-with-azure-durable-functions/4453402)
+- [Evaluation best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/evaluation-best-practices)
+- [Safety evaluations hub | OpenAI - openai.com](https://openai.com/safety/evaluations-hub/)
+- [REAL: Benchmarking Autonomous Agents on Deterministic Simulations of Real Websites - arxiv.org](https://arxiv.org/abs/2504.11543)
+- [RAS-Eval: A Comprehensive Benchmark for Security Evaluation of LLM Agents in Real-World Environments - arxiv.org](https://arxiv.org/abs/2506.15253)
+- [SafeAgentBench: A Benchmark for Safe Task Planning of Embodied LLM Agents - arxiv.org](https://arxiv.org/abs/2412.13178)

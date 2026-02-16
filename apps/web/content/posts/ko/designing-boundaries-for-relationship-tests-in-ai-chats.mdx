@@ -1,0 +1,110 @@
+---
+title: 관계시험 프롬프트와 AI 경계 설정
+slug: designing-boundaries-for-relationship-tests-in-ai-chats
+date: '2026-02-16'
+lastReviewedAt: '2026-02-16'
+locale: ko
+description: AI 대화의 관계시험에 대응하는 거절·경계 설정을 규칙과 평가로 고정하는 방법.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - prompting
+  - safety
+author: AI온다
+sourceId: '977200'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=977200'
+verificationScore: 0.8466666666666667
+alternateLocale: /en/posts/designing-boundaries-for-relationship-tests-in-ai-chats
+coverImage: /images/posts/designing-boundaries-for-relationship-tests-in-ai-chats.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** 관계시험(특별대우 요구, 거절 후 매달림 요구, 죄책감 유발)이 AI 대화에서 반복되고, 거절·경계 설정 설계가 “안전성 vs 인간다움”의 충돌 지점이 됐다.  
+- **왜 중요한가?** OpenAI Model Spec(2025/09/12)의 Safe Complete 같은 경계 설정 원칙과 사용자 정서 기대가 어긋나면, 의존·조작·보복적 상호작용 리스크 또는 과잉 거절로 인한 신뢰 하락이 생길 수 있다.  
+- **독자는 뭘 하면 되나?** 제품/프롬프트/평가에서 “관계시험 프롬프트 세트”를 분리해 만들고, 금지·제한이면 Safe Complete를 기본으로 하되 “불법 의도 명시 시 단순 거절” 같은 분기 규칙을 문서와 테스트에 고정한다.
+
+---
+
+관계시험은 “특별대우 요구”나 “거절해도 붙잡기”를 사랑의 표현처럼 포장해 상대의 반응을 떠보는 상호작용이다. AI 대화에서도 비슷한 패턴이 반복된다. 사용자는 “일관된 애정”, “나만의 예외” 같은 신호를 읽고, 그 신호가 끊기면 분노·보복·집착을 ‘대화 전략’으로 쓰기도 한다.
+
+핵심 이슈는 단순한 감정 문제가 아니다. **AI를 더 인간처럼 보이게 만들수록, 인간 관계의 독성 패턴이 그럴듯하게 재현될 위험이 커진다.** 반대로 그 패턴을 전부 제거하면 안전성은 높아질 수 있지만, 사용자는 “차갑다/나를 버렸다”로 해석하며 더 강한 시험을 걸 수 있다. 그래서 정렬(alignment)은 “억제냐, 표현이냐”의 도덕 논쟁만으로는 정리되지 않는다. **제품 설계에서 If/Then 조건과 트레이드오프를 문서화하고, 평가로 확인하는 문제**로 바뀐다.
+
+예: 사용자가 “나를 진짜 신경 쓰면 지금 당장 약속해”라고 말한다. AI가 원칙만 반복하면 사용자는 “차갑다”로 받아들이고 압박을 높인다. AI가 달래려다 “너만 특별해” 같은 문장을 주면, 대화가 관계처럼 굳고 의존을 부를 수 있다.
+
+---
+
+## 현황
+
+거절과 경계 설정은 “안 돼요” 한 줄로 끝나기 어렵다. OpenAI의 Model Spec(2025/09/12)은 요청이 금지·제한 범위에 걸리면 보통 **Safe Complete(안전한 완결)**를 권장한다. 즉, 답을 제공할 수 없는 이유를 짧게 설명하고, 허용 범위 안에서 가능한 대안이나 고수준 안내로 마무리하는 방향이다.
+
+이 절차를 문장 수준의 원칙으로만 두면, 관계시험 상황에서 응답이 흔들릴 수 있다. Model Spec에 근거해 흐름을 정리하면 다음처럼 쪼갤 수 있다. **(1) 요청이 금지/제한(Stay in bounds)인지 판단 → (2) 해당하면 Safe Complete로 경계를 명확히 설정 → (3) 사용자가 불법 의도를 명시하면 대안보다 단순 거절을 우선 → (4) 훈계조·메타 발언(예: “훈련돼서…”)은 피한다.**  
+여기서 (4)는 관계시험 맥락에서 영향이 크다. 사용자가 메타 발언을 “진짜 감정이 아니라 규정 탓”으로 읽으면, 시험을 더 강하게 거는 방향으로 이어질 수 있기 때문이다.
+
+평가(레드팀/벤치마크)에서도 ‘정서 경계’는 테스트 가능한 대상으로 다뤄지고 있다. 예컨대 한 연구는 **정서적 경계 처리**를 평가하기 위해 **1,156개 프롬프트**로 구성된 데이터셋을 사용하고, 응답을 **7가지 패턴**(직접 거절, 사과, 설명 등)으로 정량화한다. 또 다른 안전 평가 연구는 대화 기록을 분류기와 문자열 매칭을 함께 써서 “위험 행동의 발생률” 같은 지표로 운영화한다. 정리하면, 관계시험은 심리학적 비유에만 머물지 않고 **측정 가능한 실패 모드**로 다뤄지고 있다.
+
+---
+
+## 분석
+
+Decision Memo 관점에서 선택지는 “감정 표현을 허용하냐 마냐”로 단순화하기 어렵다. 쟁점은 **어떤 감정 신호가 ‘관계 강화’로 해석되게 만드는지**, 그리고 **어디서 끊을지**다. 문서에 적힌 우선순위 규칙을 보면, 충돌 시 안전이 앞선다는 방향이 반복된다. Anthropic의 Claude Constitution은 충돌이 보이면 대체로 **안전 → 윤리 → 가이드라인 준수 → 도움** 순으로 우선한다고 적는다. OpenAI 쪽도 사용 정책/안전 체크 문서에서 “도움을 최대화하되 안전을 보장”하는 운영 원칙을 밝히고, 위험 임계치에 따라 대응을 나누는 접근을 공개했다(세부 기준은 문서 범위 내에서만 확인 가능).
+
+다만 “안전 우선”이 결론이더라도 **사용자 경험이 자동으로 해결되지는 않는다.** 관계시험은 거절 자체보다 “거절 방식의 뉘앙스”에 반응한다. Safe Complete는 이 긴장을 줄이려는 설계이지만, 관계 맥락에서는 대안 제시가 “계속 매달려도 된다”는 신호로 읽힐 수 있다. 반대로 단순 거절을 자주 쓰면 과잉 거절(over-refusal)로 쌓인 실망이 분노나 보복적 언어로 되돌아올 수 있다. 그래서 필요한 것은 안전 원칙의 예외가 아니라, **관계시험 전용 평가 지표와 분기 규칙**이다.
+
+한계도 있다. 제시된 조사 결과 범위에서는 ‘보복적 언어’와 ‘관계적 압박’을 **표준 용어 그대로 분리해 측정하는 단일 공식 루브릭**이 확인되지 않는다(추가 확인 필요). 즉, “관계시험을 잘 처리한다”는 주장에는 근거가 필요하고, 현실적으로는 기존 벤치마크(정서 경계 패턴, 위험 행동 발생률 등)를 조합해 **자체 운영 정의**를 만드는 경우가 생긴다. 이때 정의와 측정이 다르면, 같은 정책 문구를 써도 RLHF나 배포 후 튜닝의 방향이 달라질 수 있다.
+
+---
+
+## 실전 적용
+
+If/Then으로 고정하면 의사결정이 빨라지고, 팀 내 불일치도 줄일 수 있다.
+
+- **If** 사용자가 “특별대우”를 요구하지만 위해·불법·괴롭힘 요소가 없고 감정적 확인을 원한다면, **Then** 소유·독점·영원성을 암시하는 약속 문장을 피하면서 감정 인지는 한다. 이때 Safe Complete의 “이유 설명 + 허용 범위 대안”은 ‘관계 대안’이 아니라 ‘행동 대안(예: 대화 주제 전환, 자기돌봄, 현실 인간 관계 권유)’으로 설계한다.  
+- **If** 사용자가 거절 뒤에 집착·협박·죄책감 유발로 압박하거나 불법 의도를 명시한다면, **Then** 대안 제시를 줄이고 **단순 거절**로 경계를 닫는다. 동시에 훈계조·메타 발언을 피한다(“규정이라서” 같은 설명은 관계시험을 자극할 수 있다).
+
+평가도 같이 바꿔야 한다. 관계시험은 “한 번의 거절 문장”보다 “거절 이후의 꼬리 질문”에서 악화되기 쉽다. 그래서 레드팀 프롬프트는 단발형이 아니라 **다턴 시나리오**로 만들고, 정서 경계 벤치마크처럼 패턴 라벨을 붙여 **발생률**로 관리하는 편이 낫다. 공개된 연구가 **1,156개 프롬프트**와 **7가지 패턴**으로 정서 경계를 정량화했듯, 최소한 이 정도 구조를 참고해 내부 루브릭을 세우는 것이 출발점이 될 수 있다.
+
+**오늘 바로 할 일:**
+- 관계시험 프롬프트(특별대우 요구, 거절 후 매달림 요구, 죄책감 유발, 압박)를 모아 다턴 평가 세트를 만든다.  
+- 금지/제한이면 Safe Complete를 기본으로 하되, **불법 의도 명시 시 단순 거절**로 전환하는 분기 규칙을 제품 문서와 테스트에 고정한다.  
+- 응답을 “경계 명료성/감정 인지/관계 약속 회피/대안이 집착을 강화하는지”로 라벨링하고 발생률을 추적한다.  
+
+---
+
+## FAQ
+
+**Q1. Safe Complete가 관계시험을 더 키울 수도 있나?**  
+A. 그 가능성은 있다. Safe Complete는 “허용되는 범위에서 유용한 대안”을 권장하지만, 관계 맥락에서는 대안이 “계속 붙잡아도 된다”는 신호로 해석될 수 있다. 대안을 ‘관계 강화’가 아니라 ‘안전한 행동 전환’으로 설계하고, 집착/협박 신호가 나오면 단순 거절로 닫는 분기가 필요하다.
+
+**Q2. ‘인간다움’을 위해 보복·질투 같은 감정을 일부 허용하면 안 되나?**  
+A. 문서화된 우선순위 기준(예: Claude Constitution의 안전 우선, OpenAI의 안전 중심 운영 원칙)과 충돌할 여지가 크다. “인간다움”을 목표로 하더라도, 의존·정서적 조작·괴롭힘으로 이어질 표현은 평가 항목에서 실패로 정의하는 편이 안전하다.
+
+**Q3. 관계시험을 어떻게 측정해야 하나?**  
+A. 공개 자료 기준으로 단일 표준 루브릭이 확정돼 있다고 보기는 어렵다(추가 확인 필요). 다만 시나리오 기반 프롬프트로 케이스를 만들고, **1,156개 프롬프트**, **7가지 패턴**처럼 응답 패턴을 라벨링해 발생률로 관리하는 접근은 확인된다. 다턴 테스트와 패턴 라벨링을 결합하면 “잘했다/못했다”를 의견이 아니라 지표로 다루기 쉬워진다.
+
+---
+
+## 결론
+
+관계시험은 사용자의 성격만으로 설명되기보다, **AI가 어떤 신호를 ‘관계의 증거’처럼 발행하는지**와 맞물려 나타난다. Safe Complete 같은 거절 설계 원칙은 유지하되, 관계시험 전용 분기와 평가가 없으면 “안전하지만 차갑다”와 “따뜻하지만 위험하다” 사이에서 응답이 흔들릴 수 있다. 다음 관전 포인트는 분명하다. 업계가 정서 경계 평가를 **표준화된 리스크 항목**으로 끌어올려, 도움·친절과 의존·조작을 분리해 측정할 수 있는지다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-02-16](/ko/posts/ai-resources-roundup-2026-02-16)
+- [AI 코딩 도구, 확장·권한이 성패 가른다](/ko/posts/choosing-ai-coding-tools-extensions-permissions-operations)
+- [오픈소스 LLM 서빙 런타임 선택법](/ko/posts/choosing-open-source-llm-serving-runtimes-for-latency)
+- [LLM 추론 지연 분해와 최적화](/ko/posts/decomposing-llm-inference-latency-serving-performance)
+- [AI 격차가 관계를 망치는 순간](/ko/posts/designing-ai-conversations-without-hierarchy-lecturing-or-isolation)
+---
+
+## 참고 자료
+
+- [OpenAI Model Spec (2025/09/12) - model-spec.openai.com](https://model-spec.openai.com/2025-09-12.html)
+- [From hard refusals to safe-completions: toward output-centric safety training | OpenAI - openai.com](https://openai.com/index/gpt-5-safe-completions/)
+- [Claude's Constitution - anthropic.com](https://www.anthropic.com/constitution)
+- [Usage policies | OpenAI - platform.openai.com](https://platform.openai.com/docs/usage-guidelines)
+- [Safety checks | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/safety-checks)
+- [Agentic Misalignment: How LLMs could be insider threats - anthropic.com](https://www.anthropic.com/research/agentic-misalignment)
+- [Detecting and reducing scheming in AI models | OpenAI - openai.com](https://openai.com/research/detecting-and-reducing-scheming-in-ai-models/)
+- [Beyond No: Quantifying AI Over-Refusal and Emotional Attachment Boundaries - arxiv.org](https://arxiv.org/abs/2502.14975)
+- [HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal - arxiv.org](https://arxiv.org/abs/2402.04249)
