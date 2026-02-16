@@ -1,0 +1,174 @@
+---
+title: 'Choosing Korean LLMs: Data Retention, Training, And Region'
+slug: choosing-korean-llms-data-retention-training-region
+date: '2026-02-16'
+lastReviewedAt: '2026-02-16'
+locale: en
+description: >-
+  Korean LLM adoption now hinges on training opt-in, retention exceptions, and
+  in-region storage vs processing, not model names.
+tags:
+  - agi
+  - llm
+  - explainer
+  - security
+author: AI온다
+sourceId: evergreen-korean-llm-landscape
+sourceUrl: ''
+verificationScore: 0.8366666666666666
+alternateLocale: /ko/posts/choosing-korean-llms-data-retention-training-region
+coverImage: /images/posts/choosing-korean-llms-data-retention-training-region.png
+---
+
+## TL;DR
+- The selection focus is shifting from model names to training use, retention, and region conditions.  
+- This matters because retention rules can differ by feature and affect audits and security reviews.  
+- Next, draft a feature-level checklist and re-verify it during your PoC configuration.  
+
+In a vendor review meeting, the first question often becomes, “Where does this conversation log end up?”  
+The Korean quality question tends to come next.  
+This order often reflects deployment constraints.  
+Choosing a Korean LLM often starts with data destination, retention time, and usage purpose.  
+Documentation details can affect whether deployment seems feasible.  
+
+Example: A security owner and developers discuss deployment in the same room. They demo a flow where consultation content enters the system and a summary is produced. They consider adding features. They then discuss what gets stored and who handles deletion.  
+
+## Current state
+In LLM adoption, the higher-impact question is often not “Is Korean good?”  
+It is “Is my data used for training, are logs retained, and where is it processed?”  
+
+OpenAI states in its platform data controls documentation a dated rule.  
+It says: “As of March 1, 2023, data sent to the OpenAI API is not used.”  
+It adds an exception unless you explicitly opt in.  
+Related documentation and notices also mention default retention language.  
+One example is “retained for up to 30 days.”  
+What is retained can vary by policy and feature.  
+
+A second axis is that “retention” can mean different things.  
+OpenAI documentation describes abuse monitoring retention as “up to 30 days.”  
+It separately states Responses API Application State is “30 days by default.”  
+It also includes: “Objects that are not deleted… are retained indefinitely.”  
+So, “the API is 30 days” can miss operational details.  
+You should verify what objects are created by enabled features.  
+You should also define who owns deletion responsibilities.  
+
+A third axis is region.  
+Data residency and region processing can look similar.  
+They are not identical terms.  
+OpenAI explains in-region storage for some eligible customers.  
+It frames this as in-region storage “at rest.”  
+It also states relevant projects process requests “in-region.”  
+
+Azure OpenAI Service posts describe base models as stateless.  
+They say standard API calls do not retain prompts or completions.  
+They also note that optional service features may retain data.  
+They state such data remains within your Azure tenant.  
+They also say it stays within the same geographic region.  
+Platform storage and processing units can differ across offerings.  
+This can matter even for similar model families.  
+
+## Analysis
+This trend does not end debates about Korean quality.  
+Teams that care about quality can still get blocked earlier.  
+The block can come from the data path, not performance.  
+
+Even with “not used for training” language, retention clauses can matter.  
+Examples include “up to 30 days” for abuse monitoring.  
+Another is “30 days by default” for Application State.  
+A third is indefinite retention for objects not deleted.  
+Security and legal teams may ask for feature-level clarity.  
+They may ask what to turn off, what to delete, and what to separate.  
+So, LLM selection can become engineering plus policy design.  
+
+There are risks as well.  
+
+First, summaries like “they don’t retain data” can omit exceptions.  
+A “standard API call” can differ from storage-oriented features.  
+Examples include file upload, threads, vector stores, and logging.  
+OpenAI guidance similarly suggests feature-by-feature review.  
+It suggests checking what is retained, where, and for how long.  
+
+Second, benchmark results may not reflect operational performance.  
+Research points out benchmark data contamination risk.  
+It can overestimate performance under some conditions.  
+Cross-lingual contamination via translations is also discussed.  
+Another study reports MT metric inflation in some conditions.  
+It reports differences up to 30 BLEU points.  
+So, “#1 Korean performance” claims can be fragile.  
+You should verify what evaluation data was built from and how.  
+
+## Practical application
+If your ecosystem map starts with model names, decisions can flip later.  
+You can put deployment conditions at the top instead.  
+Then you can fit candidates underneath those constraints.  
+The sequence is typically:  
+
+1) Training use (opt-in or opt-out)  
+2) Retention period and exceptions (logs, state, undeleted objects)  
+3) Region (separate storage at rest from processing in-region)  
+4) Use of storage-oriented features (files, threads, vector stores)  
+5) Then, a Korean quality PoC  
+
+In the PoC, avoid relying only on a Korean average score.  
+Build a verifiable ground truth from domain documents and conversations.  
+To reduce contamination risk, avoid using internal materials as-is.  
+Prepare a separate evaluation set with checked sources.  
+Also check duplication likelihood where feasible.  
+Additional verification may be needed for training data inclusion risk.  
+
+**Checklist for Today:**
+- Quote the vendor sentence about training use, including defaults and opt-in language.  
+- Write “up to 30 days,” “30 days by default,” and “retained indefinitely” as separate retention items.  
+- Split residency requirements into storage at rest and processing in-region, then document what you require.  
+
+## FAQ
+**Q1. If “our data is not used for training,” isn’t that the end?**  
+A. It may not be the end.  
+Training use is separate from log, state, and object retention.  
+OpenAI documentation includes “retained for up to 30 days.”  
+It also states Application State is “30 days by default.”  
+It also says objects not deleted can be retained indefinitely.  
+You should confirm this for the features you enable in operations.  
+
+**Q2. If we meet data residency, do regulatory issues go away?**  
+A. It can be hard to assume storage and processing align.  
+OpenAI describes in-region storage for eligible customers.  
+It also states requests for a relevant project are processed in-region.  
+You should define whether you need storage only or processing too.  
+Then confirm how far documentation covers your needed scope.  
+
+**Q3. What should we trust for Korean performance comparisons?**  
+A. External benchmarks alone can be risky.  
+Research notes benchmark data contamination can overestimate performance.  
+It also discusses cross-lingual contamination via translation.  
+There are reports of MT inflation up to 30 BLEU points.  
+You can reduce risk with internal evaluation and contamination checks.  
+
+## Conclusion
+Choosing a Korean LLM is not only a performance race.  
+You should start with data control design.  
+That includes training use, retention, and region.  
+First, lock deployment conditions.  
+Then compare candidates within that scope.  
+Next, decide how far you will use storage-oriented features.  
+Confirm how that choice changes retention, region, and deletion duties.  
+Then re-validate with the PoC configuration.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-16](/en/posts/ai-resources-roundup-2026-02-16)
+- [AI Video Copyright Disputes Shift From Training To Distribution](/en/posts/ai-video-copyright-disputes-shift-from-training-to-distribution)
+- [Building Reliable Agent Loops Without Framework Dependencies](/en/posts/building-reliable-agent-loops-without-framework-dependencies)
+- [Designing Boundaries for Relationship Tests in AI Chats](/en/posts/designing-boundaries-for-relationship-tests-in-ai-chats)
+- [Designing Memory, Continual Learning, And Recursive Improvement Systems](/en/posts/designing-memory-continual-learning-recursive-improvement-systems)
+---
+
+## References
+
+- [Data controls in the OpenAI platform - platform.openai.com](https://platform.openai.com/docs/guides/your-data)
+- [Data controls in the OpenAI platform - OpenAI API (How we use your data) - platform.openai.com](https://platform.openai.com/docs/models/how-we-use-your-data)
+- [Expanding data residency access to business customers worldwide | OpenAI - openai.com](https://openai.com/index/expanding-data-residency-access-to-business-customers-worldwide/)
+- [Data Storage in Azure OpenAI Service | Microsoft Community Hub - techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/data-storage-in-azure-openai-service/4382502)
+- [Data usage - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/data-usage)
+- [NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark - arxiv.org](https://arxiv.org/abs/2310.18018)
+- [Data Contamination Can Cross Language Barriers - arxiv.org](https://arxiv.org/abs/2406.13236)
+- [Overestimation in LLM Evaluation: A Controlled Large-Scale Study on Data Contamination's Impact on Machine Translation - arxiv.org](https://arxiv.org/abs/2501.18771)
