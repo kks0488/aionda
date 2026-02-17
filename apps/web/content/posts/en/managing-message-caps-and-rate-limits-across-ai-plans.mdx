@@ -1,0 +1,142 @@
+---
+title: Managing Message Caps And Rate Limits Across AI Plans
+slug: managing-message-caps-and-rate-limits-across-ai-plans
+date: '2026-02-17'
+lastReviewedAt: '2026-02-17'
+locale: en
+description: >-
+  How multi-plan switching to spread chat caps and API rate limits can clash
+  with terms, security, and automation restrictions.
+tags:
+  - agi
+  - llm
+  - explainer
+  - gpt
+author: AI온다
+sourceId: '978752'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=978752'
+verificationScore: 0.8233333333333333
+alternateLocale: /ko/posts/managing-message-caps-and-rate-limits-across-ai-plans
+coverImage: /images/posts/managing-message-caps-and-rate-limits-across-ai-plans.png
+---
+
+## TL;DR
+- Multi-plan switching describes distributing work across accounts, plans, or OAuth links to reduce cap interruptions.  
+- It matters because terms often discourage credential sharing and some automation, which can raise suspension and security risk.  
+- Next, map each workload to message caps or API limits, then redesign around allowed organization or project structures.
+
+A user can hit a cap like *80 messages per 3 hours* in a chat UI.  
+The same user can hit an API limit like *60,000 requests/minute*.  
+This can push teams toward account switching or OAuth linking.
+
+Example: A team splits writing and repetitive tasks across separate spaces. They avoid shared logins by assigning each person their own access. They then adjust routines to reduce interruptions without hiding activity.
+
+## Current state
+A common driver is that **limits use different units**.  
+OpenAI API rate limits use RPM and RPD for requests.  
+They also use TPM and TPD for tokens.  
+They also use IPM for images.
+
+The Help Center notes rate limits can be “quantized.”  
+A stated limit like *60,000 requests/minute* can apply in shorter windows.  
+One example is *1,000 requests/second*.  
+Short bursts can still get blocked.
+
+Consumer chat products often feel constrained by **message caps**.  
+OpenAI states that, “as of May 13, 2024,” Plus users can send *80 messages per 3 hours*.  
+It also states Plus users can send *40 messages per 3 hours* to GPT-class models.  
+It also says a Team workspace cap is “about 2x” Plus.
+
+This structure can encourage splitting work across workspaces or accounts.  
+However, such operations can conflict with **policies and security expectations**.  
+OpenAI states, “Your account is meant for you.”  
+Some OpenAI documents include wording that automated or programmatic extraction is prohibited.
+
+Anthropic also discourages sharing consumer login credentials and API keys.  
+It also restricts automated or non-human access, except via API keys or explicit permission.
+
+## Analysis
+Multi-plan switching is often framed as a throughput design.  
+The goal is fewer interruptions, not only lower cost.
+
+APIs can bottleneck via per-minute or per-second limits.  
+One example is *60,000/min ↔ 1,000/sec* behavior from quantization.  
+Chat UIs can bottleneck via caps in *3-hour windows*.  
+One example is Plus at *80* and *40 messages per 3 hours*.
+
+This can lead to “channel separation” by workload type.  
+Interactive work may go to channels with higher message caps.  
+Batch work may go to channels where rate-limit engineering is feasible.
+
+Policy risk can outweigh quota management benefits.  
+A recurring issue is “no credential sharing.”  
+Shared account rotation can also expand the security attack surface.
+
+Automation can become the main dispute point.  
+Anthropic restricts bot or script access in consumer terms, with noted exceptions.  
+OpenAI includes wording suggesting programmatic extraction can be prohibited.  
+So login-swapping tools can need contractual review, not only technical testing.
+
+Some clauses about holding multiple accounts were not confirmed here.  
+That includes clauses about duplicating student plans.  
+Further review should include eligibility and account creation documents.
+
+## Practical Application
+Multi-plan switching is safer when framed as **separation**, not circumvention.  
+Designing to “evade limits” can increase policy risk.  
+Separating usage by organization, project, or workspace can reduce ambiguity.
+
+OpenAI documentation indicates API limits can apply at organization or project levels.  
+It also indicates request headers can select which organization is billed.  
+This suggests organization or project design can be preferable to account swapping.
+
+Example: One person writes in one workspace and runs repeat calls elsewhere. They avoid browser login switching by deciding the correct space before starting. If automation is needed, they use documented access methods rather than session automation.
+
+**Checklist for Today:**
+- Document onboarding so each person uses their own account, and keys are not shared.  
+- Classify work by caps like *80/40 per 3 hours* versus limits like *60,000/min → 1,000/sec*.  
+- Review any login-switching automation or unofficial clients, and migrate toward documented permitted access paths.  
+
+## FAQ
+**Q1. Is it allowed to create multiple accounts and alternate between them?**  
+A. Based only on documents confirmed here, it is hard to conclude either way.  
+Additional verification may be needed.  
+OpenAI and Anthropic both discourage credential sharing.  
+So rotating one account across people can be high-risk.
+
+**Q2. Is an automated tool that switches accounts via OAuth okay?**  
+A. It can depend on the service terms and product type.  
+Anthropic restricts automated or non-human access in consumer terms, with stated exceptions.  
+OpenAI includes wording suggesting programmatic extraction can be prohibited.  
+It can help to verify “permitted” before “possible.”
+
+**Q3. Between message caps and API rate limits, what should I design for first?**  
+A. Interactive work can be limited by message caps.  
+Plus examples include *80/40 per 3 hours*.  
+Batch calls can be limited by rate limits and quantization.  
+Examples include *60,000/min* acting like *1,000/sec*.  
+If both apply, channel separation can help.  
+Organization or project design may reduce reliance on account switching.
+
+## Conclusion
+Multi-plan switching is often about fewer interruptions.  
+Terms about credential sharing and automation can shape viable designs.  
+Next, confirm which workflows are supported by official organization, project, or workspace features.  
+Also confirm whether unofficial switching is restricted in applicable terms.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-17](/en/posts/ai-resources-roundup-2026-02-17)
+- [AI Resource Roundup (24h) - 2026-02-16](/en/posts/ai-resources-roundup-2026-02-16)
+- [AI Video Copyright Disputes Shift From Training To Distribution](/en/posts/ai-video-copyright-disputes-shift-from-training-to-distribution)
+- [Building Reliable Agent Loops Without Framework Dependencies](/en/posts/building-reliable-agent-loops-without-framework-dependencies)
+- [Choosing Korean LLMs: Data Retention, Training, And Region](/en/posts/choosing-korean-llms-data-retention-training-region)
+---
+
+## References
+
+- [Terms of Use | OpenAI - openai.com](https://openai.com/policies/row-terms-of-use/)
+- [OpenAI Account Sharing Policy | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10471989)
+- [Consumer Terms of Service | Anthropic - anthropic.com](https://www.anthropic.com/legal/consumer-terms)
+- [Business terms - May 2025 | OpenAI - openai.com](https://openai.com/policies/may-2025-business-terms/)
+- [What are the best practices for managing my rate limits in the API? | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6891753)
+- [What is the message cap on ChatGPT Team? | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8801707-what-is-the-message-cap-on-chatgpt-team%3F.otf)
