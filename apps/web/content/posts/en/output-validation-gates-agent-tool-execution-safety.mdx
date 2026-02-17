@@ -1,0 +1,179 @@
+---
+title: Output Validation Gates for Agent Tool Execution Safety
+slug: output-validation-gates-agent-tool-execution-safety
+date: '2026-02-17'
+lastReviewedAt: '2026-02-17'
+locale: en
+description: >-
+  Tool calls become real actions. JSON validity is not enough—use strict schema
+  checks, allowed_tools, refusal detection, and state-aware gates.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+  - tool-calling
+author: AI온다
+sourceId: evergreen-tool-validation
+sourceUrl: ''
+verificationScore: 0.7866666666666666
+alternateLocale: /ko/posts/output-validation-gates-agent-tool-execution-safety
+coverImage: /images/posts/output-validation-gates-agent-tool-execution-safety.png
+---
+
+## TL;DR
+
+- Tool calls turn model output into execution, so validation becomes a central design concern.  
+- JSON mode targets valid JSON, not schema or policy safety, so incidents remain possible.  
+- Add a pre-execution gate using `allowed_tools`, `strict` schema checks, and `refusal` handling.  
+
+---
+
+A single tool call can trigger an external change, such as sending email or deleting files.  
+At that point, the output is not only text.  
+It can become execution.  
+This shifts attention toward a validation gate before execution.
+
+Example: A user requests cleanup, and the agent prepares to remove or transmit data. The flow seems reasonable. Execution changes the outcome. A cautious system pauses for confirmation.
+
+The core idea is straightforward.  
+You should verify the tool call before execution.  
+You can check four items.  
+First, the format is valid JSON.  
+Second, the call matches the required schema.  
+Third, the tool and permissions are allowed.  
+Fourth, the action is not prohibited.
+
+The documentation states that JSON mode help ensure valid JSON only.  
+If schema compliance matters, the same documentation suggests Structured Outputs with `strict: true`.  
+It also suggests separate validation with retry.  
+The “AgenTRIM” paper discusses risk from overly broad tool permissions.  
+It emphasizes stepwise least privilege and status-aware validation.
+
+---
+
+## Current state
+
+Pre-execution validation often wobbles on call arguments, like `arguments`.  
+Parsable JSON may not be enough for safety.  
+The documentation describes JSON mode as valid JSON output.  
+It also states JSON mode does not help ensure schema matching.  
+Structured Outputs describes a direction where arguments match JSON Schema.  
+It mentions settings like `strict` for that goal.
+
+A second axis is validating tool selection.  
+A model can pick unintended tools if it has many options.  
+This binds both the arguments and the tool.
+
+A third axis is permissions and prohibited-action validation.  
+“AgenTRIM” links inappropriate permissions to security risk.  
+It proposes stepwise least privilege and status-aware validation.  
+Status awareness asks whether the call is valid in the current state.  
+For example, canceling an already canceled task can be filtered.  
+Skipping approval steps can also be filtered.
+
+---
+
+## Analysis
+
+This pattern matters because failures can move from text to real-world changes.  
+Text mistakes can end after correction.  
+Tool calls can leave logs and modify external systems.  
+This shifts focus toward verifiable interfaces.  
+Examples include `allowed_tools`, schema checks like `strict`, and refusal signals like `refusal`.
+
+There are limitations.
+
+First, schema validation can help structure.  
+It may not capture policy-safe intent.  
+Schema-valid values can still combine into prohibited actions.
+
+Second, `allowed_tools` can reduce paths.  
+Misconfiguration can block legitimate work.  
+Misconfiguration can also leave risky tools available.
+
+Third, the documentation mentions signals like `refusal` for detection.  
+Forbidden-command lists differ by environment.  
+Exception handling can also differ by environment.  
+This can become an operations and governance problem.
+
+---
+
+## Practical application
+
+Instead of one large validator, use three layers.  
+Layer one is schema validation.  
+You can enforce schema with Structured Outputs’ `strict: true`.  
+You can also use separate validators with retry on failure.  
+Layer two is tool and permission validation.  
+You can restrict tools using `allowed_tools` for the request context.  
+Layer three is policy and state validation.  
+You can check prohibited actions, approval requirements, and state transitions.  
+Execution can happen only after these checks pass.
+
+Example: Suppose the user says “clean this up,” and the agent calls a file-moving tool.  
+The schema can still be correct.  
+If the tool is not in `allowed_tools`, you should block the call.  
+If the tool is allowed, policy can still prohibit deletion or transmission.  
+State can also prohibit execution at that step.  
+In those cases, you can ask a clarification question.
+
+**Checklist for Today:**
+- Add schema validation using `strict: true` or an equivalent validator at each tool-call site.  
+- Set `allowed_tools` per request so the model can access only a narrow tool subset.  
+- Detect `refusal` and route to stop execution and request user confirmation.  
+
+---
+
+## FAQ
+
+**Q1. If I just enable JSON mode, do tool calls become safe?**  
+A. Not necessarily.  
+The documentation says JSON mode help ensure valid JSON.  
+It also says JSON mode does not help ensure schema matching.  
+If schema compliance is needed, `strict` or separate validation can help.
+
+**Q2. Is using `allowed_tools` sufficient?**  
+A. It can reduce risk, but it may not be sufficient.  
+`allowed_tools` limits which tools can be called.  
+You should also validate arguments for policy safety.  
+You should also validate execution against the current state.
+
+**Q3. What is `refusal` used for?**  
+A. The Structured Outputs introduction describes a `refusal` string in responses.  
+This supports programmatic detection of refusals.  
+If a refusal appears, your flow can stop execution.
+
+---
+
+## Conclusion
+
+Pre-execution validation is more than formatting.  
+It is a defensive line before execution.  
+It can check schema with `strict`, tool restriction with `allowed_tools`, and `refusal` signals.  
+It can also check policy and state.  
+A practical question is whether validation covers the full flow.  
+Another question is how consistently `refusal` is handled in operations.
+
+---
+
+### References
+- [Function Calling in the OpenAI API | OpenAI Help Center - OpenAI Help Center](https://help.openai.com/en/articles/8555517-function-calling-in-the-openai-api%23.eps)
+- [Function calling - OpenAI API - OpenAI](https://platform.openai.com/docs/guides/function-calling/how-do-i-ensure-the-model-calls-the-correct-function)
+- [AgenTRIM: Tool Risk Mitigation for Agentic AI - arXiv](https://arxiv.org/abs/2601.12449)
+- [Introducing Structured Outputs in the API - OpenAI](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-17](/en/posts/ai-resources-roundup-2026-02-17)
+- [Managing Message Caps And Rate Limits Across AI Plans](/en/posts/managing-message-caps-and-rate-limits-across-ai-plans)
+- [Operating Continuity for IP-Based Long-Form AI Animation Production](/en/posts/operating-continuity-for-ip-based-long-form-ai-animation-production)
+- [Sycophancy Risks: When Conversational AI Over-Agrees With Users](/en/posts/sycophancy-risks-when-conversational-ai-over-agrees-with-users)
+- [When Digital Intelligence Truly Exceeds Human Capabilities](/en/posts/when-digital-intelligence-truly-exceeds-human-capabilities)
+---
+
+## References
+
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-in-the-openai-api%23.eps)
+- [Function calling - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/function-calling/how-do-i-ensure-the-model-calls-the-correct-function)
+- [Introducing Structured Outputs in the API | OpenAI - openai.com](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+- [AgenTRIM: Tool Risk Mitigation for Agentic AI - arxiv.org](https://arxiv.org/abs/2601.12449)
