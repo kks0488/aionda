@@ -9,7 +9,13 @@ import { join } from 'path';
 import { config } from 'dotenv';
 import { generateContent, translateToEnglish } from './lib/ai-text';
 import { selectEditorialSeries, formatSeriesForPrompt, type EditorialSeries } from './lib/editorial-series.js';
-import { WRITE_ARTICLE_PROMPT, GENERATE_METADATA_PROMPT } from './prompts/topics';
+import {
+  WRITE_ARTICLE_PROMPT,
+  WRITE_COMPARISON_PROMPT,
+  WRITE_PRACTICAL_GUIDE_PROMPT,
+  WRITE_PERSPECTIVE_PROMPT,
+  GENERATE_METADATA_PROMPT,
+} from './prompts/topics';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import { classifySource, createVerifiedSource, SourceTier } from './lib/search-mode.js';
 import { canonicalizeTags } from './lib/tags.js';
@@ -27,7 +33,14 @@ const VC_DIR = './.vc';
 const LAST_WRITTEN_PATH = join(VC_DIR, 'last-written.json');
 const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 const MIN_CONFIDENCE = 0.6;
-const SERIES_TAGS = ['k-ai-pulse', 'explainer', 'deep-dive'] as const;
+const SERIES_TAGS = [
+  'k-ai-pulse',
+  'explainer',
+  'deep-dive',
+  'comparison',
+  'practical-guide',
+  'perspective',
+] as const;
 type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
 type EvergreenSchema = 'howto' | 'faq';
 type Locale = 'ko' | 'en';
@@ -228,7 +241,7 @@ async function writeArticle(topic: ResearchedTopic, series: EditorialSeries): Pr
   const primaryExcerpt = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
   const primaryTitle = primaryExcerpt?.title || '';
   const primaryText = primaryExcerpt?.excerpt || 'N/A';
-  const articlePromptTemplate = `${WRITE_ARTICLE_PROMPT}
+  const articlePromptTemplate = `${getWritePrompt(series)}
 
 ## 참고 자료 포맷 규칙 (중요):
 - 참고 자료를 작성해야 할 때는 모든 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 작성한다.`;
@@ -255,6 +268,19 @@ async function writeArticle(topic: ResearchedTopic, series: EditorialSeries): Pr
   } catch (error) {
     console.error('Error writing article:', error);
     throw error;
+  }
+}
+
+function getWritePrompt(series: EditorialSeries): string {
+  switch (series) {
+    case 'comparison':
+      return WRITE_COMPARISON_PROMPT;
+    case 'practical-guide':
+      return WRITE_PRACTICAL_GUIDE_PROMPT;
+    case 'perspective':
+      return WRITE_PERSPECTIVE_PROMPT;
+    default:
+      return WRITE_ARTICLE_PROMPT;
   }
 }
 

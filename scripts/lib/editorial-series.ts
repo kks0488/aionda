@@ -1,6 +1,12 @@
-export type EditorialSeries = 'k-ai-pulse' | 'explainer' | 'deep-dive';
+export type EditorialSeries =
+  | 'k-ai-pulse'
+  | 'explainer'
+  | 'deep-dive'
+  | 'comparison'
+  | 'practical-guide'
+  | 'perspective';
 
-type SignalGroup = 'pulse' | 'explainer' | 'deepDive';
+type SignalGroup = 'pulse' | 'explainer' | 'deepDive' | 'comparison' | 'practicalGuide' | 'perspective';
 
 type Signal = { id: string; re: RegExp };
 
@@ -32,6 +38,19 @@ const SIGNALS: Record<SignalGroup, Signal[]> = {
     { id: 'hardware_en', re: /\b(gpu|tpu|npu|cuda|hbm|accelerator|chip|silicon)\b/i },
     { id: 'tradeoff', re: /\b(trade-?off|if\/then|decision memo)\b|트레이드오프|조건부|if\/then/i },
   ],
+  comparison: [
+    { id: 'compare_ko', re: /비교|대결|맞대결|벤치마크\s*비교/i },
+    { id: 'compare_vs', re: /\b(vs|versus)\b/i },
+    { id: 'compare_en', re: /\b(compare|head to head|benchmark comparison|which is better)\b/i },
+  ],
+  practicalGuide: [
+    { id: 'practical_ko', re: /실무|적용|현업|도입|마이그레이션|세팅/i },
+    { id: 'practical_en', re: /\b(production|real-world|deploy|migration|setup|integrate)\b/i },
+  ],
+  perspective: [
+    { id: 'perspective_ko', re: /관점|의견|반론|주장|과대평가|과소평가/i },
+    { id: 'perspective_en', re: /\b(opinion|take|unpopular|overrated|underrated|myth|misconception)\b/i },
+  ],
 };
 
 function scoreSignals(text: string, group: SignalGroup): { score: number; matched: string[] } {
@@ -50,7 +69,17 @@ export function scoreEditorialSeriesSignals(input: {
   pulseScore: number;
   explainerScore: number;
   deepDiveScore: number;
-  matched: { pulse: string[]; explainer: string[]; deepDive: string[] };
+  comparisonScore: number;
+  practicalGuideScore: number;
+  perspectiveScore: number;
+  matched: {
+    pulse: string[];
+    explainer: string[];
+    deepDive: string[];
+    comparison: string[];
+    practicalGuide: string[];
+    perspective: string[];
+  };
 } {
   const combined = [input.title, input.description, ...(input.keyInsights || [])]
     .filter(Boolean)
@@ -59,12 +88,25 @@ export function scoreEditorialSeriesSignals(input: {
   const pulse = scoreSignals(combined, 'pulse');
   const explainer = scoreSignals(combined, 'explainer');
   const deepDive = scoreSignals(combined, 'deepDive');
+  const comparison = scoreSignals(combined, 'comparison');
+  const practicalGuide = scoreSignals(combined, 'practicalGuide');
+  const perspective = scoreSignals(combined, 'perspective');
 
   return {
     pulseScore: pulse.score,
     explainerScore: explainer.score,
     deepDiveScore: deepDive.score,
-    matched: { pulse: pulse.matched, explainer: explainer.matched, deepDive: deepDive.matched },
+    comparisonScore: comparison.score,
+    practicalGuideScore: practicalGuide.score,
+    perspectiveScore: perspective.score,
+    matched: {
+      pulse: pulse.matched,
+      explainer: explainer.matched,
+      deepDive: deepDive.matched,
+      comparison: comparison.matched,
+      practicalGuide: practicalGuide.matched,
+      perspective: perspective.matched,
+    },
   };
 }
 
@@ -74,6 +116,11 @@ export function selectEditorialSeries(input: {
   keyInsights?: string[];
 }): EditorialSeries {
   const scores = scoreEditorialSeriesSignals(input);
+
+  // 0) Strong explicit type signals first. Weak signals must fall back to legacy logic.
+  if (scores.comparisonScore >= 2) return 'comparison';
+  if (scores.practicalGuideScore >= 2) return 'practical-guide';
+  if (scores.perspectiveScore >= 2) return 'perspective';
 
   // 1) Explainer has highest priority: it's intentional and SEO-driven.
   if (scores.explainerScore > 0) return 'explainer';
@@ -106,5 +153,8 @@ export function selectEditorialSeries(input: {
 export function formatSeriesForPrompt(series: EditorialSeries): string {
   if (series === 'k-ai-pulse') return 'K‑AI Pulse (Signal Brief)';
   if (series === 'explainer') return 'Explainer (Pillar/Evergreen)';
+  if (series === 'comparison') return 'Comparison (Head-to-Head)';
+  if (series === 'practical-guide') return 'Practical Guide (Hands-on)';
+  if (series === 'perspective') return 'Perspective (Opinionated but Evidence-based)';
   return 'Deep Dive (Decision Memo)';
 }

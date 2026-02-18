@@ -9,7 +9,7 @@
 
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { scoreEditorialSeriesSignals, selectEditorialSeries } from './lib/editorial-series.js';
+import { scoreEditorialSeriesSignals, selectEditorialSeries, type EditorialSeries } from './lib/editorial-series.js';
 
 const RESEARCHED_DIR = './data/researched';
 
@@ -53,11 +53,21 @@ function main() {
     .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
 
   const targets = clamp(files, limit);
-  const counts = { 'k-ai-pulse': 0, explainer: 0, 'deep-dive': 0 } as const;
-  const examples: Record<keyof typeof counts, string[]> = {
+  const counts: Record<EditorialSeries, number> = {
+    'k-ai-pulse': 0,
+    explainer: 0,
+    'deep-dive': 0,
+    comparison: 0,
+    'practical-guide': 0,
+    perspective: 0,
+  };
+  const examples: Record<EditorialSeries, string[]> = {
     'k-ai-pulse': [],
     explainer: [],
     'deep-dive': [],
+    comparison: [],
+    'practical-guide': [],
+    perspective: [],
   };
 
   const ambiguous: Array<{ title: string; series: string; pulse: number; deep: number; explainer: number }> = [];
@@ -67,7 +77,7 @@ function main() {
     const title = String(topic.title || '').trim() || '(untitled)';
 
     const series = selectEditorialSeries(topic);
-    (counts as any)[series] += 1;
+    counts[series] += 1;
 
     if (examples[series].length < 6) {
       examples[series].push(title);
@@ -94,11 +104,24 @@ function main() {
   console.log(`- K‑AI Pulse: ${counts['k-ai-pulse']}`);
   console.log(`- Explainer: ${counts.explainer}`);
   console.log(`- Deep Dive: ${counts['deep-dive']}`);
+  console.log(`- Comparison: ${counts.comparison}`);
+  console.log(`- Practical Guide: ${counts['practical-guide']}`);
+  console.log(`- Perspective: ${counts.perspective}`);
 
   console.log('\nExamples:');
-  for (const key of Object.keys(examples) as Array<keyof typeof examples>) {
+  for (const key of Object.keys(examples) as EditorialSeries[]) {
     const label =
-      key === 'k-ai-pulse' ? 'K‑AI Pulse' : key === 'deep-dive' ? 'Deep Dive' : 'Explainer';
+      key === 'k-ai-pulse'
+        ? 'K‑AI Pulse'
+        : key === 'deep-dive'
+          ? 'Deep Dive'
+          : key === 'comparison'
+            ? 'Comparison'
+            : key === 'practical-guide'
+              ? 'Practical Guide'
+              : key === 'perspective'
+                ? 'Perspective'
+                : 'Explainer';
     console.log(`\n[${label}]`);
     for (const t of examples[key]) console.log(`- ${t}`);
   }
@@ -112,4 +135,3 @@ function main() {
 }
 
 main();
-
