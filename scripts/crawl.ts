@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { fetchPostList, fetchPostDetail } from '../packages/crawler/src/fetcher.js';
+import { fetchPostList, fetchPostDetail } from '@singularity-blog/crawler';
 import { run } from './lib/run';
 
 const DATA_DIR = './data/raw';
