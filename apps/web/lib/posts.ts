@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { locales, type Locale } from '@/i18n';
+import { PostFrontmatterSchema, type PostFrontmatter } from '@/lib/post-schema';
+import { deriveCoreTagsFromContent, estimateReadingTime } from '@singularity-blog/content-utils';
 
 export interface Post {
   slug: string;
@@ -160,19 +162,6 @@ function normalizeTags(rawTags: unknown): string[] {
   return normalizedTags;
 }
 
-const CORE_TAG_PATTERNS: Array<{ tag: string; regex: RegExp }> = [
-  { tag: 'agi', regex: /agi|artificial general intelligence|superintelligence|초지능|범용.*인공지능/i },
-  { tag: 'robotics', regex: /robot|로봇|humanoid|휴머노이드|boston dynamics|figure|drone|드론|자율주행/i },
-  { tag: 'hardware', regex: /hardware|하드웨어|gpu|tpu|nvidia|chip|반도체|칩|blackwell|h100|b200|rubin|cuda|hbm/i },
-  { tag: 'llm', regex: /llm|language model|언어.*모델|대형언어|transformer|트랜스포머|gpt|chatgpt|claude|gemini|llama/i },
-];
-
-function deriveCoreTags(title: string, content: string, tags: string[]): string[] {
-  const combined = `${title}\n${tags.join(' ')}\n${content}`.toLowerCase();
-  const derived = CORE_TAG_PATTERNS.filter(({ regex }) => regex.test(combined)).map(({ tag }) => tag);
-  return derived.length > 0 ? derived : ['llm'];
-}
-
 function mergeTags(base: string[], extra: string[]): string[] {
   if (extra.length === 0) return base;
   const seen = new Set(base);
@@ -283,16 +272,34 @@ function normalizeCoverImage(rawCoverImage: unknown, slug?: string): string | un
   return slug ? findCoverImageBySlug(slug) : undefined;
 }
 
+function parseValidatedFrontmatter(fullPath: string, rawData: unknown): PostFrontmatter | null {
+  const parsed = PostFrontmatterSchema.safeParse(rawData);
+  if (parsed.success) return parsed.data;
+
+  const relative = path.relative(process.cwd(), fullPath);
+  const reason = parsed.error.issues
+    .map((issue) => {
+      const key = issue.path.join('.') || '(root)';
+      return `${key}: ${issue.message}`;
+    })
+    .join('; ');
+  console.warn(`[posts] Skipping invalid frontmatter: ${relative} - ${reason}`);
+  return null;
+}
+
 function parsePostFile(
   fullPath: string,
   slug: string,
   locale: Locale,
   existingPaths?: Set<string>
-): Post {
+): Post | null {
   const fileContents = fs.readFileSync(fullPath, 'utf8');
-  const { data, content } = matter(fileContents);
+  const { data: rawData, content } = matter(fileContents);
+  const data = parseValidatedFrontmatter(fullPath, rawData);
+  if (!data) return null;
+
   const normalizedTags = normalizeTags(data.tags);
-  const coreTags = deriveCoreTags(String(data.title || slug), content, normalizedTags);
+  const coreTags = deriveCoreTagsFromContent(String(data.title || slug), content, normalizedTags);
   const tags = mergeTags(normalizedTags, coreTags);
   const author = typeof data.author === 'string' ? data.author.trim() : '';
   const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
@@ -300,28 +307,7 @@ function parsePostFile(
   const primaryKeyword = typeof data.primaryKeyword === 'string' ? data.primaryKeyword.trim() : '';
   const intent = typeof data.intent === 'string' ? data.intent.trim() : '';
   const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
-  const schemaRaw = typeof data.schema === 'string' ? data.schema.trim().toLowerCase() : '';
-  const schema = schemaRaw === 'faq' || schemaRaw === 'howto' ? (schemaRaw as 'faq' | 'howto') : undefined;
-
-  const estimateReadingTime = (raw: string): number => {
-    const stripped = String(raw || '')
-      .replace(/```[\s\S]*?```/g, ' ')
-      .replace(/`[^`]+`/g, ' ')
-      .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (!stripped) return 1;
-
-    if (locale === 'ko') {
-      const chars = stripped.replace(/\s/g, '').length;
-      return Math.max(1, Math.round(chars / 800));
-    }
-
-    const words = stripped.split(/\s+/).filter(Boolean).length;
-    return Math.max(1, Math.round(words / 220));
-  };
+  const schema = data.schema;
 
   return {
     slug,
@@ -333,7 +319,7 @@ function parsePostFile(
     content,
     locale,
     verificationScore: data.verificationScore,
-    readingTime: estimateReadingTime(content),
+    readingTime: estimateReadingTime(content, locale),
     primaryKeyword: primaryKeyword || undefined,
     intent: intent || undefined,
     topic: topic || undefined,
@@ -344,7 +330,7 @@ function parsePostFile(
     sourceId: deriveSourceId(data.sourceId, tags),
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
     coverImage: normalizeCoverImage(data.coverImage, slug),
-  } as Post;
+  };
 }
 
 function parsePostFileSummary(
@@ -352,11 +338,14 @@ function parsePostFileSummary(
   slug: string,
   locale: Locale,
   existingPaths?: Set<string>
-): PostSummary {
+): PostSummary | null {
   const fileContents = fs.readFileSync(fullPath, 'utf8');
-  const { data, content } = matter(fileContents);
+  const { data: rawData, content } = matter(fileContents);
+  const data = parseValidatedFrontmatter(fullPath, rawData);
+  if (!data) return null;
+
   const normalizedTags = normalizeTags(data.tags);
-  const coreTags = deriveCoreTags(String(data.title || slug), content, normalizedTags);
+  const coreTags = deriveCoreTagsFromContent(String(data.title || slug), content, normalizedTags);
   const tags = mergeTags(normalizedTags, coreTags);
   const author = typeof data.author === 'string' ? data.author.trim() : '';
   const byline = typeof data.byline === 'string' ? data.byline.trim() : '';
@@ -364,28 +353,7 @@ function parsePostFileSummary(
   const primaryKeyword = typeof data.primaryKeyword === 'string' ? data.primaryKeyword.trim() : '';
   const intent = typeof data.intent === 'string' ? data.intent.trim() : '';
   const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
-  const schemaRaw = typeof data.schema === 'string' ? data.schema.trim().toLowerCase() : '';
-  const schema = schemaRaw === 'faq' || schemaRaw === 'howto' ? (schemaRaw as 'faq' | 'howto') : undefined;
-
-  const estimateReadingTime = (raw: string): number => {
-    const stripped = String(raw || '')
-      .replace(/```[\s\S]*?```/g, ' ')
-      .replace(/`[^`]+`/g, ' ')
-      .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (!stripped) return 1;
-
-    if (locale === 'ko') {
-      const chars = stripped.replace(/\s/g, '').length;
-      return Math.max(1, Math.round(chars / 800));
-    }
-
-    const words = stripped.split(/\s+/).filter(Boolean).length;
-    return Math.max(1, Math.round(words / 220));
-  };
+  const schema = data.schema;
 
   return {
     slug,
@@ -396,7 +364,7 @@ function parsePostFileSummary(
     tags,
     locale,
     verificationScore: data.verificationScore,
-    readingTime: estimateReadingTime(content),
+    readingTime: estimateReadingTime(content, locale),
     primaryKeyword: primaryKeyword || undefined,
     intent: intent || undefined,
     topic: topic || undefined,
@@ -407,7 +375,7 @@ function parsePostFileSummary(
     sourceId: deriveSourceId(data.sourceId, tags),
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
     coverImage: normalizeCoverImage(data.coverImage, slug),
-  } as PostSummary;
+  };
 }
 
 export function getPosts(locale: Locale): Post[] {
@@ -433,6 +401,7 @@ export function getPosts(locale: Locale): Post[] {
       const fullPath = path.join(localeDir, fileName);
       return parsePostFile(fullPath, slug, locale, existingPaths);
     })
+    .filter((post): post is Post => post !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (process.env.NODE_ENV === 'production') {
@@ -464,6 +433,7 @@ export function getPostSummaries(locale: Locale): PostSummary[] {
       const fullPath = path.join(localeDir, fileName);
       return parsePostFileSummary(fullPath, slug, locale, existingPaths);
     })
+    .filter((post): post is PostSummary => post !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   if (process.env.NODE_ENV === 'production') {

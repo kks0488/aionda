@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import * as readline from 'readline';
+import { run } from './lib/run';
 
 const RAW_DIR = './data/raw';
 const SELECTED_DIR = './data/selected';
@@ -121,4 +122,4 @@ async function main() {
   });
 }
 
-main().catch(console.error);
+run(main);

@@ -1,8 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-import { deriveSeries, getPostSummaries } from '@/lib/posts';
+import { getPostSummaries } from '@/lib/posts';
 import PostCard from '@/components/PostCard';
-import SearchDataSetter from '@/components/SearchDataSetter';
 import Pagination from '@/components/Pagination';
 import { DEFAULT_PAGE_SIZE, getTotalPages, sliceForPage } from '@/lib/pagination';
 import type { Locale } from '@/i18n';
@@ -66,19 +65,6 @@ export default function PostsPage({
   if (normalizedTag) {
     redirect(`/${locale}/tags/${encodeURIComponent(normalizedTag)}`);
   }
-  const searchPosts = allPosts.map(({ slug, title, description, tags, date, lastReviewedAt, primaryKeyword, intent, topic, schema }) => ({
-    slug,
-    title,
-    description,
-    tags,
-    date,
-    lastReviewedAt,
-    primaryKeyword,
-    intent,
-    topic,
-    schema,
-    series: deriveSeries(tags),
-  }));
   const headerTitle = locale === 'ko' ? '모든 글' : 'All Articles';
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: locale === 'ko' ? '홈' : 'Home', path: `/${locale}` },
@@ -92,9 +78,6 @@ export default function PostsPage({
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
-        {/* Set posts for search */}
-        <SearchDataSetter posts={searchPosts} locale={locale as Locale} />
-
         {/* Header */}
         <section className="w-full py-12 px-6 border-b border-gray-100 dark:border-gray-800">
           <div className="max-w-7xl mx-auto">

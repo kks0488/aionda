@@ -1,9 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
-import { deriveSeries, getPostSummaries } from '@/lib/posts';
 import { getTagStats } from '@/lib/tags';
 import { getTagColor } from '@/lib/tag-utils';
-import SearchDataSetter from '@/components/SearchDataSetter';
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
@@ -37,7 +35,6 @@ export default function TagsPage({
 }) {
   setRequestLocale(locale);
 
-  const posts = getPostSummaries(locale as Locale);
   const tagStats = getTagStats(locale as Locale);
   const MIN_INDEXED_TAG_COUNT = 3;
   const MAX_TAGS = 120;
@@ -45,19 +42,6 @@ export default function TagsPage({
     .filter((stat) => stat.count >= MIN_INDEXED_TAG_COUNT)
     .slice(0, MAX_TAGS);
   const displayTags = popularTags.length > 0 ? popularTags : tagStats.slice(0, MAX_TAGS);
-  const searchPosts = posts.map(({ slug, title, description, tags, date, lastReviewedAt, primaryKeyword, intent, topic, schema }) => ({
-    slug,
-    title,
-    description,
-    tags,
-    date,
-    lastReviewedAt,
-    primaryKeyword,
-    intent,
-    topic,
-    schema,
-    series: deriveSeries(tags),
-  }));
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: locale === 'ko' ? '홈' : 'Home', path: `/${locale}` },
     { name: locale === 'ko' ? '태그' : 'Tags', path: `/${locale}/tags` },
@@ -70,8 +54,6 @@ export default function TagsPage({
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
-        <SearchDataSetter posts={searchPosts} locale={locale as Locale} />
-
       <section className="w-full py-12 px-6 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-slate-900 dark:text-white">

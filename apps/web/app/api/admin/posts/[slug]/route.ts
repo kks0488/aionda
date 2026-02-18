@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
@@ -115,6 +115,13 @@ export async function PUT(
   const local = requireLocal(request);
   if (local) return local;
 
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development') {
+    return NextResponse.json(
+      { error: 'File write is disabled in production. Use PR-based publish.' },
+      { status: 403 }
+    );
+  }
+
   const auth = requireAdmin(request);
   if (auth) return auth;
 
@@ -169,6 +176,13 @@ export async function DELETE(
 ) {
   const local = requireLocal(request);
   if (local) return local;
+
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development') {
+    return NextResponse.json(
+      { error: 'File write is disabled in production. Use PR-based publish.' },
+      { status: 403 }
+    );
+  }
 
   const auth = requireAdmin(request);
   if (auth) return auth;

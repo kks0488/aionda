@@ -99,7 +99,7 @@ export default async function LocaleLayout({
           disableTransitionOnChange
         >
           <NextIntlClientProvider messages={messages}>
-            <SearchProvider>
+            <SearchProvider locale={locale as Locale}>
               <AnalyticsEvents />
               <Header locale={locale as Locale} />
               <main className="flex-1">

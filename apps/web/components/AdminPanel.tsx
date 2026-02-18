@@ -86,14 +86,16 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   const [canLocalWrite, setCanLocalWrite] = useState(false);
 
   useEffect(() => {
-    const savedKey = window.localStorage.getItem(STORAGE_KEY);
+    const savedKey = window.sessionStorage.getItem(STORAGE_KEY);
     if (savedKey) setApiKey(savedKey);
   }, []);
 
   useEffect(() => {
     if (apiKey) {
-      window.localStorage.setItem(STORAGE_KEY, apiKey);
+      window.sessionStorage.setItem(STORAGE_KEY, apiKey);
+      return;
     }
+    window.sessionStorage.removeItem(STORAGE_KEY);
   }, [apiKey]);
 
   useEffect(() => {

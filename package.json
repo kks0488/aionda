@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@9.15.5",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
@@ -47,6 +50,7 @@
     "pipeline:evergreen:publish": "pnpm extract-evergreen -- --queue=keywords-ko && pnpm research-topic -- --from-last-extract && pnpm write-article && pnpm content:gate:publish && pnpm generate-image"
   },
   "dependencies": {
+    "@singularity-blog/content-utils": "workspace:*",
     "@google/genai": "^1.35.0",
     "@google/generative-ai": "^0.21.0",
     "dotenv": "^16.6.1",
@@ -56,6 +60,7 @@
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {
+    "@singularity-blog/crawler": "workspace:*",
     "@types/proper-lockfile": "^4.1.4",
     "sharp": "^0.34.5",
     "tsx": "^4.7.0",

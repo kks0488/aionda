@@ -3,25 +3,61 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { SearchPost } from '@/lib/posts';
 import type { Locale } from '@/i18n';
 import { trackEvent } from '@/lib/analytics';
+
+type SearchIndexPost = {
+  slug: string;
+  title: string;
+  description: string;
+  tags: string[];
+};
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  posts: SearchPost[];
   locale: Locale;
 }
 
-export default function SearchModal({ isOpen, onClose, posts, locale }: SearchModalProps) {
+export default function SearchModal({ isOpen, onClose, locale }: SearchModalProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchPost[]>([]);
+  const [results, setResults] = useState<SearchIndexPost[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [posts, setPosts] = useState<SearchIndexPost[] | null>(null);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const router = useRouter();
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  const loadSearchIndex = useCallback(async (force = false) => {
+    if (isLoadingPosts) return;
+    if (!force && posts) return;
+
+    setIsLoadingPosts(true);
+    setLoadError(null);
+
+    try {
+      const response = await fetch(`/api/search-index?locale=${encodeURIComponent(locale)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load search index: ${response.status}`);
+      }
+
+      const data = (await response.json()) as { posts?: SearchIndexPost[] };
+      setPosts(Array.isArray(data.posts) ? data.posts : []);
+    } catch (error) {
+      console.error('Failed to load search index', error);
+      setLoadError(locale === 'ko' ? '검색 데이터를 불러오지 못했습니다.' : 'Failed to load search data.');
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  }, [isLoadingPosts, locale, posts]);
+
+  useEffect(() => {
+    setPosts(null);
+    setLoadError(null);
+  }, [locale]);
 
   const handleSearch = useCallback((searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -31,7 +67,8 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
     }
 
     const lowerQuery = searchQuery.toLowerCase();
-    const filtered = posts.filter(
+    const searchablePosts = posts || [];
+    const filtered = searchablePosts.filter(
       (post) =>
         post.title.toLowerCase().includes(lowerQuery) ||
         post.description.toLowerCase().includes(lowerQuery) ||
@@ -40,6 +77,12 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
     setResults(filtered.slice(0, 5));
     setSelectedIndex(filtered.length > 0 ? 0 : -1);
   }, [posts]);
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadSearchIndex();
+    }
+  }, [isOpen, loadSearchIndex]);
 
   useEffect(() => {
     handleSearch(query);
@@ -181,7 +224,22 @@ export default function SearchModal({ isOpen, onClose, posts, locale }: SearchMo
 
         {/* Results */}
         <div className="flex-1 overflow-y-auto">
-          {results.length > 0 ? (
+          {loadError ? (
+            <div className="p-8 text-center text-slate-600 dark:text-slate-300" role="status">
+              <p>{loadError}</p>
+              <button
+                type="button"
+                onClick={() => void loadSearchIndex(true)}
+                className="mt-3 inline-flex items-center rounded-md px-3 py-1.5 text-sm font-semibold bg-primary text-white"
+              >
+                {locale === 'ko' ? '다시 시도' : 'Retry'}
+              </button>
+            </div>
+          ) : isLoadingPosts && !posts ? (
+            <div className="p-8 text-center text-slate-600 dark:text-slate-300" role="status" aria-live="polite">
+              <p>{locale === 'ko' ? '검색 데이터를 불러오는 중...' : 'Loading search data...'}</p>
+            </div>
+          ) : results.length > 0 ? (
             <ul
               id="search-results"
               role="listbox"

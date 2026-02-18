@@ -15,6 +15,8 @@ import { classifySource, createVerifiedSource, SourceTier } from './lib/search-m
 import { canonicalizeTags } from './lib/tags.js';
 import { extractJsonObject } from './lib/json-extract.js';
 import matter from 'gray-matter';
+import { run } from './lib/run';
+import { deriveCoreTagsFromContent, normalizeTopicId } from '@singularity-blog/content-utils';
 
 config({ path: '.env.local' });
 
@@ -25,30 +27,13 @@ const VC_DIR = './.vc';
 const LAST_WRITTEN_PATH = join(VC_DIR, 'last-written.json');
 const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
 const MIN_CONFIDENCE = 0.6;
-const CORE_TAGS = ['agi', 'llm', 'robotics', 'hardware'] as const;
 const SERIES_TAGS = ['k-ai-pulse', 'explainer', 'deep-dive'] as const;
 type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
 type EvergreenSchema = 'howto' | 'faq';
 type Locale = 'ko' | 'en';
-const CORE_TAG_PATTERNS: Array<{ tag: (typeof CORE_TAGS)[number]; regex: RegExp }> = [
-  { tag: 'agi', regex: /agi|artificial general intelligence|superintelligence|초지능|범용.*인공지능/i },
-  { tag: 'robotics', regex: /robot|로봇|humanoid|휴머노이드|boston dynamics|figure|drone|드론|자율주행/i },
-  { tag: 'hardware', regex: /hardware|하드웨어|gpu|tpu|nvidia|chip|반도체|칩|blackwell|h100|b200|rubin|cuda|hbm/i },
-  { tag: 'llm', regex: /llm|language model|언어.*모델|대형언어|transformer|트랜스포머|gpt|chatgpt|claude|gemini|llama/i },
-];
 
 function stripHtml(value: string): string {
   return String(value || '').replace(/<[^>]*>/g, '');
-}
-
-function normalizeTopicId(value: string): string {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[_\s]+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
 }
 
 function decodeHtmlEntities(value: string): string {
@@ -384,10 +369,10 @@ function generateFrontmatter(
     .map(normalizeTag)
     .filter(Boolean)
     .filter((t) => !seriesSet.has(t as any));
-  const combinedText = `${title}\n${description}\n${baseTags.join(' ')}\n${content}`.toLowerCase();
-
-  const derivedCore = CORE_TAG_PATTERNS.filter(({ regex }) => regex.test(combinedText)).map(
-    ({ tag }) => tag
+  const derivedCore = deriveCoreTagsFromContent(
+    title,
+    `${description}\n${content}`,
+    baseTags
   );
 
   const topicTag = topic.topic ? normalizeTag(topic.topic) : '';
@@ -1263,4 +1248,4 @@ async function main() {
   console.log(`Wrote ${LAST_WRITTEN_PATH}`);
 }
 
-main().catch(console.error);
+run(main);

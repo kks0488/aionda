@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'fs';
 import { lockSync } from 'proper-lockfile';
 
 const QUEUE_FILE = './data/work-queue.json';
@@ -12,16 +12,41 @@ interface WorkQueue {
   lastUpdated: string;
 }
 
+function emptyQueue(): WorkQueue {
+  return { claimed: {}, completed: {}, lastUpdated: new Date().toISOString() };
+}
+
 export function loadQueue(): WorkQueue {
   if (!existsSync(QUEUE_FILE)) {
-    return { claimed: {}, completed: {}, lastUpdated: new Date().toISOString() };
+    return emptyQueue();
   }
-  return JSON.parse(readFileSync(QUEUE_FILE, 'utf-8'));
+
+  try {
+    return JSON.parse(readFileSync(QUEUE_FILE, 'utf-8')) as WorkQueue;
+  } catch (error) {
+    const quarantineFile = `${QUEUE_FILE}.quarantine`;
+    try {
+      renameSync(QUEUE_FILE, quarantineFile);
+      console.warn(
+        `⚠️ Failed to parse ${QUEUE_FILE}. Moved corrupted file to ${quarantineFile} and reset queue.`,
+        error
+      );
+    } catch (renameError) {
+      console.warn(
+        `⚠️ Failed to parse ${QUEUE_FILE}. Could not move corrupted file; resetting queue anyway.`,
+        renameError
+      );
+      console.warn(error);
+    }
+    return emptyQueue();
+  }
 }
 
 export function saveQueue(queue: WorkQueue): void {
   queue.lastUpdated = new Date().toISOString();
-  writeFileSync(QUEUE_FILE, JSON.stringify(queue, null, 2), 'utf-8');
+  const tmpFile = `${QUEUE_FILE}.tmp`;
+  writeFileSync(tmpFile, JSON.stringify(queue, null, 2), 'utf-8');
+  renameSync(tmpFile, QUEUE_FILE);
 }
 
 /**

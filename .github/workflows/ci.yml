@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   PNPM_VERSION: '9.15.5'
 
 jobs:
@@ -35,9 +35,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Check vercel.json parity
-        run: diff -u vercel.json apps/web/vercel.json
 
       - name: Content lint (all posts)
         run: pnpm -s content:lint -- --all

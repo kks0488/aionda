@@ -10,6 +10,7 @@ import { join } from 'path';
 import matter from 'gray-matter';
 import { structureArticle } from './lib/structure';
 import type { ArticleType } from './prompts/structure';
+import { run } from './lib/run';
 
 const VERIFIED_DIR = './data/verified';
 const POSTS_DIR = './apps/web/content/posts';
@@ -536,4 +537,4 @@ async function main() {
   console.log('Next step: Run `npm run dev` to preview the blog.');
 }
 
-main().catch(console.error);
+run(main);

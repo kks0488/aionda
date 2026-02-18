@@ -11,6 +11,7 @@ import {
   type SearchStrategy,
   SourceTier,
 } from './lib/search-mode.js';
+import { run } from './lib/run';
 
 config({ path: '.env.local' });
 
@@ -292,4 +293,4 @@ async function main() {
   console.log('═'.repeat(60));
 }
 
-main().catch(console.error);
+run(main);

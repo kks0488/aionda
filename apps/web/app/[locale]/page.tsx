@@ -1,7 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { deriveSeries, getPostSummaries } from '@/lib/posts';
+import { getPostSummaries } from '@/lib/posts';
 import HomeContent from '@/components/HomeContent';
-import SearchDataSetter from '@/components/SearchDataSetter';
 import NewsletterSignup from '@/components/NewsletterSignup';
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
@@ -44,25 +43,9 @@ export default function HomePage({
           day: 'numeric',
         })
       : '';
-  const searchPosts = posts.map(({ slug, title, description, tags, date, lastReviewedAt, primaryKeyword, intent, topic, schema }) => ({
-    slug,
-    title,
-    description,
-    tags,
-    date,
-    lastReviewedAt,
-    primaryKeyword,
-    intent,
-    topic,
-    schema,
-    series: deriveSeries(tags),
-  }));
 
   return (
     <div className="bg-white dark:bg-[#101922] text-slate-900 dark:text-white min-h-screen">
-      {/* Set posts for search */}
-      <SearchDataSetter posts={searchPosts} locale={locale as Locale} />
-
       {/* Hero Section */}
       <section className="relative w-full px-6 pt-16 pb-14 lg:pt-24 lg:pb-20 overflow-hidden">
         {/* Background atmosphere */}

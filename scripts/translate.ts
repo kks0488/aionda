@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
 import { translateToEnglish } from './lib/ai-text.js';
+import { run } from './lib/run';
 
 config({ path: '.env.local' });
 
@@ -136,4 +137,4 @@ async function main() {
   console.log('Next step: Run `pnpm generate-post` to create MDX files.');
 }
 
-main().catch(console.error);
+run(main);

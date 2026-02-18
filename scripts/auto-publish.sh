@@ -411,6 +411,14 @@ if [ -f "$REPO_ROOT/.env.local" ]; then
   set -u
 fi
 
+REQUIRED_VARS=(OPENAI_BASE_URL OPENAI_API_KEY OPENAI_MODEL)
+for var in "${REQUIRED_VARS[@]}"; do
+  if [ -z "${!var}" ]; then
+    echo "[FATAL] Required env var $var is not set. Aborting." >&2
+    exit 1
+  fi
+done
+
 # Publish slot state (outside the repo)
 STATE_ROOT="$(pick_candidate_root)"
 AUTO_PUBLISH_STATE_DIR="${AUTO_PUBLISH_STATE_DIR:-$STATE_ROOT/state}"

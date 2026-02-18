@@ -7,6 +7,7 @@ import { getTagColor } from '@/lib/tag-utils';
 import { getTopicConfig, normalizeTopicId } from '@/lib/topics';
 import { BASE_URL } from '@/lib/site';
 import { safeJsonLd } from '@/lib/json-ld';
+import { estimateReadingTime } from '@singularity-blog/content-utils';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
 import ShareButtons from '@/components/ShareButtons';
@@ -160,12 +161,6 @@ export async function generateMetadata({
       images: [ogImageUrl],
     },
   };
-}
-
-function estimateReadingTime(content: string): number {
-  const wordsPerMinute = 200;
-  const words = content.trim().split(/\s+/).length;
-  return Math.ceil(words / wordsPerMinute);
 }
 
 function getHostname(url?: string): string | null {
@@ -356,7 +351,7 @@ export default async function PostPage({
   const prevPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
   const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
 
-  const readingTime = estimateReadingTime(post.content);
+  const readingTime = estimateReadingTime(post.content, requestedLocale);
   const primaryTag = post.tags[0] || 'ai';
   const tagColor = getTagColor(primaryTag);
   const placeholderMark = primaryTag.slice(0, 1).toUpperCase();

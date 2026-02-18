@@ -16,6 +16,7 @@ import { generateContent } from './lib/ai-text';
 import { parseIntEnv } from './lib/env-utils';
 import { extractJsonObject } from './lib/json-extract.js';
 import { GENERATE_IMAGE_PROMPT_PROMPT } from './prompts/topics';
+import { run } from './lib/run';
 
 config({ path: '.env.local' });
 
@@ -755,4 +756,4 @@ async function main() {
   console.log('✅ Image generation complete!');
 }
 
-main().catch(console.error);
+run(main);

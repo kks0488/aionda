@@ -1,8 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import Link from 'next/link';
-import { deriveSeries, getPostSummaries } from '@/lib/posts';
-import SearchDataSetter from '@/components/SearchDataSetter';
+import { getPostSummaries } from '@/lib/posts';
 import PostCard from '@/components/PostCard';
 import Pagination from '@/components/Pagination';
 import { DEFAULT_PAGE_SIZE, getTotalPages, parsePageParam, sliceForPage } from '@/lib/pagination';
@@ -77,19 +76,6 @@ export default function TagPageNumber({
   if (pageNumber > totalPages) notFound();
 
   const pagePosts = sliceForPage(filteredPosts, pageNumber, DEFAULT_PAGE_SIZE);
-  const searchPosts = posts.map(({ slug, title, description, tags, date, lastReviewedAt, primaryKeyword, intent, topic, schema }) => ({
-    slug,
-    title,
-    description,
-    tags,
-    date,
-    lastReviewedAt,
-    primaryKeyword,
-    intent,
-    topic,
-    schema,
-    series: deriveSeries(tags),
-  }));
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: locale === 'ko' ? '홈' : 'Home', path: `/${locale}` },
     { name: locale === 'ko' ? '태그' : 'Tags', path: `/${locale}/tags` },
@@ -106,8 +92,6 @@ export default function TagPageNumber({
         dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
-        <SearchDataSetter posts={searchPosts} locale={typedLocale} />
-
       <section className="w-full py-12 px-6 border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4 text-slate-900 dark:text-white">

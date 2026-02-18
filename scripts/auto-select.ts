@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 
 import { join } from 'path';
 import { isAvailable, claimWork } from './lib/work-queue';
 import { checkDuplicate } from './lib/similarity';
+import { run } from './lib/run';
 
 const RAW_DIR = './data/raw';
 const SELECTED_DIR = './data/selected';
@@ -292,4 +293,4 @@ const minScore = parseInt(process.env.MIN_QUALITY_SCORE || '45');
   console.log(`\n✨ ${selected} post(s) auto-selected to data/selected/`);
 }
 
-main().catch(console.error);
+run(main);

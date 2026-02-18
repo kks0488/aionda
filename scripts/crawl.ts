@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { fetchPostList, fetchPostDetail } from '../packages/crawler/src/fetcher.js';
+import { run } from './lib/run';
 
 const DATA_DIR = './data/raw';
 
@@ -68,4 +69,4 @@ async function main() {
   console.log(`   Total in data/raw: ${existingIds.size + newCount}`);
 }
 
-main().catch(console.error);
+run(main);

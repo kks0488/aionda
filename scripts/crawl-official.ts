@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { run } from './lib/run';
 
 const DATA_DIR = './data/official';
 
@@ -53,4 +54,4 @@ async function main() {
   console.log('\n✨ Done! External AI can use /external-ai to create posts from official docs.');
 }
 
-main().catch(console.error);
+run(main);

@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { run } from './lib/run';
 
 const POSTS_DIR = './apps/web/content/posts';
 
@@ -51,4 +52,4 @@ async function main() {
   console.log(`\n✨ Done! Fixed: ${fixed}, Already clean: ${skipped}`);
 }
 
-main().catch(console.error);
+run(main);
