@@ -1,0 +1,190 @@
+---
+title: Why Output Length Becomes the Real Coding Bottleneck
+slug: output-length-real-coding-bottleneck
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: en
+description: >-
+  In portfolio site builds, bottlenecks often come from long outputs during
+  iterative edits, not first drafts. Compare tools by output cost, caching, and
+  batch workflows.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '992942'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=992942'
+verificationScore: 0.7566666666666667
+alternateLocale: /ko/posts/output-length-real-coding-bottleneck
+coverImage: /images/posts/output-length-real-coding-bottleneck.png
+---
+
+## TL;DR
+
+- **What changed / what this is:** Portfolio-site generation can bottleneck during long revision loops with long outputs.  
+- **Why it matters:** Pricing examples show higher output rates than input rates, so long outputs can raise costs.  
+- **What you should do next:** Add workflow rules that limit output length, then compare tools on cost and iteration behavior.  
+
+Example: A user asks for a more premium feel. The tool changes styles inconsistently. The user asks for consistency. The tool responds with longer code and explanations.
+
+---
+
+In the GPT-5.2 pricing example, output is $14.000 per 1M tokens.  
+Input is $1.750 per 1M tokens.  
+
+A portfolio site generated “in one shot” is often the starting phase.  
+Cost and time can expand during later revision loops.  
+
+Spacing can break, colors can drift, and layouts can shift.  
+Users then restate requests in new words.  
+The tool may output long code again each time.  
+
+This post explains why the revision loop can become a bottleneck.  
+It also suggests criteria for comparing coding assistants.  
+Product-to-product comparisons may need extra confirmation.  
+
+---
+
+## Current state
+
+In vibe coding workflows, output length can affect cost and time.  
+Conversation turns also matter, but they are not the only driver.  
+
+A common pattern appears in portfolio-site work by non-developers.  
+Users read long explanations.  
+They receive long code patches.  
+They then receive another explanation of that code.  
+
+This pattern can increase output tokens over time.  
+
+In an OpenAI API pricing example, GPT-5.2 input is $1.750 per 1M tokens.  
+GPT-5.2 output is $14.000 per 1M tokens.  
+The example presents output as more expensive than input.  
+
+On the same page, GPT-5.2 pro input is $21.00 per 1M.  
+GPT-5.2 pro output is $168.00 per 1M.  
+Long outputs can connect directly to the cost structure.  
+
+In an Anthropic example, Claude Opus 4.6 input is $5 per million tokens.  
+Claude Opus 4.6 output is $25 per million tokens.  
+The page also includes “up to 90% savings with prompt caching.”  
+It also includes “50% savings with batch processing.”  
+
+On the OpenAI pricing page, cached input is $0.175 per 1M tokens.  
+That page also mentions “50% savings” with the Batch API.  
+Iterative revisions can increase the value of caching and batching.  
+
+---
+
+## Analysis
+
+Plausible-looking code can hide later operating costs.  
+Design consistency issues can trigger new revision requests.  
+Each revision can add more output.  
+
+If output unit prices are higher, output tokens can matter more.  
+That is consistent with the pricing examples above.  
+
+Value-for-price may depend on more than one-shot quality.  
+It can also depend on behaviors during iteration.  
+
+- (1) The ability to suggest missing elements early can reduce dialogue turns.  
+- (2) The ability to resolve ambiguity can reduce follow-up questions.  
+- (3) Brief summaries and minimal diffs can reduce output size.  
+
+These remain criteria, not proven tool differences.  
+Tool-level differences may require experiments or benchmarks.  
+
+There are limitations.  
+The verifiable facts here are the documented prices and discounts.  
+This text does not show which tools use which models.  
+This text also does not show which IDE features are applied.  
+
+Clear requirements can help, but they also take time.  
+Users may not start with a full spec.  
+Bottlenecks can reflect process design as well as model behavior.  
+
+---
+
+## Practical application
+
+Official guidance often emphasizes clear instructions and iteration measurement.  
+For frontend work, constraints can reduce guesswork during revisions.  
+You can set typography, color, spacing, and component states early.  
+You can also set cross-page consistency rules early.  
+
+This text does not confirm an official template for acceptance criteria.  
+That part may need additional confirmation.  
+
+Cost control can focus on output length, not only fewer turns.  
+Pricing examples show output rates above input rates in several cases.  
+GPT-5.2 shows $14.000 output versus $1.750 input per 1M tokens.  
+GPT-5.2 pro shows $168.00 output versus $21.00 input per 1M tokens.  
+Some docs also mention 50% Batch API savings and caching options.  
+
+So operating rules can target output length.  
+You can request diffs instead of full rewrites.  
+You can standardize a short summary format.  
+You can group repeated instructions for caching or batching where supported.  
+
+**Checklist for Today:**
+- Write design tokens and consistency rules, and ask the tool to follow them in later edits.  
+- Set the response format to “short change summary + minimal patch” to limit output length.  
+- Check your platform’s documentation for caching or batching, and use it for repeated instructions.  
+
+---
+
+## FAQ
+
+**Q1. Why can revision cost drop if the model is better?**  
+A. Revision loops can drift into long outputs.  
+Some tools may catch missing elements early.  
+Some tools may reduce ambiguity and follow-ups.  
+Some tools may keep outputs patch-focused.  
+Differences across tools may still need validation.  
+
+**Q2. What is a common pitfall in token costs?**  
+A. Output can be priced higher than input in some examples.  
+GPT-5.2 shows $14.000 output per 1M versus $1.750 input per 1M.  
+GPT-5.2 pro shows $168.00 output per 1M.  
+Long “code + explanation + re-explanation” can raise output volume.  
+
+**Q3. “Write prompts well” feels vague. What is a minimum set?**  
+A. The documented principle is to give clear instructions.  
+For a portfolio site, you can fix design constraints first.  
+You can list key components and sections.  
+You can define consistency rules across pages.  
+You can set a response format like “summary + patch.”  
+This text does not confirm an official acceptance-test template.  
+
+---
+
+## Conclusion
+
+Productivity can hinge on revision loops, not first drafts.  
+Revision loops can increase output volume and cost.  
+
+Pricing examples show output priced above input in several cases.  
+Examples include $14.000 per 1M output and $168.00 per 1M output.  
+Docs also mention cached input at $0.175 per 1M tokens.  
+Docs also mention 50% batch savings language.  
+
+A reasonable next step can be workflow design, not only tool choice.  
+Aim to control output length during iterative edits.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-25](/en/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet Designs Protease-Cleavable Peptides for Urine Sensors](/en/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [Defense AI Procurement: Operations, Logging, Rights, And Incident Response](/en/posts/defense-ai-procurement-operations-logging-rights-incident-response)
+- [Designing Dispute Procedures Beyond Generative Detection Scores](/en/posts/designing-dispute-procedures-beyond-generative-detection-scores)
+- [DoD AI Contracts: Audit Logs, Retention, Access Controls](/en/posts/dod-ai-contracts-audit-logs-retention-access-controls)
+---
+
+## References
+
+- [Pricing | OpenAI - openai.com](https://openai.com/api/pricing/)
+- [API Platform | OpenAI - openai.com](https://openai.com/api/)
+- [Claude Opus 4.6 | Anthropic - anthropic.com](https://www.anthropic.com/claude/opus)
+- [o1-pro Model | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/o1-pro)
+- [Prompt engineering | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/prompt-engineering)
