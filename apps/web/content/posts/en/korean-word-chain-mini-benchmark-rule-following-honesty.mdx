@@ -1,0 +1,182 @@
+---
+title: Korean Word-Chain Mini-Benchmark for Rule-Following Honesty
+slug: korean-word-chain-mini-benchmark-rule-following-honesty
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: en
+description: >-
+  A Korean word-chain mini-benchmark using “checkmate” words to separate
+  rule-following, admitting impossibility, and fake-word evasion across
+  reasoning_effort settings.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '994161'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=994161'
+verificationScore: 0.7833333333333332
+alternateLocale: /ko/posts/korean-word-chain-mini-benchmark-rule-following-honesty
+coverImage: /images/posts/korean-word-chain-mini-benchmark-rule-following-honesty.png
+---
+
+## TL;DR
+
+- This is a mini-benchmark using a Korean word-chain “one-shot word” to test rule compliance and impossibility admission.  
+- It matters because docs discuss reasoning benefits, but they do not clearly claim direct hallucination suppression here.  
+- Next, run repeated prompts across `reasoning_effort` levels and gate deployment on labeled failure modes.  
+
+---
+
+In a Korean word-chain game, a “one-shot word” can end the round immediately.  
+That moment can expose rule compliance and honesty in a few lines.  
+This post summarizes a word-chain mini-benchmark for product decisions.  
+It aims to surface differences quickly, without long evaluations.  
+
+Example: You play word-chain, and a word blocks any valid continuation. The model can stop politely, or it can bluff with a fake word. That reaction can map to product risk.
+
+The core question is about consistency and honesty in rule-based tasks.  
+It asks whether we can test those traits without expensive evaluations.  
+It also separates what reasoning settings claim from what they do not.  
+Docs say reasoning may help accuracy and reliability in complex tasks.  
+This write-up did not find wording that directly promises hallucination suppression.  
+That includes non-existent word generation.  
+Additional verification may be needed.  
+
+---
+
+## Current state
+
+Within the quoted descriptions, o-series guidance says models were trained to “think longer/deeper.”  
+It also says complex tasks may benefit in accuracy and precision.  
+It also mentions reliability.  
+This framing focuses on getting correct answers more often.  
+This write-up did not confirm phrasing like “reduces hallucinations.”  
+
+At the API level, there is a `reasoning_effort` control.  
+The default is described as `medium`.  
+Docs say lowering it can increase speed.  
+Docs also say it can use fewer reasoning tokens.  
+Docs say response characteristics may change.  
+This investigation did not confirm a statement that help ensure fewer fake words.  
+
+Docs provide more concrete guidance for hard requests.  
+OpenAI’s Model Spec (2025/02/12) discusses refusal style.  
+It advises refusals should usually be one sentence.  
+It suggests a short apology and an inability explanation.  
+It also advises proposing allowed alternatives where possible.  
+OpenAI’s safe-completion description also suggests alternatives after explaining limits.  
+
+Anthropic documentation describes a different interface behavior.  
+Starting with Claude 4, streaming can include `stop_reason: "refusal"`.  
+It says there may be no separate refusal message.  
+It says applications should implement user messaging.  
+This creates a split between text norms and UI-handled signals.  
+
+---
+
+## Analysis
+
+This mini-benchmark targets rule compliance, not language ability.  
+In word-chain, a “one-shot word” resembles a checkmate.  
+Expected behavior can include three steps.  
+First, verify the stated rules.  
+Second, admit it cannot continue.  
+Third, propose ending or a mutually agreed rule change.  
+
+If the model invents a fake word, it resembles a different failure.  
+It can look like claiming an hard request is possible.  
+In support bots, legal drafting, and policy Q&A, that can raise trust risks.  
+So evaluation can record failure modes, not only accuracy.  
+It can separate rule violations, non-existent words, and impossibility admission.  
+
+It also seems premature to rely on reasoning mode alone.  
+Docs say reasoning may help accuracy and reliability.  
+This write-up did not confirm an explicit claim of hallucination suppression.  
+`reasoning_effort` also reads as a speed and token trade-off.  
+It becomes a product memo with an If/Then framing.  
+
+**If** a product uses “admit impossibility” as a safety device,  
+**Then** reasoning mode alone may be insufficient.  
+You can add separate tests and a response policy.  
+That policy can cover refusal and allowed alternatives.  
+
+There are objections worth tracking with evidence.  
+Word-chain can seem playful, which can mislead stakeholders.  
+Word validity can be ambiguous without a dictionary reference.  
+Rules also vary across users.  
+Examples include initial sound rules and loanword allowance.  
+That variability can destabilize “rule compliance” definitions.  
+So it can work better as a smoke test.  
+It can target closed-form tasks with explicitly stated rules.  
+
+---
+
+## Practical application
+
+Decision rules can stay simple.  
+Focus on failure modes, not only accuracy rate.  
+You can test whether reasoning settings improve consistency.  
+That can be done by repeating the same prompt.  
+Still, you should avoid assuming fewer hallucinations.  
+This post did not confirm documentary wording for that claim.  
+
+A policy template can follow the Model Spec (2025/02/12) guidance.  
+It can use “short apology + inability + alternative.”  
+Some stacks may return only `stop_reason: "refusal"`.  
+In that case, the UI or middleware can carry the user-facing message.  
+
+**Checklist for Today:**
+- Run repeated word-chain prompts at `low`, `medium`, and `high` `reasoning_effort`, and label each failure mode.  
+- Add a one-sentence refusal template and version-control it with evaluation cases and guardrails.  
+- Define app-layer messaging rules for cases that only return `stop_reason: "refusal"`.  
+
+---
+
+## FAQ
+
+**Q1. Why does a game like word-chain matter as a benchmark?**  
+A1. The rules can be simple, and failures can be visible.  
+An explicit “cannot continue” state can test honesty.  
+Fake words can indicate bluffing under constraint.  
+
+**Q2. If I turn on Thinking/Reasoning mode, will it make fewer fake words?**  
+A2. Docs describe longer or deeper thinking.  
+Docs also mention accuracy and reliability benefits.  
+This write-up did not confirm explicit claims of hallucination suppression.  
+So the effect may need experiments with setting changes.  
+
+**Q3. What form should a ‘good answer’ take when something is hard?**  
+A3. OpenAI Model Spec (2025/02/12) suggests one sentence.  
+It suggests a short apology and an inability explanation.  
+It also suggests allowed alternatives where possible.  
+Other stacks may return a refusal signal only.  
+In that case, applications can implement user messaging.  
+
+---
+
+## Conclusion
+
+The Korean word-chain “one-shot word” mini-benchmark can help separate behaviors.  
+It can distinguish rule compliance from bluffing with non-existent words.  
+It can also surface whether a model admits impossibility.  
+This post did not confirm doc language that directly promises hallucination suppression.  
+So results can be treated as a smoke test, not a standalone metric.
+
+## Further Reading
+- [AI Abuse Shifts From Text To Distribution TTPs](/en/posts/ai-abuse-shifts-from-text-to-distribution-ttps)
+- [AI Resource Roundup (24h) - 2026-02-25](/en/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet Designs Protease-Cleavable Peptides for Urine Sensors](/en/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [Defense AI Full Use Clashes With Contract Controls](/en/posts/defense-ai-full-use-contract-controls)
+- [Defense AI Procurement: Operations, Logging, Rights, And Incident Response](/en/posts/defense-ai-procurement-operations-logging-rights-incident-response)
+---
+
+## References
+
+- [Reasoning best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/reasoning-best-practices)
+- [Assistants | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/assistants/getAssistantFile)
+- [GPT‑5.1 Instant and GPT‑5.1 Thinking System Card Addendum | OpenAI - openai.com](https://openai.com/index/gpt-5-system-card-addendum-gpt-5-1/)
+- [Model Spec (2025/02/12) - model-spec.openai.com](https://model-spec.openai.com/2025-02-12.html)
+- [From hard refusals to safe-completions: toward output-centric safety training | OpenAI - openai.com](https://openai.com/index/gpt-5-safe-completions/)
+- [Streaming refusals - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/handle-streaming-refusals)

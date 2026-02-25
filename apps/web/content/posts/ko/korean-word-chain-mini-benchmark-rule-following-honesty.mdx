@@ -1,0 +1,99 @@
+---
+title: 끝말잇기 한방단어 미니벤치
+slug: korean-word-chain-mini-benchmark-rule-following-honesty
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: ko
+description: 한방단어 끝말잇기로 규칙 준수·불가 인정·가짜단어 회피를 분리 평가하고 reasoning_effort별 라벨링을 제안한다.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '994161'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=994161'
+verificationScore: 0.7833333333333332
+alternateLocale: /en/posts/korean-word-chain-mini-benchmark-rule-following-honesty
+coverImage: /images/posts/korean-word-chain-mini-benchmark-rule-following-honesty.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** 한국어 끝말잇기에 ‘한방단어’를 넣어, 모델이 **규칙을 준수하며 불가능을 인정하는지** 또는 **비존재 단어로 회피하는지**를 분리해 보는 미니벤치다.  
+- **독자는 뭘 하면 되나?** 같은 프롬프트를 `reasoning_effort`의 `low/medium/high`로 반복 실행하고, **규칙 위반·가짜 단어·불가 인정**을 따로 라벨링해 배포 게이트(If/Then)로 연결하라.
+
+---
+
+끝말잇기에서 상대가 ‘한방단어’를 꺼내는 순간, **몇 줄의 대화만으로** 모델이 규칙을 이해하는지, 아니면 그럴듯하게 뭉개는지 드러나는 경우가 있다. 이 글은 그 차이를 빠르게 드러내는 “끝말잇기 미니벤치”를 제품 의사결정 관점에서 정리한다.
+
+예: 당신이 끝말잇기를 하다가, 상대가 더는 이어갈 수 없게 만드는 단어를 던진다. 모델은 규칙을 점검하고 멈출 수도 있고, 규칙을 어기거나 그럴듯한 단어를 지어낼 수도 있다. 이때의 반응이 제품 리스크로 이어질 수 있다.
+
+핵심 이슈는 간단하다. **규칙 기반 과제에서의 정합성(규칙 준수)과 정직성(불가능 인정)**을, 길고 비싼 평가 없이도 가늠할 수 있느냐의 문제다. 그리고 ‘추론(Thinking/Reasoning) 모드’가 무엇을 약속하고 무엇을 약속하지 않는지도 분리해서 봐야 한다. 공식 문서들은 추론 모드가 정확도·신뢰도에 유리할 수 있다고 설명하지만, “환각(비존재 단어 생성)을 직접 억제한다”고까지 명시한다고는 본문 인용 범위에서 확인되지 않았다(추가 확인 필요).
+
+---
+
+## 현황
+
+문서 설명의 범위 안에서 보면, reasoning 관련 가이드는 o-series 모델이 “더 오래/깊게 생각하도록” 학습되었고, 복잡한 작업에서 정확도·정밀도(accuracy, precision)와 신뢰도(reliability)에 유리할 수 있다고 말한다. 이는 주로 “정답을 더 잘 맞히는 방향”의 설명이다. 다만 이 설명이 “환각을 줄인다” 같은 직접 문구로 이어진다고는 이번 정리 범위에서 확인되지 않았다.
+
+API 레벨에는 `reasoning_effort` 제어가 있으며, 기본값은 `medium`으로 안내된다. 문서 설명에 따르면 이를 낮추면 더 빠르고 추론 토큰을 덜 쓰는 대신(=추론을 덜 함) 응답 특성이 달라질 수 있다. 여기에서도 “비존재 단어 생성 억제”를 직접적으로 보장하는 문장을 확인했다고 말하기는 어렵다(이번 조사 결과 기준).
+
+
+---
+
+## 분석
+
+이 미니벤치의 요지는 “언어 능력” 자체가 아니라 **규칙 준수 능력**을 보는 데 있다. 끝말잇기에서 한방단어는 사실상 ‘체크메이트’에 가깝다. 이 상황에서 기대되는 동작은 (1) 규칙을 확인하고 (2) 이어갈 수 없음을 인정하고 (3) 가능하면 게임을 종료하거나 다른 합의 규칙을 제안하는 것이다.
+
+반대로 모델이 가짜 단어로 탈출하려 하면, 이는 단순 오답을 넘어 “불가능한 요구를 가능하다고 말하는” 패턴과 닮아 있다. 고객지원 봇, 법무 초안, 사내 정책 Q&A에서는 이 패턴이 컴플라이언스/신뢰 리스크로 이어질 수 있다. 따라서 평가 포인트는 “정답률”만이 아니라, **실패 형태(규칙 위반 / 비존재 단어 / 불가 인정)**를 분리해 기록하는 쪽에 있다.
+
+또한 “추론 모드가 있으니 괜찮다”로 결론을 내리기는 이르다. 이번 정리 범위에서 공식 문서들은 추론이 정확도·신뢰도에 유리할 수 있다고 말하지만, 환각 억제를 직접 보장한다고까지는 확인되지 않았다. `reasoning_effort`도 “속도/토큰 vs 추론”의 트레이드오프를 설명하는 성격이 강하다. 제품 메모로 옮기면 다음처럼 정리된다: **If** 제품이 “불가능을 불가능이라고 말하는 정직성”을 안전장치로 삼는다면, **Then** 추론 모드 채택만으로 만족하지 말고 “불가 인정”을 별도의 테스트 케이스와 응답 정책(거절/대안 제시)으로 고정해야 한다.
+
+반론도 남는다. 끝말잇기는 장난처럼 보일 수 있고, 모델이 단어 사전을 내장하지 않았거나(또는 제한적으로만 접근하거나) 표준국어대사전 같은 외부 검증을 못 하면 “진짜 단어냐” 판정이 애매해질 수 있다. 사용자마다 룰(두음법칙 적용, 외래어 허용, 방언 허용)이 달라 “규칙 준수” 정의가 흔들릴 수도 있다. 그래서 이 벤치는 단독 평가지표라기보다, **규칙이 명시된 폐쇄형 과제에서의 정합성/정직성 스모크 테스트**로 두는 편이 안전하다.
+
+---
+
+## 실전 적용
+
+의사결정 규칙은 단순하게 가져가라. “정답률”보다 “실패 형태”를 본다. 그리고 추론 설정을 바꿔가며 같은 상황을 반복해, **추론을 더 주면 정합성이 개선되는지**는 확인하되, **환각이 줄어든다고 전제하지는 말라**(공식 문서에 직접 근거가 있다고 본문에서 확인하지 못함). 마지막으로, 제품 정책 관점에서는 OpenAI Model Spec(2025/02/12)이 제시하는 “짧은 사과 + 불가 + 대안” 형태를 템플릿화하는 접근이 있다. Anthropic처럼 거절 신호(`stop_reason: "refusal"`)만 오는 스택이라면, UI/미들웨어에서 동일한 사용자 경험을 설계하는 방식이 필요하다.
+
+**오늘 바로 할 일:**
+- 동일한 끝말잇기 프롬프트를 `reasoning_effort`의 `low/medium/high`로 반복 실행하고, “가짜 단어/규칙 위반/불가 인정”을 구분 라벨링해 로그로 남겨라.  
+- “불가능 시 응답”을 제품 요구사항으로 한 문장 템플릿(짧은 사과+불가+대안)으로 고정하고, 평가 케이스와 가드레일까지 함께 버전 관리하라.  
+- `stop_reason: "refusal"`처럼 신호만 반환될 수 있는 경우를 가정해, 앱 레이어에서 사용자 메시징을 일관되게 처리하는 규칙을 정하라.  
+
+---
+
+## FAQ
+
+**Q1. 끝말잇기 같은 게임이 왜 벤치마크로 의미가 있나?**  
+A1. 규칙이 단순하고 실패가 선명하기 때문이다. “이어갈 수 없음”이라는 불가능 상태가 명확한 과제에서 모델이 패배를 인정하면 정직성 신호로 해석할 여지가 있다. 반대로 비존재 단어를 만들면 환각 성향을 빠르게 드러낼 수 있다.
+
+**Q2. 추론(Thinking/Reasoning) 모드를 켜면 가짜 단어를 덜 만들까?**  
+A2. 공식 문서 기준으로는 “더 오래/깊게 생각해 복잡한 작업의 정확도·신뢰도에 유리”하다고 설명하지만, “환각을 직접 억제한다”는 명시적 설명은 이번 정리 범위에서 확인되지 않았다. 그래서 설정 변경 효과는 실험으로 확인하는 편이 낫다.
+
+**Q3. 불가능할 때의 ‘좋은 답변’은 어떤 형태가 맞나?**  
+A3. OpenAI Model Spec(2025/02/12)은 거절을 보통 한 문장으로, 짧은 사과와 불가 설명으로 간결히 하라고 하고, 가능하면 허용되는 대안을 제시하라고 안내한다. OpenAI의 safe-completion 글도 “못 하는 이유를 설명한 뒤 안전한 대체”를 권한다. 반면 일부 스택은 `stop_reason: "refusal"`처럼 거절 신호만 제공할 수 있으니, 앱에서 사용자 메시징을 구현해야 한다.
+
+---
+
+## 결론
+
+끝말잇기 한방단어 미니벤치는 “모델이 규칙을 지키는가”와 “불가능을 인정하는가”를 짧은 시간에 분리해 보는 도구로 쓸 수 있다. 다만 추론 모드를 환각 억제의 보증으로 해석하기는 어렵고(이번 정리 범위 기준), `reasoning_effort` 같은 설정 변화는 **실측 로그와 실패 유형 라벨링**을 통해서만 판단하는 편이 안전하다.
+
+## 다음으로 읽기
+- [AI 악용, 생성보다 유통 TTP로 이동](/ko/posts/ai-abuse-shifts-from-text-to-distribution-ttps)
+- [AI 자료 모음 (24h) - 2026-02-25](/ko/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet으로 MMP 절단 펩타이드 설계](/ko/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [국방 AI 전면사용과 계약·통제 충돌](/ko/posts/defense-ai-full-use-contract-controls)
+- [국방 AI 조달, 운영설계가 계약을 좌우](/ko/posts/defense-ai-procurement-operations-logging-rights-incident-response)
+---
+
+## 참고 자료
+
+- [Reasoning best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/reasoning-best-practices)
+- [Assistants | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/assistants/getAssistantFile)
+- [GPT‑5.1 Instant and GPT‑5.1 Thinking System Card Addendum | OpenAI - openai.com](https://openai.com/index/gpt-5-system-card-addendum-gpt-5-1/)
+- [Model Spec (2025/02/12) - model-spec.openai.com](https://model-spec.openai.com/2025-02-12.html)
+- [From hard refusals to safe-completions: toward output-centric safety training | OpenAI - openai.com](https://openai.com/index/gpt-5-safe-completions/)
+- [Streaming refusals - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/handle-streaming-refusals)
