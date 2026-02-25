@@ -78,6 +78,7 @@ interface ResearchFinding {
 interface ResearchedTopic {
   topicId: string;
   sourceId: string;
+  sourceType?: string;
   sourceUrl: string;
   title: string;
   description: string;
@@ -275,13 +276,14 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   return {
     topicId: topic.id,
     sourceId: topic.sourceId,
+    sourceType: topic.sourceType,
     sourceUrl: topic.sourceUrl,
     title: topic.title,
     description: topic.description,
     keyInsights: topic.keyInsights,
     findings,
     researchedAt: new Date().toISOString(),
-    overallConfidence: avgConfidence,
+    overallConfidence: Math.round(avgConfidence * 100) / 100,
     canPublish: hasVerifiedContent,
     primaryKeyword: topic.primaryKeyword ? String(topic.primaryKeyword).trim() : undefined,
     intent: topic.intent,

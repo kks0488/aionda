@@ -24,17 +24,21 @@ const AI_API_DISABLED = ['true', '1'].includes(
   (process.env.AI_API_DISABLED || '').toLowerCase()
 );
 
-type ImageProvider = 'siliconflow' | 'openai';
-const IMAGE_PROVIDER: ImageProvider =
-  (process.env.IMAGE_PROVIDER || '').trim().toLowerCase() === 'openai'
-    ? 'openai'
-    : 'siliconflow';
+type ImageProvider = 'siliconflow' | 'openai' | 'gemini-native';
+const IMAGE_PROVIDER: ImageProvider = (() => {
+  const raw = (process.env.IMAGE_PROVIDER || '').trim().toLowerCase();
+  if (raw === 'openai') return 'openai';
+  if (raw === 'gemini-native' || raw === 'gemini') return 'gemini-native';
+  return 'siliconflow';
+})();
 
 const IMAGE_MODEL =
   process.env.IMAGE_MODEL ||
   (IMAGE_PROVIDER === 'openai'
     ? (process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1')
-    : 'Qwen/Qwen-Image');
+    : IMAGE_PROVIDER === 'gemini-native'
+      ? 'gemini-3-pro-image-preview'
+      : 'Qwen/Qwen-Image');
 
 // SiliconFlow API
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || '';
@@ -65,11 +69,25 @@ const MIME_EXT_MAP: Record<string, '.png' | '.jpg' | '.webp'> = {
   'image/webp': '.webp',
 };
 
+// Gemini Native API (via CLIProxyAPI)
+const GEMINI_NATIVE_API_KEY = process.env.GEMINI_NATIVE_API_KEY || process.env.OPENAI_API_KEY || '';
+const GEMINI_NATIVE_BASE_URL_RAW =
+  process.env.GEMINI_NATIVE_BASE_URL || process.env.OPENAI_BASE_URL || 'http://localhost:8317';
+const GEMINI_NATIVE_BASE_URL = GEMINI_NATIVE_BASE_URL_RAW.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
+const GEMINI_NATIVE_REQUEST_TIMEOUT_MS = parseIntEnv('GEMINI_NATIVE_IMAGE_TIMEOUT_MS', 180_000, 1);
+const GEMINI_NATIVE_MAX_RETRIES = 2;
+
 const ENABLE_COVER_IMAGES = process.env.ENABLE_COVER_IMAGES !== 'false';
 const ENABLE_IMAGE_GENERATION = process.env.ENABLE_IMAGE_GENERATION === 'true';
 const ENABLE_LOCAL_IMAGE_FALLBACK = process.env.ENABLE_LOCAL_IMAGE_FALLBACK !== 'false';
-const PROVIDER_API_KEY = IMAGE_PROVIDER === 'openai' ? OPENAI_IMAGE_API_KEY : SILICONFLOW_API_KEY;
-const PROVIDER_NAME = IMAGE_PROVIDER === 'openai' ? 'OpenAI-compatible' : 'SiliconFlow';
+const PROVIDER_API_KEY =
+  IMAGE_PROVIDER === 'openai' ? OPENAI_IMAGE_API_KEY
+  : IMAGE_PROVIDER === 'gemini-native' ? GEMINI_NATIVE_API_KEY
+  : SILICONFLOW_API_KEY;
+const PROVIDER_NAME =
+  IMAGE_PROVIDER === 'openai' ? 'OpenAI-compatible'
+  : IMAGE_PROVIDER === 'gemini-native' ? 'Gemini Native (CLIProxyAPI)'
+  : 'SiliconFlow';
 
 if (AI_API_DISABLED) {
   console.log('AI API is disabled via AI_API_DISABLED=true.');
@@ -534,6 +552,66 @@ async function generateImage(post: PostMeta): Promise<string | null> {
     let json: { images?: Array<{ url?: string; b64_json?: string }>; data?: Array<{ url?: string; b64_json?: string }> } | null;
     let text: string;
 
+    if (IMAGE_PROVIDER === 'gemini-native') {
+      // Gemini Native API via CLIProxyAPI
+      const geminiUrl = `${GEMINI_NATIVE_BASE_URL}/v1beta/models/${IMAGE_MODEL}:generateContent`;
+      const geminiPayload = {
+        contents: [{ parts: [{ text: `Generate an image: ${prompt}` }] }],
+        generationConfig: { responseModalities: ['IMAGE'] },
+      };
+
+      const result = await fetchJsonWithRetry<{
+        candidates?: Array<{
+          content?: { parts?: Array<{ inlineData?: { mimeType: string; data: string }; text?: string }> };
+        }>;
+      }>(
+        geminiUrl,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GEMINI_NATIVE_API_KEY}`,
+          },
+          body: JSON.stringify(geminiPayload),
+        },
+        { label: 'gemini-generate', timeoutMs: GEMINI_NATIVE_REQUEST_TIMEOUT_MS, retries: GEMINI_NATIVE_MAX_RETRIES }
+      );
+
+      if (!result.response.ok) {
+        const errorText = (result.text || '').trim().slice(0, 800);
+        console.error(`❌ Gemini API Error (${result.response.status}): ${errorText}`);
+        if (ENABLE_LOCAL_IMAGE_FALLBACK) {
+          console.log('↩️ Falling back to local placeholder image...');
+          return generateLocalFallbackImage(post);
+        }
+        return null;
+      }
+
+      // Extract base64 image from Gemini response
+      const candidates = result.json?.candidates;
+      const parts = candidates?.[0]?.content?.parts;
+      const imagePart = parts?.find((p) => p.inlineData?.data);
+
+      if (!imagePart?.inlineData) {
+        console.error('❌ No image data in Gemini response');
+        if (ENABLE_LOCAL_IMAGE_FALLBACK) {
+          console.log('↩️ Falling back to local placeholder image...');
+          return generateLocalFallbackImage(post);
+        }
+        return null;
+      }
+
+      const outputDir = path.join(process.cwd(), 'apps/web/public/images/posts');
+      if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+      const imageExt = extFromMime(imagePart.inlineData.mimeType);
+      const outputPath = path.join(outputDir, `${post.slug}${imageExt}`);
+      fs.writeFileSync(outputPath, Buffer.from(imagePart.inlineData.data, 'base64'));
+
+      console.log(`✅ Saved: ${outputPath}`);
+      return `/images/posts/${post.slug}${imageExt}`;
+    }
+
     if (IMAGE_PROVIDER === 'openai') {
       const openaiPayload: Record<string, unknown> = {
         model: IMAGE_MODEL,
@@ -695,10 +773,13 @@ async function main() {
   console.log('🔍 Finding posts without images...\n');
   console.log(`📷 Using model: ${IMAGE_MODEL}`);
   console.log(`🤖 Using AI for prompt generation`);
-  if (IMAGE_PROVIDER === 'openai') {
-    console.log(`🌐 API: OpenAI-compatible (${OPENAI_IMAGE_BASE_URL})\n`);
+  console.log(`🌐 Provider: ${PROVIDER_NAME}`);
+  if (IMAGE_PROVIDER === 'gemini-native') {
+    console.log(`   Base URL: ${GEMINI_NATIVE_BASE_URL}\n`);
+  } else if (IMAGE_PROVIDER === 'openai') {
+    console.log(`   Base URL: ${OPENAI_IMAGE_BASE_URL}\n`);
   } else {
-    console.log(`🌐 API: SiliconFlow\n`);
+    console.log('');
   }
 
   const { slugs, limit, all } = parseArgs();

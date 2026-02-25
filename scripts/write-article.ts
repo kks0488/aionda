@@ -153,6 +153,7 @@ interface ResearchFinding {
 interface ResearchedTopic {
   topicId: string;
   sourceId: string;
+  sourceType?: string;
   sourceUrl: string;
   title: string;
   description: string;
@@ -325,18 +326,10 @@ async function polishArticleMarkdown(locale: 'ko' | 'en', markdown: string): Pro
     : [
         '문장을 너무 길게 늘이지 말고, 필요하면 쪼개서 명확하게 쓴다.',
         '근거 없는 단정/과장 표현을 제거한다.',
-        '금지 표현을 피한다: "매우", "다양한", "혁신적", "획기적", "완벽", "절대".',
-        '도입부 첫 문장은 반드시 구체적인 상황/사건/수치로 시작한다.',
-        '검증 가능한 구체적 수치(벤치마크 점수, 날짜, 비율, 토큰 수 등)를 본문에 최소 3개 포함한다.',
-        '현황/분석 섹션을 수치 없는 주장만으로 채우지 않는다.',
-        '"## 세 줄 요약" 섹션을 상단에 추가하고, 기존 본문만 바탕으로 3개 불릿으로 요약한다.',
-        '세 줄 요약 3개 불릿은 (1) 무슨 변화/핵심이슈인가, (2) 왜 중요한가, (3) 독자는 뭘 하면 되나 순서로 쓴다.',
-        '도입부에 가상의 장면 1개를 넣되, 반드시 "예:"로 시작하는 별도 문단으로 작성한다.',
-        '"예:" 문단에는 숫자(0-9)를 쓰지 않는다. (사실처럼 보이기 때문)',
-        '체크리스트를 제외하고 "오늘/어제/내일/이번 주" 같은 상대적 날짜 표현을 쓰지 말고, 본문에 있는 날짜를 그대로 쓴다.',
-        '"## 실전 적용"에 "**오늘 바로 할 일:**" 체크리스트를 넣고, 정확히 3개 불릿(각 1문장)로 쓴다.',
+        '금지 표현을 피한다: "매우", "다양한", "혁신적", "획기적", "완벽", "절대", "일반적으로", "효과적으로".',
+        '금지 문장 패턴을 제거한다: "장밋빛 전망만 있는 것은 아니다", "~임을 시사한다/보여준다/반영한다", "~라고 할 수 있다", "주목할 만한 점은".',
+        '본문은 해체(-다) 문체를 유지한다. "~합니다/~입니다" 같은 합쇼체는 FAQ 답변에서만 쓴다.',
         '"## 참고 자료" 섹션이 있다면 각 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 맞추고, 도메인만 쓰지 않는다.',
-        '"## 현황"의 첫 문장을 "~가 발표했다"로 시작하지 말고, 변화/영향을 먼저 말한다.',
         '새로운 사실 주장(수치/날짜/출처/고유명사)을 절대 추가하지 않는다. 다만 예시/체크리스트는 일반론으로만 보완할 수 있다.',
       ].join('\n- ');
 
@@ -437,7 +430,7 @@ ${evergreenBlock}tags: [${finalTags.map((t) => `"${t}"`).join(', ')}]
 author: "AI온다"
 sourceId: "${topic.sourceId}"
 sourceUrl: "${topic.sourceUrl}"
-verificationScore: ${topic.overallConfidence}
+verificationScore: ${Math.round(topic.overallConfidence * 100) / 100}
 alternateLocale: "/${otherLocale}/posts/${slug}"
 coverImage: "${coverImagePath || `/images/posts/${slug}.png`}"
 ---`;
@@ -1096,9 +1089,13 @@ async function main() {
         topic.description + '\n' + topic.keyInsights.join('\n')
       );
 
-      if (duplicateCheck.isDuplicate && !force) {
-        console.log(`   ⚠️ Similar content found (score: ${duplicateCheck.similarItems[0]?.score?.toFixed(2)})`);
-        console.log(`   ⏭️ Skipping to avoid duplicate. Use --force to override.`);
+      if (!duplicateCheck.shouldPublish && !force) {
+        if (duplicateCheck.isDuplicate) {
+          console.log(`   ⚠️ Similar content found (score: ${duplicateCheck.similarItems[0]?.score?.toFixed(2)})`);
+          console.log(`   ⏭️ Skipping to avoid duplicate. Use --force to override.`);
+        } else {
+          console.log(`   ⚠️ memU check inconclusive, skipping to be safe. Use --force to override.`);
+        }
         continue;
       }
 
@@ -1222,6 +1219,7 @@ async function main() {
       const publishedData = {
         topicId: topic.topicId,
         sourceId: topic.sourceId,
+        sourceType: topic.sourceType,
         slug,
         publishedAt: new Date().toISOString(),
       };
