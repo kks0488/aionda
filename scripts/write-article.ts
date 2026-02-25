@@ -326,7 +326,7 @@ async function polishArticleMarkdown(locale: 'ko' | 'en', markdown: string): Pro
     : [
         '문장을 너무 길게 늘이지 말고, 필요하면 쪼개서 명확하게 쓴다.',
         '근거 없는 단정/과장 표현을 제거한다.',
-        '금지 표현을 피한다: "매우", "다양한", "혁신적", "획기적", "완벽", "절대", "일반적으로", "효과적으로".',
+        '금지 표현을 피한다: "매우", "다양한", "탁월한", "혁신적", "획기적", "완벽", "절대", "일반적으로", "효과적으로".',
         '금지 문장 패턴을 제거한다: "장밋빛 전망만 있는 것은 아니다", "~임을 시사한다/보여준다/반영한다", "~라고 할 수 있다", "주목할 만한 점은".',
         '본문은 해체(-다) 문체를 유지한다. "~합니다/~입니다" 같은 합쇼체는 FAQ 답변에서만 쓴다.',
         '"## 참고 자료" 섹션이 있다면 각 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 맞추고, 도메인만 쓰지 않는다.',
@@ -914,7 +914,9 @@ function sanitizeModelMentions(locale: 'ko' | 'en', markdown: string, evidenceTe
     };
 
     for (const rule of rules) applyRule(rule.family, rule.re);
-    for (const rule of koRules) applyRule(rule.family, rule.re);
+    if (locale === 'ko') {
+      for (const rule of koRules) applyRule(rule.family, rule.re);
+    }
   }
 
   return lines.join('\n');
