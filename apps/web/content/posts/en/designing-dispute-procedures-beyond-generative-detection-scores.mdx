@@ -1,0 +1,160 @@
+---
+title: Designing Dispute Procedures Beyond Generative Detection Scores
+slug: designing-dispute-procedures-beyond-generative-detection-scores
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: en
+description: >-
+  Domain shift, post-processing, and adversarial attacks weaken detection. Treat
+  scores as evidence and add provenance and stress tests.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '992770'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=992770'
+verificationScore: 0.7833333333333333
+alternateLocale: /ko/posts/designing-dispute-procedures-beyond-generative-detection-scores
+coverImage: >-
+  /images/posts/designing-dispute-procedures-beyond-generative-detection-scores.png
+---
+
+## TL;DR
+
+- Synthetic detection results can look less decisive under domain shift, re-encoding, and paraphrasing attacks.  
+- Treat detection as evidence, then add LODO testing, attack stress tests, and a provenance process.  
+
+A meeting-room audio clip triggers an internal review.  
+The detector score looks confident.  
+The group still argues about what “real” means operationally.  
+The question becomes who can decide, and what evidence supports it.  
+
+Example: A platform reviews a reported audio clip. The uploader claims ownership. The reporter disputes authenticity. The detector returns a mixed signal. The file has passed through conversions. The team follows policy, not a single score.  
+
+## TL;DR
+
+- **What changed / key issue?** Synthetic detection can look less reliable under domain shift, re-encoding, and attacks like paraphrasing.  
+- **Why does it matter?** At low FPR settings like **TPR@1%FPR** and **TPR@5%FPR**.
+- **What should readers do?** Treat detectors as evidence, then add **LODO** evaluation, low-FPR reporting, stress tests, and provenance submission.  
+
+## Current state
+
+Many critiques say one benchmark accuracy can miss operational failure modes.  
+One paper proposes cross-domain protocols like **LODO (Leave-One-Domain-Out)**.  
+It also discusses adversarial robustness tests, including paraphrasing attacks.  
+
+The same work argues for reporting multiple metrics.  
+It mentions **AUROC/PR-AUC** and **macro-F1**, not only accuracy.  
+It also emphasizes recall at low false positives.  
+It names **TPR@1%FPR** and **TPR@5%FPR** as operationally relevant.  
+
+Some results look unfavorable in low-FPR settings.  
+One robustness study reports **TPR@1%FPR = 48.8%** after an attack.  
+This suggests the outcome can depend on the threat model and operating point.  
+
+Another OOD text-detection study reframes the task as OOD detection.  
+These numbers can be informative, but they still depend on deployment conditions.  
+
+For audio deepfakes, evaluation often includes distribution artifacts.  
+ASVspoof 2021(DF) includes deepfake speech re-encoded with lossy codecs.  
+That benchmark commonly reports **EER**.  
+Its page reports a best-performing system with **EER = 15.64%**.  
+
+Image watermarking work often uses broader threat models.  
+It discusses compression, resize, and crop.  
+It also covers geometric distortions that can break synchronization.  
+It includes crop-and-paste as a watermark-breaking case.  
+Some papers also raise diffusion-based editing or regeneration as an attack.  
+They describe trade-offs among robustness, imperceptibility, and payload capacity.  
+
+## Analysis
+
+Detection acts like a classifier, not an evidence chain.  
+Classifiers can degrade under domain shift, post-processing, and attacks.  
+This motivates looking beyond average metrics like AUROC.  
+It also motivates low-FPR metrics like **TPR@1%FPR** and **TPR@5%FPR**.  
+
+Operational settings raise explicit risk questions.  
+Teams can choose an FPR target like **1%** or **5%**.  
+They can also decide who owns harm from false positives.  
+This turns model quality into a risk-budget and governance question.  
+
+Provenance operates differently from detection accuracy.  
+Signatures and credentials can support “where this file came from.”  
+This article does not pin down specific standards or regulations.  
+Provenance can require participation at generation time.  
+Metadata can be stripped during distribution.  
+Editing or re-encoding can also break a provenance chain.  
+
+Watermarking can provide another signal.  
+It can also face editing or regeneration-based attacks.  
+So the design often is not binary.  
+It can combine procedures with multiple signals.  
+Those signals can include detection, provenance, and heuristics.  
+
+## Practical application
+
+Decision rules can change before models change.  
+If a detector is used for adjudication, low-FPR metrics can be primary.  
+That can mean emphasizing **TPR@1%FPR** or **TPR@5%FPR**.  
+Average metrics like AUROC can remain secondary context.  
+
+Internal evaluation can include domain and attack stress.  
+That can include **LODO** cross-domain evaluation.  
+It can include paraphrasing stress tests for text detectors.  
+For high-dispute workflows, a single score can be insufficient.  
+A process can sequence evidence collection and review steps.  
+One sequence is provenance submission, then detector support, then human review.  
+Documentation can also specify who should submit what evidence.  
+
+Watermarking goals can be narrow and explicit.  
+One goal is surviving distribution transformations like compression or cropping.  
+More robustness can trade off against imperceptibility or payload capacity.  
+Teams can also define which transformations are expected to be survived.  
+Literature notes diffusion-based editing as a possible watermark attack.  
+So watermarking may act as one defensive signal, not a verdict.  
+
+**Checklist for Today:**
+- Reformat reports so **TPR@1%FPR** or **TPR@5%FPR** appears alongside AUROC.  
+- Add **LODO** tests and paraphrasing stress tests to the detector approval gate.  
+- Document a dispute flow that requests provenance, attaches detector outputs, and triggers human review.  
+
+## FAQ
+
+**Q1. If AUROC is high, can we trust the detector?**  
+A. AUROC aggregates performance across thresholds.  
+It can be hard to map AUROC to a specific operational decision.  
+Some papers recommend reviewing **TPR@1%FPR** and **TPR@5%FPR**.  
+These can reflect performance when false positives are constrained.  
+
+**Q2. Do we really need a ‘cross-domain’ test?**  
+A. Some work argues domain shift should be evaluated explicitly.  
+One study points to protocols like **LODO (Leave-One-Domain-Out)**.  
+Production inputs can differ from training data.  
+In-domain results can understate dispute risk.  
+
+**Q3. If we add watermarking, are we safe even after editi**  
+A. The literature discusses attacks that can target watermark robustness.  
+It also discusses trade-offs among robustness, imperceptibility, and payload.  
+Watermarking can support a broader evidence strategy.  
+It may not replace a dispute procedure on its own.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-25](/en/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet Designs Protease-Cleavable Peptides for Urine Sensors](/en/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [Tracing Output Drift With Snapshots, Seeds, And Safety](/en/posts/tracing-output-drift-with-snapshots-seeds-and-safety)
+- [AI Resource Roundup (24h) - 2026-02-24](/en/posts/ai-resources-roundup-2026-02-24)
+- [AI Resource Roundup (24h) - 2026-02-23](/en/posts/ai-resources-roundup-2026-02-23)
+---
+
+## References
+
+- [Efficient detection of AI-generated scientific abstracts with a lightweight transformer - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12877026/)
+- [ASVspoof 2021 (DF) – Community Infrastructure to Strengthen AI for Audio Deepfake analysis (CISAAD) – UMBC - cisaad.umbc.edu](https://cisaad.umbc.edu/asvspoof-2021-df/)
+- [Human Texts Are Outliers: Detecting LLM-generated Texts via Out-of-distribution Detection - arxiv.org](https://arxiv.org/abs/2510.08602)
+- [EAGLE: A Domain Generalization Framework for AI-generated Text Detection - arxiv.org](https://arxiv.org/abs/2403.15690)
+- [Modeling the Attack: Detecting AI-Generated Text by Quantifying Adversarial Perturbations - arxiv.org](https://arxiv.org/abs/2510.02319)
+- [Robust watermarking against arbitrary scaling and cropping attacks - sciencedirect.com](https://www.sciencedirect.com/science/article/abs/pii/S0165168424002755)
+- [SSyncOA: Self-synchronizing Object-aligned Watermarking to Resist Cropping-paste Attacks - arxiv.org](https://arxiv.org/abs/2405.03458)
+- [Diffusion-Based Image Editing for Breaking Robust Watermarks - arxiv.org](https://arxiv.org/abs/2510.05978)
