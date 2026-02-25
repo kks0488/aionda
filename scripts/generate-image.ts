@@ -814,6 +814,10 @@ async function main() {
 
   console.log('\n' + '='.repeat(60) + '\n');
 
+  let successCount = 0;
+  let failCount = 0;
+  const failedSlugs: string[] = [];
+
   for (let i = 0; i < limitedPosts.length; i++) {
     const post = limitedPosts[i];
     console.log(`[${i + 1}/${limitedPosts.length}] Processing...`);
@@ -824,6 +828,11 @@ async function main() {
       // Update both EN and KO versions
       updatePostFrontmatter('en', post.slug, imagePath);
       updatePostFrontmatter('ko', post.slug, imagePath);
+      successCount++;
+    } else {
+      failCount++;
+      failedSlugs.push(post.slug);
+      console.warn(`⚠️ Image generation failed for: ${post.slug}`);
     }
 
     // Rate limiting: wait between requests
@@ -834,7 +843,10 @@ async function main() {
   }
 
   console.log('\n' + '='.repeat(60));
-  console.log('✅ Image generation complete!');
+  console.log(`✅ Image generation complete: ${successCount} success, ${failCount} failed`);
+  if (failedSlugs.length > 0) {
+    console.warn(`⚠️ Failed slugs: ${failedSlugs.join(', ')}`);
+  }
 }
 
 run(main);
