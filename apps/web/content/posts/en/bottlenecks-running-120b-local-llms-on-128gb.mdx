@@ -1,0 +1,155 @@
+---
+title: Bottlenecks Running 120B Local LLMs On 128GB
+slug: bottlenecks-running-120b-local-llms-on-128gb
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: en
+description: >-
+  Explain 120B local LLM bottlenecks on 128GB: quantization, KV cache, context
+  length, concurrency, and backend overhead.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: '994376'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=994376'
+verificationScore: 0.7866666666666666
+alternateLocale: /ko/posts/bottlenecks-running-120b-local-llms-on-128gb
+coverImage: /images/posts/bottlenecks-running-120b-local-llms-on-128gb.png
+---
+
+## TL;DR
+
+- **What changed / what this is:** A 128GB setup running a ~120B-class local LLM often bottlenecks on KV cache and precision.
+Not only weights.
+- **Why it matters:** Model cards list different context and precision targets, like **262,144 tokens**, **128,000 ISL**, and **BF16/MXFP4**.
+- **What you should do next:** Pick target context and concurrency first, then verify backend support and model-card constraints.
+
+On a machine with **128GB** of memory, a ~120B-class local LLM can feel constrained.  
+The constraint often appears before you finish a long-context prompt.  
+The limiting factors can include quantization, KV cache, and backend overhead.
+
+Example: A person summarizes a long report for citations. Another person runs short checks for consistency. Their bottlenecks differ.
+
+This post summarizes memory limits in a **128GB** environment for ~120B-class local LLMs.  
+It uses **Qwen/Qwen3.5-122B-A10B** and **gpt-oss-120b** as a selection frame.  
+The comparison relies on details visible in official model cards.  
+Within this investigation, model cards did not provide fixed memory or speed requirements.  
+The result focuses on selection criteria and settings direction, not a pass or fail claim.
+
+## Current state
+
+In a **128GB** environment, memory often splits into three chunks.  
+Those chunks are weights, KV cache, and runtime overhead.  
+Overhead can include graphs, buffers, temporary tensors, and page cache.  
+The KV cache can be easy to underestimate.  
+Long context or higher concurrency can increase KV cache quickly.  
+That can change outcomes between short chats and long-document workflows.
+
+This investigation confirmed two candidates via official model cards.
+
+- **Qwen/Qwen3.5-122B-A10B**: The model card states **262,144 tokens (native)** context length.  
+  It also says it can expand up to **1,010,000 tokens**.  
+  It lists GPQA Diamond 86.6, but the model card shows SWE-bench Verified as 72.0 (not 43.1).  
+  These scores can indicate what the model card emphasizes.  
+  They do not by themselves settle operational fit for your machine.
+- **gpt-oss-120b**: The NVIDIA NIM model card specifies **Input Sequence Length 128,000**.  
+  It says, “all layer weights are BF16, MoE projection weights are MXFP4.”  
+  It recommends **BF16** as the activation precision.  
+  These notes can hint at intended mixed-precision operation.
+
+Within this investigation, both model cards lacked some numeric operational guidance.  
+We did not confirm official numbers for memory requirements in GB.  
+We also did not confirm official speed figures like tokens per second.  
+We also did not confirm model-card guidance like “recommended INT4” or “recommended INT8.”  
+These gaps suggest follow-up verification.
+
+## Analysis
+
+This matters because the goal is rarely “it runs once.”  
+The goal often includes a needed context length and acceptable latency.  
+Those goals can interact with memory and backend behavior.
+
+- Qwen3.5-122B-A10B lists **262,144 tokens (native)**.  
+  That can help for long-context workloads.  
+  Using that length can increase KV cache cost significantly.
+- gpt-oss-120b lists **128,000 ISL** and precision hints like **BF16/MXFP4**.  
+  It also notes **BF16 activations recommended**.  
+  These details can guide your precision assumptions during deployment.
+
+A **128GB** system can feel tight under some settings.  
+Long context can make KV cache the bottleneck before weights do.  
+User experience can vary with backend design choices.  
+Those choices can include precision support and KV cache management.
+
+- Optimization level for BF16 or formats like MXFP4 can vary by backend.
+- KV cache policy can vary, including reuse and paged approaches.
+- Concurrency can change memory sharing and overhead behavior.
+
+The primary documents in scope limit numeric operating claims.  
+They limit claims like “stable settings on 128GB” or “actual tokens/s.”  
+A more cautious frame treats selection as a stack choice.  
+That stack includes backend, precision, and cache policy.
+
+## Practical application
+
+A goal like “run 120B on 128GB” can be hard to reproduce.  
+A clearer frame starts with workload requirements.  
+Define your needed context length and concurrency.  
+Then test settings that stay within your memory limit.
+
+- If long context is central, model cards stating **262,144 tokens (native)** can be candidates.  
+  The KV cache cost can become a design constraint.
+- If you run many short interactions, **128,000 ISL** may fit your target better.  
+  Precision notes like **BF16/MXFP4** become operational checkpoints.  
+  “BF16 activations recommended” can also guide backend configuration checks.
+
+**Checklist for Today:**
+- Set a target context length using model-card labels like **128,000 ISL** or **262,144 tokens**.  
+- Increase concurrency gradually, and log memory use and latency at each step.  
+- Verify model-card precision hints like **BF16** and **MXFP4** against backend support.
+
+## FAQ
+
+**Q1. With 128GB, can I run a ~120B-class model locally?**  
+A. It can be difficult to answer definitively from model cards alone.  
+Weights, KV cache, and overhead can vary by settings and backend.  
+Higher context and concurrency can trigger limits sooner.
+
+**Q2. Is a model with a longer context length often better?**  
+A. Not necessarily.  
+A model listing **262,144 tokens (native)** can help long-context tasks.  
+Using that length can increase KV cache cost.  
+It can help to choose a required length first.  
+Then optimize within that range.
+
+**Q3. What should I check first in a model card?**  
+A. Start with context-length labels like **128,000 ISL** or **262,144 native**.  
+Then check precision hints like **BF16 activations recommended** and **MXFP4** mentions.  
+Then review relevant benchmarks like **MMLU‑Pro 86.7** or **LongBench v2 60.2**.
+
+## Conclusion
+
+A ~120B-class model on **128GB** can involve budgeting across multiple components.  
+Those components include context, KV cache, precision, concurrency, and overhead.  
+Qwen3.5-122B-A10B highlights **262,144 tokens (native)** and **1,010,000 tokens** expansion.  
+gpt-oss-120b highlights **128,000 ISL** and **BF16/MXFP4**.  
+It also notes **BF16 activations recommended**.  
+These details can signal each model’s operational assumptions.  
+A practical next step is to fix target context and concurrency first.  
+Then select a backend, precision, and cache policy that can meet those targets.
+
+## Further Reading
+- [AI Abuse Shifts From Text To Distribution TTPs](/en/posts/ai-abuse-shifts-from-text-to-distribution-ttps)
+- [AI Resource Roundup (24h) - 2026-02-25](/en/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet Designs Protease-Cleavable Peptides for Urine Sensors](/en/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [Defense AI Full Use Clashes With Contract Controls](/en/posts/defense-ai-full-use-contract-controls)
+- [Defense AI Procurement: Operations, Logging, Rights, And Incident Response](/en/posts/defense-ai-procurement-operations-logging-rights-incident-response)
+---
+
+## References
+
+- [Qwen/Qwen3.5-122B-A10B · Hugging Face - huggingface.co](https://huggingface.co/Qwen/Qwen3.5-122B-A10B)
+- [gpt-oss-120b Model by OpenAI | NVIDIA NIM - build.nvidia.com](https://build.nvidia.com/openai/gpt-oss-120b/modelcard)
