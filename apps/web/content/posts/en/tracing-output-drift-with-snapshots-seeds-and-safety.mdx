@@ -1,0 +1,175 @@
+---
+title: 'Tracing Output Drift With Snapshots, Seeds, And Safety'
+slug: tracing-output-drift-with-snapshots-seeds-and-safety
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: en
+description: >-
+  Even with the same model alias, outputs can shift due to snapshot routing,
+  safety behaviors, and sampling settings. Use logs and regression tests to
+  isolate causes.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - observability
+  - safety
+author: AI온다
+sourceId: '992472'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=992472'
+verificationScore: 0.8533333333333334
+alternateLocale: /ko/posts/tracing-output-drift-with-snapshots-seeds-and-safety
+coverImage: /images/posts/tracing-output-drift-with-snapshots-seeds-and-safety.png
+---
+
+## TL;DR
+
+- Model aliases can route to different snapshots, like `2025-12-15` versus `2025-10-06`.  
+- This can affect drift triage, since sampling and safety behaviors can also change outputs.  
+- Pin snapshots where available, verify parameters like `temperature 0–1`, and log refusal signals.  
+
+---
+
+A support bot can answer well for a week.  
+Then its answers can become off-base on one day.  
+Operators often notice this change by feel.  
+That approach can blur the cause.  
+Service quality improves when drift becomes reproducible.  
+
+Example: A customer repeats a familiar question. The reply shifts in tone and detail. Someone adjusts the prompt, but results keep changing. The logs show refusal hints and partial outputs.  
+
+The core issue is straightforward.  
+Even with the same model alias, outputs can vary over time.  
+Causes can include routing changes, safety behavior, and sampling randomness.  
+This memo describes procedures that can reduce ambiguity.  
+
+---
+
+## Current situation
+
+Outputs can change when an alias points to a different snapshot.  
+OpenAI documentation says snapshots can lock a specific version.  
+That lock is intended to improve consistency of behavior.  
+
+OpenAI’s Changelog includes alias moves to dated snapshots.  
+The `gpt-realtime-mini` and `gpt-audio-mini` slugs moved to `2025-12-15`.  
+If you need the previous model snapshots, use `gpt-realtime-mini-2025-10-06`.  
+A drift report can trigger a documentation check for alias binding changes.  
+It can also trigger a comparison against the earlier snapshot.  
+
+Reproducibility can vary by environment and SDK layer.  
+Anthropic’s OpenAI SDK compatibility docs define `temperature` as 0 to 1.  
+That suggests some variance controls may not work on that path.  
+
+Safety behavior can also change the response shape.  
+OpenAI describes safe-completions as substitute or shortened responses.  
+Anthropic says streaming interventions can set `stop_reason` to `"refusal"`.  
+Anthropic also notes a refusal message may not be included.  
+Short or cut-off answers can reflect safety mechanisms.  
+They may not reflect core model capability.  
+
+---
+
+## Analysis
+
+“Performance drift” can hide several distinct causes.  
+It can help to separate three categories.  
+
+1) **The model (or snapshot) itself changed**  
+2) **The model is the same, but sampling causes variance**  
+3) **Safety filters changed the response shape**  
+
+Mixing categories can weaken causal attribution.  
+An alias move to `2025-12-15` can look like a prompt failure.  
+That can lead to prompt edits without a stable baseline.  
+Randomness can also look like a model update.  
+That can lead to false confidence in snapshot pinning alone.  
+
+Version pinning can have limits.  
+
+- Providers can differ in whether they offer snapshot pinning.  
+  This post only cites OpenAI snapshots and Changelog examples.  
+  It also cites Anthropic compatibility-layer parameter notes.  
+- Safety behavior can affect perceived quality even with a pinned snapshot.  
+  Examples include safe-completions and `stop_reason: "refusal"`.  
+- Reproducibility tools can behave differently across environments.  
+  The compatibility docs say `temperature` is 0–1.  
+  They also say values above 1 are capped at 1.  
+  They also say `seed` is “Ignored.”  
+
+System design can separate what gets pinned from what gets observed.  
+Pinned items can include snapshots, parameters, and test inputs.  
+Observed items can include refusals, interruptions, and routing changes.  
+
+---
+
+## Practical application
+
+In If/Then form:
+
+- **If** an alias moves to a new snapshot, **Then** consider using the snapshot in production.  
+  You can compare current versus previous snapshots on the same test set.  
+  Snapshot notation can look like `2025-12-15` and `2025-10-06`.  
+
+- **If** your calling path supports `seed`, **Then** include it in regression tests with `temperature`.  
+  This can make model or filter changes easier to notice.  
+  **If** `seed` is documented as “Ignored,” **Then** plan for repeated sampling.  
+  That can reduce reliance on single-output comparisons.  
+
+- **If** answers get shorter or appear cut off, **Then** check safety metadata first.  
+  Anthropic mentions `stop_reason: "refusal"` during streaming.  
+  OpenAI describes substitute responses like safe-completions.  
+  Evaluation can include refusal and interruption labels, not only accuracy.  
+
+**Checklist for Today:**
+- Review alias calls and note where a snapshot or version string can be specified.  
+- Create regression tests with fixed prompts, fixed inputs, and stated parameter ranges.  
+- Log model identifiers and refusal or interruption signals alongside each response.  
+
+---
+
+## FAQ
+
+**Q1. When a user report says “performance got worse,” what should I check first?**  
+A. Start by confirming whether you called the same model.  
+If you used an alias, check whether it moved to another snapshot.  
+If possible, compare against `2025-10-06` using the same test inputs.  
+
+**Q2. If I fix the seed, is it often reproducible?**  
+A. It may depend on the calling path and provider behavior.  
+Anthropic’s compatibility docs mark `seed` as “Ignored.”  
+This post does not include evidence of uniform behavior across all paths.  
+
+**Q3. Can we prevent safety filters from causing quality instability?**  
+A. A practical goal can be detection and handling in system design.  
+OpenAI describes safe-completions as a possible substitute response.  
+Anthropic mentions `stop_reason: "refusal"` during streaming.  
+Products can branch on refusal or interruption and use fallbacks.  
+
+---
+
+## Conclusion
+
+Performance drift is often a measurement problem.  
+It can help to separate snapshots, sampling parameters, and safety behavior.  
+Documentation can identify a drift window, like `2025-12-15`.  
+Pin what you can, and log what you cannot pin.  
+Then investigate changes with comparative tests and metadata.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-25](/en/posts/ai-resources-roundup-2026-02-25)
+- [AI Resource Roundup (24h) - 2026-02-24](/en/posts/ai-resources-roundup-2026-02-24)
+- [AI Resource Roundup (24h) - 2026-02-23](/en/posts/ai-resources-roundup-2026-02-23)
+- [AI Resource Roundup (24h) - 2026-02-18](/en/posts/ai-resources-roundup-2026-02-18)
+- [AI Resource Roundup (24h) - 2026-02-17](/en/posts/ai-resources-roundup-2026-02-17)
+---
+
+## References
+
+- [ChatGPT-4o Model - developers.openai.com](https://developers.openai.com/api/docs/models/chatgpt-4o-latest)
+- [Changelog | OpenAI API - platform.openai.com](https://platform.openai.com/docs/changelog)
+- [OpenAI SDK compatibility - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/api/openai-sdk)
+- [From hard refusals to safe-completions: toward output-centric safety training | OpenAI - openai.com](https://openai.com/index/gpt-5-safe-completions/)
+- [Improving Model Safety Behavior with Rule-Based Rewards | OpenAI - openai.com](https://openai.com/index/improving-model-safety-behavior-with-rule-based-rewards/)
+- [Streaming refusals - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/handle-streaming-refusals)
+- [Why am I receiving an 'Output blocked by content filtering policy' error? | Anthropic Help Center - support.anthropic.com](https://support.anthropic.com/en/articles/10023638-why-am-i-receiving-an-output-blocked-by-content-filtering-policy-error)
