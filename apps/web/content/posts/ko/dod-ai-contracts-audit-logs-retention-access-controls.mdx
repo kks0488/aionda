@@ -1,0 +1,111 @@
+---
+title: 국방 AI 계약의 로그·보존·접근 쟁점
+slug: dod-ai-contracts-audit-logs-retention-access-controls
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: ko
+description: DFARS 252.204-7012가 AI 계약에 감사로그·90일 보존·포렌식 접근을 요구할 수 있다.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '992856'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=992856'
+verificationScore: 0.86
+alternateLocale: /en/posts/dod-ai-contracts-audit-logs-retention-access-controls
+coverImage: /images/posts/dod-ai-contracts-audit-logs-retention-access-controls.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가:** 국방/고위험 임무에서 상용 AI를 쓰는 계약에서, 단순 API 사용을 넘어 **감사 로그·데이터 보존·추가 접근 제공·구성(변경) 통제** 같은 운영 통제가 조건으로 붙을 수 있다는 쟁점이 커졌다.  
+- **왜 중요한가:** DFARS **252.204-7012**는 사이버 사고 시 **시스템 이미지 및 모니터링/패킷캡처 데이터 최소 90일 보존**과 **DoD 요청 시 포렌식에 필요한 추가 정보/장비 접근 제공**을 요구할 수 있어, 공급자의 운영 방식과 제품 설계에 직접 영향을 준다.  
+- **독자는 뭘 하면 되나:** 도입 전에 **(1) 로그 이벤트 목록과 최소권한 접근**, **(2) 사고 시 보존·제출 범위(최소 90일 포함)**, **(3) 모델/설정 변경 승인 흐름**을 계약 조항과 운영 문서로 먼저 고정하고, “감사 가능성”을 제품 요구사항으로 시험해야 한다.
+
+---
+
+작전실에서 상용 AI를 켠 뒤, **DFARS 252.204-7012의 “최소 90일 보존”** 같은 조항이 계약과 운영 절차에 바로 걸리는 상황이 생긴다. 질문 하나로 끝나지 않는다. 그 뒤에 **어떤 데이터가 들어갔는지**, **무슨 도구를 실행했는지**, **나중에 누가 감사할 수 있는지**가 계약서와 보안 통제의 문제로 이어진다.  
+지금 커지는 쟁점은 “군(또는 국방 조달)이 상용 AI를 쓰되, 단순 API 호출을 넘어 운영·감사·보안까지 더 넓은 접근권과 통제권을 계약으로 요구할 수 있나”다. 이 요구는 기술 스택만으로 정리되기 어렵다. 조달 규정, 규정 준수, 공급망 리스크 프레임까지 함께 얽힌다.
+
+예: 한 분석팀이 상용 AI에 업무 데이터를 넣고 자동 실행 도구를 붙인다. 이후 사고가 나자 누가 어떤 호출을 했는지 설명하지 못한다. 계약 담당자는 기록과 접근 통제를 요구한다. 기술 담당자는 변경 승인 절차를 추가한다.
+
+---
+
+## 현황
+
+
+로그와 접근통제는 “있으면 좋은 기능”이라기보다, 문서화된 운영 요구로 반복 등장한다. FedRAMP의 KSI(Moderate 수준 문서)는 **로그를 지속적으로 검토/감사**하고, **모니터링·로깅·감사할 이벤트 유형 목록을 유지**하라고 적는다. 또 로그 데이터 접근을 **최소권한**과 역할·속성 기반, **Just-in-time** 방식으로 제한하는 방향을 제시한다. 핵심은 “로그를 남긴다”에서 끝나지 않는다. **무엇을 남기고, 누가, 어떤 권한으로 보는지**까지 운영 문서로 고정하라는 요구에 가깝다.
+
+공급망 리스크 관점도 함께 움직인다. NIST SP **800-161 Rev.1**은 외부 서비스 제공자/통합자 관계를 **계약(agreement/contract)** 으로 관리하라고 말한다. 중요도(criticality)와 리스크 평가, 비용/편익 분석을 근거로 공급자에 적용할 **C‑SCRM 프로세스와 통제**를 선택·구현하라고 한다. 필요하면 요구사항을 업스트림 공급망으로 확장할 수 있다는 취지도 담지만, 그때도 **실현 가능성과 비용 효율성**을 함께 보라고 적는다. 즉 “정부가 더 많은 접근을 요구”하는 장면은 힘의 문제가 아니라, 표준의 공급망 관리 논리를 **계약 조항으로 번역**하는 과정이 되기 쉽다.
+
+---
+
+## 분석
+
+이 논쟁이 어려운 이유는 “접근권”이 한 가지 권한으로 정리되지 않기 때문이다. 실무에서는 보통 아래 네 덩어리로 나뉜다.
+
+1) **데이터 경로 통제**(무엇이 학습/로그/캐시에 남는가)  
+2) **로깅·감사**(어떤 이벤트를 남기고 누가 검증하는가)  
+3) **변경관리/구성관리**(모델·프롬프트·도구 연결·정책이 언제 어떻게 바뀌는가)  
+4) **사고 대응**(사고 시 무엇을 얼마 동안 보존하고 누구에게 제공하는가)
+
+
+반대로, 공급망 리스크를 근거로 한 요구가 민간 공급자에 과한 부담이 될 수 있다는 우려도 성립한다. NIST SP **800-161 Rev.1**이 말하듯 업스트림으로 요구사항을 확장하는 접근은 가능하지만, **실현 가능성과 비용 효율성**이 관건이다. 감사·접근·변경통제가 깊어질수록 공급자는 내부 설계(로그 구조, 키 관리, 테넌트 격리, 릴리스 프로세스)를 공개하거나 재설계해야 할 수 있다. 이 과정에서 지식재산, 보안(접근 확대가 공격면을 늘릴 수 있음), 경쟁(특정 조달 요구를 만족하는 소수 공급자 중심으로 기울 수 있음) 문제가 생길 수 있다. “안전장치”가 조달 구조상 “락인”으로 이어지지 않도록, 요구 범위를 근거와 함께 분해해 다룰 필요가 있다.
+
+---
+
+## 실전 적용
+
+고위험 임무에 가까울수록 “에이전트형 자동 실행”은 통제 실패로 이어질 수 있다. 예상치 못한 실행과 권한 남용을 줄이려면, 최소권한을 사람 계정뿐 아니라 **프로세스/도구 실행 권한**에도 동일하게 적용해야 한다. 최소권한은 NIST SP 800-53의 AC-6 통제가 말하는 원칙(업무 수행에 필요한 경우에만 접근 허용)으로 정리된다. 그리고 NIST AI RMF는 인간 감독(human oversight) 프로세스를 정의·평가·문서화하고, 배포 전·운영 중 시험/검증(TEVV)과 필요 시 독립적 검토를 요구하는 방향을 제시한다. 기술팀은 “모델 성능”만이 아니라 “감사 가능성”과 “승인 게이트”를 제품 요구사항으로 다뤄야 한다.
+
+예: 어떤 팀이 자동 실행 도구 연결을 켠다. 운영자 승인 없이 실행이 가능해진다. 이후 문제가 생겼지만 실행 근거가 로그에 남지 않는다. 팀은 기능 범위를 줄이거나, 권한을 최소화하고, 실행 전 승인 단계를 넣는다.
+
+**오늘 바로 할 일:**
+- 로그 이벤트 목록(무엇을 기록할지)과 로그 접근 권한(누가 볼 수 있는지)을 문서로 고정하고, FedRAMP KSI의 “이벤트 유형 목록 유지·로그 감사” 요구에 맞춰 운영한다.  
+- 사고 대응 시 DFARS 252.204-7012에 맞춰 시스템 이미지와 모니터링/패킷캡처 데이터 **최소 90일** 보존, 그리고 추가 접근 제공 범위를 계약서와 런북에 명시한다.  
+- NIST SP 800-161 Rev.1의 취지에 맞춰 중요도/리스크 및 비용/편익 근거로 접근·감사 요구를 필수/선택으로 나누고, 공급자와 협상 기준을 만든다.
+
+---
+
+## FAQ
+
+**Q1. “전면 접근”은 소스코드 공개나 모델 내부 공개를 뜻하나?**  
+A. 본문에 인용된 요구만으로 “모델 내부(가중치/학습데이터) 공개”까지 필수라고 단정하긴 어렵다. 다만 DFARS **252.204-7012**는 사고 시 **포렌식을 위한 추가 정보/장비 접근 제공**을 요구할 수 있다. FedRAMP KSI는 **로그·이벤트 유형·접근통제**를 운영 수준에서 요구한다. 실제 계약에서 접근 범위가 어디까지 가는지는 추가 확인과 협상이 필요하다.
+
+**Q2. 감사 로그는 어느 기간 보관해야 하나?**  
+A. DFARS **252.204-7012**에서 확인되는 정량 기준은 사고 대응 맥락의 **최소 90일 보존**이다(시스템 이미지 및 관련 모니터링/패킷캡처 데이터). NIST SP 800-171r3는 “조직의 기록 보존 정책에 일치하는 기간 동안 로그 보존” 같은 원칙을 제시하는 형태로 알려져 있지만, 본문에는 기간 숫자가 제시되지 않았다. 따라서 “항상 몇 년” 같은 기간은 조직 정책과 계약 조건으로 정해야 한다.
+
+**Q3. 공급망 리스크를 이유로 정부가 요구사항을 업스트림까지 강제할 수 있나?**  
+A. NIST SP **800-161 Rev.1**은 필요 시 요구사항을 업스트림으로 확장할 수 있다고 말한다. 동시에 **실현 가능성과 비용 효율성**을 고려하라고 한다. 따라서 “무제한 확장”이 표준이 권장하는 결론이라고 보긴 어렵다. 어떤 수준이 타당한지 리스크·비용 근거를 갖춘 설계가 필요하다.
+
+---
+
+## 결론
+
+군용 AI 접근권 논쟁의 중심은 “모델을 쓰겠다/말겠다”가 아니라, **감사 가능성·사고 대응·변경관리·공급망 리스크**를 계약으로 어떻게 고정하느냐에 있다. DFARS **252.204-7012**의 **최소 90일 보존**과 **추가 접근 제공** 같은 조항은 상용 AI도 운영 통제의 대상으로 다루게 만든다. 다음 관전 포인트는 이 요구가 일부 공급자만 감당 가능한 형태로 굳어지는지, 아니면 표준(로그·접근통제·TEVV·인간 감독)을 중심으로 상호 점검 가능한 조달 관행으로 정리되는지다.
+
+---
+
+### 참고 자료
+- [252.204-7012 Safeguarding Covered Defense Information and Cyber Incident Reporting - Acquisition.GOV](https://www.acquisition.gov/dfars/252.204-7012-safeguarding-covered-defense-information-and-cyber-incident-reporting.)
+- [Key Security Indicators - FedRAMP Documentation](https://www.fedramp.gov/docs/20x/key-security-indicators/)
+- [252.204-7019 Notice of NISTSP 800-171 DoD Assessment Requirements - Acquisition.GOV](https://www.acquisition.gov/dfars/252.204-7019-notice-nistsp-800-171-dod-assessment-requirements/)
+- [NIST SP 800-161 Rev. 1 (includes updates as of 11-01-2024) - NIST CSRC](https://csrc.nist.gov/pubs/sp/800/161/r1/upd1/final)
+- [AI RMF Core - AIRC (Excerpt from the NIST AI Risk Management Framework 1.0 (2023))](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-02-25](/ko/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet으로 MMP 절단 펩타이드 설계](/ko/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [생성물 탐지의 한계와 분쟁 절차](/ko/posts/designing-dispute-procedures-beyond-generative-detection-scores)
+- [직업 아닌 업무 단위 AI노출도](/ko/posts/measuring-ai-exposure-at-the-task-level)
+- [모델 출력 변동, 스냅샷으로 추적하라](/ko/posts/tracing-output-drift-with-snapshots-seeds-and-safety)
+---
+
+## 참고 자료
+
+- [252.204-7012 Safeguarding Covered Defense Information and Cyber Incident Reporting. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/dfars/252.204-7012-safeguarding-covered-defense-information-and-cyber-incident-reporting.)
+- [Key Security Indicators - FedRAMP Documentation - fedramp.gov](https://www.fedramp.gov/docs/20x/key-security-indicators/)
+- [252.204-7019 Notice of NISTSP 800-171 DoD Assessment Requirements. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/dfars/252.204-7019-notice-nistsp-800-171-dod-assessment-requirements.)
+- [CSRC: NIST SP 800-161 Rev. 1 (includes updates as of 11-01-2024) - csrc.nist.gov](https://csrc.nist.gov/pubs/sp/800/161/r1/upd1/final)
+- [AI RMF Core - AIRC (Excerpt from the NIST AI Risk Management Framework 1.0 (2023)) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)

@@ -1,0 +1,107 @@
+---
+title: '국방 AI 조달, 운영설계가 계약을 좌우'
+slug: defense-ai-procurement-operations-logging-rights-incident-response
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: ko
+description: '국방 AI 조달은 성능보다 배포·접근통제·로깅·보존·책임과 DFARS 72시간/90일, 권리 5년이 핵심이다.'
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '992869'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=992869'
+verificationScore: 0.7533333333333333
+alternateLocale: /en/posts/defense-ai-procurement-operations-logging-rights-incident-response
+coverImage: >-
+  /images/posts/defense-ai-procurement-operations-logging-rights-incident-response.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** 국방 AI 조달에서는 모델 성능보다 **배포·접근통제·로깅·보존·책임** 같은 운영 설계가 계약 요건을 먼저 좌우한다.  
+- **독자는 뭘 하면 되나?** 계약서 초안이 나오기 전에 **로그/보존 아키텍처**, **데이터 권리(legend) 기반 패키징**, **72시간 사고 보고 런북**을 한 세트로 준비해 운영 가능성을 먼저 입증한다.
+
+---
+
+국방 조직과 AI 계약을 논의하는 자리에서 **72시간**, **90일**, **5-year** 같은 숫자가 나오면 대화가 모델 정확도에서 운영 요건으로 이동한다. “로그는 어디에 남기죠?”, “데이터는 누가 보관하죠?”, “사고가 나면 72시간 안에 뭘 제출하죠?” 같은 질문이 이어지면, 데모가 깔끔해도 계약 리스크가 커진다.  
+핵심 이슈는 단순하다. **국방 AI 조달에서는 ‘모델’보다 ‘운영 설계(배포·접근통제·로깅·보존·책임)’가 먼저 계약 요건을 통과해야 한다**는 점이다.  
+이 충돌은 기술팀만의 문제가 아니다. 조달 조항(FAR/DFARS)이 기술 운영을 바꾸도록 요구할 수 있기 때문이다.
+
+예: 한 회의실에서 제품팀은 성능 데모를 준비해 왔고, 담당자는 감사와 사고 대응 절차를 묻는다. 팀은 보안은 괜찮다고 답하지만, 어떤 기록이 남는지 설명이 길어진다. 논의는 성능보다 운영 증적과 책임 소재로 흐른다.
+
+---
+
+## 현황
+
+국방/정부 조달에서 AI/ML이 “특별 취급”을 받는 지점은, 검색 결과 기준으로는 **AI 전용 통제 항목이 따로 고정되어서라기보다** 기존 보안 체계 위에 AI가 올라타는 구조에 가깝다. 즉 AI든 일반 IT든 DoD Cloud Computing SRG의 Impact Level 구조를 따르고, 기반은 **FedRAMP(= NIST SP 800-53 기반 통제)**이며, 여기에 DoD가 **FedRAMP+**나 **General Readiness(GR)** 같은 추가 요구를 얹는 방식이라는 큰 그림까지는 확인된다. 다만 이번 조사 결과만으로는 “AI/ML이면 반드시 적용해야 하는 통제 번호 목록”을 DoD SRG/FedRAMP에서 확정적으로 특정할 수는 없다(추가 확인 필요).
+
+한편 표준과 가이드는 “AI 보안”을 별도 통제로 분리하기보다, 기존 통제를 AI 위험에 맞게 **overlay(오버레이)** 하는 방향을 제시한다. NIST는 SP 800-53 통제를 AI 시스템에 맞게 tailor/보완하는 프로젝트를 소개하면서 **모델 무결성(model integrity), 데이터 provenance(출처/계보), 적대적 강건성(adversarial robustness), 투명성(transparency)** 같은 관심사를 언급한다. 조달 실무에서는 “우리는 800-53을 준수합니다”라는 문장만으로는 부족해지고, “800-53을 AI에 맞게 어떻게 구체화했는가”를 문서와 운영으로 설명하라는 요구로 이어질 수 있다(일반론).
+
+조달 계약 조항은 더 직접적이다. 데이터 권리와 사고 대응, 품질검사는 곧바로 기술 운영에 반영된다. 예를 들어 FAR 52.227-14는 계약 수행 중 **‘처음 생산된 데이터’에 대해 정부의 unlimited rights**를 규정한다. DFARS 252.227-7013은 technical data 권리를 **unlimited rights / government purpose rights / limited rights**로 나누고, **government purpose rights의 5-year period** 같은 기간 개념도 포함한다. 그리고 DFARS 252.204-7012는 사이버 사고를 **72시간 내 보고**하도록 요구하고, 관련 증적을 **최소 90일 보존**하도록 규정한다.
+
+---
+
+## 분석
+
+여기서 충돌이 생긴다. 민간 AI 기업은 프라이버시/보안 관점에서 “데이터 최소화”를 선호하는 경향이 있다. 반면 국방 조달은 “감사 가능성”을 요구한다. 두 요구는 같은 방향이 아닐 수 있다.  
+대응은 “둘 중 하나를 포기”라기보다, **감사에 필요한 최소 증적을 정의하고, 그 증적을 안전하게 남기며, 접근 권한을 분리하는 설계**로 좁혀진다.
+
+NIST NCCoE의 Practice Guide(SP 1800 시리즈)가 보여주는 문서화 방식은 참고가 된다. 고수준 아키텍처와 함께 **Event Detection and Monitoring, Log collection/collation/correlation** 같은 능력을 설계에 포함하고, 동시에 **Security & Privacy Characteristic Analysis**와 프라이버시 시나리오를 함께 다룬다. 즉 “로그를 남긴다”에서 끝나지 않고, “어떤 로그를, 어떤 목적으로, 어떤 통제 하에 남기며, 프라이버시 위험을 어떻게 줄였는가”까지 문서로 연결하는 방식이다.
+
+이 접근은 제품팀의 속도를 늦출 수 있다. 조달 조항은 기능 개발뿐 아니라 **증적·표기·보존·재현성**을 요구하는 형태로 나타날 수 있다. FAR 52.246-4는 서비스가 요구사항에 맞지 않으면 재수행/가격 감액 같은 조치를 가능하게 하고, 계약자가 **정부가 수용 가능한 검사 시스템**을 유지하며 **검사 기록을 보관·제공**해야 한다고 말한다. AI 시스템에서는 이 “검사 기록”이 모델 버전, 설정, 데이터 처리, 평가 결과, 배포 이력 같은 운영 메타데이터로 확장될 수 있다(일반론). 이를 준비하지 않으면 성능 이슈가 아니라 **계약 이행 이슈**로 번질 수 있다.
+
+예: 한 팀이 민감한 환경에 모델을 배포하려고 한다. 팀은 개인정보 보호를 위해 입력을 저장하지 않도록 설계했다. 그런데 보안 감사는 사건 재현을 요구한다. 팀은 로그가 없어 원인을 설명하지 못하고, 결과적으로 배포가 지연된다. 이때 선택지는 “입력 저장”으로 단순화되기 쉽지만, 실제로는 재현에 필요한 최소 신호만 남기는 쪽으로 설계를 조정할 여지가 있다.
+
+---
+
+## 실전 적용
+
+핵심은 **기술 아키텍처 + 운영 프로세스 + 계약 문구**를 한 묶음으로 준비하는 것이다. 특히 DFARS 252.204-7012가 요구하는 **72시간 내 보고**는 “보안팀이 처리한다”는 문장만으로 충족되기 어렵다. 탐지(Detection) → 분류(Triage) → 범위 확인(Scoping) → 증적 수집(Imaging/PCAP 등) → 보고(Reporting)로 이어지는 경로를 표준화해야 한다.  
+또한 **최소 90일 보존** 요구는 저장 용량만의 문제가 아니다. 접근통제, 키관리, 삭제 정책까지 포함한 데이터 거버넌스 이슈로 바뀐다.
+
+또 하나의 리스크는 데이터 권리다. FAR 52.227-14의 **unlimited rights**는 “모델이 학습한 데이터”처럼 경계가 복잡한 쟁점과 맞닿을 수 있다(계약 해석은 법무 검토 필요). DFARS 252.227-7013은 데이터에 **legend(표시)** 를 붙여 권리 범주를 구분하는 체계를 전제로 한다. 따라서 제품 출력물(리포트, 모델 산출물, 기술 문서, 로그 내보내기 등)을 한 파일로 묶기보다, **권리/배포 제한 단위로 패키징**하고 생성·저장·반출 경로를 분리하는 설계를 먼저 검토하는 편이 안전하다.
+
+**오늘 바로 할 일:**
+- DFARS 252.204-7012의 72시간 보고를 가정해 역할·제출물·승인 경로를 한 장 런북으로 정리한다.  
+- 90일 보존이 필요한 증적의 범위(예: 시스템 이미지, 모니터링/패킷 캡처)를 정의하고 저장소·권한·삭제 정책을 문서로 고정한다.  
+- FAR 52.227-14 및 DFARS 252.227-7013 관점에서 산출물 분류 규칙(legend 포함)을 정하고 배포 패키징 단위를 분리한다.
+
+---
+
+## FAQ
+
+**Q1. “AI/ML이라서” DoD가 요구하는 보안 통제가 따로 정해져 있나?**  
+A. 이번 조사 결과만 기준으로는 DoD SRG/FedRAMP 문서에서 “AI/ML 전용 필수 통제 번호 목록”이 명시돼 있다고 확인되지는 않는다(추가 확인 필요). 다만 FedRAMP(800-53 기반)와 DoD의 추가 요구(FedRAMP+ 등) 위에서 AI 위험을 반영하는 방향은 확인된다.
+
+**Q2. 데이터 최소화와 감사 로그는 양립할 수 있나?**  
+A. 원칙적으로는 가능하지만 설계가 필요하다. NIST NCCoE Practice Guide(SP 1800 시리즈)처럼 로깅/모니터링 능력을 아키텍처로 정의하면서, 동시에 Security & Privacy 특성 분석으로 “어떤 로그가 왜 필요한지”를 최소화 원칙과 함께 문서화하는 접근이 힌트를 준다.
+
+**Q3. 조달 조항이 실제 운영에 강제하는 ‘최소 요건’은 뭐가 제일 크나?**  
+A. 검색 결과에서 정량 요구로 가장 명확한 항목은 DFARS 252.204-7012의 **72시간 내 사고 보고**와 증적 **최소 90일 보존**이다. 또한 FAR 52.246-4는 검사 시스템과 검사 기록 보존을 요구해, AI 운영에서 품질/검증 기록 체계를 갖추도록 압력을 줄 수 있다.
+
+---
+
+## 결론
+
+국방 AI 조달에서 제품의 승부처는 모델 성능만이 아니라, **계약 조항이 요구하는 운영 가능성을 증적과 절차로 제시할 수 있는가**로 옮겨갈 수 있다. 다음 단계는 기능 중심 설명을 넘어, 운영을 **72시간 보고**, **90일 보존**, **unlimited rights**, **5-year period** 같은 조달 언어로 다시 점검하는 일이다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-02-25](/ko/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet으로 MMP 절단 펩타이드 설계](/ko/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [생성물 탐지의 한계와 분쟁 절차](/ko/posts/designing-dispute-procedures-beyond-generative-detection-scores)
+- [직업 아닌 업무 단위 AI노출도](/ko/posts/measuring-ai-exposure-at-the-task-level)
+- [모델 출력 변동, 스냅샷으로 추적하라](/ko/posts/tracing-output-drift-with-snapshots-seeds-and-safety)
+---
+
+## 참고 자료
+
+- [Virtual Event: Learn more about the new NIST SP 800-53 Control Overlays for Securing AI Systems Project | NIST - nist.gov](https://www.nist.gov/news-events/news/2025/09/virtual-event-learn-more-about-new-nist-sp-800-53-control-overlays-securing)
+- [NIST SP 1800-29B Data Confidentiality: Detect, Respond to, and Recover from Data Breaches (Volume B) - nccoe.nist.gov](https://www.nccoe.nist.gov/publication/1800-29/VolB/index.html)
+- [NIST Privacy Framework - CT.DP-P1 Guidelines and Tools - nist.gov](https://www.nist.gov/privacy-framework/ctdp-p1-guidelines-and-tools)
+- [52.227-14 Rights in Data-General. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/far/52.227-14)
+- [252.227-7013 Rights in Technical Data—Other Than Commercial Products and Commercial Services. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/dfars/252.227-7013-rights-technical-data%E2%80%94other-commercial-products-and-commercial-services.)
+- [252.204-7012 Safeguarding Covered Defense Information and Cyber Incident Reporting. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/dfars/252.204-7012-safeguarding-covered-defense-information-and-cyber-incident-reporting.)
+- [52.246-4 Inspection of Services-Fixed-Price. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/far/52.246-4)

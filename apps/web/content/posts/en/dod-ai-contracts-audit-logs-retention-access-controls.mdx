@@ -1,0 +1,157 @@
+---
+title: 'DoD AI Contracts: Audit Logs, Retention, Access Controls'
+slug: dod-ai-contracts-audit-logs-retention-access-controls
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: en
+description: >-
+  DFARS 252.204-7012 can drive audit logging, 90-day retention, and forensic
+  access requirements in DoD AI contracts.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '992856'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=992856'
+verificationScore: 0.86
+alternateLocale: /ko/posts/dod-ai-contracts-audit-logs-retention-access-controls
+coverImage: /images/posts/dod-ai-contracts-audit-logs-retention-access-controls.png
+---
+
+## TL;DR
+
+- **What changed / what this is:** Commercial AI in defense contexts can involve controls beyond API use, including logs and configuration control.  
+- **Why it matters:** DFARS 252.204-7012 cites incident duties, including retaining certain data for at least 90 days.  
+- **What you should do next:** Define logs, retention scope, and change approvals in contracts and runbooks before adoption.  
+
+---
+
+A commercial AI system can become subject to contract controls once it is used in operations.  
+DFARS 252.204-7012 includes a “minimum 90-day retention” duty in incident contexts.  
+That duty can affect contracts, runbooks, and product design.  
+Questions then shift toward what data entered, what tools ran, and who can audit later.  
+These questions can become security-control and procurement issues.  
+
+The dispute concerns broader access and control requirements beyond simple API calls.  
+Those requirements may cover operations, audit, and incident response.  
+The technical stack alone may not settle the dispute.  
+Procurement rules and compliance frameworks often shape the outcome.  
+
+Example: A team uses a commercial AI with automated tools for internal work. After an incident, they struggle to explain decisions. Procurement asks for records and access controls. Engineering adds a review workflow.  
+
+---
+
+## Current state
+
+In defense procurement, the focus is often handling sensitive data like CUI.  
+Incident-response obligations also matter.  
+DFARS 252.204-7012 addresses contractors handling CUI and related security requirements.  
+In a cyber incident, it cites retaining and protecting affected system images.  
+It also cites retaining relevant monitoring and packet-capture data for at least 90 days.  
+If requested by DoD, it can require additional information or equipment access for forensics.  
+
+Logging and access control often appear as documented operational requirements.  
+FedRAMP KSI (Moderate-level documentation) says you should continuously review or audit logs.  
+It also says you should maintain a list of event types to monitor, log, and audit.  
+It also points toward limiting access to log data with least privilege.  
+It references role-based or attribute-based controls and just-in-time methods.  
+The emphasis is not only generating logs.  
+It also includes documenting what is logged and who can view it.  
+It also includes defining the authority for log access.  
+
+Supply-chain risk considerations can move in parallel.  
+NIST SP 800-161 Rev.1 says relationships with external providers should use agreements or contracts.  
+It says C‑SCRM processes and controls should be selected using criticality and risk assessments.  
+It also mentions cost and benefit analyses.  
+It also notes feasibility and cost-effectiveness as considerations.  
+Requirements can be extended upstream when justified.  
+That translation often happens through contract clauses.  
+
+---
+
+## Analysis
+
+“Access” often splits into several operational categories.  
+A single permission rarely captures the full reality.  
+A practical breakdown includes four buckets.  
+
+1) **Data-path control** (what remains in training, logs, or cache)  
+2) **Logging & audit** (what events are captured and who validates them)  
+3) **Change management / configuration management** (how models, prompts, tools, and policies change)  
+4) **Incident response** (what is retained, for how long, and provided to whom)  
+
+DFARS 252.204-7012 can turn incident response into a contractual duty.  
+It includes minimum 90-day retention for certain incident-related data.  
+It can also include providing additional information or equipment access for forensics.  
+FedRAMP KSI centers on event-type lists, log auditing, and least privilege.  
+Those points primarily map to logging and audit.  
+They also connect to data-path and change management decisions.  
+Commercial AI can therefore face controls similar to IT or cloud procurement.  
+
+Supply-chain-risk-driven requirements can also add burden.  
+NIST SP 800-161 Rev.1 notes feasibility and cost-effectiveness as decision factors.  
+Deeper audit or access requirements can raise vendor disclosure concerns.  
+They can also drive redesign of logging, key management, or tenant isolation.  
+They can increase the attack surface if access expands.  
+They can also affect competition by narrowing eligible vendors.  
+Scope decomposition can help reduce lock-in risk.  
+Explicit rationale can also help during negotiations.  
+
+---
+
+## Practical application
+
+Agent-style automated execution can increase control risk in high-risk missions.  
+Least privilege can apply to human accounts and process or tool privileges.  
+NIST SP 800-53 AC-6 describes least privilege as allowing access when required for duties.  
+The NIST AI RMF points toward defined and documented human oversight processes.  
+It also points toward testing and validation before deployment and during operations.  
+Independent review can be considered when appropriate.  
+Teams can treat auditability and approval gates as product requirements.  
+They can treat them alongside model performance requirements.  
+
+Example: A team enables an automated execution connection for convenience. Execution happens without clear oversight. A later issue lacks a clear decision trail. The team adds approvals and reduces privileges.  
+
+**Checklist for Today:**
+- Document the event-type list and log access permissions, and align them with FedRAMP KSI guidance.  
+- Specify DFARS 252.204-7012 incident duties in contracts and runbooks, including at least 90 days retention scope.  
+- Split access and audit requirements by risk and cost, using NIST SP 800-161 Rev.1 feasibility considerations.  
+
+---
+
+## FAQ
+
+**Q1. Does “full access” mean disclosing source code or exposing model internals?**  
+A. The cited requirements do not clearly state that model internals disclosure is required.  
+DFARS 252.204-7012 can require additional information or equipment access for forensics.  
+FedRAMP KSI focuses on operational controls for logs, event types, and access control.  
+Contract-specific access boundaries typically need verification and negotiation.  
+
+**Q2. How long should audit logs be retained?**  
+A. DFARS 252.204-7012 cites at least 90 days retention in an incident-response context.  
+It references system images and monitoring or packet-capture data.  
+This text does not provide another numeric retention period for general audit logs.  
+Organizations can set other durations through policy and contract terms.  
+
+**Q3. Can the government force requirements upstream based on supply-chain risk?**  
+A. NIST SP 800-161 Rev.1 says requirements can be extended upstream when needed.  
+It also says feasibility and cost-effectiveness should be considered.  
+That framing does not clearly support unlimited expansion of requirements.  
+A risk-based scope and rationale can support negotiations.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-02-25](/en/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet Designs Protease-Cleavable Peptides for Urine Sensors](/en/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [Designing Dispute Procedures Beyond Generative Detection Scores](/en/posts/designing-dispute-procedures-beyond-generative-detection-scores)
+- [Measuring AI Exposure at the Task Level](/en/posts/measuring-ai-exposure-at-the-task-level)
+- [Tracing Output Drift With Snapshots, Seeds, And Safety](/en/posts/tracing-output-drift-with-snapshots-seeds-and-safety)
+---
+
+## References
+
+- [252.204-7012 Safeguarding Covered Defense Information and Cyber Incident Reporting. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/dfars/252.204-7012-safeguarding-covered-defense-information-and-cyber-incident-reporting.)
+- [Key Security Indicators - FedRAMP Documentation - fedramp.gov](https://www.fedramp.gov/docs/20x/key-security-indicators/)
+- [252.204-7019 Notice of NISTSP 800-171 DoD Assessment Requirements. | Acquisition.GOV - acquisition.gov](https://www.acquisition.gov/dfars/252.204-7019-notice-nistsp-800-171-dod-assessment-requirements.)
+- [CSRC: NIST SP 800-161 Rev. 1 (includes updates as of 11-01-2024) - csrc.nist.gov](https://csrc.nist.gov/pubs/sp/800/161/r1/upd1/final)
+- [AI RMF Core - AIRC (Excerpt from the NIST AI Risk Management Framework 1.0 (2023)) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
