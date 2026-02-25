@@ -1,0 +1,94 @@
+---
+title: 국방 AI 전면사용과 계약·통제 충돌
+slug: defense-ai-full-use-contract-controls
+date: '2026-02-25'
+lastReviewedAt: '2026-02-25'
+locale: ko
+description: 국방에서 상용 AI 전면사용 요구가 배제·제거(FASCSA)와 우선이행(DPA)·로그 통제와 충돌한다.
+tags:
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: '993486'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=993486'
+verificationScore: 0.7799999999999999
+alternateLocale: /en/posts/defense-ai-full-use-contract-controls
+coverImage: /images/posts/defense-ai-full-use-contract-controls.png
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** 국방 영역에서 상용 AI의 “전면 사용” 요구가 커지면서, 사용 범위·통제권·책임을 계약 조항과 기술 가드레일로 고정하려는 충돌이 전면에 드러났다.  
+- **왜 중요한가?** 41 CFR § 201-1.303(a) 같은 배제·제거 절차와 50 U.S.C. § 4511, 15 CFR § 700.13~700.14 같은 우선이행 프레임이 결합되면, 단일 계약을 넘어 조달·하청 전반으로 영향이 확산될 수 있다.  
+- **독자는 뭘 하면 되나?** 허용/금지 유스케이스, 예외 승인, 로그·감사 권한, 배포 형태별 통제를 분리해 문서화하고, 서비스 제공과 온프레미스/가중치 제공 각각에 대해 배제·제거 및 우선이행 리스크를 점검하라.
+
+작전 회의에서 “전면 사용”을 요구하는 순간, 논의는 기술 선택에서 계약·감사 설계로 이동한다. 쟁점은 모델 성능이 아니라 **사용 범위**, **통제권**, **책임 범위**를 어디까지 명시할지다(개별 사건의 사실관계는 추가 확인이 필요).
+
+예: 작전 현장에서 한 팀이 모델을 넓게 쓰자고 말한다. 보안 담당은 승인 흐름과 기록을 요구한다. 사용자는 절차가 번거롭다고 반발한다. 그때 전면 허용이 쉬운 해법처럼 보이지만, 승인 근거와 책임 경계가 흐려질 수 있다.
+
+이 갈등을 구체화하는 수단은 이미 규정 체계에 존재한다. 공급망 위험을 이유로 특정 소스/품목을 배제·제거하는 절차(41 CFR § 201-1.303)와, 국방물자생산법(DPA) 기반의 우선 계약·주문 이행(50 U.S.C. § 4511)이 대표적이다. 또한 “어떤 기능을 허용·차단했는지”를 남기라는 거버넌스·로그 통제 요구도 있다(NIST AI RMF GOVERN 1.4, NIST 계열 통제).
+
+## 현황
+
+공급망 위험이 제기되면, 특정 소스/품목을 조달에서 배제하거나 기존 시스템에서 제거하는 압력이 생길 수 있다(적용 여부·범위는 사안별 확인이 필요). 한 축은 FASCSA 체계다. FASC 권고를 바탕으로 국토안보부 장관·국방장관·국가정보국장이 검토하고, 필요하면 **exclusion/removal order**를 발령할 수 있다(41 CFR § 201-1.303(a)). 오더가 발령되면 연방 조달과 하청 전 계층에 걸쳐 배제·제거 방향의 조치가 진행될 수 있으며, 세부 의무는 계약 조항으로 구현되는 경우가 많아 계약별 확인이 필요하다.
+
+다른 축은 DPA(Title I)다. 법은 대통령이 **계약·주문 이행에 우선순위**를 부여하고, 수행 가능한 자에게 **수락 및 이행**을 요구할 수 있게 한다(50 U.S.C. § 4511). DPAS는 ‘서비스(services)’를 폭넓게 정의하고(15 CFR § 700.8), 등급 주문(rated order)을 받은 경우 원칙적으로 수락해야 하며(15 CFR § 700.13), 수락한 주문은 무등급보다 우선 스케줄링해야 한다(15 CFR § 700.14). 다만 확인 가능한 조문만 놓고 보면, 강제의 중심은 “우선 공급/우선 이행”에 가깝다. AI 모델 자체의 “개발·수정”까지 어디까지 직접 강제되는지는 이번 조사 범위에서 단정하기 어렵다(추가 확인 필요).
+
+운용 측면에서는 “유스케이스를 어떻게 제한하고, 누가 승인하고, 무엇을 기록하나”가 평가 대상이 될 수 있다. NIST AI RMF는 특정 기술 통제를 조문처럼 고정하기보다, 조직이 투명한 정책·절차·통제를 수립·운영하라고 요구한다(GOVERN 1, GOVERN 1.4). 구현과 검증은 NIST SP 계열 통제가 더 직접적으로 연결되는 경우가 있다. 예컨대 SP 800-171r3는 ‘최소 기능(Least Functionality)’ 취지로 임무에 필요한 기능만 제공하고 조직이 정의한 기능/서비스 사용을 금지·제한하는 방향을 제시한다(조문 전체 인용은 이번 조사 범위에서 제한적이며, 적용은 체계·계약에 따라 달라질 수 있다). 이 흐름은 “전면 사용” 요구와 충돌할 수 있다.
+
+## 분석
+
+이 이슈의 핵심은 상용 AI가 국방에서 “도구”를 넘어 “공급망 구성요소”로 취급될 수 있다는 점이다. 공급망으로 분류되면, 협상은 가격·성능뿐 아니라 가용성, 연속성, 통제·감사 가능성으로 이동한다. 41 CFR § 201-1.303(a)에 근거한 exclusion/removal order는 구조상 단일 계약을 넘어 조달·하청으로 파급될 수 있도록 설계돼 있어, 분쟁이 커질 여지가 있다(구체 적용은 케이스별 확인 필요).
+
+리스크도 정리할 필요가 있다.  
+첫째, ‘전면 사용권’은 기술적으로는 가드레일 완화, 운영적으로는 승인 절차 약화, 법적으로는 책임 경계의 불명확성으로 이어질 수 있다.  
+둘째, DPAS에서 ‘서비스’ 범위가 넓게 정의되어(15 CFR § 700.8) AI 제공 형태에 적용될 가능성은 있으나, 어디까지가 “수행하던 서비스”인지(15 CFR § 700.13), 예를 들어 온프레미스 배포·가중치 제공·특정 기능 추가가 “새 서비스”인지의 경계가 분쟁 지점이 될 수 있다(이번 조사 범위에서 판례·유권해석 확인 불가).  
+셋째, 로깅과 접근통제를 강화하면 감사 가능성은 올라가지만, 현장 운용 마찰과 절차 비용도 증가할 수 있다. 이 경우 속도와 통제가 서로의 비용으로 전환된다.
+
+## 실전 적용
+
+지금 필요한 것은 “정책 선언”보다, 계약과 운영에서 분리해 다룰 수 있는 통제 항목을 만드는 일이다. 계약서에서 유스케이스를 한 문장으로 크게 쓰기보다, **허용 범주/금지 범주/예외 승인/감사 가능성/배포 방식**을 분리해 적는 편이 추후 협상 단위가 된다. 이렇게 하면 DoD가 더 넓은 사용을 요구할 때도 “어디를 열고 어디를 닫을지”를 조항 단위로 논의할 수 있다.
+
+또한 DPA 우선이행(50 U.S.C. § 4511)이나 DPAS 수락·거절 경계(15 CFR § 700.13)와 연결해, “제공 가능한 것(기존 서비스)”과 “제공하지 않는 것(미수행 서비스)”을 문서로 구분할 필요가 있다. 이는 배제·제거(41 CFR § 201-1.303) 같은 공급망 리스크가 제기될 때도 대응 근거가 된다.
+
+로그와 승인 체계는 ‘제품 기능’이 아니라 ‘감사 가능한 운영’으로 설계하는 편이 안전하다. AI RMF의 초점은 기능 목록이 아니라 “누가 어떤 근거로 허용했는가”의 투명성(GOVERN 1.4)에 가깝다. 여기에 NIST SP 계열 통제의 로깅·최소 기능 요구가 결합되면, 조달에서는 “안전 가드레일 + 감사 로그 + 접근통제”가 묶음으로 평가될 수 있다(구체 ATO/체크리스트 강제 여부는 추가 확인 필요).
+
+**오늘 바로 할 일:**
+- 계약서에서 허용/금지 유스케이스를 기능 단위로 나누고, 예외 승인 권한과 기록 의무를 조항으로 고정하라.  
+- 제공 형태를 서비스(API/클라우드)와 배포(온프레미스/가중치)로 구분해, 15 CFR § 700.13 관점의 “수행 서비스/미수행 서비스” 경계를 문서화하라.  
+- 접근통제·감사로그를 “가능” 수준에서 끝내지 말고, 열람 권한·보관 기간·보호 책임을 운영 절차로 확정하라.  
+
+## FAQ
+
+**Q1. ‘공급망 위험’ 지정이 나오면 실제로 뭐가 달라지나?**  
+A. FASCSA 절차에서는 FASC 권고를 관계기관이 검토한 뒤 exclusion/removal order를 발령할 수 있다(41 CFR § 201-1.303(a)). 오더가 발령되면 조달에서 배제하거나 이미 도입된 것을 제거하는 방향으로 움직일 수 있으며, 효과가 계약·하청망으로 확산될 가능성이 있다. 다만 세부 의무는 계약 조항과 적용 범위에 따라 달라 추가 확인이 필요하다.
+
+**Q2. DPA가 AI에도 적용될 수 있나?**  
+A. DPA는 ‘materials, services, and facilities’에 대해 우선 이행과 수락·이행 요구를 규정한다(50 U.S.C. § 4511). DPAS는 ‘서비스’를 폭넓게 정의한다(15 CFR § 700.8). 다만 rated order는 “수행하지 않는 서비스”라면 거절할 수 있다(15 CFR § 700.13). 따라서 실무 쟁점은 “기존에 제공하던 서비스의 우선공급”인지, “새 개발·수정까지 요구하는지”의 경계로 수렴할 수 있으며, 후자는 이번 조사 범위에서 확증 근거가 부족하다(추가 확인 필요).
+
+**Q3. ‘전면 사용’ 대신 무엇을 제안해야 협상이 되나?**  
+A. ‘전면/무제한’ 같은 표현을 피하고, (1) 허용 유스케이스 묶음, (2) 금지 유스케이스 묶음, (3) 예외 승인 절차, (4) 감사 로그·접근통제를 패키지로 제안하는 방식이 협상 단위로 작동하기 쉽다. 이는 NIST AI RMF의 “투명한 정책·절차·통제”(GOVERN 1.4)를 계약 산출물로 전환하는 접근이다.
+
+## 결론
+
+국방 AI의 쟁점은 “누가 모델을 소유하나”에서 “누가 사용 범위와 통제권을 정의하나”로 이동하고 있다. 41 CFR § 201-1.303의 배제·제거 절차와 50 U.S.C. § 4511, 15 CFR § 700.13~700.14의 우선이행 프레임이 존재하는 한, 안전 레드라인은 슬로건이 아니라 **감사 가능한 계약·운영 설계**로 표현될 필요가 있다. 앞으로 확인할 지점은 이러한 통제 항목이 실제 조달 조항과 평가(assessment) 체계에 어느 수준으로 구체화되는지다(추가 확인 필요).
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-02-25](/ko/posts/ai-resources-roundup-2026-02-25)
+- [CleaveNet으로 MMP 절단 펩타이드 설계](/ko/posts/cleavenet-designs-protease-cleavable-peptides-for-urine-sensors)
+- [국방 AI 조달, 운영설계가 계약을 좌우](/ko/posts/defense-ai-procurement-operations-logging-rights-incident-response)
+- [생성물 탐지의 한계와 분쟁 절차](/ko/posts/designing-dispute-procedures-beyond-generative-detection-scores)
+- [국방 AI 계약의 로그·보존·접근 쟁점](/ko/posts/dod-ai-contracts-audit-logs-retention-access-controls)
+---
+
+## 참고 자료
+
+- [41 CFR § 201-1.303 Issuance of orders and related activities - law.cornell.edu](https://www.law.cornell.edu/cfr/text/41/201-1.303)
+- [50 U.S. Code § 4511 - Priority in contracts and orders (LII / Cornell Law School) - law.cornell.edu](https://www.law.cornell.edu/uscode/text/50/4511)
+- [15 CFR § 700.8 - Definitions (DPAS) (LII / Cornell Law School) - law.cornell.edu](https://www.law.cornell.edu/cfr/text/15/700.8)
+- [15 CFR § 700.13 - Acceptance and rejection of rated orders (LII / Cornell Law School) - law.cornell.edu](https://www.law.cornell.edu/cfr/text/15/700.13)
+- [15 CFR § 700.14 - Preferential scheduling (LII / Cornell Law School) - law.cornell.edu](https://www.law.cornell.edu/cfr/text/15/700.14)
+- [GAO-25-108497, DEFENSE PRODUCTION ACT: Use and Challenges from Fiscal Years 2018 to 2024 (U.S. GAO) - files.gao.gov](https://files.gao.gov/reports/GAO-25-108497/index.html)
+- [Govern - AIRC (NIST AI RMF Playbook) - airc.nist.gov](https://airc.nist.gov/airmf-resources/playbook/govern/)
+- [AI RMF Core - AIRC (Excerpt from NIST AI RMF 1.0) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [NIST SP 800-53A Rev. 5: Assessing Security and Privacy Controls in Information Systems and Organizations | CSRC - csrc.nist.gov](https://csrc.nist.gov/pubs/sp/800/53/a/r5/final)
