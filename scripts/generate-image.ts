@@ -70,9 +70,9 @@ const MIME_EXT_MAP: Record<string, '.png' | '.jpg' | '.webp'> = {
 };
 
 // Gemini Native API (via CLIProxyAPI)
-const GEMINI_NATIVE_API_KEY = process.env.GEMINI_NATIVE_API_KEY || process.env.OPENAI_API_KEY || '';
+const GEMINI_NATIVE_API_KEY = process.env.GEMINI_NATIVE_API_KEY || process.env.GEMINI_API_KEY || '';
 const GEMINI_NATIVE_BASE_URL_RAW =
-  process.env.GEMINI_NATIVE_BASE_URL || process.env.OPENAI_BASE_URL || 'http://localhost:8317';
+  process.env.GEMINI_NATIVE_BASE_URL || 'http://localhost:8317';
 const GEMINI_NATIVE_BASE_URL = GEMINI_NATIVE_BASE_URL_RAW.replace(/\/v1\/?$/, '').replace(/\/+$/, '');
 const GEMINI_NATIVE_REQUEST_TIMEOUT_MS = parseIntEnv('GEMINI_NATIVE_IMAGE_TIMEOUT_MS', 180_000, 1);
 const GEMINI_NATIVE_MAX_RETRIES = 2;
@@ -846,6 +846,7 @@ async function main() {
   console.log(`✅ Image generation complete: ${successCount} success, ${failCount} failed`);
   if (failedSlugs.length > 0) {
     console.warn(`⚠️ Failed slugs: ${failedSlugs.join(', ')}`);
+    process.exitCode = 1;
   }
 }
 
