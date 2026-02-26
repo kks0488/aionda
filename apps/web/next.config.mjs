@@ -16,6 +16,17 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': [
+        './content/**',
+        './public/images/**',
+        '../../packages/**',
+        '../../scripts/**',
+        '../../data/**',
+      ],
+    },
+  },
 };
 
 export default withNextIntl(nextConfig);
