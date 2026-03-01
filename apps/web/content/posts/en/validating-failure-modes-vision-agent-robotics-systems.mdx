@@ -1,0 +1,173 @@
+---
+title: Validating Failure Modes in Vision-Agent Robotics Systems
+slug: validating-failure-modes-vision-agent-robotics-systems
+date: '2026-03-01'
+lastReviewedAt: '2026-03-01'
+locale: en
+description: >-
+  In high-risk deployments, prioritize uncertainty, false positives/negatives,
+  and closed-loop failure propagation over single-model scores.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - safety
+author: AI온다
+sourceId: '1008871'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1008871'
+verificationScore: 0.76
+alternateLocale: /ko/posts/validating-failure-modes-vision-agent-robotics-systems
+coverImage: /images/posts/validating-failure-modes-vision-agent-robotics-systems.png
+---
+
+The sensor feed shakes at night.  
+A vision model labels something that *looks like* a target as a “target.”  
+An agent proposes a next action.  
+A robot starts moving.  
+What matters is not only “getting the right answer.”  
+It also matters how the system fails.  
+False positives and false negatives are central.  
+Uncertainty signaling also matters.  
+Failure propagation across the stack also matters.
+
+Under the assumption that hallucinations have decreased to a level comparable to competing models, this article discusses decision criteria.  
+The focus is a combined vision–robotics–agent system.  
+The setting is a high-risk environment, such as a battlefield.  
+The key point is about validation order.  
+An integrated failure-mode frame should come before single-model benchmark scores.  
+A single officially recognized integrated standard was not confirmed in the search results.  
+A practical approach is to overlay protocols by axis.  
+Then weave them into a safety case.
+
+## TL;DR
+- This describes decision criteria for integrated vision, agent, and robotics validation under lower-hallucination assumptions.  
+- It matters because small perception errors can propagate into physical actions under OOD and corrupted inputs.  
+- Next, combine text, detection, vision robustness, and closed-loop simulation into one stop-rule pipeline.
+
+Example: A patrol route enters a confusing area. Dust and glare reduce sensor clarity. The system signals uncertainty. The agent pauses and proposes a safer alternative. A human operator reviews the situation.
+
+## TL;DR
+- **What changed / core issue?** Hallucinations may be lower. Validation focus can shift toward uncertainty, failure modes, and closed-loop testing.  
+- **Why does it matter?** In high-risk settings, false positives, false negatives, OOD shift, and corruption can trigger control actions. Safety and compliance risk can rise.  
+- **What should readers do?** Bundle TruthfulQA, FEVER, FActScore, HaluEval, and vision robustness tests. Add simulator closed-loop evaluation. Define If/Then stop rules before pilots.
+
+## Status
+LLM hallucination and factuality evaluations often split into two groups.  
+One group uses benchmarks with answers and evidence.  
+Another group verifies atomic facts in long-form generation.  
+TruthfulQA has **817 questions**.  
+It spans **38 categories**, including health, law, finance, and politics.  
+FEVER targets **185,445 claims**.  
+It labels them Supported, Refuted, or NotEnoughInfo.  
+These benchmarks emphasize evidence-grounded correctness.
+
+Some work measures hallucination as “detection,” not generation.  
+HaluEval positions itself as a large-scale hallucination evaluation benchmark.  
+A paper snippet reports about **19.5%** hallucination on user queries for ChatGPT.  
+That figure depends on the study setting and model.  
+It likely needs confirmation before broader use.  
+For long-form generation, multiple facts per sentence can be a stress point.  
+FActScore decomposes outputs into **atomic facts**.  
+It scores the proportion supported by reliable knowledge sources.
+
+On the multimodal side, distribution shift and input corruption are common stress tests.  
+VQA-CP v2 aims to reduce “language prior” shortcuts.  
+It changes answer distributions between train and test by question type.  
+ImageNet-C includes **15 corruptions × 5 severity levels**.  
+It enables robustness comparisons under common corruptions.  
+A paper snippet shows ResNet-50 mCE figures before and after adaptation.  
+Some multimodal work systematizes corruptions across modalities.  
+One snippet mentions **96 visual and 87 text corruptions**.
+
+Robotics and agent reliability often uses V&V and evidence management language.  
+One document confirmed in search results is NASA-STD-8739.8.  
+It describes software assurance, software safety, and independent V&V.  
+It frames these across the full life cycle.  
+A battlefield-integrated vision–agent–robot protocol was not confirmed in results.  
+Adoption may combine multiple standards, benchmarks, and simulations.
+
+## Analysis
+In battlefield settings, lower hallucinations are only a starting assumption.  
+An integrated system links perception, planning, and control in series.  
+A small perception false positive can become a reinforced “goal” in planning.  
+That goal can convert into physical action in control.  
+Physical consequences can become difficult to undo.  
+So improved text factuality scores may not imply integrated safety.
+
+The handling of “I don’t know” is another key issue.  
+A language model can fabricate an answer.  
+A multimodal system can sound confident with unstable inputs.  
+OOD splits like VQA-CP v2 probe these failure patterns.  
+Corruption suites like ImageNet-C also probe them.  
+Battlefield OOD can include smoke, backlighting, occlusion, and sensor noise.  
+It can also include intentional tampering.  
+Decision memos often benefit from worst-case failure questions.  
+They can focus on stopping behavior under stress.
+
+Lower hallucinations may still help deployment readiness.  
+Atomic-fact scoring like FActScore can track long-form error patterns.  
+Detection frameworks like HaluEval can track hallucination patterns.  
+These tools are mainly text-centric.  
+Battlefield risk often comes from closed-loop failures.  
+Perception errors and action errors can combine.  
+Text benchmarks alone may provide limited audit evidence.  
+Certification arguments may need closed-loop validation evidence.
+
+## Practical application
+A practitioner-friendly approach is to combine evaluations.  
+For text factuality, use TruthfulQA, FEVER, and FActScore.  
+TruthfulQA includes **817 items** across **38 categories**.  
+FEVER includes **185,445 claims**.  
+FActScore uses atomic fact verification.  
+For hallucination detection, include HaluEval as a separate axis.  
+For vision, include OOD splits like VQA-CP v2.  
+Also include corruption curves using ImageNet-C **15×5** settings.
+
+Then convert results into operating rules.  
+Dashboards alone may not drive safe behavior.  
+Define If/Then rules tied to uncertainty or stress conditions.  
+When uncertainty rises under OOD or corruption, an agent can pause.  
+It can request re-observation or additional sensor checks.  
+It can also request human approval.  
+An official uncertainty calibration metric standard was not confirmed in results.  
+Internal criteria may be needed.  
+External grounding may need additional confirmation.
+
+**Checklist for Today:**
+- Create one report template that includes TruthfulQA, FEVER, FActScore, HaluEval, and vision stress tests.  
+- Under OOD and corruption, label failures as false positive, false negative, delay, or failure-to-stop.  
+- Define If/Then stop and escalation rules, and track them with closed-loop simulator scenarios.
+
+## FAQ
+**Q1. If hallucinations decrease, does the biggest obstacle to battlefield deployment disappear?**  
+A1. Some obstacles can shrink.  
+OOD, sensor corruption, and perception false positives can still dominate.  
+TruthfulQA **817**, FEVER **185,445**, and FActScore assess language-output factuality.  
+Action safety can need separate closed-loop validation evidence.
+
+**Q2. Can integrated-system validation be finished with a single ‘standard’?**  
+A2. Based on the search results, a single officially recognized integrated protocol was not confirmed.  
+NASA-STD-8739.8 exists for software assurance and independent V&V.  
+An integrated safety case may still require multiple standards and simulations.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-01](/en/posts/ai-resources-roundup-2026-03-01)
+- [Disaster Satellite Interpretation: Pipeline Design Cuts Lead Time](/en/posts/disaster-satellite-interpretation-pipeline-design-cuts-lead-time)
+- [Operational Protocol Gaps For Imminent Threat Escalation](/en/posts/operational-protocol-gaps-imminent-threat-escalation)
+- [How Political Risk Becomes Procurement Contract Exit Triggers](/en/posts/political-risk-ai-procurement-contract-exit-triggers)
+- [Why Tiny Prompt Changes Can Break Robot Safety](/en/posts/tiny-prompt-changes-break-robot-safety)
+---
+
+## References
+
+- [Software Assurance and Software Safety Standard | Standards (NASA-STD-8739.8) - standards.nasa.gov](https://standards.nasa.gov/standard/NASA/NASA-STD-87398)
+- [TruthfulQA: Measuring How Models Mimic Human Falsehoods - arxiv.org](https://arxiv.org/abs/2109.07958)
+- [FEVER: a large-scale dataset for Fact Extraction and VERification - arxiv.org](https://arxiv.org/abs/1803.05355)
+- [HaluEval: A Large-Scale Hallucination Evaluation Benchmark for Large Language Models - arxiv.org](https://arxiv.org/abs/2305.11747)
+- [FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation - arxiv.org](https://arxiv.org/abs/2305.14251)
+- [Don't Just Assume; Look and Answer: Overcoming Priors for Visual Question Answering - arxiv.org](https://arxiv.org/abs/1712.00377)
+- [Language Prior Is Not the Only Shortcut: A Benchmark for Shortcut Learning in VQA - arxiv.org](https://arxiv.org/abs/2210.04692)
+- [Improving robustness against common corruptions by covariate shift adaptation - arxiv.org](https://arxiv.org/abs/2006.16971)
+- [Benchmarking Robustness of Adaptation Methods on Pre-trained Vision-Language Models - arxiv.org](https://arxiv.org/abs/2306.02080)
+- [MVTamperBench: Evaluating Robustness of Vision-Language Models - arxiv.org](https://arxiv.org/abs/2412.19794)
