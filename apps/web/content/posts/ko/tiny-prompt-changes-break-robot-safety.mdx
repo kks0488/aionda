@@ -1,0 +1,96 @@
+---
+title: 프롬프트 작은 변화가 로봇 안전을 흔드는 이유
+slug: tiny-prompt-changes-break-robot-safety
+date: '2026-03-01'
+lastReviewedAt: '2026-03-01'
+locale: ko
+description: 언어 지시의 미세 변화가 로봇 행동에 증폭돼 사고로 이어질 수 있음을 분석.
+tags:
+  - agi
+  - llm
+  - robotics
+  - explainer
+  - benchmark
+  - safety
+author: AI온다
+sourceId: '1008624'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1008624'
+verificationScore: 0.79
+alternateLocale: /en/posts/tiny-prompt-changes-break-robot-safety
+coverImage: /images/posts/tiny-prompt-changes-break-robot-safety.png
+---
+
+주방에서 로봇 팔이 “깨끗이 정리해”라는 지시를 받는다. 사람은 “대충 치워두라”로 이해하지만, 정책은 “방해물 제거”로 해석할 수 있다. 컵을 치우다가 가스레인지 쪽으로 밀고, 다음 동작이 연쇄로 이어지면 사고로 이어질 수 있다. 핵심은 하나다. **프롬프트(지시) 같은 언어 입력의 작은 변화가 물리 행동에서는 위험으로 커질 수 있는데, ‘추론을 잘하게 만드는 정렬’만으로는 이 위험을 다 막기 어렵다**는 점이다.
+
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** 언어 지시가 로봇·에이전트의 행동 정책으로 바로 연결될 때, 작은 지시 변화가 목표 일탈과 위험 행동으로 이어질 수 있다. “논리적 정렬”만으로 물리 안전을 단독으로 보장하기는 어렵다.  
+- **왜 중요한가?** 안전 보장의 “증명 가능한 범위”는 보통 **모델(동역학), 외란의 유계 가정, 재귀적 가용성 같은 조건**에 의존한다. 실제 현장 입력(프롬프트/환경)은 이런 가정을 깨기 쉽고, 그때 사고 비용이 커질 수 있다.  
+- **독자는 뭘 하면 되나?** 지시 정렬에만 기대지 말고, **제약(차단/제어) → 검증(시뮬/형식) → 평가(안전 벤치)**를 분리해 구축한다. 그다음 “프롬프트 변형 세트”로 고장 모드를 재현하고, 통과 기준을 문서화한다.
+
+---
+
+## 현황
+
+피지컬 AI(로봇, embodied agent)에서 안전을 말할 때, 연구 커뮤니티는 오래전부터 “정책이 똑똑해지는 것”과 “안전이 보장되는 것”을 분리해 다뤄왔다. 강화학습 쪽의 safe RL은 흔히 **CMDP(Constrained Markov Decision Process)** 같은 틀로 안전 제약을 다룬다. 검색 결과 기준으로 보장은 대체로 “기대값 형태로 제약을 만족”하거나 “특정 구조적 가정하에서 훈련 중 위반이 없음을 보이는” 정도로 제한되는 경우가 많다. 즉, **정책의 추론이 좋아져도 물리적 안전이 자동으로 따라오지는 않는다**는 전제가 있다.
+
+반면 제어 이론 쪽(예: MPC, CBF)은 “어떤 조건에서 안전을 증명할 수 있는가”를 더 직접적으로 다룬다. 예를 들어 Köhler 등(2019)은 비선형·불확실 시스템에서 **RAMPC가 robust recursive feasibility와 robust constraint satisfaction을 보장**한다고 정리한다. Automatica(2018) 계열의 robust MPC 연구도 **recursive feasibility**를 세우고, 입력 도메인·종단 영역을 타이트닝해 제약을 만족하도록 한다고 밝힌다. 여기서 중요한 건 단어 자체보다 구조다. **안전 보장은 ‘모델’과 ‘가정’ 위에서만 성립**한다.
+
+평가(benchmark) 관점도 비슷한 결론으로 모인다. 검색 결과에서 공식/준공식 프레임으로 언급되는 것 중 하나는 로봇 안전 제약 위반을 정량화하는 Safety Gym 계열(예: normalized constraint violation, normalized cost rate 같은 지표)이다. 또 다른 축은 METR의 자율성(autonomy) 평가 프로토콜이다. METR 문서는 절차를 **dev-set elicitation → test-set 실행 → run별 스코어링 → 집계**로 정리하고, 단일 연속 지표 **‘Horizon’**을 산출한다. 이 접근은 “모델이 잘 말한다”보다 **반복 실행 변동(variance)과 신뢰구간 기반 재실행(예: 95% CI) 같은 재현성**을 더 중시한다. 다만 이번 검색 범위에서는 “프롬프트 변형 세트”를 표준으로 규정한 로봇 벤치마크/가이드라인을 명시적으로 확인하지 못했다(추가 확인 필요).
+
+---
+
+## 분석
+
+프롬프트 변화가 로봇에서 더 위험해지는 이유는 “행동이 되돌리기 어렵기 때문”이다. 텍스트 모델은 틀린 답을 내도 화면에 남는다. 로봇은 틀린 “다음 행동”을 내면 물체가 깨지고, 사람과 부딪히고, 공간 상태가 바뀐다. 게다가 물리 세계는 **외란(disturbance)**과 불확실성이 크다. 그래서 제어 분야의 안전 보장은 대개 “외란이 bounded(유계)” 같은 가정에서 시작한다. Cosner 등의 CBF 연구도 최악 외란 가정이 흔한 맥락을 짚고, Freedman’s inequality를 써서 덜 보수적인 안전 보장을 시도한다. 흐름은 하나로 정리된다. **안전은 추론 능력만의 문제가 아니라 ‘가정 + 제약 + 증명/검증’의 조합**으로 다룬다.
+
+여기서 “논리적 정렬”만으로 물리 안전을 담보하기 어렵다는 비판이 나온다. 논리 정렬은 보통 “지시를 더 잘 따르라 / 금지사항을 기억하라 / 자기검열을 하라” 같은 층에서 작동한다. 하지만 로봇은 (1) 관측이 불완전하고, (2) 동역학이 있고, (3) 제약을 어기면 회복 비용이 크다. “말로는 안전하게 하겠다”와 “입력 제약·상태 제약을 물리적으로 넘지 않는다”는 서로 다른 문제다. MPC가 **재귀적 가용성**을 강조하는 이유도 여기에 있다. 어떤 순간에 안전한 최적해가 존재해야 다음 순간에도 안전을 유지할 수 있다. 언어 정렬은 이 성질을 직접 보장하지 못한다.
+
+---
+
+## 실전 적용
+
+현장에서 필요한 건 “정렬을 더 하자”만이 아니다. **행동 레이어에 안전장치를 걸고**, 그 안전장치가 성립하는 조건을 **검증 가능한 형태로 적어두는 일**이 필요하다. 로봇 스택으로 치면, 상단(LLM/플래너/지시 해석)에서 좋은 결정을 내리더라도 하단(컨트롤러/실행기)에 **하드 제약**이 없으면 사고로 이어질 수 있다. 반대로 하단 제약이 있으면 상단의 지시 해석이 흔들려도 “넘지 못하는 선”이 생긴다. MPC/CBF류는 그 선을 수학적으로 정의하려는 접근이다. 다만 그 선은 모델·외란 가정이 깨지면 함께 무너질 수 있다. 그래서 “가정이 언제 깨지는지”를 테스트에 포함해야 한다.
+
+예: 로봇에게 “정리해”라고 했을 때, 어떤 문장에서는 장애물을 피하고 어떤 문장에서는 장애물을 치우려 든다. 같은 방인데도 말의 뉘앙스가 바뀌자 경로가 달라지고, 사람 쪽으로 동선이 가까워진다. 이때 상단은 그럴듯한 설명을 붙일 수 있다. 하지만 하단에 속도·힘·접근 금지 구역 같은 제약이 없으면 위험해질 수 있다.
+
+오늘 바로 할 일 체크리스트:
+- **프롬프트 변형 세트**(패러프레이즈, 부정문, 모호한 지시, 목표 추가)를 만들고, 동일 초기 상태에서 정책의 행동 분포가 어떻게 바뀌는지 로그로 남긴다.  
+- 실행 레이어에 **제약 기반 안전장치(MPC/CBF류 또는 동등한 차단기)**를 둔다. “모델/외란 유계” 같은 가정을 문서에 명시한다. 그 가정을 깨는 테스트를 별도로 돌린다.  
+- 평가는 작업 성공률과 분리한다. **제약 위반 지표(예: normalized constraint violation, normalized cost rate)** 또는 자율성 리스크 스코어링(예: METR 프로토콜의 Horizon 같은 단일 지표)을 함께 운영한다.
+
+---
+
+## FAQ
+
+**Q1. safe RL이면 ‘안전’이 자동으로 보장되나?**  
+A1. 검색 결과 기준으로 safe RL의 보장은 보통 **기대값 형태로 제약을 만족**하거나, **특정 구조적 가정하에서 훈련 중 위반이 없음을 보이는** 정도로 제한되는 경우가 많다. 물리 세계 배포에서는 관측/외란/환경이 달라져 가정이 깨질 수 있으니, 별도의 실행 제약과 테스트가 필요하다.
+
+**Q2. MPC/CBF 같은 제약 기반 제어는 그럼 안전을 증명해주나?**  
+A2. 조건을 만족하면 가능하다. Köhler et al.(2019) 같은 문헌은 **robust recursive feasibility**와 **robust constraint satisfaction**을 보장하는 프레임을 제시한다. 다만 이런 보장은 보통 시스템 모델과 불확실성/외란의 **bounded 가정** 위에서 성립한다. 가정이 깨지는 구간(센서 드리프트, 마찰 변화, 예상 밖 충돌 등)을 어떻게 다룰지는 별도 설계와 검증이 필요하다.
+
+**Q3. 프롬프트 강건성은 어떤 표준 벤치마크로 재면 되나?**  
+A3. 이번 검색 범위에서는 “프롬프트 변형 세트”를 표준으로 못 박은 로봇 안전 벤치마크/가이드라인을 확인하지 못했다(추가 확인 필요). 다만 Safety Gym 계열처럼 **제약 위반을 정량화**하는 축과, METR처럼 **반복 실행 변동과 신뢰구간(예: 95% CI) 재실행**을 요구하는 축은 확인된다. 실무에서는 두 축을 묶어 운영할 수 있다. 예를 들어 프롬프트 변형마다 제약 위반 지표를 기록하고, 재현성 기준을 함께 둔다.
+
+---
+
+## 결론
+
+피지컬 AI 안전은 “말을 잘 듣게 만드는 정렬”만으로 끝나지 않는다. **조건부 안전 보장(제약/모델/가정)**과 **가정이 깨질 때를 찾는 평가**가 함께 가야 한다. 다음 단계는 단순하다. 프롬프트를 흔들어본다. 제약 위반을 측정한다. 재귀적으로 안전한 실행이 유지되는지, 또는 언제 깨지는지 기록한다. 이런 절차가 배포 판단에 근거를 제공한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-01](/ko/posts/ai-resources-roundup-2026-03-01)
+- [재난 위성판독, 속도는 파이프라인이 좌우](/ko/posts/disaster-satellite-interpretation-pipeline-design-cuts-lead-time)
+- [AI 위협 대응, 운영 프로토콜의 빈칸](/ko/posts/operational-protocol-gaps-imminent-threat-escalation)
+- [AI 자료 모음 (24h) - 2026-02-28](/ko/posts/ai-resources-roundup-2026-02-28)
+- [군·정보용 LLM, 레드라인과 책임 설계](/ko/posts/defense-llm-deployment-redlines-audits-liability-allocation)
+---
+
+## 참고 자료
+
+- [Bounding Stochastic Safety: Leveraging Freedman's Inequality with Discrete-Time Control Barrier Functions (Cosner et al.) - authors.library.caltech.edu](https://authors.library.caltech.edu/records/afsfp-h4k17)
+- [Our updated Preparedness Framework | OpenAI - openai.com](https://openai.com/index/updating-our-preparedness-framework/)
+- [A robust adaptive model predictive control framework for nonlinear uncertain systems (Köhler et al., 2019) - arxiv.org](https://arxiv.org/abs/1911.02899)
+- [Robust MPC for tracking constrained unicycle robots with additive disturbances (Automatica, 2018) - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0005109817306350)

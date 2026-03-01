@@ -1,0 +1,179 @@
+---
+title: Why Tiny Prompt Changes Can Break Robot Safety
+slug: tiny-prompt-changes-break-robot-safety
+date: '2026-03-01'
+lastReviewedAt: '2026-03-01'
+locale: en
+description: >-
+  How small prompt shifts can amplify into risky robot actions, and why
+  alignment alone can’t guarantee physical safety.
+tags:
+  - agi
+  - llm
+  - robotics
+  - explainer
+  - benchmark
+  - safety
+author: AI온다
+sourceId: '1008624'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1008624'
+verificationScore: 0.79
+alternateLocale: /ko/posts/tiny-prompt-changes-break-robot-safety
+coverImage: /images/posts/tiny-prompt-changes-break-robot-safety.png
+---
+
+A robot arm in a kitchen receives the instruction, “clean this up.”  
+A human may interpret that as “tidy roughly.”  
+A policy may interpret it as “remove obstacles.”  
+While moving a cup, it may push it toward a stove.  
+Later actions can cascade and lead to an accident.  
+The key point is one.  
+**Small prompt changes can amplify into physical hazards.**  
+Better reasoning alone can be insufficient for physical safety.
+
+---
+
+## TL;DR
+
+- Small instruction changes can shift goals when language connects directly to robot actions.  
+- Safety claims often rely on models and assumptions that prompts or environments can violate.  
+- Add execution constraints, test prompt variations, and track constraint-violation metrics plus reproducibility.
+
+Example: A person asks a robot to clean up a cluttered space.  
+The robot interprets the phrasing in different ways.  
+One wording avoids items.  
+Another wording tries to move items.  
+The path changes and can feel unsafe.  
+This scene is hypothetical.
+
+---
+
+## Current state
+
+In Physical AI safety, “smarter policy” and “guaranteed safety” are often treated as separate topics.  
+In reinforcement learning, safe RL often uses **CMDP** frameworks.  
+The search results describe help ensure like “constraints in expectation.”  
+They also mention “no violations during training,” under structural assumptions.  
+So better reasoning does not automatically imply physical safety.
+
+Control theory methods address when safety claims can apply.  
+Examples include **MPC** and **CBF** approaches.  
+Köhler et al. (2019) summarize results for nonlinear, uncertain systems.  
+They describe **RAMPC** help ensure for robust recursive feasibility.  
+They also describe robust constraint satisfaction.  
+Robust MPC work in Automatica (2018) describes **recursive feasibility**.  
+It also describes constraint satisfaction via tightened input domains and terminal sets.  
+These results sit on a “model” plus “assumptions” structure.
+
+Benchmark and evaluation work suggests similar limits.  
+One framework in the search results is the Safety Gym family.  
+It quantifies constraint violations with normalized metrics.  
+Two examples are **normalized constraint violation** and **normalized cost rate**.  
+Another axis is METR’s autonomy evaluation protocol.  
+METR documents a pipeline with four stages.  
+It uses **dev-set elicitation → test-set runs → per-run scoring → aggregation**.  
+It reports a single continuous metric called **Horizon**.  
+It emphasizes reproducibility with reruns based on confidence intervals.  
+The search results include an example confidence level of **95% CI**.  
+Within this search scope, a standardized “prompt variation set” was not confirmed.  
+That point needs additional confirmation.
+
+---
+
+## Analysis
+
+Prompt changes can be more dangerous for robots because actions can be hard to undo.  
+A text model’s error stays on a screen.  
+A robot’s wrong next action can change the world state.  
+It can break objects or collide with people.  
+Physical environments include disturbances and uncertainty.  
+Control safety claims often assume disturbances are bounded.  
+Cosner et al.’s CBF work discusses worst-case disturbance assumptions.  
+It also explores less conservative bounds using Freedman’s inequality.  
+So safety is not only about reasoning quality.  
+It is often “assumptions plus constraints plus proof or verification.”
+
+This supports critiques of “logical alignment only” approaches.  
+Logical alignment can improve instruction following and self-censorship.  
+Robots face incomplete observations and complex dynamics.  
+Recovery costs can be high after constraint violations.  
+Words about safety differ from state and input constraint satisfaction.  
+That difference matters for execution-level safety.  
+MPC highlights **recursive feasibility** for this reason.  
+A safe plan should remain feasible at the next step.  
+Language alignment does not directly imply recursive feasibility.
+
+---
+
+## Practical application
+
+The field can benefit from more than instruction alignment.  
+You can add safety devices at the action layer.  
+You can also document their conditions in verifiable terms.  
+In a robot stack, the top layer can make good choices.  
+The bottom layer may still execute unsafe actions without constraints.  
+Hard constraints can act like a line that execution avoids crossing.  
+MPC and CBF methods aim to define that line mathematically.  
+That line can weaken if model or disturbance assumptions fail.  
+So tests can include cases where assumptions break.
+
+**Checklist for Today:**
+- Build a prompt variation set and log action distribution changes from the same initial state.  
+- Add an execution-layer interlock and document model and bounded-disturbance assumptions for it.  
+- Track constraint-violation metrics and rerun tests using a stated confidence interval, such as 95% CI.  
+
+---
+
+## FAQ
+
+**Q1. If it’s safe RL, is “safety” guaranteed automatically?**  
+A1. The search results describe limited help ensure.  
+They often focus on **constraints in expectation**.  
+They also mention “no violations during training,” under assumptions.  
+Deployment can differ in observations, disturbances, and environments.  
+Those differences can break assumptions.  
+So separate execution constraints and tests can help.
+
+**Q2. Then do constraint-based controls like MPC/CBF prove safety?**  
+A2. They can support conditional safety claims.  
+Köhler et al. (2019) describes **robust recursive feasibility**.  
+It also describes **robust constraint satisfaction**.  
+These claims typically rely on bounded model and disturbance assumptions.  
+Design and verification can address assumption-break regions separately.  
+Examples include sensor drift, friction changes, and collisions.
+
+**Q3. What standard benchmark measures prompt robustness?**  
+A3. This search scope did not confirm a standard prompt variation benchmark.  
+That point needs additional confirmation.  
+Two evaluation axes did appear in the results.  
+Safety Gym quantifies constraint violations with normalized metrics.  
+METR emphasizes variance and confidence-interval reruns, including **95% CI**.  
+In practice, you can combine both views.  
+You can record constraint violations per prompt variation.  
+You can also set reproducibility criteria alongside them.
+
+---
+
+## Conclusion
+
+Physical AI safety can extend beyond instruction-following alignment.  
+Conditional safety claims depend on constraints, models, and assumptions.  
+Evaluation can focus on where assumptions fail.  
+Next steps can be practical and test-driven.  
+You can vary prompts and measure constraint violations.  
+You can also record whether recursive feasibility holds, or when it fails.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-01](/en/posts/ai-resources-roundup-2026-03-01)
+- [Disaster Satellite Interpretation: Pipeline Design Cuts Lead Time](/en/posts/disaster-satellite-interpretation-pipeline-design-cuts-lead-time)
+- [Operational Protocol Gaps For Imminent Threat Escalation](/en/posts/operational-protocol-gaps-imminent-threat-escalation)
+- [AI Resource Roundup (24h) - 2026-02-28](/en/posts/ai-resources-roundup-2026-02-28)
+- [Defense LLM Deployment: Redlines, Audits, and Liability Allocation](/en/posts/defense-llm-deployment-redlines-audits-liability-allocation)
+---
+
+## References
+
+- [Bounding Stochastic Safety: Leveraging Freedman's Inequality with Discrete-Time Control Barrier Functions (Cosner et al.) - authors.library.caltech.edu](https://authors.library.caltech.edu/records/afsfp-h4k17)
+- [Our updated Preparedness Framework | OpenAI - openai.com](https://openai.com/index/updating-our-preparedness-framework/)
+- [A robust adaptive model predictive control framework for nonlinear uncertain systems (Köhler et al., 2019) - arxiv.org](https://arxiv.org/abs/1911.02899)
+- [Robust MPC for tracking constrained unicycle robots with additive disturbances (Automatica, 2018) - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0005109817306350)
