@@ -1,0 +1,207 @@
+---
+title: Measuring And Controlling Variance In Generative AI Recommendations
+slug: measuring-controlling-variance-generative-ai-recommendations
+date: '2026-03-02'
+lastReviewedAt: '2026-03-02'
+locale: en
+description: >-
+  Generative AI recommendations can vary by default. Measure variance via
+  reruns, improve reproducibility with seed and system_fingerprint, and add
+  constraints and checklists.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+  - prompting
+author: AI온다
+sourceId: '1010669'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1010669'
+verificationScore: 0.85
+alternateLocale: /ko/posts/measuring-controlling-variance-generative-ai-recommendations
+coverImage: /images/posts/measuring-controlling-variance-generative-ai-recommendations.png
+---
+
+You upload the same photo twice and ask the same question.  
+The AI gives two different recommendations.
+
+## TL;DR
+- Generative AI recommendations can vary across runs, even with the same prompt.  
+- This matters because unstable outputs complicate decisions, QA, and accountability.  
+- Measure variation with repeated runs, then add constraints, rationale, and reproducibility controls.
+
+Example: You compare two similar items and ask which to pick.  
+The assistant answers with confidence, then changes its reasoning after a follow-up.  
+You then ask what criteria it used and how stable the result is.
+
+Recommendations from Generative AI can vary by design.  
+If you use a procedure to measure variability, you can often use them effectively.  
+That procedure can also make uncertainty easier to manage.
+
+## Current state
+Documentation notes that outputs from generative models may differ by request under default settings.  
+OpenAI’s documentation says, “Chat Completions are non-deterministic by default.”  
+This can conflict with a common expectation.  
+Many users expect “same prompt, same answer.”
+
+Variability often begins with sampling.  
+Sampling uses probabilistic decoding.  
+`temperature` and `top_p` influence randomness.  
+Higher values can allow more token candidates.  
+This can increase response dispersion.  
+Lower values can reduce dispersion.  
+Even with the same settings, outputs may still vary.
+
+The documentation also mentions control mechanisms.  
+Using the `seed` parameter with `system_fingerprint` can help reproducibility.  
+The documentation also notes that determinism can break.  
+Server-side configuration changes can contribute.  
+Reproducibility can improve when conditions align.  
+It can become unstable again when the environment changes.
+
+In conversational systems, recommendations can vary more easily.  
+The API reference explains that outputs can change with `messages`.  
+Here, `messages` means the list of conversation messages.  
+Instructions have a priority order.  
+Developer and system role instructions can take precedence over user instructions.
+
+At the ChatGPT product level, Memory can influence outputs when enabled.  
+Saved preferences from past conversations may affect later recommendations.  
+The documentation says Assistants Threads may “smartly truncate” messages.  
+This can happen when the context window is exceeded.  
+If included context changes, recommendations can change.
+
+## Analysis
+From the user’s perspective, the issue is not only “the AI is lying.”  
+Recommendations depend on criteria.  
+Those criteria act like an evaluation function.  
+In many generative outputs, criteria remain implicit.
+
+Implicit criteria can shift for several reasons.  
+Sampling variation can affect phrasing and focus.  
+Accumulated context can change the effective input.  
+Instruction priority can override user intent.  
+Memory can add past preferences.  
+Truncation can remove earlier constraints.  
+A single response can become a decision under uncertainty.
+
+Low reproducibility can also affect developers and organizations.  
+QA becomes harder to design.  
+Bug repro steps can become ambiguous.  
+A rerun may yield a different outcome.  
+This can delay judging whether a fix worked.
+
+Trust can be framed as measured stability.  
+Experimental design can help quantify stability.  
+Academic and medical measurement often uses test–retest reliability.  
+Examples include Pearson correlation and ICC.  
+Inter-rater agreement methods also exist.  
+Examples include Cohen’s kappa and Fleiss’ kappa.  
+Krippendorff’s alpha is another option.  
+These methods may not transfer directly to LLM recommendations.  
+Still, the approach is similar.  
+Measure repeatedly.  
+Compute agreement.  
+Make criteria explicit.
+
+Consistency and accuracy are separate.  
+A model can be consistently wrong.  
+A changing recommendation can be reasonable.  
+User preferences may have changed.  
+Constraints may have been added.  
+Memory may have influenced the response.
+
+Rather than aiming for identical output in all cases, verify two things.  
+Check similarity when conditions are the same.  
+Check changes when conditions change.
+
+When a recommendation changes for the same photo, it can feel random.  
+A new preference may have appeared mid-conversation.  
+A saved preference may have been applied.  
+The conclusion may have changed while rationale stayed implicit.  
+That can hide a criteria shift from the user.
+
+## Practical application
+From a user’s perspective, the tactic can stay simple.  
+Do not request only a “recommendation.”  
+Ask for a verifiable format.  
+Fix constraints first.  
+Request structured rationale.  
+Then measure variation with repeated runs.  
+Without these steps, recommendations can create misunderstandings.
+
+As a developer, you can design for this explicitly.  
+If you want higher reproducibility, use `seed`.  
+Log `system_fingerprint` as well.  
+The documentation mentions this combination for reproducibility control.  
+Expect a tradeoff between diversity and stability.  
+Higher `temperature` or `top_p` can increase variability.
+
+Repeated-sampling approaches can reduce perceived instability.  
+Self-consistency generates multiple outputs.  
+It then selects the answer with higher agreement.  
+One example is Wang et al., 2022.  
+This approach can increase cost and latency.  
+It can also change failure modes.  
+So it benefits from measurement and monitoring.
+
+**Checklist for Today:**
+- Run the same prompt repeatedly and record how much the recommendation varies.  
+- Use a request template with constraints, rationale, and an inspection checklist.  
+- If available, fix `seed` and log `system_fingerprint` for each run.
+
+## FAQ
+**Q1. Why does the answer change every time even with the same prompt?**  
+A1. The documentation says chat generation is “non-deterministic by default.”  
+Sampling parameters like `temperature` and `top_p` influence randomness.  
+Conversation `messages` can change the effective input.  
+Instruction priority can change which constraints apply.  
+Memory and truncation can also affect context.
+
+**Q2. If I lower temperature and top_p, can I trust the recommendation?**  
+A2. Output dispersion may decrease.  
+Correctness is still uncertain.  
+Consistency relates to reproducibility.  
+Accuracy needs separate validation.  
+Repeated tests can quantify variation.  
+Rationales and checklists can expose criteria.
+
+**Q3. Can I lock it to exactly the same output?**  
+A3. The documentation suggests `seed` and `system_fingerprint` may help reproducibility.  
+Determinism can still break in some situations.  
+Server-side configuration changes are one example.  
+It can be more realistic to record reproducible conditions.  
+You can also detect when those conditions change.
+
+## Conclusion
+Changing AI recommendations can reflect system behavior, not moral intent.  
+Assume non-determinism as a baseline.  
+Use repeated testing to measure variation.  
+Use instruction templates to stabilize criteria.  
+Require rationale and checklists to support verification.  
+Use `seed` and `system_fingerprint` when available.
+
+The key moment is when a recommendation changes.  
+Check whether conditions changed.  
+Also check whether only the conclusion changed.  
+That distinction helps users decide what to do next.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-01](/en/posts/ai-resources-roundup-2026-03-01)
+- [Disaster Satellite Interpretation: Pipeline Design Cuts Lead Time](/en/posts/disaster-satellite-interpretation-pipeline-design-cuts-lead-time)
+- [How AI Firms Operationalize Political Neutrality Through Rules](/en/posts/how-ai-firms-operationalize-political-neutrality-through-rules)
+- [Operational Protocol Gaps For Imminent Threat Escalation](/en/posts/operational-protocol-gaps-imminent-threat-escalation)
+- [How Political Risk Becomes Procurement Contract Exit Triggers](/en/posts/political-risk-ai-procurement-contract-exit-triggers)
+---
+
+## References
+
+- [Advanced usage - OpenAI API (Reproducible outputs) - platform.openai.com](https://platform.openai.com/docs/guides/text-generation/reproducible-outputs)
+- [Chat Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/chat/create-chat-completion)
+- [Streaming events | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/responses-streaming/response/reasoning_summary_text/delta)
+- [What is Memory? | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8983136)
+- [Memory FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8590148-memory-faq%C3%AF%C2%BF%C2%BC%5B10%5D)
+- [Assistants API deep dive - Context window management | OpenAI API - platform.openai.com](https://platform.openai.com/docs/assistants/deep-dive/context-window-management)
+- [Essentials of Statistical Methods for Assessing Reliability and Agreement in Quantitative Imaging - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC5834361/)
+- [Measuring inter-rater reliability for nominal data – which coefficients and confidence intervals are appropriate? - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC4974794/)
+- [Self-Consistency Improves Chain of Thought Reasoning in Language Models (Wang et al., 2022) - arXiv - arxiv.org](https://arxiv.org/abs/2203.11171)

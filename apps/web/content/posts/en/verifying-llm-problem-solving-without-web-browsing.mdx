@@ -1,0 +1,201 @@
+---
+title: Verifying LLM Problem Solving Without Web Browsing
+slug: verifying-llm-problem-solving-without-web-browsing
+date: '2026-03-02'
+lastReviewedAt: '2026-03-02'
+locale: en
+description: >-
+  Turn “no web browsing” claims into a repeatable grading protocol using
+  accuracy, consistency, calibration, and leakage checks.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1010684'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1010684'
+verificationScore: 0.81
+alternateLocale: /ko/posts/verifying-llm-problem-solving-without-web-browsing
+coverImage: /images/posts/verifying-llm-problem-solving-without-web-browsing.png
+---
+
+A student copies a textbook problem into a chat window and disables web search.  
+The model returns a plausible solution.  
+It feels tempting to give full marks immediately.  
+That shortcut can add avoidable risk.  
+“Browsing disabled” often means no new web fetching.  
+It may not be an officially complete block on external knowledge inflow.
+
+This article turns “I solved it without web search” into a reproducible routine.  
+The routine supports grading and re-grading.  
+It also checks accuracy, reliability, and leakage risk.
+
+## TL;DR
+
+- **What changed / what this is:** Treat “browsing disabled” as a verification protocol, not a single correctness check.  
+- **Why it matters:** “Search off” can block Bing queries, yet still leave ambiguity about other data paths.  
+- **What you should do next:** Re-grade with variants, log calibration and consistency, and run contamination checks.
+
+Example: A teacher tests a model on a homework question. The answer looks right. The teacher repeats the question using different wording. They compare confidence and reasoning style. They treat unstable answers as higher risk.
+
+---
+
+## Current state
+
+First, clarify what “web search/browsing disabled” covers.  
+OpenAI Help Center documentation says “ChatGPT Search” can send queries.  
+Those queries go to the third-party search provider Bing.  
+For Enterprise and Edu workspaces, it states the only third-party search provider is Bing.  
+Turning “search” off can block sending queries to Bing.  
+It can also block retrieving web results through that path.
+
+Misunderstandings often start here.  
+The documented deactivation reads like “do not fetch new web information.”  
+It does not clearly define “responses use only local or training data.”  
+That wording is not confirmed within the provided scope.  
+So “browsing off” is a starting condition for verification.  
+It is not a complete proof of “no external knowledge inflow.”
+
+Atlas settings point in a similar direction.  
+Documentation says disabling “Page visibility” blocks reading page content for a site.  
+It also says it prevents creating new Browser memories for that site.  
+That is the confirmable evidence described here.  
+A complete inclusion list is not confirmed in these sources.  
+Examples include connectors, apps, or other tool calls.  
+Verification design can separate tool calls and data paths.  
+It can also record those paths explicitly.
+
+---
+
+## Analysis
+
+The focus is not accuracy alone.  
+The focus is the quality of the accuracy claim.  
+Users often check only the final answer.  
+With LLMs, that can be insufficient evidence.  
+A correct answer can still come from luck.  
+It can also come from memorizing a similar item.  
+It can also come with overconfident phrasing.
+
+This is where non-accuracy metrics help.  
+Calibration evaluation often uses Expected Calibration Error (ECE).  
+It also uses the reliability diagram.  
+Proper scoring rules like the Brier score are also common.  
+These tools separate correctness from confidence quality.  
+They ask, “Was the confidence aligned with outcomes?”
+
+Consistency is another component.  
+Answers can change across similar variants.  
+They can also change across repetitions.  
+That instability can complicate QA and tutoring systems.  
+Related research discusses answer shifts with context changes.  
+Some evaluations compute a consistency score across rounds.  
+Prompt variations can support that multi-round evaluation.  
+One-shot correctness is weak evidence by itself.  
+Repeatable stability can be added as another axis.
+
+Contamination and leakage are even trickier.  
+Dataset cleaning often checks for string duplication like n-grams.  
+Research suggests paraphrases and translations can evade such filters.  
+Some approaches flag contamination likelihood with statistical tests.  
+Other frameworks build benchmarks from new knowledge.  
+The goal is reducing training overlap risk.  
+The takeaway is practical rather than absolute.  
+If zero contamination is hard, detection can still help.  
+Procedures can suspect and isolate contaminated items.
+
+---
+
+## Practical application
+
+A verification routine depends on what you record.  
+Keep “web search off” as only one condition.  
+Design around three separable elements.  
+First is problem set management.  
+This includes originals, variants, and non-public items.  
+Second is dual grading.  
+This combines automatic and manual grading.  
+Third is logging reliability metrics.  
+This includes calibration and consistency.
+
+For suspected contamination, do not stop at exclusion.  
+You can isolate items into a separate bucket.  
+That separation can keep statistics interpretable.  
+It can also keep conclusions more cautious.
+
+An example workflow can look like this.  
+A user submits a problem.  
+The model returns an answer.  
+The user delays final grading.  
+The user asks again with only wording changed.  
+If reasoning wobbles, flag higher risk.  
+If confidence language is overly strong, flag higher risk.  
+If it is wrong but expresses uncertainty, it can be safer.  
+That tradeoff can matter in real services.
+
+**Checklist for Today:**
+- Add a confidence label column, like low, medium, or high, alongside correct or incorrect.  
+- Run each item twice, using the original and a paraphrase or translation, then bucket unstable items.  
+- Check text with string duplication and embedding similarity, and record contamination risk notes separately.  
+
+---
+
+## FAQ
+
+**Q1. If “web search/browsing is disabled,” can we consider external knowledge inflow largely blocked?**  
+A. The provided documentation does not fully support that conclusion.  
+It describes sending search queries to Bing and retrieving results.  
+It also describes Atlas page visibility and Browser memories.  
+It does not confirm “responses use only local or training data.”  
+So verification can be treated as a recordable protocol.  
+It can be treated as more than “web blocking.”
+
+**Q2. Besides accuracy, what metrics should we look at?**  
+A. At minimum, three axes are commonly discussed.  
+First is calibration, using ECE, reliability diagrams, and Brier score.  
+Second is consistency, across prompt changes or repetitions.  
+Third is faithfulness, including uncertainty expression quality.  
+Some work studies links between verbal confidence and uncertainty.  
+Some benchmarks focus on linguistic uncertainty expressions.
+
+**Q3. How can an individual suspect and reduce data leakage (benchmark contamination)?**  
+A. String duplication alone may miss paraphrase variants.  
+Research notes vulnerabilities to paraphrase and translation.  
+A bundled approach can be more informative.  
+It can include string duplication and similarity checks.  
+It can include embedding similarity checks.  
+It can include performance-based checks for abnormal jumps.  
+If possible, you can also test one-off items.  
+Items based on new knowledge can reduce overlap risk.
+
+---
+
+## Conclusion
+
+“Full marks even without web search” sounds simple.  
+As a verification statement, it lacks detail.  
+Read “disabled” scope carefully in the cited documentation.  
+Treat “browsing off” as one controlled condition.  
+Add calibration, consistency, and contamination checks to accuracy.  
+That combination can make grading more reproducible and cautious.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-01](/en/posts/ai-resources-roundup-2026-03-01)
+- [Disaster Satellite Interpretation: Pipeline Design Cuts Lead Time](/en/posts/disaster-satellite-interpretation-pipeline-design-cuts-lead-time)
+- [How AI Firms Operationalize Political Neutrality Through Rules](/en/posts/how-ai-firms-operationalize-political-neutrality-through-rules)
+- [Operational Protocol Gaps For Imminent Threat Escalation](/en/posts/operational-protocol-gaps-imminent-threat-escalation)
+- [How Political Risk Becomes Procurement Contract Exit Triggers](/en/posts/political-risk-ai-procurement-contract-exit-triggers)
+---
+
+## References
+
+- [ChatGPT Search for Enterprise and Edu | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10093903)
+- [Web Browsing Settings on ChatGPT Atlas | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/12625059-web-browsing-settings-on-chatgpt-atlas)
+- [Introducing ChatGPT Atlas | OpenAI - openai.com](https://openai.com/index/introducing-chatgpt-atlas/)
+- [Smooth ECE: Principled Reliability Diagrams via Kernel Smoothing - arxiv.org](https://arxiv.org/abs/2309.12236)
+- [Self-Consistency of Large Language Models under Ambiguity - arxiv.org](https://arxiv.org/abs/2310.13439)
+- [LLM ethics benchmark: a three-dimensional assessment system for evaluating moral reasoning in large language models | Scientific Reports - nature.com](https://www.nature.com/articles/s41598-025-18489-7)
+- [MetaFaith: Faithful Natural Language Uncertainty Expression in LLMs - arxiv.org](https://arxiv.org/abs/2505.24858)
+- [Rethinking Benchmark and Contamination for Language Models with Rephrased Samples - arxiv.org](https://arxiv.org/abs/2311.04850)
+- [Proving Test Set Contamination in Black Box Language Models - arxiv.org](https://arxiv.org/abs/2310.17623)
+- [AntiLeak-Bench: Preventing Data Contamination by Automatically Constructing Benchmarks with Updated Real-World Knowledge - arxiv.org](https://arxiv.org/abs/2412.13670)
+- [Detecting Data Contamination in LLMs via In-Context Learning - arxiv.org](https://arxiv.org/abs/2510.27055)
