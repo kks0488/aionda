@@ -1,0 +1,167 @@
+---
+title: Benchmark MLX 4-Bit Local LLMs on Apple Silicon
+slug: benchmark-mlx-4bit-local-llms-apple-silicon
+date: '2026-03-03'
+lastReviewedAt: '2026-03-03'
+locale: en
+description: >-
+  Run MLX mxfp4 local LLMs with identical commands and prompts, logging
+  tokens-per-sec and peak memory for reproducible comparisons.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: '1013049'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1013049'
+verificationScore: 0.73
+alternateLocale: /ko/posts/benchmark-mlx-4bit-local-llms-apple-silicon
+coverImage: /images/posts/benchmark-mlx-4bit-local-llms-apple-silicon.png
+---
+
+The terminal prints `tokens-per-sec` during a local run. That output can change how “usable” the model feels.  
+Speed and peak memory can look different across runs.  
+Comparisons tend to be clearer with the same command and prompt.  
+Some Hugging Face MLX model cards show verbose logs.  
+Those logs can include both throughput and `Peak memory`.  
+This post organizes that pipeline for Apple Silicon.  
+It also frames the precision versus performance trade-off.
+
+## TL;DR
+- MLX `mxfp4` model cards can expose `tokens-per-sec` and `Peak memory` in verbose logs.  
+- Consistent commands and prompts can make speed, memory, and quality comparisons easier to interpret.  
+- Re-run the model card command, record the same fields, and compare across precisions like fp16.
+
+Example: You run a local model on a laptop. You keep the prompt unchanged. You try a higher precision run. You also try a four bit run. You compare speed and peak memory from the same log fields.
+
+## TL;DR
+- **Core issue:** MLX 4-bit (`mxfp4`) models can reduce memory for local inference. Comparisons tend to depend on the same command and prompt.  
+- **Why it matters:** Some model cards log prompt and generation throughput. They also log `Peak memory`.  
+- **What to do:** Run the example command as shown. Record `Prompt tokens-per-sec`, `Generation tokens-per-sec`, and `Peak memory` in a table.
+
+## Current state
+A sample Hugging Face MLX (`mxfp4`) model card shows separate throughput values.  
+It reports prompt processing throughput and generation throughput.  
+It also reports peak memory as `Peak memory`.  
+This structure can support more repeatable comparisons.  
+It differs from impressions like “fast” or “light.”
+
+One log example records these items together.  
+It shows **Prompt: 29 tokens, 149.991 tokens-per-sec**.  
+It shows **Generation: 117 tokens, 57.075 tokens-per-sec**.  
+The focus is not whether values seem large or small.  
+The focus is the split between prompt and generation.
+
+Local bottlenecks can shift with prompt length.  
+They can also shift with KV cache size.  
+A single average throughput can blur those changes.  
+Separate prompt and generation numbers can reduce that blur.
+
+This material does not confirm a platform-wide standard.  
+It suggests a practice on some individual model cards.  
+That practice uses verbose output for reproducibility.  
+It is specific enough to follow.  
+It is harder to describe as a Hugging Face specification.
+
+## Analysis
+4-bit weights like `mxfp4` can make local LLM runs more accessible.  
+They can also change output quality for some tasks.  
+Users can track quality alongside speed and memory.  
+Model card logs can serve as a baseline for that tracking.
+
+The baseline can include `Prompt tokens-per-sec`.  
+It can also include `Generation tokens-per-sec`.  
+It can also include `Peak memory`.  
+Recording these under one command can aid comparisons.  
+It can help explain changes across precision or decoding settings.
+
+There are limits to this approach.  
+Tokens-per-sec does not measure correctness.  
+Quantization effects can vary by task type.  
+Some tasks are sensitive to hallucinations.  
+Some tasks stress math or logic.  
+Long-context behavior can also differ.
+
+Long context can be hard to judge by ad hoc longer inputs.  
+A reproducible evaluation procedure can help.  
+This post references a split evaluation flow.  
+Standard tasks can use EleutherAI lm-evaluation-harness.  
+Truthfulness can use TruthfulQA.  
+Long context can use NIAH-style procedures.
+
+NIAH places a “needle” inside a long “haystack.”  
+It checks retrieval as context length increases.  
+It can produce quantitative results for comparison.  
+Those results can be compared across precisions.
+
+## Practical application
+The goal is to reproduce the model card usage example.  
+Run the command exactly as shown on the card.  
+One example command is `mlx_lm.generate`.  
+Copy the reported `tokens-per-sec` and `Peak memory`.  
+Record prompt and generation throughput separately.
+
+Prompt throughput can look fast while generation is slower.  
+The reverse can also occur.  
+That difference can hint at cache behavior.  
+It can also hint at decoding settings.  
+It can also reflect precision changes.
+
+The next step is quality verification.  
+If an fp16 version exists, run both versions.  
+Keep the same prompt and settings.  
+Compare outputs along with speed and memory.  
+Then choose an evaluation track that fits your risk.
+
+For accuracy concerns, use standard task evaluation.  
+For hallucination concerns, use TruthfulQA-style evaluation.  
+For long-context concerns, use NIAH-style evaluation.  
+This can clarify which axis changed.  
+It can reduce reliance on vague impressions.
+
+**Checklist for Today:**
+- Run the model card command, and record prompt throughput, generation throughput, and `Peak memory` from the logs.  
+- Keep the prompt fixed, change only precision, and compare speed, peak memory, and output side-by-side.  
+- Pick one risk axis, and apply the matching public procedure to compare `mxfp4` against higher precision.  
+
+## FAQ
+**Q1. Which tokens-per-sec values from the model card should be reported?**  
+A1. The referenced example shows separate values for prompt and generation.  
+Record both values after using the same command and prompt.  
+This can support more repeatable reporting.
+
+**Q2. What memory metric should be used as the basis for comparison?**  
+A2. The same example reports a single `Peak memory` value.  
+It includes an entry like **Peak memory: 42.672 GB**.  
+Definitions can vary by environment and tool output.  
+Extra verification may be needed for cross-system comparisons.
+
+**Q3. How can I check accuracy or hallucinations with a public procedure?**  
+A3. This post suggests three tracks.  
+Standard-task accuracy can use EleutherAI lm-evaluation-harness.  
+Hallucinations can use TruthfulQA.  
+Long context can use NIAH-style benchmarks like NoLiMa.  
+Sequential-NIAH is another referenced NIAH-style benchmark.  
+Keep prompts and settings aligned across precisions.
+
+## Conclusion
+MLX 4-bit (`mxfp4`) inference can shift local runs toward measurable trade-offs.  
+Capture `tokens-per-sec` split into prompt and generation.  
+Capture `Peak memory` from the same run.  
+Then use benchmarks to check quality changes.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-03](/en/posts/ai-resources-roundup-2026-03-03)
+- [Autonomous AI Agents Blur Insider Threat Boundaries](/en/posts/autonomous-ai-agents-blur-insider-threat-boundaries)
+- [Untangling AGI Terms: Reasoning, Memory, Continual Learning Metrics](/en/posts/untangling-agi-terms-reasoning-memory-continual-learning-metrics)
+- [When LLM Inference Becomes Memory-Bound Under Roofline](/en/posts/when-llm-inference-becomes-memory-bound-under-roofline)
+- [Measuring And Controlling Variance In Generative AI Recommendations](/en/posts/measuring-controlling-variance-generative-ai-recommendations)
+---
+
+## References
+
+- [nightmedia/Qwen3-Next-80B-A3B-Instruct-mxfp4-mlx · Hugging Face - huggingface.co](https://huggingface.co/nightmedia/Qwen3-Next-80B-A3B-Instruct-mxfp4-mlx)
+- [NoLiMa: Long-Context Evaluation Beyond Literal Matching - arxiv.org](https://arxiv.org/abs/2502.05167)
+- [Sequential-NIAH: A Needle-In-A-Haystack Benchmark for Extracting Sequential Needles from Long Contexts - arxiv.org](https://arxiv.org/abs/2504.04713)
