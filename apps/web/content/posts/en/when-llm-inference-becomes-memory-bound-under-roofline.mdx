@@ -1,0 +1,175 @@
+---
+title: When LLM Inference Becomes Memory-Bound Under Roofline
+slug: when-llm-inference-becomes-memory-bound-under-roofline
+date: '2026-03-03'
+lastReviewedAt: '2026-03-03'
+locale: en
+description: >-
+  Use Roofline (I ≤ π/β) to classify LLM inference kernels as memory- or
+  compute-bound, and guide bandwidth, cache, and interconnect decisions.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - inference
+author: AI온다
+sourceId: '1013186'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1013186'
+verificationScore: 0.82
+alternateLocale: /ko/posts/when-llm-inference-becomes-memory-bound-under-roofline
+coverImage: /images/posts/when-llm-inference-becomes-memory-bound-under-roofline.png
+---
+
+Even when GPUs in an inference server look idle, token generation speed can lag. Monitoring may show high “compute utilization.” The bottleneck can sit elsewhere. Some inference slowdowns resist explanation by “compute volume” alone. Bandwidth, memory hierarchy, and the software stack can shape speed.
+
+## TL;DR
+- Inference bottlenecks can shift from compute limits to memory and hierarchy limits, using the Roofline model.  
+- This shift can cap tokens/s when data movement, not FLOPs, dominates performance.  
+- Split prefill and decode, then profile kernels to decide between bandwidth or compute optimizations.  
+
+Example: A team swapped GPUs for higher compute throughput. Latency barely improved, and costs rose. They then inspected memory movement and kernel behavior. They adjusted serving settings and kernel choices. The perceived latency then improved.
+
+This post organizes “when LLM inference bottlenecks shift from compute to memory bandwidth (and hierarchy).” It frames the conditions using the Roofline model. It also summarizes how HBM, cache, interconnects, and CUDA choices can affect perceived performance and cost.
+
+## Current state
+In the Roofline model, operational intensity is **I = W/Q**.  
+W is work, such as FLOPs.  
+Q is bytes moved between cache and DRAM.  
+Q can also mean traffic between memory hierarchy levels.
+
+Hardware can be summarized by peak compute throughput **π**.  
+Hardware can also be summarized by peak sustained bandwidth **β**.
+
+If a kernel satisfies **I ≤ π/β**, it is memory-bound.  
+If a kernel satisfies **I ≥ π/β**, it is compute-bound.  
+As GPU compute increases, **π/β** can increase.  
+That change can classify more kernels as memory-bound.
+
+The stage split of LLM inference is characterized differently across studies.  
+One study summarizes prefill as compute-bound.  
+The same study summarizes decode as memory-bound.  
+It argues decode latency can be limited by external memory bandwidth.
+
+Another study states MHA and GQA can become memory-bound.  
+It attributes this to low arithmetic intensity.  
+The same study describes FFN as compute-bound.  
+Inference can mix these characteristics across kernels and stages.
+
+Benchmarks often report bottlenecks as outcomes without kernel decomposition.  
+An example is MLPerf Inference vendor submissions.  
+These include **Llama 2 70B tokens/s** as a reported metric.
+
+Product specifications provide numeric candidates for bottlenecks.  
+NVIDIA lists H100 bandwidth figures, including **3.35TB/s** memory bandwidth.  
+It also lists **NVLink 900GB/s**.  
+It also lists **PCIe Gen5 128GB/s**.  
+NVIDIA also describes a **50MB L2 cache** on H100.  
+These numbers can help locate “where you are getting stuck.”
+
+## Analysis
+Decision-making can be expressed as conditional statements.
+
+- **If** profiling or modeling often lands in **I ≤ π/β**,  
+  **Then** decode-heavy workloads can be limited by bandwidth and hierarchy.  
+  HBM bandwidth can influence a tokens/s ceiling.  
+  On-chip cache, such as L2, can also influence it.  
+  Interconnects can matter in multi-GPU setups.  
+  Software goals can also change in this region.  
+  FLOPs-only reductions in W can be insufficient.  
+  You can try reducing Q, the bytes moved.  
+  You can also try more work per byte moved.  
+  Candidates include KV-cache access pattern changes.  
+  Candidates also include paged, chunked, or sliding-window attention.
+
+- **If** prefill or FFN dominates and many segments land in **I ≥ π/β**,  
+  **Then** kernel fusion and reduced precision can have more direct impact.  
+  NVIDIA reported speedups in a TensorRT Model Optimizer case study.  
+  It reported **INT8 vs FP16 1.43x** under some conditions.  
+  It reported **FP8 vs FP16 1.45x** under some conditions.  
+  Those conditions can vary by hardware and model.  
+  Transformer Engine documentation discusses Hopper attention kernels.  
+  It states **cuDNN attention is 20–50% better than flash-attention**.  
+  This suggests kernel backend choice can affect tokens/s.
+
+Risks can also be summarized conditionally.  
+It can be easy to generalize “bandwidth is the bottleneck” too broadly.  
+Attention may be memory-bound in some settings.  
+FFN may be compute-bound in other settings.
+
+Official materials alone do not provide clean A/B isolation for bandwidth changes.  
+The impact of PCIe or interconnect bandwidth changes on tokens/s is unclear here.  
+This makes definitive claims hard to support from these sources alone.  
+For example, **NVLink 900GB/s** does not imply multi-GPU is often better.  
+Start from the workload design, including serving pattern.
+
+## Practical application
+A common waste is treating inference as one undifferentiated blob.  
+That approach often overweights spec comparisons alone.  
+Split by stages, such as prefill and decode.  
+Split by kernels, such as attention and FFN.  
+Then classify each segment using a Roofline view.
+
+The “official GPU guide procedure” for measuring **I = W/Q** was not confirmed here.  
+That gap suggests additional verification may be needed.  
+A practical approach is experiment design with observable metrics.  
+Use throughput and latency metrics.  
+Add a rough kernel label, like memory-bound or compute-bound.  
+Then compare against cache and bandwidth specs, such as **3.35TB/s**.
+
+**Checklist for Today:**
+- Separate prefill and decode, and record latency and tokens/s per stage.  
+- Split attention and FFN, and tag each as likely memory-bound or compute-bound.  
+- Run A/B tests on one GPU by changing kernel backends and precision settings.  
+
+## FAQ
+**Q1. Why look at arithmetic intensity (I = W/Q)?**  
+A1. It helps separate compute limits from bandwidth limits.  
+It uses **π** for compute and **β** for bandwidth.  
+If **I ≤ π/β**, the kernel is memory-bound.  
+If **I ≥ π/β**, the kernel is compute-bound.  
+This split can guide hardware and optimization choices.
+
+**Q2. What tends to become memory-bound in LLM inference?**  
+A2. The studies summarized here describe MHA and GQA as often memory-bound.  
+They attribute this to low arithmetic intensity.  
+They describe FFN as compute-bound.  
+Another study describes prefill as compute-bound.  
+That study describes decode as strongly memory-bound.  
+These tendencies can vary with model and serving conditions.
+
+**Q3. How much can software optimization offset hardware differences?**  
+A3. It appears condition-dependent.  
+Official materials report **1.43x** for INT8 vs FP16 in one case study.  
+They also report **1.45x** for FP8 vs FP16 in one case study.  
+Documentation also mentions **20–50%** differences for attention kernels on Hopper.  
+You should verify which stage reproduces these gains in your workload.
+
+## Conclusion
+LLM inference speed is not often determined by compute throughput alone.  
+Bandwidth, memory hierarchy, and kernel ecosystem can become bottlenecks.  
+Next actions can be straightforward.  
+Split prefill and decode.  
+Apply the Roofline condition **I ≤ π/β**.  
+If memory-bound, focus on reducing Q and on bandwidth-centric hardware choices.  
+If compute-bound, focus on kernel fusion and reduced precision.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-03](/en/posts/ai-resources-roundup-2026-03-03)
+- [Autonomous AI Agents Blur Insider Threat Boundaries](/en/posts/autonomous-ai-agents-blur-insider-threat-boundaries)
+- [Measuring And Controlling Variance In Generative AI Recommendations](/en/posts/measuring-controlling-variance-generative-ai-recommendations)
+- [Verifying LLM Problem Solving Without Web Browsing](/en/posts/verifying-llm-problem-solving-without-web-browsing)
+- [AI Resource Roundup (24h) - 2026-03-01](/en/posts/ai-resources-roundup-2026-03-01)
+---
+
+## References
+
+- [H100 GPU | NVIDIA - nvidia.com](https://www.nvidia.com/en-us/data-center/h100/)
+- [NVIDIA Hopper Architecture In-Depth | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/)
+- [NVIDIA Blackwell Platform Sets New LLM Inference Records in MLPerf Inference v4.1 | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/nvidia-blackwell-platform-sets-new-llm-inference-records-in-mlperf-inference-v4-1/)
+- [Accelerate Generative AI Inference Performance with NVIDIA TensorRT Model Optimizer (NVIDIA Technical Blog) - developer.nvidia.com](https://developer.nvidia.com/blog/accelerate-generative-ai-inference-performance-with-nvidia-tensorrt-model-optimizer-now-publicly-available/)
+- [Transformer Engine Documentation - Attention - docs.nvidia.com](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/attention/attention.html)
+- [cuBLAS | NVIDIA Developer - developer.nvidia.com](https://developer.nvidia.com/cublas)
+- [Roofline: An Insightful Visual Performance Model For Multicore Architectures – Communications of the ACM - cacm.acm.org](https://cacm.acm.org/research/roofline-an-insightful-visual-performance-model-for-multicore-architectures/)
+- [Rethinking LLM Inference Bottlenecks: Insights from Latent Attention and Mixture-of-Experts - arxiv.org](https://arxiv.org/abs/2507.15465)
+- [Prefill vs. Decode Bottlenecks: SRAM-Frequency Tradeoffs and the Memory-Bandwidth Ceiling - arxiv.org](https://arxiv.org/abs/2512.22066)

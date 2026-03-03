@@ -1,0 +1,162 @@
+---
+title: 'Untangling AGI Terms: Reasoning, Memory, Continual Learning Metrics'
+slug: untangling-agi-terms-reasoning-memory-continual-learning-metrics
+date: '2026-03-03'
+lastReviewedAt: '2026-03-03'
+locale: en
+description: >-
+  A decision memo separating reasoning, long-term memory, and continual learning
+  into testable metrics to reduce AGI narrative confusion.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: '1013189'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1013189'
+verificationScore: 0.76
+alternateLocale: /ko/posts/untangling-agi-terms-reasoning-memory-continual-learning-metrics
+coverImage: >-
+  /images/posts/untangling-agi-terms-reasoning-memory-continual-learning-metrics.png
+---
+
+A timeline debate about “when AGI arrives” often exposes a different problem in research discussions.  
+Terms like “reasoning” vary across papers and products.  
+“Long-term memory” still lacks a tight, reproducible evaluation specification.  
+“Continual learning” is often quantified as reduced forgetting.  
+Even then, conclusions can shift when conditions change.
+
+## TL;DR
+- The terms “reasoning,” “long-term memory,” “continual learning,” and “recursive improvement” often point to different evaluation targets.  
+- This mismatch can distort KPIs and incentives in policy, investment, and product roadmaps.  
+- Rewrite decisions as If/Then rules. Separate reasoning, memory, and continual-learning evaluations before AGI narratives.
+
+Example: A product team assumes better reasoning implies stronger memory and smoother learning in deployment. The system then behaves unpredictably across tasks. The team struggles to isolate the root cause. They realize their validation unit was too broad.
+
+## TL;DR
+- The keywords behind AGI discourse can differ across research and products.  
+Many cases also bundle benchmark tasks and measure them together.
+- This ambiguity can encourage overpromising on memory and continual learning.  
+It can also lead to weak evaluation design in roadmaps.
+- Decision-making can be rewritten in If/Then form.  
+Validate reasoning with MMLU or ARC-style accuracy metrics.  
+Validate continual learning with ACC, BWT, and forgetting metrics.  
+Evaluate memory with fixed context length and explicit recall metrics.  
+Then, internal narratives like “close to AGI” can be framed more carefully.
+
+## Status quo
+“Reasoning ability” does not have a one-sentence consensus definition in papers reviewed here.  
+It is often operationalized as a family of benchmark tasks.  
+The MMLU paper proposes “multitask accuracy.”  
+It also notes high accuracy needs “extensive world knowledge and problem solving ability.”  
+In this framing, “reasoning” is measured via correct answers across subjects.
+
+ARC has a similar framing.  
+ARC suggests science QA needs “far more powerful knowledge and reasoning.”  
+It splits items into a Challenge Set and an Easy Set.  
+This controls difficulty by dataset partitioning.  
+Again, “reasoning” becomes “answer these questions correctly,” using accuracy.  
+In public discourse, this can invite leaps from score gains to AGI proximity.
+
+Long-term memory is harder to specify.  
+Some benchmarks explicitly control context length.  
+The RULER documentation in NVIDIA NeMo Evaluator SDK states users specify `max_seq_length`.  
+However, a common protocol for memory update rules was not consistently confirmed here.  
+This includes write, summarize, and delete policies.  
+Public expectations can remain loosely specified in evaluation documents.
+
+Continual learning is clearer about what gets measured.  
+Literature reviews present BWT (Backward Transfer) as a formula.  
+It quantifies forgetting as performance drops on past tasks over time.  
+Some studies report percentage improvements under specific baselines.  
+CEAT reported **5.38%**, **5.20%**, and **4.92%** improvements.  
+These were on CIFAR-100, TinyImageNet, and ImageNet-Subset.  
+A LoRA-based method reported **6.35%** accuracy improvement on Split CIFAR-100.  
+It also reported **3.24%** forgetting reduction.  
+These values depend on each paper’s settings and baselines.  
+They may not translate directly to field learning for deployed agents.
+
+## Analysis
+For decision-making, popular AGI discourse can loosen definitions and blur KPIs.  
+Words can spread faster than evaluation standards.  
+If “reasoning” is measured by MMLU multitask accuracy, score gains look like capability gains.  
+However, translation to planning, long-horizon goals, or self-improvement is separate.  
+It needs separate tests and claims.
+
+Within this investigation’s scope, several points look more grounded.  
+Reasoning is often measured by decomposed tasks and accuracy metrics.  
+Continual learning is often evaluated with ACC, BWT, and forgetting.  
+Memory evaluations at least include input constraints like context length.  
+RULER’s `max_seq_length` is one example.  
+A shared standard for memory update specifications is less visible.
+
+Reducing this to “AGI is hype” can create a different error.  
+Continual learning work reports improvements like **5.38%** and **6.35%**.  
+It also reports forgetting reduction like **3.24%**.  
+This can reflect interest in systems designed for updates.  
+Public discourse may compress this into “recursive improvement.”  
+That compression can hide practical questions.  
+Examples include data drift, evaluation protocols, and failure modes.  
+It can also hide which validation unit matches the risk.
+
+## Practical application
+Decision rules should be decomposed.  
+For reasoning, claim at the level of benchmark accuracy changes.  
+Then evaluate planning, tool use, and long-task completion separately.  
+For long-term memory, measure recall with a fixed context length.  
+Settings like `max_seq_length` can anchor this constraint.  
+Also document that memory update rules lack a shared standard.  
+For continual learning, bring ACC, BWT, and forgetting into internal KPIs.  
+Then test whether improvements like **5.38%**, **6.35%**, and **3.24%** reproduce internally.
+
+**Checklist for Today:**
+- Split KPIs across reasoning accuracy, memory with fixed context length, and continual-learning metrics like BWT.  
+- For memory features, create a reproducible test with `max_seq_length`, and log update-rule uncertainty as a risk.  
+- For continual learning plans, add a deployment gate that reports BWT and forgetting after each update.
+
+## FAQ
+**Q1. How is “reasoning ability” officially defined?**  
+A. In this investigation’s scope, papers often define it through tasks.  
+MMLU uses multitask accuracy.  
+ARC uses a Challenge Set and an Easy Set.  
+These rely on automatically graded accuracy metrics.
+
+**Q2. Can long-term memory be evaluated reproducibly on public benchmarks?**  
+A. Some cases fix or report context length.  
+RULER requires specifying `max_seq_length`.  
+A shared protocol for memory update rules was not consistently confirmed here.  
+This includes write, summarize, and delete policies.  
+So, “long-term memory has been validated” remains hard to claim.
+
+**Q3. How much is continual learning actually improving?**  
+A. Metrics like BWT appear relatively standardized in descriptions.  
+Some studies report numeric improvements under specific settings.  
+CEAT reported **5.38%**, **5.20%**, and **4.92%** improvements.  
+A LoRA-based method reported **6.35%** accuracy improvement.  
+It also reported **3.24%** forgetting reduction.  
+These depend on baselines and protocols in each paper.  
+Product transfer usually needs internal reproducibility checks.
+
+## Conclusion
+As AGI discourse grows, reasoning, memory, and continual learning should be separated again.  
+They can be treated as evaluation units, not slogans.  
+The immediate focus is not fully defined in the draft.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-03](/en/posts/ai-resources-roundup-2026-03-03)
+- [Autonomous AI Agents Blur Insider Threat Boundaries](/en/posts/autonomous-ai-agents-blur-insider-threat-boundaries)
+- [Measuring And Controlling Variance In Generative AI Recommendations](/en/posts/measuring-controlling-variance-generative-ai-recommendations)
+- [Verifying LLM Problem Solving Without Web Browsing](/en/posts/verifying-llm-problem-solving-without-web-browsing)
+- [AI Resource Roundup (24h) - 2026-03-01](/en/posts/ai-resources-roundup-2026-03-01)
+---
+
+## References
+
+- [ruler — NeMo Evaluator SDK - docs.nvidia.com](https://docs.nvidia.com/nemo/evaluator/latest/evaluation/benchmarks/catalog/all/harnesses/ruler.html)
+- [Measuring Massive Multitask Language Understanding - arxiv.org](https://arxiv.org/abs/2009.03300)
+- [Think you have Solved Question Answering? Try ARC, the AI2 Reasoning Challenge - arxiv.org](https://arxiv.org/abs/1803.05457)
+- [Continual learning: A systematic literature review - ScienceDirect - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0893608025011074)
+- [CEAT: Continual Expansion and Absorption Transformer for Non-Exemplar Class-Incremental Learning - arxiv.org](https://arxiv.org/abs/2403.06670)
+- [LoRA-Based Continual Learning with Constraints on Critical Parameter Changes - arxiv.org](https://arxiv.org/abs/2504.13407)

@@ -1,0 +1,89 @@
+---
+title: 'LLM 추론 병목, 연산에서 대역폭으로'
+slug: when-llm-inference-becomes-memory-bound-under-roofline
+date: '2026-03-03'
+lastReviewedAt: '2026-03-03'
+locale: ko
+description: 'Roofline 조건 I≤π/β로 LLM 추론 병목을 판정하고, 대역폭·캐시·인터커넥트 투자 우선순위를 정리한다.'
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - inference
+author: AI온다
+sourceId: '1013186'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1013186'
+verificationScore: 0.82
+alternateLocale: /en/posts/when-llm-inference-becomes-memory-bound-under-roofline
+coverImage: /images/posts/when-llm-inference-becomes-memory-bound-under-roofline.png
+---
+
+추론 서버 한 대를 꽉 채운 GPU가 놀고 있는데도, 토큰 생성 속도는 기대만큼 안 나올 때가 있다. 모니터에는 “연산 사용률” 그래프가 높게 나오지만, 병목은 다른 곳에서 생긴다. 지금 LLM 추론은 ‘연산량’만으로 설명하기 어려운 구간이 있다. 대역폭과 메모리 계층, 그리고 그 위의 소프트웨어 스택이 속도를 좌우하는 경우가 있다.
+
+이 글은 “LLM 추론 병목이 언제 연산이 아니라 메모리 대역폭(및 계층)으로 넘어가는가”를 Roofline 모델의 조건문으로 정리한다. 그리고 HBM·캐시·인터커넥트·CUDA 생태계가 체감 성능과 비용을 어떻게 갈라놓는지 의사결정 메모 형태로 정리한다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** LLM 추론은 커널별 연산 집약도(I = W/Q)가 낮아지는 순간, GPU 연산 성능(π)보다 메모리 대역폭(β)이 속도를 좌우할 수 있다.  
+- **왜 중요한가?** I ≤ π/β 구간에서는 HBM 대역폭, 캐시, 인터커넥트 같은 “데이터 이동” 특성이 토큰/s 상한을 만들 수 있다.  
+- **독자는 뭘 하면 되나?** 프리필/디코드를 커널 단위로 나눠 “메모리 바운드인지/연산 바운드인지”부터 판정한다. 그 결과에 따라 대역폭 중심 투자와 커널/양자화 최적화의 우선순위를 조정한다.
+
+## 현황
+Roofline 성능 모델에서 연산 집약도(operational 혹은 arithmetic intensity)는 **I = W/Q**로 정의한다. W는 보통 FLOPs 같은 작업량이다. Q는 캐시-DRAM(혹은 계층 간)에서 이동한 바이트다. 하드웨어는 피크 연산 성능 **π**와 피크(지속) 메모리 대역폭 **β**로 요약한다. 커널이 **I ≤ π/β**면 메모리 바운드, **I ≥ π/β**면 연산 바운드로 분류한다. GPU 연산 성능이 커질수록 π/β가 커질 수 있고, 그 경우 더 많은 커널이 메모리 바운드로 분류될 여지가 있다.
+
+LLM 추론의 단계 구분(프리필/디코드)은 연구마다 성격을 다르게 정리한다. 한 연구는 **프리필은 compute-bound**, **디코드는 memory-bound**로 요약하면서 디코드 지연시간이 외부 메모리 대역폭 상한에 의해 제한된다고 논의한다. 다른 연구는 **MHA(멀티헤드 어텐션)와 GQA가 낮은 arithmetic intensity 때문에 memory-bound**가 되기 쉽고, **FFN은 compute-bound**라고 정리한다. 즉 추론 전체가 한 가지 성격으로 고정된다고 보기는 어렵다. 커널과 단계가 섞여 있다.
+
+벤치마크는 이런 병목을 커널 단위로 분해하지 않고 결과 지표로만 제시하는 경우가 많다. 제조사/공식 제출 기반으로 공개되는 MLPerf Inference의 **Llama 2 70B tokens/s** 같은 지표가 그렇다. 반대로 제품 스펙은 병목 후보를 숫자로 제시한다. 예를 들어 NVIDIA는 H100의 **GPU 메모리 대역폭 3.35TB/s**, **NVLink 900GB/s**, **PCIe Gen5 128GB/s**를 스펙으로 제시한다. 또 H100의 **L2 캐시 50MB**가 HBM 접근을 줄여 성능을 개선한다고 설명한다. 이런 숫자들은 “어디서 막히는지”를 점검할 때 참고 지점이 된다.
+
+## 분석
+의사결정은 결국 조건문으로 정리한다.
+
+- **If** 프로파일링/모델링 결과가 I ≤ π/β(메모리 바운드)로 자주 떨어지고, 특히 디코드가 지배적이라면  
+  **Then** 투자 우선순위는 “연산 성능이 높은 GPU”보다 “대역폭과 계층”으로 이동한다. HBM 대역폭, L2 같은 온칩 캐시, 멀티 GPU 환경이라면 인터커넥트가 토큰/s 상한에 관여할 수 있다. 소프트웨어 최적화의 목표도 달라진다. FLOPs(W)를 줄이는 접근만으로는 부족할 수 있다. Q(바이트 이동)를 줄이거나, 같은 바이트 이동으로 더 많은 일을 하게 만드는 방향을 검토한다. 예를 들어 KV-cache 접근 패턴, paged/chunked/sliding-window attention 같은 메모리/서빙 최적화가 후보가 된다.
+
+- **If** 프리필/FFN 비중이 크고 I ≥ π/β(연산 바운드) 구간이 많다면  
+  **Then** 커널 퓨전과 저정밀화가 더 직접적으로 영향을 줄 수 있다. NVIDIA는 TensorRT Model Optimizer 사례에서 정밀도 전환으로 **INT8 vs FP16 1.43x**, **FP8 vs FP16 1.45x** 같은 속도 향상을 보고했다(조건은 하드웨어/모델에 따라 달라질 수 있다). 또 Transformer Engine 문서는 Hopper에서 **cuDNN attention이 flash-attention 대비 20–50% 유리**하다고 적는다. 같은 GPU에서도 커널 백엔드/라이브러리 조합이 토큰/s에 영향을 줄 수 있다는 의미다.
+
+리스크도 조건부로 정리한다. 첫째, “대역폭이 병목”이라는 결론을 모든 구간에 확대 적용하기 쉽다. attention이 memory-bound가 되기 쉽다는 정리와 함께, FFN이 compute-bound라는 정리도 같이 존재한다. 둘째, 공식 자료만으로는 PCIe/인터커넥트 대역폭 변화가 tokens/s에 미치는 영향을 ‘대역폭만 바꾼’ 형태로 분리해 비교한 A/B 표가 충분히 확인되지 않는다(추가 확인 필요). 그래서 “NVLink 900GB/s니까 멀티 GPU가 항상 유리하다”처럼 단정하기는 어렵다. 워크로드(배치/시퀀스 길이/서빙 패턴)를 먼저 둔다.
+
+## 실전 적용
+실무에서 흔한 낭비는 “추론을 한 덩어리로 보고, 스펙만 비교하는 것”이다. 단계(프리필/디코드)와 커널(attention/FFN/GEMM 등)로 나눠 Roofline 관점으로 분류하면, 장비 구매·최적화·서빙 아키텍처 결정의 기준이 정리된다. I = W/Q를 정확히 계측하는 ‘공식 GPU 가이드의 절차’는 이번 조사 결과에서 구체적으로 확인되지 않았다(추가 확인 필요). 현실적인 접근은 “관측 가능한 지표(throughput/latency) + 커널별 대략적 성격(memory-bound vs compute-bound) + 캐시/대역폭 스펙”을 함께 놓고 실험을 설계하는 쪽이다.
+
+예: 어떤 팀이 응답 지연을 줄이려 연산 성능이 더 높은 GPU로 바꿨다. 그런데 체감 변화가 크지 않고 비용만 늘었다. 이후 디코드 구간이 길고 메모리 이동이 지배적이라는 점을 확인했다. 그 다음 커널/정밀도/캐시 활용을 바꾸자 지연이 변했다.
+
+오늘 바로 할 일 체크리스트:
+- 프리필과 디코드를 분리해 지연시간/토큰/s를 따로 기록한다. 어느 단계가 총 시간을 지배하는지 먼저 정리한다.  
+- attention과 FFN을 구분한다. “memory-bound 후보(MHA/GQA)”와 “compute-bound 후보(FFN)”로 나눠 최적화 백로그를 분리한다.  
+- 같은 하드웨어에서 커널 백엔드/정밀도 조합을 바꿔 A/B를 수행한다(예: Hopper에서 cuDNN attention vs 다른 구현, FP8/INT8 전환 등).
+
+## FAQ
+**Q1. arithmetic intensity(I = W/Q)를 왜 굳이 봐야 하나?**  
+A1. GPU 성능을 “연산 π”와 “대역폭 β”로 나눠서, 워크로드가 어디에 묶였는지 조건문으로 판정하기 위해서입니다. **I ≤ π/β면 메모리 바운드**, **I ≥ π/β면 연산 바운드**입니다. 이 판정이 장비 선택과 최적화 방향을 가릅니다.
+
+**Q2. LLM 추론에서 어디가 메모리 바운드가 되기 쉬운가?**  
+A2. 조사 결과에 포함된 연구들은 **MHA와 GQA가 낮은 arithmetic intensity로 memory-bound**가 되기 쉽다고 정리합니다. 반대로 **FFN은 compute-bound**로 분류합니다. 또 다른 연구는 **프리필은 compute-bound**, **디코드는 memory-bound** 성격이 강하다고 정리합니다(모델/서빙 조건에 따라 달라질 수 있습니다).
+
+**Q3. 소프트웨어 최적화가 하드웨어 성능 차이를 어느 정도 상쇄할 수 있나?**  
+A3. 조건 의존성이 큽니다. 공식 자료 기준으로는 정밀도/양자화에서 **1.43x(INT8 vs FP16)**, **1.45x(FP8 vs FP16)** 같은 사례가 있습니다. attention 커널 선택에서 Hopper 기준 **20–50%** 차이를 언급한 문서도 있습니다. 다만 이 이득이 프리필/디코드 중 어느 구간에서 재현되는지는 워크로드 설계를 포함해 직접 확인해야 합니다.
+
+## 결론
+LLM 추론은 연산 성능만으로 속도가 정해지지 않는 경우가 있다. 대역폭과 메모리 계층, 그리고 커널 생태계가 병목이 될 수 있다. 다음 액션은 단순하게 정리한다. 프리필/디코드를 분리하고 Roofline 조건(I ≤ π/β)을 적용한다. 메모리 바운드면 Q를 줄이는 최적화와 대역폭 중심의 하드웨어 판단으로 간다. 연산 바운드면 커널 퓨전·저정밀 중심으로 방향을 옮긴다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-03](/ko/posts/ai-resources-roundup-2026-03-03)
+- [자율 에이전트, 내부자 위협의 새 경계](/ko/posts/autonomous-ai-agents-blur-insider-threat-boundaries)
+- [생성형 AI 추천 흔들림 통제법](/ko/posts/measuring-controlling-variance-generative-ai-recommendations)
+- [브라우징 끔 문제풀이 검증법](/ko/posts/verifying-llm-problem-solving-without-web-browsing)
+- [AI 자료 모음 (24h) - 2026-03-01](/ko/posts/ai-resources-roundup-2026-03-01)
+---
+
+## 참고 자료
+
+- [H100 GPU | NVIDIA - nvidia.com](https://www.nvidia.com/en-us/data-center/h100/)
+- [NVIDIA Hopper Architecture In-Depth | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/)
+- [NVIDIA Blackwell Platform Sets New LLM Inference Records in MLPerf Inference v4.1 | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/nvidia-blackwell-platform-sets-new-llm-inference-records-in-mlperf-inference-v4-1/)
+- [Accelerate Generative AI Inference Performance with NVIDIA TensorRT Model Optimizer (NVIDIA Technical Blog) - developer.nvidia.com](https://developer.nvidia.com/blog/accelerate-generative-ai-inference-performance-with-nvidia-tensorrt-model-optimizer-now-publicly-available/)
+- [Transformer Engine Documentation - Attention - docs.nvidia.com](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/examples/attention/attention.html)
+- [cuBLAS | NVIDIA Developer - developer.nvidia.com](https://developer.nvidia.com/cublas)
+- [Roofline: An Insightful Visual Performance Model For Multicore Architectures – Communications of the ACM - cacm.acm.org](https://cacm.acm.org/research/roofline-an-insightful-visual-performance-model-for-multicore-architectures/)
+- [Rethinking LLM Inference Bottlenecks: Insights from Latent Attention and Mixture-of-Experts - arxiv.org](https://arxiv.org/abs/2507.15465)
+- [Prefill vs. Decode Bottlenecks: SRAM-Frequency Tradeoffs and the Memory-Bandwidth Ceiling - arxiv.org](https://arxiv.org/abs/2512.22066)
