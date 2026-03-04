@@ -1,0 +1,101 @@
+---
+title: 'AGI 연도예측, 채점가능하게'
+slug: make-agi-year-predictions-testable-with-clear-scoring
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: ko
+description: 'AGI 도래 연도 주장, 정의·지표·확률·사후채점을 갖춰 검증 가능한 예측으로 바꾸는 법.'
+tags:
+  - agi
+  - llm
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: '1017052'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1017052'
+verificationScore: 0.77
+alternateLocale: /en/posts/make-agi-year-predictions-testable-with-clear-scoring
+coverImage: /images/posts/make-agi-year-predictions-testable-with-clear-scoring.png
+---
+
+휴대폰을 보다가 “연구자들이 다 말했음. **AGI는 특정 연도에 온다**” 같은 글을 마주친다. 댓글은 확신으로 달리고, 반박은 감정 싸움으로 번진다. 여기서 먼저 볼 것은 이 주장이 맞냐 틀렸냐가 아니다. **검증 가능한 형태로 말했냐**가 먼저다.
+
+핵심 이슈는 단순하다. ‘AGI 도래 연도’ 예측은 대개 인용과 인상으로 포장된다. 그런데 **정의·측정·예측·불확실성**을 분리해 적지 않으면, 맞고 틀리고를 평가할 방법이 없다. 그래서 지금 필요한 건 “몇 년”이 아니라, **연도 예측을 채점 가능한 질문으로 바꾸는 프레임**이다.
+
+---
+
+## 세 줄 요약
+
+- **무슨 변화/핵심이슈인가?** ‘AGI는 특정 연도에 온다’류 주장은 정의와 판정 기준 없이 유통되는 경우가 많다. 그 상태에선 검증이 어렵다.  
+- **왜 중요한가?** 검증이 어려운 예측은 투자·커리어·연구 우선순위 판단을 흐릴 수 있다. 나중에 맞거나 틀려도, 예측을 어떻게 개선할지 남기기 힘들다.  
+- **독자는 뭘 하면 되나?** 연도 주장에 반응하기 전에 **(1) AGI 정의 1문장 (2) 통과 조건 1개 이상 (3) 확률/구간 (4) 나중에 채점할 점수표**를 요구한다. 없으면 ‘의견’으로 분류해 의사결정에서 가중치를 낮춘다.  
+
+---
+
+## 현황
+
+AGI는 한 문장으로 통일돼 있지 않다. 예를 들어 OpenAI 헌장 쪽에서 널리 인용되는 정의는 “**대부분의 경제적으로 가치 있는 일에서 인간을 능가하는 고도의 자율적 시스템**” 같은 식으로 요약된다. 다만 이 문구를 여기서 1차로 확정 인용하기엔 추가 확인이 필요하다(현재 조사 결과는 2차 인용 기반이라고 명시돼 있다). 즉, 커뮤니티가 “AGI”라고 부르는 대상부터 이미 흔들린다.
+
+‘일반성’을 정량화하려는 시도도 있다. **Universal Intelligence**는 “임의의 기계에 대한 일반 지능의 일반 측정치를 수학적으로 정식화한다”는 목표를 내건다. 하지만 이 역시 “그럼 AGI 통과선은 몇 점?” 같은 단일 컷오프를 커뮤니티가 합의했다는 근거는 이번 조사 결과에서 확인되지 않는다. 결론적으로 “AGI가 언제 오냐”를 논하기 전에 “AGI를 무엇으로 판정하냐”부터 표준이 약하다.
+
+그 빈틈을 벤치마크가 메우려 하지만, 벤치마크도 한계가 있다. 스탠퍼드 CRFM의 HELM은 모델 순위를 **mean score(평균 점수)** 같은 상위 집계로 매기며, 집계 방식이 바뀌면 비교 결과가 달라질 수 있음을 문서에서 다룬다(2025-03-20 자료). MMLU도 “문항 오류” 문제가 지적됐고, 한 연구는 **6.49%의 문항에 오류가 있다**고 추정하며 재주석 데이터(MMLU-Redux)를 만들었다. BIG-bench는 **204개 과제**로 구성돼 있고, 특정 스케일에서 “breakthrough”처럼 보이는 현상이 사실은 **취약한 메트릭이나 다단계 구성** 때문일 수 있다고 말한다. 이 세 가지 숫자(2025-03-20, 6.49%, 204)는 ‘측정이 가능하다’와 ‘측정이 곧 결론이다’가 다를 수 있음을 상기시킨다.
+
+---
+
+## 분석
+
+연도 예측에서 핵심은 “권위”가 아니라 “형식”이다. 예측이 검증 가능하려면 최소한 다음이 한 세트로 붙어야 한다: **(a) 정의(무엇을 AGI로 부르나) (b) 관측 지표(어떤 평가로 보나) (c) 예측 형태(몇 년이라고 말하나, 확률은?) (d) 사후 채점(틀리면 어떻게 업데이트하나)**. 기술 예측 일반에서 권장되는 방법론도 이쪽을 강화한다. 확률 예측은 **캘리브레이션**으로 점검할 수 있고, **reliability diagram**은 예측 확률과 실제 빈도의 불일치를 드러낸다. **Brier score** 같은 스코어로 “확률을 어떻게 말했는지”를 수치로 남길 수도 있다(Triptych/캘리브레이션 메트릭 논문들이 이를 다룬다).
+
+AGI 연도 예측은 특히 어려운 지점이 있다. 첫째, **정답 레이블이 늦게 온다**. “도래”는 하루아침에 공인되지 않을 수 있다. 어떤 벤치마크를 통과해야 하는지 합의도 약하다(이번 조사 범위에서 단일 ‘공식 AGI 벤치마크/컷오프’는 확인되지 않음). 둘째, 측정값이 흔들릴 수 있다. HELM처럼 **집계 방식**이 바뀌면 “추세” 해석도 달라진다. MMLU처럼 **문항 오류**가 드러나면 과거 점수 자체가 재평가된다. BIG-bench가 지적하듯, **취약한 메트릭**은 “갑자기 뛰었다”는 서사를 만들 수 있고, 그 서사가 연도 예측에 근거처럼 쓰일 수 있다. 그러니 “누가 몇 년이라 말했다”보다 “어떤 지표로, 어떤 불확실성으로 말했는지”를 먼저 봐야 한다.
+
+---
+
+## 실전 적용
+
+연도 예측을 검증하려면, 주장자를 공격하기보다 **주장을 채점 가능한 포맷으로 바꾸게** 하면 된다. 쉬운 방식은 “연도”를 “기간-확률”로 바꾸는 것이다. 예: “특정 기간 내 AGI 도달 확률”을 말하게 한다. 동시에 그 AGI는 최소한 하나의 판정 조건(벤치마크 집계 점수든, 일반화/강건성 정의든)을 붙이게 한다. 그리고 시간이 흐르면 예측은 **캘리브레이션(신뢰도 다이어그램)**과 **Brier score**로 평가한다. 타임라인 예측이 반복되면, 미래 정보를 섞지 않는 **롤링-오리진(워크-포워드) 백테스트** 형태로 “그때 그 정보만으로도 이런 예측이 가능했는지”를 따져볼 수 있다.
+
+예: 어떤 커뮤니티 글이 “특정 시점에 도래”라고 말한다. 너는 “AGI를 뭐라고 정의하나, 통과 조건은 뭔가, 확률은 얼마인가, 틀리면 다음 예측을 어떻게 업데이트하나” 네 가지를 댓글로 요구한다. 답이 ‘느낌’과 ‘인용’만 남으면, 그 글은 정보라기보다 분위기에 가깝다.
+
+오늘 바로 할 일 체크리스트:
+- 연도 주장에는 “**정의 1문장 + 판정 기준 1개 + 확률(또는 구간)**”을 요구한다. 하나라도 없으면 의사결정에서 참고 비중을 낮춘다.  
+- 내가 소비하는 예측가/계정의 과거 발언을 모아, **확률 예측은 Brier score로**, 구간 예측은 **interval score류**로 채점할 수 있게 기록 형식을 통일한다.  
+- 벤치마크 점수 인용을 보면, 그 점수가 **집계 방식 변경(예: mean score 전환)**이나 **문항 오류(예: MMLU 오류 추정)** 영향을 받는지 먼저 확인한다.  
+
+---
+
+## FAQ
+
+**Q1. AGI 정의부터 합의가 안 되는데, 그럼 예측은 다 무의미한가요?**  
+A1. 무의미하진 않습니다. 다만 “AGI가 온다”가 아니라 “내가 말하는 AGI는 X이고, Y로 판정한다”처럼 **자기정의형 예측**으로 바꿔야 채점이 가능해집니다. 합의가 약할수록, 각 예측이 어떤 정의를 썼는지 라벨링하는 일이 더 중요합니다.
+
+**Q2. 벤치마크 평균 점수나 다과제 정확도면 ‘일반 지능’ 측정으로 충분한가요?**  
+A2. 충분하다고 단정하기 어렵습니다. HELM의 상위 집계(예: mean score)는 편리하지만 집계 방식에 민감할 수 있습니다. MMLU는 문항 오류가 보고됐습니다. BIG-bench는 취약한 메트릭이 “도약”처럼 보이는 해석을 만들 수 있다고 경고합니다. 벤치마크는 참고가 되지만 **단일 점수=AGI**로 연결하면 판단 근거가 약해질 수 있습니다.
+
+**Q3. “몇 년에 온다” 대신 어떤 예측 형태가 더 낫나요?**  
+A3. **확률 예측**(연도/기간별 도달 확률)이나 **예측 구간**이 낫습니다. 그러면 시간이 지난 뒤 reliability diagram과 Brier score 같은 도구로 “확률을 어떻게 말했는지”를 채점할 수 있습니다. 연도 하나로 못 박으면, 맞거나 틀린 뒤에 남는 정보가 적습니다.
+
+---
+
+## 결론
+
+AGI 연도 예측을 ‘맞추기 게임’에서 ‘검증 가능한 주장’으로 바꾸면, 논쟁의 초점도 바뀐다. 앞으로 볼 것은 “누가 말했다”가 아니라 **정의·지표·확률·채점**을 갖춘 예측이 얼마나 늘어나는지다.
+
+## 다음으로 읽기
+- [AI 자동화, 고용·에너지·이전재정의 충돌](/ko/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [AI 성능과 생산성 시차 줄이기](/ko/posts/bridging-gap-ai-performance-productivity)
+- [LLM 운영 안정성 평가 체크리스트](/ko/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+- [지도 입력 오인식, 전처리 리스크](/ko/posts/image-preprocessing-breaks-multimodal-geolocation-reliability)
+- [외부 LLM 리셀러 서비스의 마진과 리스크](/ko/posts/margins-risks-llm-reseller-layer-services)
+---
+
+## 참고 자료
+
+- [AI Risks and Trustworthiness - AIRC (NIST) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/3-sec-characteristics/)
+- [Stanford CRFM — HELM Capabilities (2025-03-20) - crfm.stanford.edu](https://crfm.stanford.edu/2025/03/20/helm-capabilities.html)
+- [Evaluating epidemic forecasts in an interval format - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC7880475/)
+- [Universal Intelligence: A Definition of Machine Intelligence - arxiv.org](https://arxiv.org/abs/0712.3329)
+- [Are We Done with MMLU? (arXiv:2406.04127) - arxiv.org](https://arxiv.org/abs/2406.04127)
+- [Beyond the Imitation Game: Quantifying and extrapolating the capabilities of language models (arXiv:2206.04615) - arxiv.org](https://arxiv.org/abs/2206.04615)
+- [Evaluating Probabilistic Classifiers: The Triptych - arxiv.org](https://arxiv.org/abs/2301.10803)
+- [Metrics of calibration for probabilistic predictions - arxiv.org](https://arxiv.org/abs/2205.09680)
+- [Bellman Conformal Inference: Calibrating Prediction Intervals For Time Series - arxiv.org](https://arxiv.org/abs/2402.05203)
