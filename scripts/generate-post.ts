@@ -233,7 +233,7 @@ function generateFrontmatter(
     .substring(0, isEnglish ? 120 : 80);
   const description = normalizeBrandTerms(aiDescription || fallbackDescription);
 
-  const verificationScore = post.verification?.summary?.overallScore || MIN_VERIFICATION_SCORE;
+  const verificationScore = Math.round((post.verification?.summary?.overallScore || MIN_VERIFICATION_SCORE) * 100) / 100;
 
   // Extract tags from content - AI models and category tags
   const contentLower = content.toLowerCase();

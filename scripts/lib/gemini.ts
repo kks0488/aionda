@@ -417,7 +417,7 @@ ${question}
       if (finalSources.length === 0) confidence = Math.min(confidence, 0.2);
       if (finalSources.length > 0 && !hasTrusted) confidence = Math.min(confidence, 0.75);
       if (!Number.isFinite(confidence)) confidence = 0;
-      confidence = Math.max(0, Math.min(1, confidence));
+      confidence = Math.round(Math.max(0, Math.min(1, confidence)) * 100) / 100;
 
       return {
         answer: String(parsed.answer || 'No answer found'),
@@ -537,7 +537,7 @@ ${contextSnippet}
 
       let confidence = typeof parsed.confidence === 'number' ? parsed.confidence : Number(parsed.confidence);
       if (!Number.isFinite(confidence)) confidence = 0.5;
-      confidence = Math.max(0, Math.min(1, confidence));
+      confidence = Math.round(Math.max(0, Math.min(1, confidence)) * 100) / 100;
       const meetsThreshold = confidence >= 0.9;
       const verified = Boolean(parsed.verified) && meetsThreshold;
       const correctedText =

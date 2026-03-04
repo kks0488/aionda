@@ -12,14 +12,15 @@ tags:
 author: AI온다
 sourceId: '978667'
 sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=978667'
-verificationScore: 0.7833333333333332
+verificationScore: 0.78
 alternateLocale: /en/posts/gpu-constraints-shift-model-strategy-toward-faster-iteration
 coverImage: /images/posts/gpu-constraints-shift-model-strategy-toward-faster-iteration.png
 ---
 
 ## 세 줄 요약
-- **무슨 변화/핵심이슈인가?** GPU/가속기 제약이 모델 전략을 ‘더 큰 학습’ 중심에서 ‘반복 속도 개선(메모리/시간 최적화)과 배치·검증’ 중심으로 재정렬하는 압력이 커지고 있다.  
-- **독자는 뭘 하면 되나?** 정밀도 → 체크포인팅 → ZeRO → 목표 재정의 순으로 If/Then 규칙을 만들고, 속도·메모리·품질 기준을 먼저 합의한 뒤 정책 경로(규제 샌드박스 등)까지 함께 점검한다.
+- **무슨 변화/핵심이슈인가?** GPU/가속기 제약이 모델 전략을 ‘더 큰 학습’ 중심에서 ‘반복 속도 개선(메모리/시간 최적화)과 배치·검증’ 중심으로 재정렬하는 압력이 커지고 있다.
+- **왜 중요한가?** 혼합정밀도, 체크포인팅(레이어당 약 30% 계산 증가), ZeRO(18GB->2.25GB) 같은 트레이드오프는 성능뿐 아니라 운영 복잡성까지 바꾸므로 팀 목표와 연결해 선택해야 한다.
+- **독자는 뭘 하면 되나?** 정밀도 -> 체크포인팅 -> ZeRO -> 목표 재정의 순으로 If/Then 규칙을 만들고, 속도·메모리·품질 기준을 먼저 합의한 뒤 정책 경로(규제 샌드박스 등)까지 함께 점검한다.
 
 GPU가 부족한 상황에서는 실험 한 번을 더 돌릴지, 체크포인팅으로 메모리를 아낄지, 정밀도를 낮춰 시간을 줄일지가 먼저 이슈가 된다. 의사결정이 기술 선택을 넘어 자원 배분 문제로 바뀐다. 핵심은 **GPU/가속기 제약이 모델 전략을 “더 큰 학습”에서 “더 빠른 반복과 더 쉬운 배치”로 이동시키는 경향**이 있다는 점이다. 동시에 EU 문서는 컴퓨트 인프라와 규제 샌드박스를 전면에 두며 ‘적용·검증’ 쪽의 요구를 강화한다.
 
