@@ -1,0 +1,85 @@
+---
+title: LLM 운영 안정성 평가 체크리스트
+slug: evaluating-llm-operational-reliability-beyond-benchmark-scores
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: ko
+description: 'LLM 도입·전환 시 장애 공지, RCA, 도구 호출 통제, 재시도·SLO로 운영 안정성을 평가하는 법.'
+tags:
+  - llm
+  - explainer
+  - postmortem
+author: AI온다
+sourceId: '1016965'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1016965'
+verificationScore: 0.88
+alternateLocale: /en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores
+coverImage: >-
+  /images/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores.png
+---
+
+장면은 이렇게 시작된다. 업무 워크플로에 LLM을 붙여놨는데, 갑자기 응답이 실패한다. 도구가 엉뚱하게 호출되면서 자동화가 멈추기도 한다. 사용자는 “모델이 똑똑한가”보다 “오늘도 붙어 있나, 예측 가능하게 움직이나”를 먼저 묻는다. 이 글은 벤치마크 성능을 넘어 **LLM 운영 안정성(장애·버그·응답 일관성·도구 호출 통제)**을 어떻게 평가하고, 도입·전환 때 무엇을 점검해야 하는지 정리한다.
+
+## 세 줄 요약
+- **핵심 이슈**: LLM 선택 기준이 성능 비교만으로 끝나지 않는다. 장애 공지/포스트모템 품질, 도구 호출 조건, 레이트리밋·재시도 같은 “운영 품질”까지 포함된다.  
+- **왜 중요한가**: 운영에서는 짧은 장애(예: ChatGPT 대화 오류가 약 55분 발생)나 특정 기능 버그(예: 권한 업데이트로 기능 누락)처럼 작아 보이는 사건도 생산성을 깎는다. 도구 사용이 엮이면 안전사고(의도치 않은 도구 실행)로 이어질 수 있다.  
+- **독자가 할 일**: 후보 서비스의 상태 페이지에서 RCA(원인·영향·재발방지) 공개 수준을 비교한다. 도구 호출은 `tool_choice=none` 같은 제한부터 건다. 429/5xx 재시도(지수 백오프)와 가용성 목표(SLO)를 제품 요구사항으로 문서화한다.
+
+## 현황
+운영 안정성은 “장애가 있었나”만으로 평가하기 어렵다. 더 중요한 건 **장애를 어떻게 기록하는지**, **원인과 영향 범위를 어디까지 공개하는지**, **재발 방지를 무엇으로 적는지**다. 예를 들어 OpenAI는 상태 페이지 incident에 “Write-up”을 두고 Summary/Impact/Root Cause 같은 구조로 설명하는 사례가 확인된다. 실제로 ChatGPT에서 **일부 사용자에게 대화 오류율이 증가한 사건이 약 55분(오후 7:43~8:38 PDT) 지속**됐고, Write-up에 영향과 원인이 정리돼 있다.
+
+또 다른 축은 “상태 페이지 바깥”의 포스트모템 공개 여부다. Anthropic은 엔지니어링 블로그에 **여러 이슈에 대한 기술 포스트모템**을 공개한 사례가 있다. 그 글에는 **요청 영향 비율(예: 약 0.8%)**과 **특정 시간대 피크 영향(예: 16%)**처럼 운영 판단에 쓰일 수 있는 수치가 포함돼 있다. 이런 문서는 “복구했다”는 사실만 남기지 않는다. 장애의 크기와 재발 가능성을 가늠할 단서를 남긴다.
+
+클라우드 쪽은 공개 범위가 정책 문서 형태로 제시되는 경우가 있다. AWS는 장애 공지를 AWS Health Dashboard(공개 이벤트)에서 제공한다. 또한 **광범위·중대한 고객 영향**이 있었던 경우 종료 후 **Post-Event Summary(PES)**로 영향 범위·기여 요인·조치를 공개한다고 명시한다. 반면 Google Cloud Status는(이번 조사 범위 내에서는) “root cause를 식별했고 mitigations 적용” 같은 업데이트는 확인된다. 다만 OpenAI식 Write-up이나 AWS PES처럼 **정형 RCA 문서가 일관되게 제공되는지**는 추가 확인이 필요하다.
+
+## 분석
+운영 안정성 평가가 필요한 이유는, LLM이 “답변을 잘하는 엔진”을 넘어 “업무 시스템의 일부”로 들어오기 때문이다. 장애가 나면 사람은 우회한다. 자동화는 멈춘다.
+
+더 위험한 지점은 **도구 사용(tool use)**이다. 모델이 외부 시스템(데이터베이스, 티켓, 파일, 커넥터)을 건드리는 순간부터 실패 모드는 “틀린 답”이 아니라 “잘못된 동작”이 된다. OpenAI API 문서 기준으로는 요청에 `tools`를 제공하고 `tool_choice`를 `auto` 또는 `required`로 두면 모델이 도구 호출을 트리거할 수 있다. `required`면 호출이 필수다. 운영 품질 평가는 “정답률”보다 **실패가 번지는 범위(radius)**를 다루는 문제로 바뀐다.
+
+한계도 있다. 첫째, 공개 포스트모템이 많다고 해서 장애가 적다고 단정할 수 없다. 공개를 잘하는 문화의 결과일 수도 있고, 이슈가 잦아 기록이 쌓인 결과일 수도 있다. 둘째, 공식 문서에서 **운영 지표(권장 SLI/SLO 세트)**를 한 번에 제시하지 않는 경우가 있다(이번 조사 범위에서는 OpenAI가 “권장 지표 세트”를 명시했다는 근거를 확인하지 못했다). 그래서 사용자는 “상태 페이지/포스트모템 품질”과 “자체 계측(로그·리트라이·세이프가드)”을 함께 보고, **자기 조직 기준으로 운영 요구사항을 다시 세워야 한다**.
+
+## 실전 적용
+도입/전환 체크리스트는 “모델 비교표”가 아니다. “운영 설계서”에 가깝다. 먼저 상태 페이지를 보고 incident마다 Impact(영향), Root Cause(원인), Mitigation/Prevention(재발방지) 항목이 일관되게 제공되는지 확인한다.
+
+다음으로 도구 호출은 보수적으로 시작한다. OpenAI API라면 `tool_choice`를 `none`으로 두면 모델이 도구를 호출하지 않고 메시지만 생성한다. 이후 검증된 작업에 한해 `auto`로 풀거나, `allowed_tools`로 허용 도구를 좁혀 “예상 밖 호출”의 표면적을 줄인다. ChatGPT 제품을 쓰면 Settings의 Apps & Connectors(또는 Connectors)에서 커넥터를 끄거나, 일부 커넥터의 자동 사용을 끌 수 있다. 이런 설정도 운영 통제 수단이 된다.
+
+예: 고객 문의를 분류해 내부 시스템에 기록하는 자동화를 붙인다. 장애가 나면 분류가 누락된다. 도구 호출이 흔들리면 잘못된 항목에 기록될 수 있다. 이때 필요한 건 “더 똑똑한 모델”이 아니다. 실패 시 안전하게 멈추는 설계와 재처리 큐다.
+
+오늘 바로 할 일 체크리스트:
+- 상태 페이지에서 최근 incident를 골라 Write-up/포스트모템에 **Impact·Root Cause·재발방지**가 있는지 확인한다. 영향이 **시간/범위로 수치화**돼 있는지도 본다.  
+- 도구 사용 기능이 있다면 기본값을 **도구 미호출(`tool_choice=none`)**로 둔다. 꼭 필요한 업무만 `allowed_tools`로 화이트리스트한다.  
+- 429와 500/503을 나눠 재시도 정책을 만든다. 429에는 **지수 백오프**를 기본으로 적용한다. 모니터링(오류율·지연·성공률)도 붙인다.
+
+## FAQ
+**Q1. 상태 페이지에서 뭘 봐야 “운영이 성숙하다”고 판단할 수 있나?**  
+A. incident 공지 자체보다 **사후 문서의 구조**를 본다. OpenAI의 일부 incident는 Write-up에 Summary/Impact/Root Cause 같은 항목을 둔다. Anthropic은 블로그 포스트모템에서 영향 비율과 타임라인을 공개한 사례가 있다. 같은 포맷으로 원인·영향·재발방지를 반복해서 쓰는지 확인한다.
+
+**Q2. “의도치 않은 명령 실행” 같은 리스크는 어디서 생기나?**  
+A. 모델이 외부 도구를 호출할 수 있을 때 생긴다. OpenAI API 문서 기준으로 `tools`를 제공하고 `tool_choice`가 `auto`/`required`면 도구 호출이 가능해진다(또는 필수다). 운영 초기에는 `tool_choice=none`으로 잠근다. 허용 도구도 좁혀서 시작한다.
+
+**Q3. SLA나 가용성은 어디까지 믿어도 되나?**  
+A. “어떤 플랜/계층에 어떤 보장이 붙는지”를 문서로 확인해야 한다. 이번 조사 범위에서는 OpenAI API의 Enterprise용 Scale Tier에 **99.9% uptime SLA**가 언급된 사실만 확인된다. 그 외 플랜의 SLA는 추가 확인이 필요하다. 도입 계약/요구사항에 가용성·지원 범위를 명시한다.
+
+## 결론
+LLM 운영 안정성 평가는 “정답률”만 보는 일이 아니다. **장애의 빈도와 공개 방식, 도구 호출 통제, 재시도·레이트리밋 대응**을 함께 본다. 다음 단계는 단순 비교가 아니다. 상태 페이지의 RCA 품질을 벤더 선정 체크리스트에 넣는다. 도구 호출을 보수적으로 잠근다. 429 지수 백오프 같은 운영 기본기를 코드로 고정한다.
+
+## 다음으로 읽기
+- [AI 자동화, 고용·에너지·이전재정의 충돌](/ko/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [지도 입력 오인식, 전처리 리스크](/ko/posts/image-preprocessing-breaks-multimodal-geolocation-reliability)
+- [외부 LLM 리셀러 서비스의 마진과 리스크](/ko/posts/margins-risks-llm-reseller-layer-services)
+- [AI 격차, 시간축 지표로 측정하기](/ko/posts/measuring-ai-adoption-gaps-with-time-based-metrics)
+- [미국 혁신 서사, 발명과 확산의 분리](/ko/posts/separating-invention-from-diffusion-in-us-innovation-narratives)
+---
+
+## 참고 자료
+
+- [Elevated Error Rate on ChatGPT - OpenAI Status (Write-up) - status.openai.com](https://status.openai.com/incidents/01K08JJK77JF5D2NN636SDY9WD/write-up)
+- [RBAC 관련 기능 누락/비활성화/예상치 못한 활성화 - OpenAI Status (Write-up) - status.openai.com](https://status.openai.com/incidents/01K6KAAN7WXN69E8JET8PYB0D5/write-up)
+- [A postmortem of three recent issues | Anthropic - anthropic.com](https://www.anthropic.com/engineering/a-postmortem-of-three-recent-issues)
+- [Responses | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/responses/input-items)
+- [Chat Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/chat/create-chat-completion)
+- [Connectors in ChatGPT | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11487775-connectors-in-chatgpt.webp)
+- [Admin Controls, Security, and Compliance in apps & connectors (Enterprise, Edu, and Business) | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11509118-admin-controls-security-and-compliance-in-connectors-enterprise-edu-and-team//)
+- [Scale Tier for API Customers | OpenAI - openai.com](https://openai.com/api-scale-tier/)
+- [How can I solve 429: 'Too Many Requests' errors? | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/5955604-how-can-i-solv)

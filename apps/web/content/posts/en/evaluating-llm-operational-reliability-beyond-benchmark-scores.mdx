@@ -1,0 +1,168 @@
+---
+title: Evaluating LLM Operational Reliability Beyond Benchmark Scores
+slug: evaluating-llm-operational-reliability-beyond-benchmark-scores
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: en
+description: >-
+  How to assess LLM operational reliability for production: incident write-ups,
+  RCA transparency, tool-use controls, retries, and SLOs.
+tags:
+  - llm
+  - explainer
+  - postmortem
+author: AI온다
+sourceId: '1016965'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1016965'
+verificationScore: 0.88
+alternateLocale: /ko/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores
+coverImage: >-
+  /images/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores.png
+---
+
+In a production workflow, an LLM integration can fail mid-stream.  
+Responses can error out.  
+Tools can fire in unexpected ways.  
+Automation can stop.  
+Users then ask about uptime and predictability.  
+This article summarizes how to evaluate **LLM operational reliability** beyond benchmarks.  
+It focuses on outages, bugs, response consistency, and tool-invocation control.  
+It also suggests what to check during adoption and migration.
+
+## TL;DR
+- This explains how to evaluate LLM operational reliability beyond model performance.  
+- It matters because outages and tool misfires can disrupt workflows and increase safety risk.  
+- Review status write-ups, lock down tool invocation, and document retries and availability targets.  
+
+Example: A support team routes requests through an assistant and a ticketing tool. The assistant sometimes fails. The team pauses automation and switches to manual triage until confidence returns.
+
+## Current state
+Operational reliability is difficult to judge by only asking, “Were there outages?”.  
+The record quality can matter more than the count.  
+Look for how incidents are recorded.  
+Check how root cause and impact scope are disclosed.  
+Check what is written about recurrence prevention.
+
+OpenAI’s status page sometimes includes a “Write-up.”  
+Some Write-ups use sections like Summary, Impact, and Root Cause.  
+One ChatGPT incident increased conversation error rates for some users.  
+It lasted about 55 minutes.  
+The window was 7:43–8:38 PM PDT.  
+The Write-up summarizes impact and cause.
+
+Another axis is disclosure outside a status page.  
+Anthropic has published technical postmortems on its engineering blog.  
+Those posts include operational numbers.  
+One example cites a request impact rate of about 0.8%.  
+Such numbers can help with operational decisions.  
+They can also help estimate outage magnitude.
+
+Cloud providers may express disclosure scope through policy documents.  
+AWS publishes outage announcements via the AWS Health Dashboard public events.  
+AWS also describes when it will publish a Post-Event Summary, or PES.  
+The trigger is described as “widespread and significant customer impact.”  
+AWS says a PES can include impact scope and contributing factors.  
+It can also include actions after the event ends.
+
+Google Cloud Status can show updates like “identified the root cause.”  
+It can also say mitigations were applied.  
+This review did not confirm a standardized RCA document each time.  
+That would need separate verification.  
+Examples include OpenAI-style Write-ups or AWS PES.
+
+## Analysis
+Operational reliability evaluation matters when an LLM becomes part of a business system.  
+An outage can push teams to route around the system.  
+Automation can stop and create manual work.
+
+Tool use can increase risk.  
+The model can touch external systems like databases or ticketing tools.  
+Then failure can become an incorrect action.  
+It is no longer only a wrong answer.
+
+OpenAI API documentation describes tool invocation controls.  
+If you provide `tools` and set `tool_choice` to `auto`, tools can be invoked.  
+If you set `tool_choice` to `required`, invocation becomes mandatory.  
+This shifts evaluation toward how far failures can propagate.
+
+There are limitations to what disclosure implies.  
+Many public postmortems do not imply few outages.  
+They can reflect stronger disclosure culture.  
+They can also reflect frequent issues with more documentation.
+
+Documentation may also omit recommended operational metrics.  
+Within the scope of this review, no confirmed evidence showed a recommended SLI or SLO set.  
+Users can still evaluate status write-up quality.  
+Users can also rely on their own instrumentation.  
+That includes logs, retries, and safeguards.  
+Operational requirements should align with internal standards.
+
+## Practical application
+An adoption or migration checklist differs from a model comparison table.  
+It can resemble an operations design document.  
+Start with the status page.  
+Check whether incidents include Impact, Root Cause, and Mitigation or Prevention.  
+Check whether these items appear consistently.
+
+Next, start tool invocation conservatively.  
+With the OpenAI API, `tool_choice=none` generates messages without invoking tools.  
+For validated tasks, you can relax this to `auto`.  
+You can also narrow allowed tools with `allowed_tools`.  
+That can reduce unexpected invocation surface area.
+
+In ChatGPT, connectors can be turned off in Settings under Apps & Connectors.  
+Some connectors can also have automatic use disabled.  
+These settings can act as operational controls.
+
+**Checklist for Today:**
+- Review one recent incident write-up and note Impact, Root Cause, and recurrence prevention, plus time scope.  
+- Default tool use to `tool_choice=none`, and allow tools only for validated tasks via `allowed_tools`.  
+- Separate retries for 429 versus 5xx, use exponential backoff for 429, and monitor error rate and latency.  
+
+## FAQ
+**Q1. What should I look for on a status page to judge that “operations are mature”?**  
+A. Focus on the post-incident document structure.  
+Some OpenAI incidents use Write-ups with Summary, Impact, and Root Cause.  
+Anthropic postmortems sometimes include impact rate and timelines.  
+Check whether cause, impact, and recurrence prevention appear consistently.
+
+**Q2. Where do risks like “unintended command execution” come from?**  
+A. They come from allowing tool invocation.  
+OpenAI documentation describes `tools` plus `tool_choice=auto` enabling invocation.  
+With `tool_choice=required`, invocation becomes mandatory.  
+Early in operations, consider `tool_choice=none`.  
+Also consider narrowing allowed tools.
+
+**Q3. How much should I trust SLAs or availability?**  
+A. You should confirm what plan or tier provides what commitments.  
+This review confirmed mention of a 99.9% uptime SLA for OpenAI API Enterprise Scale Tier.  
+Other plan SLAs were not confirmed here.  
+Specify availability and support scope in requirements or contracts.
+
+## Conclusion
+Evaluating LLM operational reliability goes beyond accuracy.  
+Consider outage disclosure practices and tool-invocation control.  
+Also consider rate limiting and retry behavior.  
+Add status page RCA quality to vendor selection criteria.  
+Start with conservative tool controls.  
+Implement basics like exponential backoff for 429 in code.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [When Image Preprocessing Breaks Multimodal Geolocation Reliability](/en/posts/image-preprocessing-breaks-multimodal-geolocation-reliability)
+- [Margins And Risks In LLM Reseller Layer Services](/en/posts/margins-risks-llm-reseller-layer-services)
+- [Measuring AI Adoption Gaps With Time-Based Metrics](/en/posts/measuring-ai-adoption-gaps-with-time-based-metrics)
+- [Separating Invention From Diffusion In US Innovation Narratives](/en/posts/separating-invention-from-diffusion-in-us-innovation-narratives)
+---
+
+## References
+
+- [Elevated Error Rate on ChatGPT - OpenAI Status (Write-up) - status.openai.com](https://status.openai.com/incidents/01K08JJK77JF5D2NN636SDY9WD/write-up)
+- [RBAC 관련 기능 누락/비활성화/예상치 못한 활성화 - OpenAI Status (Write-up) - status.openai.com](https://status.openai.com/incidents/01K6KAAN7WXN69E8JET8PYB0D5/write-up)
+- [A postmortem of three recent issues | Anthropic - anthropic.com](https://www.anthropic.com/engineering/a-postmortem-of-three-recent-issues)
+- [Responses | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/responses/input-items)
+- [Chat Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/chat/create-chat-completion)
+- [Connectors in ChatGPT | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11487775-connectors-in-chatgpt.webp)
+- [Admin Controls, Security, and Compliance in apps & connectors (Enterprise, Edu, and Business) | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11509118-admin-controls-security-and-compliance-in-connectors-enterprise-edu-and-team//)
+- [Scale Tier for API Customers | OpenAI - openai.com](https://openai.com/api-scale-tier/)
+- [How can I solve 429: 'Too Many Requests' errors? | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/5955604-how-can-i-solv)
