@@ -1,0 +1,82 @@
+---
+title: 전장 작전계획 AI와 통제의 설계
+slug: battlefield-planning-ai-control-audit-accountability
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: ko
+description: 전장 작전계획 AI 도입은 성능보다 HITL·TEVV·감사·책임 설계가 핵심이다.
+tags:
+  - llm
+  - deep-dive
+  - governance
+author: AI온다
+sourceId: wired-ai-b53a59a1ea78937a
+sourceUrl: 'https://www.wired.com/story/ai-model-military-use-smack-technologies/'
+verificationScore: 0.75
+alternateLocale: /en/posts/battlefield-planning-ai-control-audit-accountability
+coverImage: /images/posts/battlefield-planning-ai-control-audit-accountability.png
+---
+
+전장 한복판에서 참모가 지도 위에 표식을 옮기고, 무전이 엇갈리는 사이 “다음 수를 계산해주는 AI”가 책상 위에 앉는다. WIRED에 따르면 Smack Technologies는 전장 작전을 “계획하고 실행”하는 데 쓰는 모델을 만들고 있고, 이번 주 **3,200만 달러**(WIRED 표기)의 펀딩 라운드를 알렸다. 동시에 Anthropic 같은 모델 제공사는 군사 이용 제한을 두고 논쟁한다. 여기서 충돌하는 건 윤리 구호만이 아니다. **계획·추론·불확실성**을 다루는 시스템을 누가 어떤 방식으로 통제할지, 그리고 배포·감사·책임을 어떻게 설계할지가 함께 걸린다.
+
+## 세 줄 요약
+- **핵심 이슈**: 전장 “작전계획” 같은 의사결정 영역으로 AI가 들어오면, 모델 성능보다 **HITL(인간 개입), 검증(TEVV), 감사 가능성**이 먼저 설계 이슈가 된다.  
+- **왜 중요하나**: 제공사 정책(군사 이용 제한)은 **클라우드 API 경로**에선 집행 수단이 생기지만, 자체 학습·파인튜닝·외주 파이프라인에선 강제력이 약해질 수 있다. 이때 **거버넌스 공백**이 생길 수 있다.  
+- **독자가 할 일**: “도입/미도입”이 아니라 **If/Then 규칙**으로 결정하라. If 무력 사용과 인접하면 DoDD 3000.09의 “적절한 수준의 인간 판단”을 시스템·교리·훈련·HMI로 설명 가능한 형태로 두고, Then 운영 모니터링·레드팀·감사로그를 계약 조건으로 고정하라.
+
+## 현황
+WIRED에 따르면 Smack Technologies는 전장 작전을 **계획하고 실행**하는 모델을 개발한다. 기사에는 Smack이 “최적의 임무 계획(optimal mission plans)”을 찾도록 모델을 학습시킨다는 취지의 설명이 있고, 이번 주 **3,200만 달러** 규모의 펀딩 라운드를 발표했다고 적혀 있다. 다만 이 요약/발췌 범위만으로는 학습 데이터, 모델 형태(LLM, 정책 모델, 시뮬레이션 기반 탐색 등), 실제 배치 수준을 확정하기 어렵다. 추가 확인이 필요하다.
+
+한편 “군사 이용 제한”은 선언만으로 구현되지 않는다. 접근 통제와 감사가 함께 돌아가야 한다. Anthropic의 투명성 페이지에는 엔터프라이즈 보안 기능으로 **SSO, SCIM, audit logs, role-based permissions**를 제공한다고 적혀 있다. OpenAI도 엔터프라이즈용 **Compliance API**에서 “보안·컴플라이언스 목적의 로깅”을 명시하고, “감사/보안 로그 삭제 기능을 제공하지 않는다”는 취지의 문구를 둔다. 또 OpenAI의 사용 정책은 정책 위반을 모니터링·집행하며, 위반·우회 시 접근을 잃을 수 있다고 밝히고, 무기 개발·조달·사용 관련 금지 범주를 명시한다.
+
+핵심은 “어디에서 강제되는가”다. OpenAI가 국방부와의 합의 관련 글에서 말하는 배포 아키텍처는 **cloud-only deployment**와 제공사가 운영하는 **safety stack**, 그리고 분류기를 “독립적으로 검증하고 업데이트”할 수 있는 구조다. 즉 제공사가 통제하는 호스티드 경로에서는 정책 집행·감사가 상대적으로 강하게 작동할 여지가 있다. 반대로 모델이 고객 인프라로 넘어가거나(온프렘/자체 호스팅), 제3자 파이프라인·리셀러·외주로 경로가 복잡해지면 같은 수준의 집행력을 유지할 수 있는지는 이번 조사 결과만으로 단정하기 어렵다.
+
+## 분석
+의사결정 지원 AI가 전장 “계획”으로 들어오면, 챗봇 평가 지표만으로는 부족해진다. 요구는 크게 3가지로 정리된다. 첫째, 불완전한 정보에서의 추론과 불확실성 처리다. 둘째, 계획의 “정답”이 하나가 아니라는 점이다. 상충하는 목표(속도, 은폐, 민간 피해 위험, 보급 제약 등) 사이의 트레이드오프를 다뤄야 한다. 셋째, 책임소재를 남기는 운영 설계다. DoD Directive **3000.09(2023년 1월 25일)**은 자율·반자율 무기 체계에서 지휘관·운용자가 무력 사용에 대해 **“적절한 수준의 인간 판단”**을 행사할 수 있도록 설계·개발해야 한다고 적는다. 작전계획 AI가 곧바로 “무기 체계”는 아닐 수 있다. 다만 무력 사용과 인접한 결정을 지원한다면, 유사한 수준의 HITL 논리와 검증 요구를 피하기는 어렵다.
+
+실패 모드는 더 구체적으로 다뤄야 한다. 환각은 “없는 정보를 있는 것처럼 말하는” 문제다. 과신은 “그럴듯한 계획”을 정답처럼 취급하게 만드는 문제다. 적대적 기만은 입력 데이터·센서·보고가 오염되거나, 모델이 공격자가 의도한 결론으로 유도되는 상황을 포함한다. 이 경우 계획 자체가 함정이 될 수 있다. NIST AI RMF는 거버넌스와 인간 감독 프로세스(역할·책임, 감독 방식의 정의)를 요구하고, AI RMF Playbook은 보안 테스트와 **red-teaming**, 운영 중 모니터링, 이상 징후/사고 대응, 복구·제거(디커미셔닝 포함) 같은 관리 옵션을 적는다. 전장 계획 AI에서는 이를 문서로만 두기 어렵다. 훈련·TTP·HMI(활성/비활성 절차 포함)로 이어져야 한다.
+
+동시에 제공사 정책은 기술 스택의 경계에서 약해질 수 있다. 제공사가 운영하는 **클라우드 전용** 경로에선 분류기·감사로그·계정 제재로 “레드라인”을 집행할 수 있다. 하지만 조직이 자체 모델을 학습하거나, 오픈 웨이트 모델을 가져오거나, 외주 업체가 중간에 끼면 통제는 달라진다. 이번 조사 범위에서는 “우회/외주/파인튜닝 생태계에서 실효성이 어느 정도인지”를 정량적으로 확인할 근거가 없다. 이 공백 때문에 논의의 무게중심이 윤리에서 거버넌스로 옮겨간다.
+
+## 실전 적용
+의사결정 메모 관점에서 결론은 단순해진다. “AI를 쓸까 말까”가 아니라 “어떤 통제 조건을 충족할 때만 쓰는가”로 바꿔야 한다.
+
+예: 어떤 조직이 제한된 정보로 임무 선택지를 비교해야 한다고 하자. AI는 선택지별 리스크를 정리하고 보급·시간 제약을 반영한 대안을 만든다. 최종 승인은 사람이 한다. AI는 승인 전 단계에서 근거·가정·불확실성을 표준 포맷으로 제출하게 한다. 운영 중에는 입력 오염 징후를 감지하면 자동으로 ‘권고 중지’ 상태로 전환한다.
+
+오늘 바로 할 일 체크리스트 3개  
+- 사용 시나리오를 “무력 사용과의 거리”로 분류하고, 가까울수록 **HITL 개입 지점·승인권자·중지 조건**을 문서로 고정한다.  
+- TEVV 계획(시험·평가·검증·확인)과 운영 모니터링(이상 징후, 사고 대응, 레드팀)을 **계약·조달 요건**으로 넣고, 감사로그 접근권을 확보한다.  
+- 배포 경로를 결정한다. **클라우드 호스티드로 정책 집행력을 얻는 선택**과, 고객 인프라 배치로 **통제권을 얻는 선택**(대신 감사·안전 책임이 커질 수 있음)을 트레이드오프로 표에 정리한다.
+
+## FAQ
+**Q1. 군사용 의사결정 지원에서 HITL(인간 개입)의 최소 요건은 뭔가?**  
+A1. DoDD 3000.09는 지휘관·운용자가 무력 사용에 대해 “적절한 수준의 인간 판단”을 행사할 수 있도록 시스템을 설계·개발하라고 요구한다. 조사 결과 기준으로 최소 요건을 구성하는 축은 3개로 정리된다: (1) 인간 판단이 실제로 작동하도록 설계·교리·훈련·TTP·HMI(활성/비활성 절차 포함)를 갖출 것, (2) 현실적 조건에서 V&V/시험평가와 사이버보안·안전 계획을 수행할 것, (3) 법적 검토 및 상급 승인/검증 절차를 적용할 것. LLM 기반 “작전계획”에 맞춘 세부 체크리스트는 이번 자료만으로 확정하기 어렵다. 추가 확인이 필요하다.
+
+**Q2. 환각·과신·적대적 기만은 어떻게 완화하나?**  
+A2. NIST AI RMF/Playbook 흐름대로 보면, 단일 조치로 끝나지 않는다. 운영 루프를 만드는 문제다. 인간 감독 프로세스를 역할·책임까지 문서화한다. TEVV와 운영 중 모니터링을 붙인다. 이상 징후·사고 대응·정기 레드팀(적대적/스트레스 테스트)을 통해 재보정·영향완화·제거 옵션까지 준비한다. 전장 도메인에서는 입력 오염과 기만을 전제로 한 테스트가 우선순위가 될 수 있다.
+
+**Q3. 민간 제공사의 ‘군사 이용 제한’은 기술적으로 어디까지 집행되나?**  
+A3. 조사 결과로 확인되는 건 “호스티드 서비스에서의 집행 수단”이다. Anthropic은 SSO·SCIM·감사로그·역할 기반 권한 같은 엔터프라이즈 통제를 언급한다. OpenAI는 모든 인증 요청의 로깅, 정책 모니터링·집행, 클라우드 전용 배포와 제공사 운영 safety stack/분류기 업데이트를 언급한다. 다만 우회·외주·자체 학습·파인튜닝 등 서비스 경계 밖에서 동일한 강제력이 유지되는지는 이번 발췌 범위만으로 확정할 수 없다.
+
+## 결론
+Smack Technologies 같은 “작전계획 AI”는 LLM이 콘텐츠 생성에서 의사결정 지원으로 쓰이는 사례로 읽힐 수 있다(WIRED 기준). 다음 쟁점은 성능 비교만이 아니다. **HITL·TEVV·감사·배포 경로**를 어떤 조건부 규칙으로 고정할지가 더 앞선다. 제공사 정책과 현장 도입 사이의 간극은 커질 수 있다. 의사결정자는 기술 선택에 앞서 통제 설계를 계약과 운영 절차로 고정해야 한다.
+
+## 다음으로 읽기
+- [AI 자동화, 고용·에너지·이전재정의 충돌](/ko/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [AI 성능과 생산성 시차 줄이기](/ko/posts/bridging-gap-ai-performance-productivity)
+- [대화형 AI의 친밀감 설계와 신뢰](/ko/posts/conversational-ai-design-intimacy-trust)
+- [LLM 운영 안정성 평가 체크리스트](/ko/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+- [LLM 자아 일관성 평가 설계](/ko/posts/evaluating-llm-self-consistency-beyond-humanlike-mimicry)
+---
+
+## 참고 자료
+
+- [DoD Directive 3000.09, "Autonomy in Weapon Systems," January 25, 2023 - media.defense.gov](https://media.defense.gov/2023/Jan/25/2003149928/-1/-1/0/DOW-DIRECTIVE-3000.09-AUTONOMY-IN-WEAPON-SYSTEMS.PDF)
+- [NIST AI RMF Core (AIRC) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [NIST AI RMF Playbook (PDF) - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+- [NIST AI RMF Playbook - Manage (AIRC) - airc.nist.gov](https://airc.nist.gov/AI_RMF_Knowledge_Base/Playbook/Manage)
+- [Anthropic’s Transparency Hub — Security & Privacy (Voluntary Commitments) - anthropic.com](https://www.anthropic.com/transparency/voluntary-commitments/security%26privacy)
+- [Compliance API for Enterprise Customers | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9261474-compliance-api-for-enterprise-customers/)
+- [Usage policies | OpenAI - openai.com](https://openai.com/policies/usage-policies/)
+- [Our agreement with the Department of War | OpenAI - openai.com](https://openai.com/index/our-agreement-with-the-department-of-war/)
+- [wired.com - wired.com](https://www.wired.com/story/ai-model-military-use-smack-technologies/)

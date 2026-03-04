@@ -1,0 +1,156 @@
+---
+title: 'Battlefield Planning AI Raises Control, Audit, and Accountability Questions'
+slug: battlefield-planning-ai-control-audit-accountability
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: en
+description: >-
+  As AI enters battlefield planning, HITL, TEVV validation, auditability, and
+  accountability design matter more than raw performance.
+tags:
+  - llm
+  - deep-dive
+  - governance
+author: AI온다
+sourceId: wired-ai-b53a59a1ea78937a
+sourceUrl: 'https://www.wired.com/story/ai-model-military-use-smack-technologies/'
+verificationScore: 0.75
+alternateLocale: /ko/posts/battlefield-planning-ai-control-audit-accountability
+coverImage: /images/posts/battlefield-planning-ai-control-audit-accountability.png
+---
+
+In one WIRED report, a staff workflow includes an “AI that calculates the next move” on a desk.  
+WIRED reports that Smack Technologies is building a model for battlefield operations.  
+The report describes “plan and execute” use cases.  
+WIRED also reports a funding round of **$32 million**.  
+Some model providers debate restrictions on military use.  
+The collision involves control over planning, reasoning, and uncertainty.  
+It also involves deployment, auditing, and accountability design.
+
+## TL;DR
+- This describes a reported battlefield-planning model and related enforcement and audit questions.  
+- It matters because policy enforcement can vary by deployment path and vendor control.  
+- Next, draft If/Then controls and bake HITL, TEVV, monitoring, and audit terms into procurement.  
+
+Example: A planning cell faces uncertain reports and conflicting priorities. The system proposes options and flags assumptions. A human reviews tradeoffs and signs off. The workflow pauses recommendations when inputs appear manipulated.
+
+## Current situation
+WIRED reports that Smack Technologies is developing a model to **plan and execute** battlefield operations.  
+The article describes training for “optimal mission plans.”  
+WIRED reports a funding round of **$32 million**.  
+This excerpt does not clarify training data or model type.  
+It also does not clarify the deployment level.  
+Further confirmation would help.
+
+“Military-use restrictions” depend on implementation details.  
+Access control and auditing often operate together.  
+Anthropic’s transparency page describes enterprise features.  
+It lists **SSO, SCIM, audit logs, role-based permissions**.  
+OpenAI describes “logging for security and compliance purposes” in its enterprise **Compliance API**.  
+OpenAI also describes that it “does not provide the ability to delete audit/security logs.”  
+OpenAI’s usage policies describe monitoring and enforcement.  
+They also describe access loss for violations or circumvention.  
+They list prohibited categories related to weapon development, procurement, and use.
+
+The key question is where enforcement is applied.  
+OpenAI describes a DoD-related architecture in public posts.  
+It includes **cloud-only deployment** and a provider-operated **safety stack**.  
+It also describes classifiers that can be “independently validated and updated.”  
+Provider-hosted paths can allow stronger policy enforcement and auditing.  
+If the model shifts to customer infrastructure, control can change.  
+This includes on-prem or self-hosted deployment.  
+Control can also change across third-party pipelines, resellers, or outsourcing.  
+This investigation alone does not show whether enforcement stays equivalent.
+
+## Analysis
+When decision-support AI moves into battlefield planning, chatbot metrics can become insufficient.  
+Requirements can be grouped into three categories.  
+First is inference under incomplete information and uncertainty.  
+Second is that planning rarely has one correct answer.  
+The system should manage trade-offs among objectives.  
+Examples include speed, concealment, civilian harm risk, and logistics constraints.  
+Third is operational design that preserves accountability.
+
+DoD Directive **3000.09 (January 25, 2023)** addresses autonomous and semi-autonomous weapon systems.  
+It says systems are designed and developed for **“appropriate levels of human judgment”** over force.  
+An operational-planning AI may not be a weapon system.  
+However, it can sit close to force decisions.  
+Comparable HITL rationale and verification expectations may apply.
+
+Failure modes benefit from concrete treatment.  
+Hallucination is stating information as if it exists when it does not.  
+Overconfidence is treating a plausible plan as the correct answer.  
+Adversarial deception includes contaminated inputs, sensors, or reports.  
+It can also include steering the model toward an attacker’s conclusion.  
+In those cases, the plan can become a trap.
+
+The NIST AI RMF calls for governance and human oversight processes.  
+It includes roles, responsibilities, and oversight method definitions.  
+The AI RMF Playbook describes management options.  
+It includes security testing and **red-teaming**.  
+It also includes monitoring in operation and incident response.  
+It also includes recovery and removal, including decommissioning.  
+For battlefield planning AI, these steps should connect to operations.  
+They can connect to training, TTPs, and HMI.  
+HMI can include active and inactive procedures.
+
+Provider policies can weaken at technical boundaries.  
+Along a provider-operated **cloud-only** path, “red lines” can be enforced.  
+Mechanisms can include classifiers, audit logs, and account sanctions.  
+If an organization trains its own model, enforcement can shift.  
+The same applies when using open-weight models.  
+The same applies when an outsourced vendor sits in the middle.  
+This investigation provides no quantitative basis for cross-ecosystem enforcement effectiveness.  
+That gap can shift debate from ethics to governance design.
+
+## Practical application
+A decision memo can frame the question differently.  
+The question can shift from “use AI or not” to control conditions for use.  
+Controls can be written as If/Then rules.  
+
+**Checklist for Today:**
+- Classify scenarios by distance to force decisions, and write HITL points, approvals, and stop conditions.  
+- Add TEVV, monitoring, incident response, and red-teaming as procurement terms, including audit-log access.  
+- Compare cloud-hosted and customer-infrastructure deployments in a table, including enforcement and audit trade-offs.  
+
+## FAQ
+**Q1. What is the minimum requirement for HITL (Human-in-the-Loop) in military decision support?**  
+A1. DoDD **3000.09 (January 25, 2023)** describes “appropriate levels of human judgment” over force.  
+The materials here suggest three axes for minimum expectations.  
+One axis is design, doctrine, training, TTPs, and HMI that keep human judgment effective.  
+Another axis is V&V and test and evaluation under realistic conditions.  
+It can also include cybersecurity and safety plans.  
+A third axis is legal review and higher-level approval or verification procedures.  
+These materials alone do not finalize a checklist for LLM-based operational planning.  
+Further confirmation would help.
+
+**Q2. How do we mitigate hallucination, overconfidence, and adversarial deception?**  
+A2. The NIST AI RMF and Playbook suggest an operational loop.  
+It starts with documented oversight roles and responsibilities.  
+It can include TEVV and in-operation monitoring.  
+It can include anomaly detection and incident response.  
+It can include periodic red teams for adversarial and stress tests.  
+It can also include recalibration, impact mitigation, and removal.  
+In battlefield contexts, tests for contamination and deception may be prioritized.
+
+**Q3. To what extent are private providers’ “mili**
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+- [Evaluating LLM Self-Consistency Beyond Humanlike Mimicry](/en/posts/evaluating-llm-self-consistency-beyond-humanlike-mimicry)
+---
+
+## References
+
+- [DoD Directive 3000.09, "Autonomy in Weapon Systems," January 25, 2023 - media.defense.gov](https://media.defense.gov/2023/Jan/25/2003149928/-1/-1/0/DOW-DIRECTIVE-3000.09-AUTONOMY-IN-WEAPON-SYSTEMS.PDF)
+- [NIST AI RMF Core (AIRC) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [NIST AI RMF Playbook (PDF) - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+- [NIST AI RMF Playbook - Manage (AIRC) - airc.nist.gov](https://airc.nist.gov/AI_RMF_Knowledge_Base/Playbook/Manage)
+- [Anthropic’s Transparency Hub — Security & Privacy (Voluntary Commitments) - anthropic.com](https://www.anthropic.com/transparency/voluntary-commitments/security%26privacy)
+- [Compliance API for Enterprise Customers | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9261474-compliance-api-for-enterprise-customers/)
+- [Usage policies | OpenAI - openai.com](https://openai.com/policies/usage-policies/)
+- [Our agreement with the Department of War | OpenAI - openai.com](https://openai.com/index/our-agreement-with-the-department-of-war/)
+- [wired.com - wired.com](https://www.wired.com/story/ai-model-military-use-smack-technologies/)
