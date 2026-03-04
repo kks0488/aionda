@@ -19,7 +19,6 @@ const nextConfig = {
   experimental: {
     outputFileTracingExcludes: {
       '*': [
-        './content/**',
         './public/images/**',
         '../../packages/**',
         '../../scripts/**',
