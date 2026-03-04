@@ -1,0 +1,193 @@
+---
+title: Where LLM Target Queueing Becomes Weapon Autonomy
+slug: where-llm-target-queueing-becomes-weapon-autonomy
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: en
+description: >-
+  Examines how LLM-generated target queues and prioritization can steer human
+  selection, shaping autonomy boundaries, auditability, and control.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '1017883'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1017883'
+verificationScore: 0.79
+alternateLocale: /ko/posts/where-llm-target-queueing-becomes-weapon-autonomy
+coverImage: /images/posts/where-llm-target-queueing-becomes-weapon-autonomy.png
+---
+
+A single-line recommendation appears on an operations room display.  
+A “candidate target list” appears with a “priority” field.  
+Each item includes coordinate-like content.  
+At that point, the LLM can move beyond analysis support.  
+It can become one step in the target-selection decision chain.
+
+## TL;DR
+
+- **What this is:** LLMs can generate target candidates and rank them, which can blur automation boundaries.  
+- **What to do next:** Write If/Then control rules and design audit logs, then validate effects using T&E and V&V.
+
+Example: An operator sees a ranked candidate list on a display.  
+The operator senses pressure to accept the ordering.  
+The operator tries to justify a choice with limited context.
+
+---
+
+## TL;DR
+
+- **Core issue:** Bundled support like “candidate generation → prioritization” can blur what counts as “automated” targeting.  
+- **What the reader should do:** Document If/Then rules for authority, blocks, evidence links, and audit logs.  
+
+---
+
+## Current state
+
+Anthropic has summarized restrictions in military and government contexts as “two red lines.”  
+This summary appears in official statements and Help Center documentation.  
+Public statements describe “lawful use” items without exceptions under Claude.  
+They include mass domestic surveillance of Americans.  
+They also include fully autonomous weapons.  
+Those phrases do not enumerate “pre-targeting decision support” functions.  
+That gap suggests additional confirmation could be useful.
+
+Anthropic Help Center explanations describe “Usage Policy exceptions.”  
+They state that exceptions under government contracts can still leave other restrictions in force.  
+The restrictions are described as including bans on “design or use of weapons.”  
+They also include domestic surveillance.  
+They include malicious cyber operations.  
+They include disinformation campaigns.  
+This research did not confirm a clear boundary from that text alone.  
+The unclear area includes target-candidate generation and coordinate-like outputs.  
+It also includes priority proposals.  
+It remains unclear if these are treated as “use of weapons” or “analysis support.”  
+Additional confirmation could help.
+
+On the DoD side, a definition closer to operational behavior appears.  
+It covers systems that, once activated, can select and engage targets.  
+It specifies “without further intervention by an operator.”  
+It lists tracking and identification.  
+It lists target-candidate queuing.  
+It lists prioritizing selected targets.  
+This includes individual targets and specific target groups for engagement.
+
+---
+
+## Analysis
+
+Saying “the LLM doesn’t pull the trigger” may not satisfy control needs.  
+A system can shape selection inputs without firing anything.  
+It can mass-post candidates and rank them by priority.  
+It can leave the user mostly reviewing a queue.  
+That structure can steer human choice.  
+With DoDD 3000.09 wording, the question becomes where “select” occurs.  
+A UI click can be the formal selection moment.  
+The effective selection moment can happen earlier.  
+It can happen in candidate composition and ordering.  
+That can make operator control feel procedural rather than substantive.
+
+Labeling the flow as purely prohibited can also be a mismatch.  
+DoDD 3000.09 anticipates automation such as queuing and prioritization.  
+DoD RAI principles include a “Traceable” requirement.  
+They call for transparent and auditable methodologies.  
+They also call for auditable data sources.  
+They call for auditable design procedures.  
+They call for auditable documentation.  
+Implementation items include a T&E and V&V framework.  
+They also include real-time monitoring.  
+They include algorithm trust and assurance indicators.  
+They include integration of user feedback.  
+These requirements are not presented as operational checklists in the documents.  
+Examples include mandatory log fields and explanation artifact formats.  
+Teams can fill gaps with design documents and product mechanisms.
+
+---
+
+## Practical application
+
+If you place an LLM into a decision chain, you should lock down authority and evidence early.  
+This is relevant for embedded integrations.  
+Prompt text alone may not control the full workflow.  
+You can design data flows as default product behavior.  
+Data flows include input sources and evidence links.  
+They also include who saw what.  
+You can design controls as default product behavior.  
+Controls include blocking rules and thresholds.  
+They also include human-in-the-loop steps.  
+For “Traceable,” auditability can be easier when designed early.  
+Patching explanations into after-action reports can be harder.
+
+An operator can receive a candidate list.  
+Without linked evidence per candidate, review can become unstable.  
+The operator may oscillate between trusting the model and redoing investigations.  
+With consistent evidence links, review can become more bounded.  
+Priority-change reasons can be recorded for later reconstruction.  
+That can reduce review cost while keeping responsibility boundaries clearer.
+
+**Checklist for Today:**  
+- Define If/Then evidence rules for each candidate, including source, timestamp, and linked documents.  
+- Add UI control gates that prompt independent evidence checks before acting on priority recommendations.  
+- Specify auditable logs in T&E and V&V plans, including before-and-after outputs and user actions.  
+
+---
+
+## FAQ
+
+**Q1. If it is ‘decision support’ is it fine, and if it is ‘automatic targeting’ is it risky—what is the criterion?**  
+A. DoDD 3000.09 uses the “select” and “engage” wording.  
+It defines autonomy as selecting and engaging without operator intervention after activation.  
+In practice, “selection” can occur earlier than a button click.  
+It can occur in candidate-set design, queue design, and priority design.  
+You can reduce ambiguity by decomposing selection authority in design documents.  
+You can state where authority sits, for system versus operator.
+
+**Q2. Based on Anthropic policy alone, can we judge whether a function like military target-candidate recommendation is allowed or prohibited?**  
+A. This research could not determine that from the cited public documents alone.  
+Anthropic has mentioned two “red lines” in public statements.  
+They include mass domestic surveillance of Americans.  
+They include fully autonomous weapons.  
+The Help Center also lists bans like “design or use of weapons.”  
+This research did not confirm explicit wording for candidate generation and prioritization.  
+Additional confirmation could be needed.
+
+**Q3. Is ‘auditability’ just a matter of writing good documentation, or what should be done in the system?**  
+A. DoD RAI documents call for transparent and auditable methods and sources.  
+They also call for auditable design procedures and documentation.  
+They mention T&E and V&V.  
+They mention real-time monitoring.  
+They mention trust and assurance indicators.  
+They mention integrating user feedback.  
+That suggests product functionality and procedures matter, not only documentation.  
+Reconstruction needs inputs, outputs, evidence, and user actions.  
+The documents do not specify exact log fields.  
+Organizations can define those fields.
+
+---
+
+## Conclusion
+
+The debate can shift from “Does the model engage?” to “How far upstream does it shape selection?”  
+DoDD 3000.09’s select-and-engage definition provides one reference point.  
+DoD RAI’s Traceable requirement provides another reference point.  
+A next step can be product requirements, not only technical demos.  
+Those requirements can include control points, evidence links, and audit mechanisms.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+- [Evaluating LLM Self-Consistency Beyond Humanlike Mimicry](/en/posts/evaluating-llm-self-consistency-beyond-humanlike-mimicry)
+---
+
+## References
+
+- [Statement on the comments from Secretary of War Pete Hegseth - anthropic.com](https://www.anthropic.com/news/statement-comments-secretary-war)
+- [Statement from Dario Amodei on our discussions with the Department of War - anthropic.com](https://www.anthropic.com/news/statement-department-of-war)
+- [Exceptions to our Usage Policy | Anthropic Help Center - support.anthropic.com](https://support.anthropic.com/en/articles/9528712-exceptions-to-our-usage-policy)
+- [DoD Directive 3000.09, Autonomy in Weapon Systems (Effective: January 25, 2023) - media.defense.gov](https://media.defense.gov/2023/Jan/25/2003149928/-1/-1/0/DOD-DIRECTIVE-3000.09-AUTONOMY-IN-WEAPON-SYSTEMS.PDF)
+- [U.S. Department of Defense Responsible Artificial Intelligence Strategy and Implementation Pathway (June 2022) - digital.library.unt.edu](https://digital.library.unt.edu/ark%3A/67531/metadc2289571/m2/1/high_res_d/RAI_Strategy_and_Implementation_Pathway_6-21-22.pdf)
+- [DoD Adopts 5 Principles of Artificial Intelligence Ethics (Feb. 24, 2020 release page) - defense.gov](https://www.defense.gov/News/Releases/Release/Article/2094085/dod-adopts-5-principles-of-artificial-intelligence-ethics/)
