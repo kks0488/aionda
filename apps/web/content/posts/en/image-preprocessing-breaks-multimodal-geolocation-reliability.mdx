@@ -1,0 +1,170 @@
+---
+title: When Image Preprocessing Breaks Multimodal Geolocation Reliability
+slug: image-preprocessing-breaks-multimodal-geolocation-reliability
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: en
+description: >-
+  Resizing, tiling, and tokenization can shift what models see, turning
+  map/geography misreads into repeatable product risk.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+  - benchmark
+  - multimodal
+author: AI온다
+sourceId: '1016445'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1016445'
+verificationScore: 0.79
+alternateLocale: /ko/posts/image-preprocessing-breaks-multimodal-geolocation-reliability
+coverImage: >-
+  /images/posts/image-preprocessing-breaks-multimodal-geolocation-reliability.png
+---
+
+You upload a map image and get the answer “Thailand.”  
+A user might dismiss it as a joke.  
+A product team might treat it as a risk.  
+
+When a multimodal model fails on shape-driven inputs, errors can cascade.  
+This includes maps, terrain outlines, and coastlines.  
+The core issue is not one wrong label.  
+It is pipeline sensitivity plus limited validation.  
+This combination can make some geographic errors reproducible.  
+
+## TL;DR
+- Multimodal models can misidentify regions on shape-based images, and preprocessing can repeat the same failure.  
+- It matters because resizing, token limits, and tiling can change what the model “sees” in production.  
+- Next, standardize input conditions and run repeated tests with labeling and citation checks.  
+
+Example: A user uploads a terrain image and asks for the country. The model answers confidently. The system asks for visual clues. The system then changes the response to uncertainty.  
+
+## Current situation
+Some failures look like “the model does not know geography.”  
+That framing can miss the pipeline details.  
+
+Vision-language models convert images into internal tokens.  
+During conversion, information can be removed or rearranged.  
+Downscaling can remove coastline details.  
+Tiling can split outlines across boundaries.  
+Token budgets can limit detail.  
+
+Official documentation describes some preprocessing constraints.  
+Anthropic’s vision documentation notes a 1568px long-edge threshold.  
+It also notes a ~1,600 token limit for images.  
+Images beyond those limits may be downscaled with aspect ratio preserved.  
+The same documentation notes weaker performance on very small images.  
+
+Gemini documentation snippets describe fixed tokenization for small images.  
+That split changes the information layout across tiles.  
+For coastline recognition, tile seams can remove global shape cues.  
+The size of this effect can depend on the task.  
+It can also depend on the specific image.  
+
+For OpenAI, documentation states image inputs are tokenized by image size.  
+Public documentation alone does not specify the resize or crop rules.  
+It also does not fully describe the vision encoder design.  
+
+Evaluation tools exist, but fit can vary by task.  
+EarthWhere evaluates geolocation with 810 images.  
+It includes country-level multiple-choice tasks.  
+It also includes coordinate-level or distance-level tasks.  
+GEOBench-VLM focuses on remote sensing.  
+It also reports 10,000+ manually verified instructions.  
+Benchmark alignment with “Korean Peninsula outline matching” needs checking.  
+Still, these suites can support repeatable measurement.  
+
+## Analysis
+The central issue often looks like pipeline sensitivity.  
+Users often upload screenshots, not original files.  
+Messaging apps may auto-resize images.  
+Frontends can generate thumbnails.  
+Backends can compress again.  
+
+That means the model might not see the original image.  
+It may see a downscaled or tiled version.  
+Anthropic’s 1568px and ~1,600 token caps can trigger downscaling.  
+Gemini’s 768×768 tiling can fragment global outlines.  
+These behaviors can affect map-like tasks.  
+
+This makes “switch models” an incomplete mitigation.  
+Input conditions can vary between QA and production.  
+That variation can make failures hard to reproduce.  
+It can also make improvements hard to validate.  
+
+Other contributing factors can also matter.  
+Question design can push unsupported guesses.  
+A prompt like “Where is this?” invites speculation.  
+Map and terrain images also vary in projection and styling.  
+They can include labels, watermarks, and color themes.  
+Documentation alone may not support causal claims about encoders.  
+So the focus can shift to repeatable evaluation.  
+That evaluation should use fixed conditions and error labeling.  
+
+## Practical application
+A practical response can focus on safer failure modes.  
+This can reduce confident guessing when evidence is weak.  
+
+Anthropic documentation suggests citation-style checks for claims.  
+You can ask the model to cite image evidence per claim.  
+You can also ask it to retract unsupported claims.  
+Geolocation often has limited explicit evidence in the image.  
+So uncertainty handling can be useful.  
+
+The same documentation describes Best-of-N verification.  
+This repeats the same prompt multiple times.  
+It can detect inconsistent answers.  
+Inconsistency can signal instability for the input.  
+That can trigger extra verification steps.  
+
+**Checklist for Today:**
+- Log whether uploads trigger long-edge resizing, and record the final resolution.  
+- Add an uncertainty instruction, then require per-claim image evidence and allow retraction.  
+- Run repeated trials with identical inputs, and route high-variance cases for manual review.  
+
+## FAQ
+**Q1. Why do wrong answers spike especially on maps and terrain?**  
+A1. The model converts images into tokens.  
+Preprocessing can remove or fragment outline cues.  
+Anthropic documents 1568px and ~1,600 token thresholds.  
+It also notes risk at 200px or less.  
+Gemini snippets describe 768×768 tiling and 258 tokens per tile.  
+These can affect boundary-heavy images.  
+
+**Q2. If we validate with benchmarks, is it solved immediately?**  
+A2. Benchmarks can improve repeatability of measurement.  
+They do not automatically match your production inputs.  
+EarthWhere uses 810 images for geolocation tasks.  
+GEOBench-VLM reports 8 categories and 31 sub-tasks.  
+It also reports 10,000+ manually verified instructions.  
+You may still need a task-matched evaluation set.  
+
+**Q3. If we just write prompts well, do hallucinations or guesses disappear?**  
+A3. Prompts can reduce guessing, but outcomes can still vary.  
+Citation checks can help enforce evidence-based answers.  
+Best-of-N inconsistency checks can flag unstable outputs.  
+Uncertainty phrasing can reduce overconfident responses.  
+
+## Conclusion
+Terrain and map errors can reflect more than missing knowledge.  
+They can reflect preprocessing and validation gaps.  
+Resizing, token limits, and tiling can change the model input.  
+That can create reproducible risks across deployments.  
+A practical next step is fixed-condition repeated evaluation.  
+Add labeling, citation checks, and inconsistency detection.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-03](/en/posts/ai-resources-roundup-2026-03-03)
+- [Autonomous AI Agents Blur Insider Threat Boundaries](/en/posts/autonomous-ai-agents-blur-insider-threat-boundaries)
+- [Benchmark MLX 4-Bit Local LLMs on Apple Silicon](/en/posts/benchmark-mlx-4bit-local-llms-apple-silicon)
+- [Tracking Semiconductor Equipment Volatility Through AI CapEx And Macro](/en/posts/tracking-semiconductor-equipment-volatility-through-ai-capex-and-macro)
+- [Untangling AGI Terms: Reasoning, Memory, Continual Learning Metrics](/en/posts/untangling-agi-terms-reasoning-memory-continual-learning-metrics)
+---
+
+## References
+
+- [Vision - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/vision)
+- [Introducing vision to the fine-tuning API | OpenAI - openai.com](https://openai.com/index/introducing-vision-to-the-fine-tuning-api/)
+- [Reduce hallucinations - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations)
+- [Where on Earth? A Vision-Language Benchmark for Probing Model Geolocation Skills Across Scales - arxiv.org](https://arxiv.org/abs/2510.10880)

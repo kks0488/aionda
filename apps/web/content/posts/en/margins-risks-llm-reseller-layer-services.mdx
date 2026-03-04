@@ -1,0 +1,193 @@
+---
+title: Margins And Risks In LLM Reseller Layer Services
+slug: margins-risks-llm-reseller-layer-services
+date: '2026-03-04'
+lastReviewedAt: '2026-03-04'
+locale: en
+description: >-
+  How LLM reseller-layer services create margin via caching, batch, pricing
+  design, and what security, logs, and compliance issues buyers must verify.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - explainer
+  - security
+author: AI온다
+sourceId: '1016434'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1016434'
+verificationScore: 0.74
+alternateLocale: /ko/posts/margins-risks-llm-reseller-layer-services
+coverImage: /images/posts/margins-risks-llm-reseller-layer-services.png
+---
+
+A customer company requests a quote for an “LLM-enabled business tool.”  
+The UI looks convincing.  
+The contract and price sheet can tell a different story.  
+The service may be a reseller-style operational layer over an external LLM API.  
+In that case, differentiation often comes from operations and pricing design.  
+It often depends on **cost optimization and operational controls**.  
+These include tokens, requests, seats, commitments, caching, batching, logs, and security.
+
+This article summarizes how such services can create margin.  
+It also reviews operational, security, and compliance issues that can arise.  
+It ends with checklists for buyers and sellers.
+
+---
+
+## TL;DR
+
+- **What changed / what this is:** Some “LLM tools” are operational layers over external LLM APIs, not proprietary models.  
+- **Why it matters:** Batch, caching, and logging policies can shift costs, latency, and data-retention risk.  
+- **What to do next:** Ask for written terms on caching, batch scope, and log retention, plus spend caps.
+
+Example: A team uses an AI tool for internal writing support.  
+They choose faster responses for some tasks and cheaper runs for others.  
+They also agree on what data gets stored and what can be deleted.
+
+---
+
+## Current state
+
+External LLM API billing is not fixed to a single model.  
+Official pricing docs describe mixed billing structures.  
+These can include token pricing with separate input and output.  
+They can also include cache or batch discounts.  
+Some services also charge per request for tool calls or search.  
+Some also include seat-based subscriptions.
+
+One example appears on the Anthropic pricing page.  
+It lists web search at **$10 per 1K searches**.  
+It also lists a Team plan seat price of **$25** and **$150**.  
+When metered usage mixes with seats, pricing design becomes part of the product.
+
+Official discount levers also exist.  
+OpenAI’s API Pricing page states: “Save 50% on inputs and outputs with the Batch API.”  
+It applies to both input and output.  
+The OpenAI API reference describes Batch as asynchronous processing.  
+It says results return within **24 hours**.  
+It also notes only **`24h`** is supported.
+
+Caching can affect cost and latency.  
+OpenAI Prompt Caching docs describe potential savings.  
+They say latency can drop by up to **80%**.  
+They say input token cost can drop by up to **90%**.  
+They also say caching applies automatically at **1,024 tokens** or more.
+
+Savings should be measurable by the customer.  
+OpenAI indicates a response `usage` can include `cached_tokens`.  
+The Usage API includes `input_cached_tokens` as an aggregate field.  
+A reseller claiming savings can share these indicators for verification.
+
+---
+
+## Analysis
+
+Reseller margin can be described in two layers.  
+Each layer can affect cost, risk, and contractual clarity.
+
+The first layer is contract structure and partner programs.  
+Programs can allow resellers to set pricing and terms.  
+Examples include Microsoft CSP-like programs.  
+Some firms also resell products like ChatGPT Enterprise.  
+Anthropic also has partner networks and marketplaces.  
+Public documents rarely pin down margin figures.  
+Discount rates and commissions may need separate confirmation.  
+In practice, margin often depends on the operational layer.
+
+The second layer is the operational layer itself.  
+Resellers can apply official mechanisms to lower cost.  
+Examples include **Batch with 50% discount**.  
+Another example is Prompt Caching with up to **90%** input savings.  
+They can also reduce volatility with plan design.  
+This can include seat plus metered blends.  
+It can also include usage limits and spend caps.  
+It may also include model routing, such as smaller models first.
+
+Risk can rise alongside optimization.  
+OpenAI data controls documentation describes default logging behavior.  
+It says abuse monitoring logs are retained for up to **30 days**.  
+The same documentation discusses extended prompt caching.  
+It describes storing key and value tensors in GPU local storage.  
+It says requests using that caching are not eligible for ZDR.  
+Cost features can conflict with data-retention requirements.
+
+Responsibility boundaries can become harder to interpret.  
+OpenAI Services Agreement assigns responsibilities to the customer.  
+It covers activity via Customer Applications and End Users.  
+It also distinguishes Third-Party and Non-OpenAI Services.  
+A reseller in the middle can add more responsibility surfaces.  
+Incidents can include outages, leaks, misuse, or deletion requests.  
+Unclear clauses can raise dispute risk during operations.
+
+---
+
+## Practical application
+
+Sellers can explain value using operational metrics.  
+They can rely less on claims about model quality.  
+Buyers can request measurable indicators and constraints.  
+They can ask for cache metrics like `cached_tokens`.  
+They can also ask for `input_cached_tokens`.  
+They can request a Batch adoption rate and Batch latency constraints.  
+OpenAI describes Batch as returning within **24 hours**.
+
+Adopting enterprises can start with storage and logging questions.  
+They can ask what the middle layer stores and logs.  
+They can also ask what gets deleted, and how.  
+Extended prompt caching and ZDR fit should be discussed early.  
+Security and legal teams can review those tradeoffs.
+
+**Checklist for Today:**
+- Add contract clauses for retention, audit logging access, and deletion request handling across vendor and reseller layers.  
+- Split architecture scope for Batch and Prompt Caching, and measure results using `usage` fields like `cached_tokens`.  
+- Document pricing blends, spend caps, and overage handling workflows, including alert and approval paths.  
+
+---
+
+## FAQ
+
+**Q1. Does reseller margin mainly come from an “API wholesale price”?**  
+A1. Public documents rarely show reseller discount or commission rates.  
+Those figures may need separate confirmation.  
+Margin can also come from operational design.  
+Examples include **50% Batch discount** and caching savings measurement.  
+
+**Q2. Is it often beneficial to turn on Prompt Caching?**  
+A2. It can help cost and latency for some workloads.  
+OpenAI docs say it can apply at **1,024 tokens** or more.  
+Savings can be checked via `cached_tokens` indicators.  
+OpenAI docs also say extended prompt caching is not ZDR-eligible.  
+Security and regulatory constraints can limit scope.
+
+**Q3. How do you verify a claim that “no logs are kept”?**  
+A3. Start with supplier documentation.  
+OpenAI says abuse monitoring logs are retained up to **30 days** by default.  
+Enterprise docs also describe audit-focused features, such as a Compliance API.  
+If a reseller is involved, it may add proxy and observability logs.  
+Separate vendor logs from reseller logs in writing.  
+Request retention, access control, and deletion process details for each layer.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-03](/en/posts/ai-resources-roundup-2026-03-03)
+- [Autonomous AI Agents Blur Insider Threat Boundaries](/en/posts/autonomous-ai-agents-blur-insider-threat-boundaries)
+- [Benchmark MLX 4-Bit Local LLMs on Apple Silicon](/en/posts/benchmark-mlx-4bit-local-llms-apple-silicon)
+- [Tracking Semiconductor Equipment Volatility Through AI CapEx And Macro](/en/posts/tracking-semiconductor-equipment-volatility-through-ai-capex-and-macro)
+- [Untangling AGI Terms: Reasoning, Memory, Continual Learning Metrics](/en/posts/untangling-agi-terms-reasoning-memory-continual-learning-metrics)
+---
+
+## References
+
+- [Pricing | OpenAI - openai.com](https://openai.com/api/pricing/)
+- [Pricing \ Anthropic - anthropic.com](https://www.anthropic.com/pricing)
+- [Prompt caching | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/prompt-caching)
+- [Prompt Caching in the API | OpenAI - openai.com](https://openai.com/index/api-prompt-caching/)
+- [Batch | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/batch/retrieve)
+- [Usage | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/usage/completions_object)
+- [Data controls in the OpenAI platform - platform.openai.com](https://platform.openai.com/docs/guides/your-data)
+- [Compliance API for Enterprise Customers | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9261474-compliance-api-for-enterprise-customers/)
+- [Business data privacy, security, and compliance | OpenAI - openai.com](https://openai.com/business-data/)
+- [OpenAI Services Agreement - openai.com](https://openai.com/policies/business-terms)
+- [OpenAI Data Processing Addendum - openai.com](https://openai.com/policies/data-processing-addendum/)
+- [OpenAI Sub-processor List - openai.com](https://openai.com/policies/sub-processor-list/)
