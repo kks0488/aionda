@@ -1,0 +1,176 @@
+---
+title: LLM-Guided Belief Shaping for Partially Observable TAMP
+slug: llm-guided-belief-shaping-partially-observable-tamp
+date: '2026-03-05'
+lastReviewedAt: '2026-03-05'
+locale: en
+description: >-
+  How LLM signals can shape belief in partially observable TAMP, and why
+  calibration, uncertainty, and safety filters matter for reliability.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-4d634ad2c4949b4c
+sourceUrl: 'https://arxiv.org/abs/2603.03704'
+verificationScore: 0.73
+alternateLocale: /ko/posts/llm-guided-belief-shaping-partially-observable-tamp
+coverImage: /images/posts/llm-guided-belief-shaping-partially-observable-tamp.png
+---
+
+A robot follows a planned path, and a new object enters its camera view mid-execution.  
+Ignoring the object can increase collision risk or require late path changes.  
+Overreacting can trigger unnecessary replanning and unstable execution.  
+The arXiv paper “Large-Language-Model-Guided State Estimation for Partially Observable Task and Motion Planning” discusses this setting.  
+It is listed as arXiv:2603.03704v1.
+
+## TL;DR
+- CoCo‑TAMP adds LLM-guided information to belief updates for “task-irrelevant” objects seen during execution.  
+- Belief quality can affect POMDP-style outcomes, but LLM uncertainty and attacks can affect reliability and safety.  
+- Treat LLM outputs as hypotheses, then audit calibration and gate actions with execution-time safety checks.  
+
+Example: A mobile robot notices a new object near its route.  
+It considers whether the object matters for safety or progress.  
+A language model suggests an interpretation and a cautious alternative route.  
+The system then checks constraints before acting on that suggestion.
+
+## Current status
+Robot planning under partial observability often assumes some state variables remain unobserved.  
+Many systems track a belief over state within a POMDP-like framework.  
+Actions are selected based on that belief.
+
+The issue becomes visible when a new object appears during execution.  
+A simple planner may label it “task-irrelevant” and ignore it.  
+The paper states such objects may be observed unexpectedly and ignored by naive planners.  
+That statement is quoted from arXiv:2603.03704.
+
+The paper proposes a framework called CoCo‑TAMP.  
+It introduces hierarchical state estimation.  
+It shapes belief over task-relevant objects using LLM-guided information.  
+This claim is attributed to arXiv:2603.03704.
+
+The paper does not imply that adding an LLM is sufficient.  
+Belief content, trust level, and safeguards remain design variables.  
+These choices can change safety and stability outcomes.
+
+Quantitative evidence is limited in the excerpt shown here.  
+One snippet mentions an “average reduction of 62.7 in pl…”.  
+The unit and full metric are not visible in the snippet.  
+That fragment is attributed to an arXiv:2603.03704 snippet.  
+No p-values or confidence intervals are visible in the provided text.  
+So, significance for success rate or collision avoidance cannot be inferred here.
+
+## Analysis
+Partially observable TAMP can be treated as an estimation problem.  
+It is also a planning problem.  
+A seemingly irrelevant object can still matter for execution.
+
+It can create occlusions.  
+It can be movable and change future states.  
+It can activate safety-distance constraints.  
+Ignoring it can cause belief to drift from reality.  
+The plan can still look correct.  
+Execution can still fail.
+
+An LLM can act as a commonsense knowledge source.  
+It can provide hypotheses when perception signals remain ambiguous.  
+Those hypotheses can assist belief updates.  
+They can also add new failure modes.
+
+First, uncertainty should be formalized.  
+One described flow extracts uncertainty from token probabilities.  
+The same flow also extracts numeric or linguistic uncertainty.  
+These are labeled TPU and NVU/LVU.  
+This is attributed to arXiv:2505.23854.  
+The flow then audits calibration with ECE and reliability diagrams.  
+It then applies post-hoc calibration such as temperature scaling.  
+This is attributed to the MIT EECS Thermometer article.
+
+Second, security and safety should be considered together.  
+LLM-integrated modules can be exposed to prompt injection.  
+Related work mentions attack classes such as OMI and GHI.  
+This is attributed to an Information and Software Technology 2025 snippet.  
+An attacker could distort “commonsense” hypotheses.  
+Those hypotheses could then distort belief updates.
+
+## Practical application
+A practical framing is “LLM as an estimation input signal.”  
+This differs from “LLM as the planner.”  
+LLM output can resemble a hypothesis generator.  
+It does not resemble a direct sensor observation.
+
+For safety, hypotheses should not become state directly.  
+They can be treated as belief-shaping signals.  
+They can then be validated by independent checks.
+
+From a design standpoint, it helps to separate these components.  
+First, convert LLM text into scores or probabilities.  
+Second, evaluate how scores match correctness frequencies using ECE.  
+Third, keep physical, logical, and sensor validators with veto power.  
+This is attributed to SENTINEL, VeriGuard, CBF/QP, and a LiDAR snippet.
+
+Example: In a warehouse, a picking robot sees an unfamiliar object on the floor.  
+The object could be ignored or treated as a risk.  
+A language model suggests a detour as a hypothesis.  
+The controller then checks sensor consistency and safety constraints.  
+Only a safe detour is allowed.
+
+**Checklist for Today:**
+- Choose a confidence extraction method like TPU or NVU/LVU, and log outputs and confidence.  
+- Audit confidence with ECE and reliability diagrams, then consider temperature scaling calibration.  
+- Define pass conditions using TL checks, a CBF/QP filter, and sensor distance checks before execution.  
+
+## FAQ
+**Q1. When incorporating an LLM’s “commonsense hypothesis” into a belief update, how should we set the probability?**  
+A1. One approach uses TPU or NVU/LVU as confidence signals.  
+Then, audit with ECE and reliability diagrams.  
+Then, apply temperature scaling as post-hoc calibration.  
+This is attributed to arXiv:2505.23854 and the MIT EECS Thermometer article.  
+A single standard conversion formula does not appear established in the cited text.
+
+**Q2. Can we say that reflecting “task-irrelevant objects” improved success rate or collision avoidance?**  
+A2. The provided excerpt does not support that claim.  
+It includes a truncated “average reduction of 62.7 in pl…” fragment.  
+The metric and unit are not visible in the snippet.  
+No statistical significance language is visible for success or collisions.  
+This is attributed to the arXiv:2603.03704 snippet.
+
+**Q3. What is a practical way to “prevent” LLM hallucinations in robot execution?**  
+A3. Multi-layer validation is a practical pattern.  
+At planning level, formalize constraints in temporal logic and check violations.  
+This is attributed to SENTINEL.  
+At execution level, use a CBF as a QP safety filter.  
+This is attributed to Filtered CBF.  
+Another approach verifies suggested actions before execution.  
+This is attributed to VeriGuard.  
+Sensor-based safety-distance checks can add an additional gate.  
+This is attributed to a 2025 reliability paper snippet.
+
+## Conclusion
+LLM-guided state estimation in TAMP goes beyond noticing new objects.  
+It also raises questions about probability rules and calibration.  
+It also raises questions about validators and execution-time safety gates.  
+Beyond time reduction metrics, evaluation can include calibration quality and safety behavior.  
+CoCo‑TAMP-style designs may benefit from explicit pass conditions and audit trails.
+
+## Further Reading
+- [AgentSelect Benchmark For Query-Conditioned Agent Configuration Recommendation](/en/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation)
+- [AI Resource Roundup (24h) - 2026-03-05](/en/posts/ai-resources-roundup-2026-03-05)
+- [Chain-of-Thought Perturbations Reveal Hidden Fragility in Reasoning](/en/posts/chain-of-thought-perturbations-fragility-reasoning)
+- [ChatGPT Model Retirement Reshapes Tone, Safety, Creativity Balance](/en/posts/chatgpt-model-retirement-tone-safety-creativity-balance)
+- [Consensus-Anchored Diffusion for Uncertain 3D Lesion Segmentation](/en/posts/consensus-anchored-diffusion-uncertain-3d-lesion-segmentation)
+---
+
+## References
+
+- [Method prevents an AI model from being overconfident about wrong answers – MIT EECS - eecs.mit.edu](https://www.eecs.mit.edu/method-prevents-an-ai-model-from-being-overconfident-about-wrong-answers/)
+- [Revisiting Uncertainty Estimation and Calibration of Large Language Models - arxiv.org](https://arxiv.org/abs/2505.23854)
+- [SPUQ: Perturbation-Based Uncertainty Quantification for Large Language Models - arxiv.org](https://arxiv.org/abs/2403.02509)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.03704)
+- [Enhancing reliability in LLM-integrated robotic systems: A unified approach to security and safety - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0164121225002833)
+- [SENTINEL: A Multi-Level Formal Framework for Safety Evaluation of LLM-based Embodied Agents - arxiv.org](https://arxiv.org/abs/2510.12985)
+- [VeriGuard: Enhancing LLM Agent Safety via Verified Code Generation - arxiv.org](https://arxiv.org/abs/2510.05156)
+- [Ensuring Safe and Smooth Control in Safety-Critical Systems via Filtered Control Barrier Functions - arxiv.org](https://arxiv.org/abs/2503.23267)
