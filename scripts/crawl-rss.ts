@@ -87,11 +87,11 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'mit-tech-review', name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/', tier: 'A', type: 'news', enabled: true },
   { id: 'wired-ai', name: 'Wired AI', url: 'https://www.wired.com/feed/tag/ai/latest/rss', tier: 'A', type: 'news', enabled: true },
   { id: 'zdnet-ai', name: 'ZDNet AI', url: 'https://www.zdnet.com/topic/artificial-intelligence/rss.xml', tier: 'A', type: 'news', enabled: true },
-  { id: 'theverge-ai', name: 'The Verge AI', url: 'https://www.theverge.com/ai/rss/index.xml', tier: 'A', type: 'news', enabled: true },
+  { id: 'theverge-ai', name: 'The Verge AI', url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', tier: 'A', type: 'news', enabled: true },
 
   // Research / Papers (Tier S)
   { id: 'arxiv-cs-ai', name: 'arXiv CS.AI', url: 'https://rss.arxiv.org/rss/cs.AI', tier: 'S', type: 'official', enabled: true },
-  { id: 'hf-papers', name: 'HuggingFace Papers', url: 'https://huggingface.co/papers/rss', tier: 'S', type: 'official', enabled: true },
+  { id: 'hf-papers', name: 'HuggingFace Papers', url: 'https://huggingface.co/papers/rss', tier: 'S', type: 'official', enabled: false },  // 401 인증 필요 - 공개 RSS 없음
 
   // Korea AI Media (Tier A)
   { id: 'aitimes-kr', name: 'AI타임스', url: 'https://www.aitimes.com/rss/allArticle.xml', tier: 'A', type: 'news', enabled: true },
