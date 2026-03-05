@@ -10,11 +10,12 @@ async function main() {
   const args = process.argv.slice(2);
   const pagesArg = args.find((a) => a.startsWith('--pages='));
   const categoryArg = args.find((a) => a.startsWith('--category='));
+  const recommend = args.includes('--recommend');
 
   const pages = pagesArg ? parseInt(pagesArg.split('=')[1]) : 1;
   const category = categoryArg ? categoryArg.split('=')[1] : undefined;
 
-  console.log(`\n🔍 Crawling ${pages} page(s)${category ? ` (category: ${category})` : ''}...\n`);
+  console.log(`\n🔍 Crawling ${pages} page(s)${recommend ? ' (추천글)' : ''}${category ? ` (category: ${category})` : ''}...\n`);
 
   // Ensure data directory exists
   if (!existsSync(DATA_DIR)) {
@@ -31,7 +32,7 @@ async function main() {
   console.log(`📁 Found ${existingIds.size} existing posts\n`);
 
   // Fetch post list
-  const posts = await fetchPostList({ pages, category });
+  const posts = await fetchPostList({ pages, category, recommend });
   console.log(`\n📋 Total posts found: ${posts.length}\n`);
 
   let newCount = 0;

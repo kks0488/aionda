@@ -19,11 +19,14 @@ const headers = {
 export async function fetchPostList(
   options: CrawlOptions = {}
 ): Promise<PostListItem[]> {
-  const { pages = 1, category, delay = 1000 } = options;
+  const { pages = 1, category, delay = 1000, recommend = false } = options;
   const allPosts: PostListItem[] = [];
 
   for (let page = 1; page <= pages; page++) {
     let url = `${BASE_URL}/mgallery/board/lists?id=${GALLERY_ID}&page=${page}`;
+    if (recommend) {
+      url += '&exception_mode=recommend';
+    }
     if (category) {
       url += `&search_head=${encodeURIComponent(category)}`;
     }

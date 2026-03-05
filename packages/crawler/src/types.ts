@@ -27,4 +27,5 @@ export interface CrawlOptions {
   pages?: number;
   category?: string;
   delay?: number;
+  recommend?: boolean;  // true: 추천글(개념글)만 크롤링
 }
