@@ -1,0 +1,168 @@
+---
+title: "ChatGPT Model Retirement Reshapes Tone, Safety, Creativity Balance"
+slug: "chatgpt-model-retirement-tone-safety-creativity-balance"
+date: "2026-03-05"
+lastReviewedAt: "2026-03-05"
+locale: "en"
+description: "Retiring legacy ChatGPT models may shift tone, refusals, and creativity, reshaping the balance between expression and safety guardrails."
+tags: ["agi", "hardware", "llm", "explainer", "gpt"]
+author: "AI온다"
+sourceId: "967176"
+sourceUrl: "https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=967176"
+verificationScore: 0.84
+alternateLocale: /ko/posts/chatgpt-model-retirement-tone-safety-creativity-balance
+coverImage: "/images/posts/chatgpt-model-retirement-tone-safety-creativity-balance.png"
+---
+
+A ChatGPT user may notice different tone and refusal style after **February 13, 2026**.  
+That date appears in a sentence about retiring **GPT‑4o** from ChatGPT.  
+The sentence also says, “**In the API, there are no changes at this time.**”  
+That combination implies a “model swap” can become a “product-experience swap.”  
+Even with the same prompt, tone and indirectness can shift.  
+Refusal style and creative variation can also shift.  
+This is not only a performance comparison issue.  
+It can reflect re-tuning between safety and expression.
+
+## TL;DR
+- ChatGPT’s default model set may change on **February 13, 2026**, while the API may not change then.  
+- Tone, warmth, and refusal behavior can shift, due to prompt defaults and safety classification.  
+- Run blind pairwise evals, lock tone in the system message, and track **0–1** rubric scores.
+
+Example: A team rewrites marketing copy and sees the voice drift. They compare outputs and adjust instructions. They keep a small evaluation set for future swaps.
+
+## TL;DR
+- **What changed / what is the core issue?** Legacy models such as **GPT‑4o** in ChatGPT will be retired on **February 13, 2026**. The ChatGPT experience may re-center on other model lines afterward.  
+- **Why does it matter?** OpenAI mentions feedback like “**personality**,” “**creative ideation**,” and conversational “**warmth**.” Policy and moderation systems can still shape refusals and neutral tone.  
+- **What should readers do?** Use blind pairwise evaluations to check tone variance. Stabilize tone with the system message. Use Graders or Evals with **0–1** scoring for regressions.
+
+## Current state
+In a notice dated **January 29, 2026**, OpenAI wrote about retirements in ChatGPT.  
+It listed **GPT‑4o, GPT‑4.1, GPT‑4.1 mini, OpenAI o4-mini**.  
+It said these would be retired on **February 13, 2026**.  
+It also stated, “**In the API, there are no changes at this time**.”  
+That suggests the immediate impact is on ChatGPT product experience.  
+Teams pinned to an API model may see different timing.  
+Teams relying on ChatGPT defaults may notice changes sooner.
+
+Users may also see changes from “expression tuning” messaging.  
+OpenAI says GPT‑4o feedback was reflected in GPT‑5.1 and GPT‑5.2.  
+It cites “warmth” and creative ideation.  
+In release notes dated **January 22, 2026**, it described a default character update.  
+It said the default character was updated to be more conversational.  
+It also said tone should adjust to context.  
+Within the provided snippet scope, one link is not fully explicit.  
+There is no single sentence confirming an automatic replacement to GPT‑5.2 Instant.
+
+From a policy and safety perspective, “guardrails” use classification systems.  
+Usage Policies define prohibited and restricted categories.  
+Moderation documentation lists categories and subcategories.  
+These include `harassment`, `hate`, `self-harm`, `sexual`, `violence`, and `illicit`.  
+The same documentation describes outputs like `flagged` and `category_scores`.  
+Sensitive themes can trigger softer refusals or safer tone.  
+That outcome can depend on product and policy design.
+
+## Analysis
+This issue does not reduce cleanly to “safer” versus “less safe.”  
+It can appear as an experience shift under the same request.  
+The shift can happen when a request crosses a classification threshold.  
+Sentence style may change at that point.  
+Explanations may get longer.  
+Emotional expression may decrease.
+
+OpenAI’s “personality” and “warmth” framing connects here.  
+Users often judge value beyond factual accuracy.  
+They may judge brand tone fit.  
+They may judge ideation quality.  
+They may judge whether conversation feels natural.
+
+The risks benefit from structure.  
+First, safety classification can affect expressive phrasing.  
+Emotion can be interpreted as hate or incitement signals.  
+It can also be read as sexual implication.  
+The model may then choose more conservative phrasing.
+
+Second, organizations may change models without updating evaluations.  
+They may run only functional pass or fail tests.  
+They may skip “expression metrics” like humor and metaphor.  
+Later, complaints like “it became bland” can grow.
+
+Third, external quantitative metrics may exist elsewhere.  
+The confirmed official snippets here do not include such numbers.  
+Teams may prefer re-measuring with domain data.  
+That can reduce reliance on mismatched external benchmarks.  
+It can also clarify what “quality wobble” means internally.
+
+## Practical application
+Prompting can help, but it has limits.  
+OpenAI guidance suggests putting tone and role in the system message.  
+It suggests placing task details and examples in the user message.  
+It also suggests specifying tone with concrete adjectives.  
+Examples include formal, informal, friendly, and professional.  
+Humorous can also be used.  
+Teams can also constrain output format.  
+That can reduce unwanted drift between models.
+
+Structured output can preserve room for variation.  
+It can also make evaluation easier.  
+For example, request “10 headlines.”  
+Add a limit like “each no more than 12 words.”  
+Then request selection and expansion into an ad script.  
+This kind of template can anchor style decisions.
+
+Evaluation can act as a safety device for style.  
+OpenAI recommends pairwise comparisons or rubric scoring.  
+For creativity, “A is better than B” can be practical.  
+It can be more stable than absolute scales in some teams.  
+In operations, teams can score outputs with Graders.  
+They can use a **0–1** range with partial credit.  
+They can store the dataset and run regressions.  
+They can rerun the same set after prompt or model changes.  
+This shifts discussions toward measurable criteria.
+
+**Checklist for Today:**
+- Write a system message with brand voice adjectives and avoided tones, plus two user examples.  
+- Pick 30 core tasks and run blind pairwise comparisons using identical inputs across candidates.  
+- Add a **0–1** rubric in Graders or Evals, then rerun it before and after deployment.
+
+## FAQ
+**Q1. When will GPT‑4o disappear from ChatGPT?**  
+A1. The notice states retirement on **February 13, 2026** for legacy models in ChatGPT.
+
+**Q2. Will the API change at the same time?**  
+A2. The notice says, “**In the API, there are no changes at this time**.”  
+That makes immediate API impact hard to conclude from that notice alone.
+
+**Q3. How can we verify “strengthened guardrails” in official documentation?**  
+A3. This investigation did not confirm a single sentence defining “strengthened guardrails.”  
+Usage Policies document prohibited and restricted categories.  
+Moderation docs describe categories like `harassment` and `hate`.  
+They also describe outputs like `flagged` and `category_scores`.
+
+## Conclusion
+The retirement date (**February 13, 2026**) may be more than lineup cleanup.  
+It can prompt teams to re-align metrics for safety and expression.  
+The key observation point is not only the model name.  
+It is whether evaluation treats tone and creativity as operational items.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Battlefield Planning AI Raises Control, Audit, and Accountability Questions](/en/posts/battlefield-planning-ai-control-audit-accountability)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+---
+
+## References
+
+- [Retiring GPT-4o, GPT-4.1, GPT-4.1 mini, and OpenAI o4-mini in ChatGPT - openai.com](https://openai.com/index/retiring-gpt-4o-and-older-models/)
+- [ChatGPT — Release Notes | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6825453-chatgpt-apps-on-ios-and-android)
+- [ChatGPT Enterprise & Edu - Release Notes | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10128477-chatgpt-enterprise-edu-release-notes)
+- [Usage policies | OpenAI - openai.com](https://openai.com/policies/usage-policies)
+- [Moderation - OpenAI API (overview) - platform.openai.com](https://platform.openai.com/docs/guides/moderation/overview%20.pdf)
+- [Moderations | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/moderations/create%3Flang%3Dpython)
+- [Prompting | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/prompting)
+- [Prompt‑engineering best practices for ChatGPT | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10032626-prompt%E2%80%91engineering%E2%80%91best%E2%80%91practices%E2%80%91for%E2%80%91chatgpt%20OpenAI%20Help%20Center)
+- [Best practices for prompt engineering with the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6654000-best-practices-for-prompt-engineering-with-the-openai-api)
+- [Evaluation best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evaluation-best-practices)
+- [Graders | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/graders/)
+- [Getting started with datasets | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evaluation-getting-started)

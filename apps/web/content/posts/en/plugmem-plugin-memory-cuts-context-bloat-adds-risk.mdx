@@ -1,0 +1,157 @@
+---
+title: "PlugMem Plugin Memory Cuts Context Bloat, Adds Risk"
+slug: "plugmem-plugin-memory-cuts-context-bloat-adds-risk"
+date: "2026-03-05"
+lastReviewedAt: "2026-03-05"
+locale: "en"
+description: "PlugMem externalizes long-term memory as a plug-in to reduce retrieval bloat and relevance loss, while highlighting persistent injection risks."
+tags: ["llm", "robotics", "deep-dive", "security"]
+author: "AI온다"
+sourceId: "arxiv-cs-ai-0d9812d723451ded"
+sourceUrl: "https://arxiv.org/abs/2603.03296"
+verificationScore: 0.83
+alternateLocale: /ko/posts/plugmem-plugin-memory-cuts-context-bloat-adds-risk
+coverImage: "/images/posts/plugmem-plugin-memory-cuts-context-bloat-adds-risk.png"
+---
+
+Untrusted external content can appear during a normal agent session.  
+It can be stored in memory.  
+It can later be treated as an instruction.  
+This line from the Zombie Agents paper reframes memory as an attack surface.  
+PlugMem responds by separating long-term memory from the agent.  
+It presents memory as a plugin.  
+It aims to attach without task-specific redesign.  
+It targets failures like retrieval causing context expansion and lower relevance.
+
+## TL;DR
+- PlugMem describes a plugin-style long-term memory module for LLM agents.  
+- Reported results suggest higher benchmark scores than Vanilla Retrieval in several tasks.  
+- Treat memory as a controlled interface, then try to reproduce the reported benchmarks.  
+
+Example: A support agent saves notes from a customer chat. It later retrieves them during another conversation. A malicious note could look like a helpful reminder. The agent might treat it like a directive instead.
+
+## TL;DR
+- **What changed / core issue?** PlugMem proposes a plugin-style long-term memory module.  
+  It aims to attach without task-specific redesign.  
+  It targets context expansion from raw retrieval and low relevance.  
+- **Why does it matter?** The paper reports LongMemEval accuracy 75.1 vs 63.6.  
+  It reports HotpotQA EM/F1 61.4/74.1 vs 51.7/62.7 on a 1,000-example subset.  
+  It reports WebArena Shopping offline 58.4 vs 42.3.  
+  Zombie Agents warns that one injection can act later as instruction.  
+- **What should readers do?** Design verification, audit, and rollback gates for read and write paths.  
+  Default to non-retention of sensitive data when possible.  
+  Reproduce gains on the benchmark closest to your service.  
+
+## Current status
+The PlugMem paper frames a dilemma around long-term memory.  
+Task-specialized memory often transfers poorly between tasks.  
+Task-agnostic memory can show unstable performance.  
+The paper links this to low task relevance.  
+It also links this to context expansion from raw retrieval.  
+PlugMem presents a memory module intended to attach to any agent.
+
+The paper emphasizes transferability across benchmarks.  
+It reports evaluation without modification across three benchmarks.  
+On LongMemEval, it reports accuracy 75.1.  
+It lists Vanilla Retrieval at 63.6.  
+It lists Zep at 71.2.  
+It lists LiCoMemory at 73.0.  
+This comparison suggests a goal of higher performance without specialization.
+
+The paper reports results for multi-hop tasks.  
+On HotpotQA, it uses a 1,000-example subset.  
+It reports EM/F1 61.4/74.1.  
+It reports Vanilla Retrieval at 51.7/62.7.  
+It also reports web-agent numbers on WebArena.  
+It reports Shopping offline success rate 58.4 vs 42.3.  
+This suggests benefits on tool-using, multi-action agents.
+
+## Analysis
+A decision memo question is practical.  
+Can teams improve long-horizon performance with less agent redesign.  
+That includes planning, tools, and prompts.  
+It also includes memory changes.  
+If the reported numbers reproduce, the answer may lean positive.  
+The key figures include 75.1, 61.4/74.1, and 58.4.  
+They are reported alongside Vanilla Retrieval baselines.  
+Those baselines include 63.6, 51.7/62.7, and 42.3.
+
+A plugin interface can also simplify operations.  
+It can keep agent logic stable while swapping memory stacks.  
+Memory is state.  
+Separating state behind an interface can lower replacement costs.
+
+Pluginization can also standardize risk.  
+Zombie Agents describes a flow involving stored untrusted content.  
+It can be observed, written into memory, and later treated as instruction.  
+Long-term memory can become a persistent execution path.  
+Trade-offs depend on how memory is used and controlled.
+- If writes are broad and retention spans sessions, quality may improve.  
+  Risk of injection or contamination may also rise.  
+- If writes are restricted with audits and rollback, the attack surface may shrink.  
+  Some tasks may see less uplift than reported.  
+Performance design and operational control should be considered together.  
+
+## Practical application
+Adoption decisions can start with operational controls.  
+Long-term memory can be written at runtime.  
+It can persist across sessions.  
+Session-only filtering can be insufficient for some risks.  
+Treat memory read and write as a security gate.  
+Include verification, auditing, and rollback where feasible.  
+The summary mentions integrity hashes and anomaly detection as examples.  
+It also mentions declarative policy-based access control as an example.  
+Default to not storing sensitive information when possible.
+
+**Checklist for Today:**
+- Block memory writes by default, and document approval policies for what gets stored.  
+- Inject retrieved memory into a reference section, and prevent promotion into directives.  
+- Run one aligned evaluation, and check gains over Vanilla Retrieval on your domain task.  
+
+## FAQ
+**Q1. How is PlugMem different from RAG (simple retrieval)?**  
+A1. The abstract positions PlugMem as more than raw retrieval.  
+It targets low task relevance and context expansion.  
+It aims to remain effective when attached like a plugin.
+
+**Q2. How much does it improve numerically?**  
+A2. The paper reports LongMemEval accuracy 75.1.  
+It reports Vanilla Retrieval at 63.6.  
+It reports Zep at 71.2.  
+It reports LiCoMemory at 73.0.  
+On HotpotQA, it uses a 1,000-example subset.  
+It reports EM/F1 61.4/74.1.  
+It reports Vanilla Retrieval at 51.7/62.7.  
+On WebArena, it reports Shopping offline at 58.4 vs 42.3.
+
+**Q3. What are the security risks of long-term memory, and what must operations lock down?**  
+A3. Zombie Agents says stored untrusted content can later be treated as instruction.  
+Operations should treat memory read and write as a security gate.  
+That can include verification, auditing, and rollback.  
+Sensitive information can default to non-retention where feasible.  
+User control and deletion paths can also reduce risk.  
+The draft also mentions an OpenAI Memory FAQ.  
+It says users can delete memories.  
+It says training aimed to avoid remembering sensitive information.
+
+## Conclusion
+PlugMem aims to reduce redesigning memory per agent.  
+Performance numbers alone can miss operational risk.  
+That risk includes persistent injection described by Zombie Agents.  
+Reported benchmarks include 75.1, 61.4/74.1, and 58.4.  
+The key question is operational.  
+Is the memory layer run as a policy enforcement point.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Battlefield Planning AI Raises Control, Audit, and Accountability Questions](/en/posts/battlefield-planning-ai-control-audit-accountability)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+---
+
+## References
+
+- [Memory FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8590148-personalization-and-data-controls-faq)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.03296)
+- [Zombie Agents: Persistent Control of Self-Evolving LLM Agents via Self-Reinforcing Injections - arxiv.org](https://arxiv.org/abs/2602.15654)

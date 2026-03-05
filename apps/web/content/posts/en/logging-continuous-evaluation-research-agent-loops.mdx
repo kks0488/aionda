@@ -1,0 +1,151 @@
+---
+title: "Logging And Continuous Evaluation For Research Agent Loops"
+slug: "logging-continuous-evaluation-research-agent-loops"
+date: "2026-03-05"
+lastReviewedAt: "2026-03-05"
+locale: "en"
+description: "How to use LLM agents for research formalization with guardrails: log everything, run continuous evaluation, and score tool selection and argument precision."
+tags: ["hardware", "llm", "explainer"]
+author: "AI온다"
+sourceId: "1021185"
+sourceUrl: "https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1021185"
+verificationScore: 0.82
+alternateLocale: /ko/posts/logging-continuous-evaluation-research-agent-loops
+coverImage: "/images/posts/logging-continuous-evaluation-research-agent-loops.png"
+---
+
+## TL;DR
+- LLM use is shifting from one-off ideation to repeated “hypothesis → verification → revision” agent loops with tooling.  
+- This matters because nondeterminism and tool errors can pollute records without strong logs and evaluations.  
+- Next, set up logs, continuous evaluation, and tool-quality metrics before running an agent repeatedly.  
+
+A research note can stall when assumptions and definitions are unclear.  
+That stall often happens before any computation starts.  
+It can involve整理ing assumptions, testing counterexamples, and choosing stopping rules.  
+Conversational LLMs are often used to speed up this formalization step.  
+Another decision follows.  
+You can read one formalization pass and stop.  
+Or you can run an agent loop that repeats “hypothesis generation → verification → revision.”  
+
+Example: A researcher uses a chat tool to draft definitions and tests. The agent suggests a proof attempt. The researcher reviews the trace. The workflow repeats until the notes feel stable.  
+
+## Current state
+When adding LLM agents to a research loop, reproducibility often starts with logging and evaluation.  
+OpenAI’s evaluation best practices emphasize “Log everything.”  
+From development, you should log inputs and outputs.  
+You should also log which tools were called and why.  
+These logs can later become evaluation cases.  
+
+A second axis is continuous evaluation, or CE.  
+Even for one hypothesis, results can vary.  
+Sampling can change outputs.  
+Tool responses can change outputs.  
+External data state can change outputs.  
+Guidance recommends running evaluations when changes occur.  
+It also recommends production monitoring to identify nondeterministic cases.  
+Repeated agent execution can weaken reproducibility from code alone.  
+Operational discipline can also matter.  
+
+A third axis is agent–tool integration quality.  
+This goes beyond “got the right answer.”  
+OpenAI’s agent guidance suggests limits on retry count or number of actions.  
+This can reduce infinite loops and cost growth.  
+Evaluation can track tool selection and data precision.  
+Data precision here means tool argument accuracy.  
+In research, this means checking tool choice explicitly.  
+It also means checking theorem statements, assumptions, and verifier inputs.  
+
+Verification standards can diverge by domain.  
+In formal verification, success is often “verifies or compiles without kernel errors.”  
+This result is sometimes summarized as pass@k.  
+Pass@k means success if any of multiple attempts passes.  
+In empirical benchmarks, success is often answer-match accuracy.  
+MMLU was proposed to measure multitask accuracy.  
+GSM8K often uses exact match of the final numeric answer.  
+In code or patch evaluation, Resolution Rate is sometimes used.  
+Resolution Rate can mean tests pass and the issue is judged resolved.  
+Success conditions should be defined for an evaluation harness.  
+They should be reproducibly checkable, not just plausible-sounding.  
+
+## Analysis
+This trend matters because formalization can be a research bottleneck.  
+Computation is not always the limiting factor.  
+Problem definitions often need tightening.  
+Assumptions often need listing.  
+Proof sketches and counterexamples often need structure.  
+Experimental design often needs a clear record.  
+An LLM can help assemble these parts through dialogue.  
+An agent can turn one dialogue into repeated “hypothesis → verification → revision.”  
+At that point, fluency matters less than observability.  
+Without logs and evaluation, notes can drift into narrative prose.  
+They can become less like verifiable records.  
+
+Limitations also remain.  
+Nondeterminism is not only “different answers sometimes.”  
+Accumulated variance can reduce trust in the record.  
+CE can help surface nondeterministic cases.  
+CE can also add operational burden.  
+Tool integration adds new error surfaces.  
+You should evaluate tool choice criteria separately.  
+You should also evaluate argument filling accuracy separately.  
+Formal metrics like pass@k summarize success frequency.  
+Research often needs failure diagnosis, not only success counts.  
+If pass@k rises without logs, luck can dominate.  
+That can weaken reproducible knowledge.  
+
+## Practical application
+A safer goal is “verifiable research records.”  
+This differs from “automatic paper writing.”  
+The record can bundle claims, assumptions, counterexamples, and experiments.  
+Another person can then rerun the procedure.  
+This aligns with guidance themes.  
+Those themes include logging, CE, and separate tool-integration scoring.  
+
+Example: In math or formal verification, store theorem statements and assumptions in a structured form. Store proof-assistant inputs, outputs, and error logs. Record pass or fail across attempts using pass@k. Feed common failure patterns back as constraints for the next prompt. In code research, generate a patch, run tests, and store logs and resolution status. Add retry limits to reduce repeated failures.  
+
+**Checklist for Today:**
+- Define a single trace format for inputs, outputs, tool calls, and decision rationales.  
+- Choose success conditions like compile, exact match, or resolved, and run CE on each change.  
+- Write failure-threshold rules, including retry or action limits, and apply them in runs.  
+
+## FAQ
+**Q1. In “Log everything,” how far does “everything” go?**  
+A1. Log prompts and output text.  
+Log tool choices and stated reasons.  
+Log tool arguments and tool responses.  
+Log the next action chosen from those results.  
+This supports reuse as evaluation cases.  
+
+**Q2. Why is continuous evaluation (CE) close to essential?**  
+A2. Nondeterminism can change results for the same request.  
+Performance can shift after changes to model, prompts, tools, or data.  
+CE runs evaluations on each change.  
+It helps detect shifts earlier.  
+
+**Q3. Why is it risky to judge agent performance only by “accuracy”?**  
+A3. Agents also select tools and fill tool arguments.  
+These steps can fail even with good final answers.  
+Metrics can include tool selection and argument accuracy.  
+Unstable tool calling can weaken reproducibility and error control.  
+
+## Conclusion
+LLMs can help with formalization and verification loops, not only ideas.  
+To extend to an agent, you should set up logging first.  
+You should also set up continuous evaluation.  
+You should score tool-integration quality separately.  
+You should define failure thresholds, including retry or action limits.  
+The key watchpoint is record reproducibility, not only performance comparisons.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Battlefield Planning AI Raises Control, Audit, and Accountability Questions](/en/posts/battlefield-planning-ai-control-audit-accountability)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+---
+
+## References
+
+- [Evaluation best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/evaluation-best-practices)
+- [A practical guide to building agents | OpenAI - openai.com](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)
+- [Measuring Massive Multitask Language Understanding (Hendrycks et al.) - arxiv.org](https://arxiv.org/abs/2009.03300)

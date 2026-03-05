@@ -1,0 +1,123 @@
+---
+title: "AgentSelect Benchmark For Query-Conditioned Agent Configuration Recommendation"
+slug: "agentselect-benchmark-query-conditioned-agent-configuration-recommendation"
+date: "2026-03-05"
+lastReviewedAt: "2026-03-05"
+locale: "en"
+description: "AgentSelect defines narrative-query to end-to-end agent configuration recommendation, proposing a benchmark with queries, agents, and interactions."
+tags: ["hardware", "llm", "deep-dive", "benchmark"]
+author: "AI온다"
+sourceId: "arxiv-cs-ai-0b898d5968d050bf"
+sourceUrl: "https://arxiv.org/abs/2603.03761"
+verificationScore: 0.67
+alternateLocale: /ko/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation
+coverImage: "/images/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation.png"
+---
+
+A user opens an internal console and sees 107,721 deployable agents to choose from.  
+AgentSelect frames that choice as a narrative query to agent composition recommendation problem.  
+It proposes a benchmark with 111,179 queries and 251,103 interaction records.  
+The focus shifts from model tables to production selection behavior.  
+As agent counts grow, choosing agents can become harder than building them.
+
+## TL;DR
+- AgentSelect reframes agent evaluation as query to end-to-end composition recommendation over 107,721 agents.  
+- This framing can connect evaluation to deployment choices, including cost and reliability constraints.  
+- Start logging query to configuration decisions, then evaluate under budget and repeat-run metrics.
+
+Example: A support team routes different requests to different agent setups. They separate safe text-only work from tool-using flows. They also add guardrails for sensitive operations.
+
+## TL;DR
+- AgentSelect defines narrative query to end-to-end agent composition recommendation. It includes 111,179 queries, 107,721 agents, and 251,103 interaction records.  
+- Many leaderboards score components in isolation. A recommendation framing can better reflect deployment selection decisions.  
+- If you operate agents, standardize query to configuration logs. Add cost and consistency constraints beyond one offline score.
+
+## Current state
+AgentSelect starts from an observation about automation interfaces.  
+It suggests deployable configurations are growing faster than selection criteria.  
+The abstract claims existing leaderboards evaluate components separately.  
+It also claims benchmark differences hinder operational selection mapping.  
+AgentSelect targets missing supervisory signals for query-conditioned recommendation.
+
+It reports dataset scale in the abstract.  
+The benchmark includes 111,179 queries, 107,721 deployable agents, and 251,103 interaction records.  
+It also says it unified interaction data from 40+ sources.  
+The candidate pool spans LLM-only, toolkit-only, and compositional agents.  
+The target becomes the deployable unit, including tool combinations.
+
+The abstract leaves operational details unclear.  
+Tool categories and frameworks are not specified in the abstract.  
+The onboarding pipeline for new tools is also unclear from the abstract.  
+Label sources are unclear from the abstract.  
+It mainly describes unified, positive-only interaction data.
+
+## Analysis
+For a decision memo, the message is straightforward.  
+Production value depends on selecting a configuration that matches a query.  
+Many teams already have multiple LLMs and tools.  
+Adding more components can add failure modes.  
+Failures can involve permissions, security, call cost, latency, and dependencies.  
+A recommendation framing can tie evaluation to routing defaults and procurement choices.
+
+Trade-offs remain.
+
+First, positive-only interaction data can bias learning.  
+It can limit signals about what not to recommend.  
+It can also overstate that observed choices were best.
+
+Second, offline metrics may not match production KPIs.  
+Cost-uncontrolled evaluation can hide cost spreads at similar accuracy.  
+One cited framework claims cost can vary by 50x without cost control.
+
+Third, reliability is a separate dimension.  
+Repeated execution behavior can matter more than one run.  
+Anthropic contrasted pass@k with pass^k as reliability views.  
+Benchmark handling of these differences can vary by design.  
+Positive-only data can complicate reliability estimation.
+
+## Practical application
+Treating AgentSelect as only a paper may limit impact.  
+Treat it as guidance for evaluating selection and routing layers.  
+If you operate agents, elevate selection into a product problem.  
+Do this before stacking more model performance tables.  
+Log queries, selected configurations, and outcomes as supervisory signals.  
+AgentSelect’s 40+ source integration suggests this layer is hard to skip.
+
+**Checklist for Today:**
+- Standardize a log schema for query to configuration selection and outcome fields.  
+- Report offline results under a budget constraint and with repeat-run consistency metrics.  
+- Write an If/Then routing policy that separates tool-required flows from safer LLM-only flows.
+
+## FAQ
+**Q1. What does AgentSelect benchmark?**  
+A1. It benchmarks recommending a deployable end-to-end agent composition for a narrative query.  
+It reports 111,179 queries, 107,721 agents, and 251,103 interaction records.
+
+**Q2. What is included in the candidate agent pool?**  
+A2. The abstract lists LLM-only, toolkit-only, and compositional agents.  
+Specific tool categories or frameworks are not clear from the abstract.
+
+**Q3. How are the ground-truth labels created, and how is noise controlled?**  
+A3. The abstract says heterogeneous outputs become unified, positive-only interaction data.  
+Label sources and noise controls are not clear from the abstract.
+
+## Conclusion
+AgentSelect treats agent performance as a selection problem.  
+It emphasizes choosing a composition per query, not picking one best agent.  
+A key question is KPI alignment in evaluation design.  
+Cost, latency, policy, and repeat-run consistency look especially relevant.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Battlefield Planning AI Raises Control, Audit, and Accountability Questions](/en/posts/battlefield-planning-ai-control-audit-accountability)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+---
+
+## References
+
+- [Demystifying evals for AI agents - anthropic.com](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.03761)
+- [Beyond Accuracy: A Multi-Dimensional Framework for Evaluating Enterprise Agentic AI Systems - arxiv.org](https://arxiv.org/abs/2511.14136)
+- [Fast Surrogate Learning for Multi-Objective UAV Placement in Motorway Intelligent Transportation System - arxiv.org](https://arxiv.org/abs/2602.13564)

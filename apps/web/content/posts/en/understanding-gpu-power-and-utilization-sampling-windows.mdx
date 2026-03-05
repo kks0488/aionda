@@ -1,0 +1,137 @@
+---
+title: "Understanding GPU Power And Utilization Sampling Windows"
+slug: "understanding-gpu-power-and-utilization-sampling-windows"
+date: "2026-03-05"
+lastReviewedAt: "2026-03-05"
+locale: "en"
+description: "NVML, DCGM, and nvidia-smi report window-averaged power and utilization. Learn how sampling affects LLM inference graphs."
+tags: ["agi", "hardware", "llm", "explainer"]
+author: "AI온다"
+sourceId: "1021219"
+sourceUrl: "https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1021219"
+verificationScore: 0.77
+alternateLocale: /ko/posts/understanding-gpu-power-and-utilization-sampling-windows
+coverImage: "/images/posts/understanding-gpu-power-and-utilization-sampling-windows.png"
+---
+
+DCGM samples GPU metrics at **1Hz (1000ms) by default**.  
+NVML’s `nvmlDeviceGetPowerUsage` returns a **1-second average power** on GPUs from Ampere onward (**except GA100**).  
+The GPU/Memory Util in `nvidia-smi` is the fraction of time kernels or memory R/W occurred **during the previous sample period**.  
+That period can vary by product, from **1 second to 1/6 second**.  
+These definitions can change how local LLM inference graphs appear across prompt shapes.  
+The graph is rarely an “instant” value.  
+It is typically an average or ratio over the immediately preceding interval.
+
+## TL;DR
+- GPU power and utilization charts often reflect interval averages, not instantaneous inference activity.  
+- This matters because **1Hz (1000ms)** logging can merge sub-second bursts and tail work into a few samples.  
+- Next, log sessions with explicit idle windows and compare **1Hz** against **100ms** when needed.  
+
+Example: You run two prompts that seem similar in length. One uses direct questions, and one uses stepwise reasoning. The plots look different. You suspect the metric window shapes what you see, not only the compute.
+
+## TL;DR
+- **Core issue:** GPU power and utilization can vary with prompt structure during inference.  
+  You should separate compute changes from measurement and averaging effects.  
+- **Why it matters:** NVML/DCGM indicators are based on the previous sampling interval.  
+  With **1-second logging**, sub-second bursts can look merged into a few samples.  
+  This can affect power limiting, batch scheduling, and “GPU still running after response ended” diagnosis.  
+- **What to do:** Split logs by session with **1Hz (default)**.  
+  Reduce to **100ms** when needed and supported.  
+  Include a post-response idle interval, then vary decoding settings and check loop symptoms.  
+
+## Current state
+GPU power and utilization are sometimes used as a proxy for inference load.  
+It helps to treat these metrics as not strictly real-time.  
+NVML documentation describes `nvmlDeviceGetPowerUsage` as **1-second average power** on Ampere and later.  
+GA100 is listed as an exception.  
+Averaging over a 1-second window can smooth peaks.  
+It can also make activity appear to persist after completion.
+
+The GPU/Memory Util in `nvidia-smi` also needs careful interpretation.  
+GPU Util is defined as the fraction of time kernels were running during the previous sample period.  
+Memory Util is defined as the fraction of time global memory R/W occurred during the previous sample period.  
+The sample period can vary by product from **1 second to 1/6 second**.  
+Graphs can differ across hardware even for similar workloads.
+
+DCGM documentation states a default profiling sample rate of **1Hz (1000ms)**.  
+Users can set a tighter query cadence.  
+Documentation describes a minimum of **100ms**.  
+The metric definition still reflects interval averages or ratios.  
+So, a faster cadence changes resolution, not the underlying meaning.
+
+## Analysis
+LLM inference often emits tokens one at a time at the application level.  
+GPU execution can still occur in bursts.  
+Framework or driver queues can also shift work in time.  
+Interval averaging can amplify these timing effects.  
+So, curves can change as inputs change, even with similar token counts.
+
+You can also see changes from failure modes.  
+Infinite repetitive generation or delayed termination can change power patterns.  
+In a Hugging Face discussion, an “infinite generation loop” was reported.  
+A temporary workaround suggested avoiding greedy decoding.  
+The suggestion used `do_sample=True, temperature=0.6, top_p=0.9`.  
+This does not identify a single root cause for all models.  
+It suggests decoding policy can relate to loops or termination delays.  
+In those cases, token length alone may not explain the graphs.
+
+## Practical application
+Start by fixing what the GPU logs mean in your experiment.  
+NVML power can be a **1-second average** on the relevant architectures.  
+DCGM defaults to **1Hz (1000ms)**.  
+So, “power per token” conclusions should follow session splitting and clear observation intervals.
+
+Include idle time before sending the prompt in the logs.  
+Include idle time after the response ends in the logs.  
+This can help separate residual work from averaging or latency artifacts.  
+Then comparisons across prompt categories can become more interpretable.
+
+Example: Create two prompts aiming for the same output length.  
+Use one direct Q&A prompt and one step-by-step reasoning prompt.  
+Keep decoding settings fixed.  
+Record DCGM at **1Hz (1000ms)**.  
+Repeat with **100ms** queries.  
+Compare the “after response ends” segment across the two logs.
+
+**Checklist for Today:**
+- Capture one DCGM log at **1Hz (1000ms)** and another at **100ms**, if available.  
+- Add explicit idle time before prompts and after responses in each session log.  
+- If you suspect loops, re-run with `do_sample=True, temperature=0.6, top_p=0.9` and compare patterns.  
+
+## FAQ
+**Q1. Does 70% GPU Util in nvidia-smi mean “the GPU worked at 70% speed”?**  
+A1. Not necessarily.  
+GPU Util is the fraction of time kernels ran during the previous sample period.  
+That period can be **1 second to 1/6 second** depending on the product.  
+Short bursts can look averaged out.
+
+**Q2. Is the NVML power value instantaneous power or average power?**  
+A2. NVML documentation describes `nvmlDeviceGetPowerUsage` as **1-second average power** on Ampere onward.  
+GA100 is listed as an exception.  
+Earlier architectures may behave differently.
+
+**Q3. How fine-grained can DCGM measure?**  
+A3. DCGM documentation describes a default rate of **1Hz (1000ms)**.  
+It also describes adjustment down to **100ms**.
+
+## Conclusion
+Token length alone can mislead when interpreting inference GPU patterns.  
+NVML/DCGM metrics can reflect **interval averages or interval ratios**.  
+First, define the measurement window and session structure.  
+Then examine how prompt category and decoding settings affect the curves.  
+Also check for loop or termination-delay failure modes.
+
+## Further Reading
+- [AI Automation Shocks Jobs, Energy Costs, Transfer Feasibility](/en/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [Battlefield Planning AI Raises Control, Audit, and Accountability Questions](/en/posts/battlefield-planning-ai-control-audit-accountability)
+- [Bridging the Gap Between AI Performance and Productivity](/en/posts/bridging-gap-ai-performance-productivity)
+- [How Conversational AI Design Shapes Intimacy And Trust](/en/posts/conversational-ai-design-intimacy-trust)
+- [Evaluating LLM Operational Reliability Beyond Benchmark Scores](/en/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+---
+
+## References
+
+- [NVML API Reference Guide :: GPU Deployment and Management Documentation (nvmlDeviceGetPowerUsage) - docs.nvidia.com](https://docs.nvidia.com/deploy/nvml-api/group__nvmlDeviceQueries.html)
+- [Feature Overview — NVIDIA DCGM Documentation (Profiling Metrics) - docs.nvidia.com](https://docs.nvidia.com/datacenter/dcgm/latest/user-guide/feature-overview.html)
+- [Data Center GPU Manager User Guide (v2.2) — Feature Overview - docs.nvidia.com](https://docs.nvidia.com/datacenter/dcgm/2.2/dcgm-user-guide/feature-overview.html)
+- [meta-llama/Llama-3.1-8B-Instruct · The model often enters infinite generation loops (discussion #32) - huggingface.co](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/discussions/32)

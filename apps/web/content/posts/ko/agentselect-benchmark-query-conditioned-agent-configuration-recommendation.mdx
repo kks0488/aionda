@@ -1,0 +1,72 @@
+---
+title: "AgentSelect: 질의로 에이전트 구성 추천"
+slug: "agentselect-benchmark-query-conditioned-agent-configuration-recommendation"
+date: "2026-03-05"
+lastReviewedAt: "2026-03-05"
+locale: "ko"
+description: "서술형 질의에 맞는 엔드투엔드 에이전트 구성을 추천하는 AgentSelect 벤치마크를 소개한다."
+tags: ["llm", "deep-dive", "benchmark"]
+author: "AI온다"
+sourceId: "arxiv-cs-ai-0b898d5968d050bf"
+sourceUrl: "https://arxiv.org/abs/2603.03761"
+verificationScore: 0.67
+alternateLocale: /en/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation
+coverImage: "/images/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation.png"
+---
+
+107,721개 “배포 가능한 에이전트” 중에서 무엇을 고를지, 질문 하나로 결정해야 하는 순간이 온다. AgentSelect는 이 선택을 “서술형 질의(narrative query) → 엔드투엔드 에이전트 구성 추천” 문제로 정의하고, 111,179개 질의와 251,103개 상호작용 기록을 묶어 벤치마크로 제안한다. 핵심은 모델 성능표 자체가 아니라 “운영에서 실제로 필요한 조합 선택”을 평가의 중심에 두려는 접근이다. 에이전트가 늘수록 더 어려워지는 지점은 ‘에이전트 만들기’가 아니라 ‘에이전트 고르기’일 수 있다.
+
+## 세 줄 요약
+- AgentSelect는 “서술형 질의에 맞춰 엔드투엔드 에이전트 구성을 추천”하는 문제를 정의하고, 111,179개 질의·107,721개 에이전트·251,103개 상호작용 기록으로 벤치마크를 제안한다.  
+- 기존 리더보드가 컴포넌트(모델/툴/태스크) 단위로 분리돼 있을 때, 추천 문제로 재정의하면 배치 의사결정(무엇을 붙여 쓸지)과 평가가 더 직접 연결될 여지가 있다. 이는 선택 실패, 비용 증가, 신뢰성 저하 같은 제품 리스크를 줄이는 데 도움이 될 수 있다.  
+- 에이전트를 운영한다면 “쿼리→구성 선택” 로그를 먼저 표준화하고, 오프라인 추천 점수 1개로 끝내지 말고 비용/지연/성공을 제약으로 건 평가(예산 제약, pass@k/일관성 병행)를 내부 평가 규칙으로 고정하라.  
+
+## 현황
+AgentSelect는 “LLM 에이전트가 실무 자동화의 인터페이스가 됐지만, 배포 가능한 구성 공간이 커지는 데 비해 무엇을 선택할지에 대한 기준이 부족하다”는 문제의식에서 출발한다. 초록에 따르면 기존 LLM 리더보드와 툴/에이전트 벤치마크는 컴포넌트를 분리해 평가하고, 태스크·메트릭·후보 풀이 제각각이어서 운영 선택에 바로 연결하기 어렵다. 그래서 AgentSelect는 질의 조건부(query-conditioned)로 “엔드투엔드 에이전트 구성을 추천”하도록 학습·평가할 감독 신호가 부족하다는 공백을 겨냥한다.
+
+데이터 스케일도 제시한다. AgentSelect는 111,179 queries, 107,721 deployable agents, 251,103 interaction records를 포함한다고 밝힌다. 또 40+ sources에서 이질적인 평가 아티팩트/소스를 모아 상호작용 데이터를 통합했다고 한다. 후보 풀은 LLM-only, toolkit-only, compositional agents를 가로지른다. 즉 “모델만 좋은지”가 아니라 “툴킷 조합까지 포함한 배포 단위가 적절한지”를 추천 대상으로 삼는다.
+
+다만 초록만으로는 운영 관점에서 중요한 세부가 충분히 드러나지 않는다. 예를 들어 어떤 툴 카테고리/프레임워크가 포함되는지, 새 도구·새 에이전트를 추가할 때 온보딩 파이프라인이 어느 정도 자동화돼 있는지, 추천의 정답(label)이 사람 평가인지 실행 로그 기반인지 같은 항목은 초록만으로 확정하기 어렵다. 대신 “heterogeneous evaluation artifacts를 unified, positive-only interaction data로 변환한다”는 방향만 제시한다.
+
+## 분석
+의사결정 메모 관점에서 AgentSelect의 메시지는 단순하다. 에이전트 환경에서 중요한 시스템은 “답을 잘 푸는 모델”만이 아니라 “질문에 맞는 구성(slate)을 고르는 시스템”이 된다. 운영 병목이 바뀌기 때문이다. 팀은 여러 백본 LLM과 툴을 이미 보유할 수 있고, 더 많이 붙일수록 실패 모드도 늘어난다(권한, 보안, 호출 비용, 지연, 외부 의존성). 추천 문제로 프레이밍하면 평가 결과가 구매/배치 의사결정(어떤 조합을 기본값으로 둘지, 어떤 쿼리에 어떤 구성을 라우팅할지)과 더 가깝게 연결된다.
+
+트레이드오프도 있다. 첫째, “positive-only interaction data”는 편향 위험이 있다. 성공 사례만 모이면 실패를 피하는 법(무엇을 추천하지 말아야 하는지)을 학습하기 어렵고, 관측된 상호작용이 최적 선택이라는 오해를 만들 수 있다. 둘째, 오프라인 추천 메트릭이 운영 KPI와 정렬된다고 보장하기 어렵다. 비용 통제 없는 평가는 같은 정확도라도 비용이 크게 갈릴 수 있다는 문제 제기가 있다(기업용 에이전트 평가 프레임워크 논문은 cost-controlled evaluation 부재로 50x cost variations가 생길 수 있다고 말한다). 셋째, 신뢰성 문제다. 에이전트는 한 번의 성공보다 “반복 실행에서의 성공”이 중요하다. Anthropic은 pass@k(여러 번 시도 중 1번 성공)와 pass^k(모든 시도 성공)처럼, 같은 성공률이라도 운영 품질이 달라질 수 있음을 정리했다. 추천 벤치마크가 이 차이를 어떻게 다룰지는(특히 positive-only 데이터에서) 설계에 따라 달라질 수 있다.
+
+## 실전 적용
+AgentSelect를 “논문 하나”로만 보면 남는 게 제한적이다. 반대로 “내 조직의 라우팅/선택 레이어를 어떻게 평가할지”라는 문제로 보면 바로 적용 포인트가 생긴다. 이미 에이전트를 운영 중이라면 모델 성능표를 더 쌓기 전에 ‘선택 문제’를 제품 문제로 올려야 한다. 구체적으로는 (1) 질의를 표준화해 저장하고 (2) 각 질의에서 어떤 구성이 선택됐고 (3) 성공/비용/지연/정책 이슈가 어땠는지 남겨 “쿼리-조건부 감독 신호”를 만든다. AgentSelect가 40+ 소스의 이질적 평가 산출물을 상호작용 데이터로 통합했다고 밝힌 것도, 이런 레이어가 없으면 추천 학습이 성립하기 어렵다는 문제의식과 맞닿아 있다.
+
+예: 고객지원 자동화에서 “환불 규정 요약”과 “주문 변경 처리”는 필요한 툴과 실패 비용이 다르다. 전자는 지식 검색+요약이 우선이고, 후자는 주문 시스템 호출 권한·검증·롤백이 핵심이다. 같은 백본 LLM이라도 질의 유형에 따라 “LLM-only”가 안전한 영역과 “toolkit-only/조합형”이 필요한 영역을 나눠 추천·라우팅해야 한다. 벤치마크의 가치는 이 ‘나눠서 고르는 능력’을 측정하려는 시도에 있다.
+
+오늘 바로 할 일 체크리스트:
+- 우리 서비스의 상위 서술형 질의 50개를 모아 “필요 툴/권한/실패 비용”으로 태깅하고, 질의→구성 선택 로그 스키마를 먼저 고정하라.  
+- 오프라인 평가는 단일 점수 대신 “예산(비용) 제약을 건 성능”과 “반복 실행 일관성(pass@k와 pass^k 성격의 지표)”을 같이 보고하라.  
+- 추천 정책을 “If/Then”으로 문서화하라: If 외부 시스템 호출/권한이 필요하면 Then 조합형을 허용하되, 그렇지 않으면 Then LLM-only로 가는 식의 가드레일을 먼저 세워라.  
+
+## FAQ
+**Q1. AgentSelect는 무엇을 벤치마크하나요?**  
+A1. AgentSelect는 “서술형 질의에 대해 엔드투엔드로 배포 가능한 에이전트 구성을 추천”하는 문제를 벤치마크합니다. 초록 기준으로 111,179개 질의와 107,721개 에이전트, 251,103개 상호작용 기록을 포함합니다.
+
+**Q2. 후보 에이전트 풀에는 무엇이 들어가나요?**  
+A2. 초록 기준으로 LLM-only, toolkit-only, 그리고 둘을 결합한 compositional agents를 포괄합니다. 다만 구체적으로 어떤 툴 카테고리나 프레임워크가 포함되는지까지는 초록만으로 확인하기 어렵습니다.
+
+**Q3. 추천의 ‘정답 라벨’은 어떻게 만들고, 노이즈는 어떻게 통제하나요?**  
+A3. 초록에는 이질적인 평가 산출물을 unified, positive-only interaction data로 변환한다고만 설명돼 있습니다. 사람 평가인지 실행 기반인지, 편향/노이즈 통제 절차가 무엇인지 등은 초록만으로 단정하기 어렵습니다.
+
+## 결론
+AgentSelect는 “에이전트 성능”을 다른 관점에서 다룬다. 좋은 에이전트 하나를 뽑는 문제라기보다, 질의마다 좋은 조합을 고르는 추천 문제로 옮겨가려는 시도다. 앞으로의 관전 포인트는 이 추천 벤치마크가 운영 KPI(비용·지연·정책·일관성)와 연결되는 평가 규칙을 어느 정도까지 설득력 있게 포함하느냐에 달려 있다.
+
+## 다음으로 읽기
+- [AI 자동화, 고용·에너지·이전재정의 충돌](/ko/posts/ai-automation-shocks-jobs-energy-costs-transfer-feasibility)
+- [전장 작전계획 AI와 통제의 설계](/ko/posts/battlefield-planning-ai-control-audit-accountability)
+- [AI 성능과 생산성 시차 줄이기](/ko/posts/bridging-gap-ai-performance-productivity)
+- [대화형 AI의 친밀감 설계와 신뢰](/ko/posts/conversational-ai-design-intimacy-trust)
+- [LLM 운영 안정성 평가 체크리스트](/ko/posts/evaluating-llm-operational-reliability-beyond-benchmark-scores)
+---
+
+## 참고 자료
+
+- [Demystifying evals for AI agents - anthropic.com](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.03761)
+- [Beyond Accuracy: A Multi-Dimensional Framework for Evaluating Enterprise Agentic AI Systems - arxiv.org](https://arxiv.org/abs/2511.14136)
+- [Fast Surrogate Learning for Multi-Objective UAV Placement in Motorway Intelligent Transportation System - arxiv.org](https://arxiv.org/abs/2602.13564)
