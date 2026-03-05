@@ -282,8 +282,8 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   const hasTrustedPrimary = primaryTier === SourceTier.S || primaryTier === SourceTier.A;
   const hasTrustedEvidence = hasTrustedSources || hasTrustedPrimary;
 
-  // hasTrustedPrimary여도 avgConfidence < 0.4이면 차단
-  const effectiveMinConfidence = hasTrustedPrimary ? Math.max(MIN_CONFIDENCE, 0.4) : MIN_CONFIDENCE;
+  // hasTrustedPrimary면 confidence 기준을 0.4로 완화
+  const effectiveMinConfidence = hasTrustedPrimary ? 0.4 : MIN_CONFIDENCE;
   const hasVerifiedContent = avgConfidence >= effectiveMinConfidence && hasTrustedEvidence;
 
   // 전체 출처 통계

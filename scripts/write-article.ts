@@ -45,10 +45,15 @@ type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
 type EvergreenSchema = 'howto' | 'faq';
 type Locale = 'ko' | 'en';
 
-const INTRO_TYPES = ['A', 'B', 'C', 'D', 'E'] as const;
+const INTRO_TYPES_WITH_F = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
+const INTRO_TYPES_NO_F = ['A', 'B', 'C', 'D', 'E'] as const;
+let fUsed = false;
 function getIntroType(batchIndex: number): string {
-  if (batchIndex === 0) return 'F'; // 첫 글만 장면 묘사 허용
-  return INTRO_TYPES[(batchIndex - 1) % INTRO_TYPES.length];
+  if (!fUsed && batchIndex > 0 && Math.random() < 0.25) {
+    fUsed = true;
+    return 'F';
+  }
+  return INTRO_TYPES_NO_F[batchIndex % INTRO_TYPES_NO_F.length];
 }
 
 function stripHtml(value: string): string {

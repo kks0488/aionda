@@ -687,12 +687,13 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
-  // 동일 이벤트 제한: 같은 태그 세트를 공유하는 토픽은 상위 1편만 유지
+  // 동일 이벤트 제한: 제목 키워드가 겹치는 토픽은 상위 1편만 유지
   const beforeDedup = extractedTopics.length;
   const seen = new Map<string, typeof extractedTopics[0]>();
   for (const t of extractedTopics) {
     const topicData = JSON.parse(readFileSync(t.file, 'utf-8'));
-    const key = (topicData.tags || topicData.keyInsights || []).slice(0, 3).sort().join(',');
+    const title = (topicData.title || '').toLowerCase().replace(/[^a-z0-9가-힣\s]/g, '');
+    const key = title.split(/\s+/).filter(Boolean).sort().slice(0, 5).join(',');
     if (!key) { seen.set(t.id, t); continue; }
     if (!seen.has(key)) {
       seen.set(key, t);

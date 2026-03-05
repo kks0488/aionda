@@ -100,7 +100,7 @@ const RSS_SOURCES: RSSSource[] = [
   // Independent Analysts / Newsletters (Tier A-B)
   { id: 'simon-willison', name: 'Simon Willison', url: 'https://simonwillison.net/atom/everything/', tier: 'A', type: 'news', enabled: true },
   { id: 'interconnects', name: 'Interconnects', url: 'https://www.interconnects.ai/feed', tier: 'A', type: 'news', enabled: true },
-  { id: 'ai-snake-oil', name: 'AI Snake Oil', url: 'https://www.aisnakeoil.com/feed', tier: 'B', type: 'news', enabled: true },
+  { id: 'ai-normal-tech', name: 'AI as Normal Technology', url: 'https://www.normaltech.ai/feed', tier: 'B', type: 'news', enabled: true },
 
   // Community (Tier B)
   { id: 'hn-ai', name: 'Hacker News AI', url: 'https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT&points=50', tier: 'B', type: 'news', enabled: true },
