@@ -1,0 +1,154 @@
+---
+title: Reproducible Visual Puzzle Evaluation Without Tool Leakage
+slug: reproducible-visual-puzzle-evaluation-without-tool-leakage
+date: '2026-03-05'
+lastReviewedAt: '2026-03-05'
+locale: en
+description: >-
+  Tool-free visual puzzle claims depend on fixed constraints: lock tools, image
+  preprocessing, prompts, and logs for reproducibility.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1022268'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1022268'
+verificationScore: 0.75
+alternateLocale: /ko/posts/reproducible-visual-puzzle-evaluation-without-tool-leakage
+coverImage: /images/posts/reproducible-visual-puzzle-evaluation-without-tool-leakage.png
+---
+
+At **0.1 bpp**, image segmentation performance (mIoU) can drop **from 44.5 to 30.5**.  
+This shows how one preprocessing condition can shift a model’s visual output.  
+Puzzle evaluations add more variables and more room for ambiguity.  
+Text-only constraints like “solve without tools” can look clear.  
+They can still be hard to reproduce in practice.
+
+## TL;DR
+- This reframes “no tools” puzzle evaluations as constraint definition and logging work, not only capability scoring.
+- It matters because preprocessing shifts can be large, like **mIoU 44.5→30.5**, and UI choices can change difficulty.
+- Next, you should version-control prompts, `tools` settings, images, and logs as one rerunnable bundle.
+
+Example: A reviewer runs a line-tracing puzzle and asks for a final mapping only. They avoid zooming and avoid cropping. They later rerun the same prompt and compare the mapping.
+
+## Current state
+The phrase “solved without tools” mixes two elements.  
+One element is model capability, such as reasoning skill.  
+The other element is evaluation conditions, such as blocking tools, code, or zoom.  
+
+The evaluation element can be fragile when written only in natural language.  
+A report may omit which viewer was used.  
+A report may omit the displayed image size.  
+A report may omit whether tools were blocked at runtime.  
+
+Industry documentation often notes that tools can be injected outside the prompt.  
+Anthropic documentation describes a `tools` parameter in API calls.  
+It says the tools configuration and system prompt are combined.  
+It describes a constructed “special system prompt.”  
+So “don’t use tools” in a user message differs from empty `tools` at runtime.  
+
+Image conditions are another axis.  
+Some papers report numeric effects from preprocessing changes.  
+One result reports compression reducing mIoU **from 44.5 to 30.5**.  
+Subjective evaluation can report **win rate** with a **95%** binomial confidence interval.  
+One example reports a sample size of **n = 47**.  
+Line-tracing puzzles also depend on pixels.  
+So “no zoom” can interact with display and preprocessing choices.
+
+## Analysis
+Ladder-game-style puzzles are convenient because answers are structured.  
+A “pair mapping” output format can support automatic grading.  
+The next issue is procedural execution versus reasoning.  
+
+Models can output step-by-step moves in text.  
+Evaluations often grade only the final mapping.  
+Loose constraints can change the task difficulty.  
+This can happen even for the same puzzle image.  
+
+Limitations are visible in common setups.  
+What counts as a “tool” varies by implementation.  
+Some environments block tool calls at runtime.  
+Some environments mix tool definitions into system prompts.  
+Some environments allow zoom or scroll in the UI.  
+
+Preprocessing and display conditions can also affect results.  
+Thin-line puzzles may be sensitive to resize and compression choices.  
+Sharpening can also matter, depending on the pipeline.  
+A performance claim should follow a fixed evaluation protocol.
+
+## Practical application
+A protocol should be more than prose rules.  
+It can be an executable configuration bundle.  
+An OpenAI developer community post suggests prompts as reusable configuration.  
+That configuration can include messages, tool definitions, and model settings.  
+
+You can bundle puzzle evaluation in a similar way.  
+Version-control the input image and preprocessing choices.  
+Record whether the image was resized or compressed.  
+Version-control display and interaction limits, such as no zoom or no crop.  
+Version-control model call settings, including whether `tools` are allowed.  
+Version-control the scoring script for the answer mapping.  
+Store the execution logs with the bundle.  
+
+Example: Accept only a fixed mapping format, like “A→3, B→1…”.  
+Ask for only the final mapping.  
+This can reduce grading variance.  
+Set `tools` to an empty list at runtime.  
+Log that the empty list setting was applied.  
+Log how that setting affected system-prompt construction.  
+Record the original file hash for the image.  
+List resize and compression parameters as explicit conditions.  
+Report scores separately for each condition.
+
+**Checklist for Today:**
+- Set `tools` to an empty list in runtime configuration, and store the call settings in logs.
+- Treat resize and compression as experimental variables, and record scores per condition.
+- Enforce a “final mapping only” output format, and grade with a consistent script.
+
+## FAQ
+**Q1. What is the most reproducible way to specify “no tool use”?**  
+A1. Avoid relying only on prohibitive wording in a user message.  
+You can disable `tools` at the API or runtime level.  
+You can set the allowed tool list to an empty list.  
+You should version-control that setting with the full prompt.  
+You should store it in a rerunnable bundle with logs.  
+
+**Q2. Should UI constraints like “no zoom” be considered part of “no tools”?**  
+A2. It can be safer to record them as separate conditions.  
+Tool calls can be controlled by runtime settings.  
+UI operations vary by viewer and workflow.  
+That variation can make conditions easy to mix.  
+
+**Q3. How should preprocessing conditions be written in a report to be convincing?**  
+A3. You can present results separately by condition.  
+Compression strength can change performance.  
+Related work reports mIoU shifting **from 44.5 to 30.5**.  
+Subjective work can report a **95%** interval and **n = 47**.  
+Those details help readers interpret variability and uncertainty.
+
+## Conclusion
+Procedural visual puzzles can have clear answer formats.  
+That structure can support automatic grading.  
+Scores can still depend strongly on condition control.  
+A tool ban is mainly a runtime setting.  
+Reproducibility is supported by stored configuration and logs.  
+A practical next step is a single evaluation bundle.  
+It should include `tools` settings, prompts, preprocessing, and execution logs.
+
+## Further Reading
+- [AgentSelect Benchmark For Query-Conditioned Agent Configuration Recommendation](/en/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation)
+- [AI Resource Roundup (24h) - 2026-03-05](/en/posts/ai-resources-roundup-2026-03-05)
+- [Chain-of-Thought Perturbations Reveal Hidden Fragility in Reasoning](/en/posts/chain-of-thought-perturbations-fragility-reasoning)
+- [ChatGPT Model Retirement Reshapes Tone, Safety, Creativity Balance](/en/posts/chatgpt-model-retirement-tone-safety-creativity-balance)
+- [Consensus-Anchored Diffusion for Uncertain 3D Lesion Segmentation](/en/posts/consensus-anchored-diffusion-uncertain-3d-lesion-segmentation)
+---
+
+## References
+
+- [How to implement tool use - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use)
+- [Claude Code SDK - Anthropic - docs.anthropic.com](https://docs.anthropic.com/s/claude-code-sdk)
+- [Enhanced Prompt Management - OpenAI Developer Community - community.openai.com](https://community.openai.com/t/enhanced-prompt-management/1290305)
+- [Estimating the resize parameter in end-to-end learned image compression (Signal Processing: Image Communication, 2025) - live.ece.utexas.edu](https://live.ece.utexas.edu/publications/2024_new/liheng_resize_comp_spic2025.pdf)
+- [Are Visual Recognition Models Robust to Image Compression? - arxiv.org](https://arxiv.org/abs/2304.04518)
