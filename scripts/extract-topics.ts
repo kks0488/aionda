@@ -448,6 +448,7 @@ async function extractTopicFromPost(post: UnifiedPost): Promise<ExtractedTopic |
       keyInsights: topic.keyInsights || [],
       researchQuestions: topic.researchQuestions,
       extractedAt: new Date().toISOString(),
+      aiRelevanceScore: result.aiRelevanceScore,
     };
   } catch (error) {
     console.error('    ❌ Error extracting topic:', error);
