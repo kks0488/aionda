@@ -1,0 +1,80 @@
+---
+title: CoT 교란 취약성과 설계 대응
+slug: chain-of-thought-perturbations-fragility-reasoning
+date: '2026-03-05'
+lastReviewedAt: '2026-03-05'
+locale: ko
+description: CoT 중간 교란은 정답률을 크게 낮춘다. 단위·수학은 별도 검증과 합의가 필요하다.
+tags:
+  - agi
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-29720df0e10ff685
+sourceUrl: 'https://arxiv.org/abs/2603.03332'
+verificationScore: 0.79
+alternateLocale: /en/posts/chain-of-thought-perturbations-fragility-reasoning
+coverImage: /images/posts/chain-of-thought-perturbations-fragility-reasoning.png
+---
+
+50~60% 수준의 정확도 손실이 보고된다. CoT(Chain-of-Thought) 중간에 그럴듯한 오류를 한 번 섞는 것만으로도 소형 모델의 최종 답이 크게 흔들릴 수 있다. 또 다른 결과도 있다. UnitConversion(단위 변환) 교란은 큰 모델에서도 20~30% 정확도 손실이 남는다고 보고된다. CoT가 “추론을 보여주니 믿을 만하다”는 직관과 충돌하는 데이터다.
+
+## 세 줄 요약
+- CoT 프롬프팅은 중간 추론 단계가 구조적으로 교란되면(수학 오류, 단위 변환, 아첨 유도, 단계 생략 등) 최종 정답이 크게 흔들릴 수 있다.  
+- MathError는 소형 모델에서 50~60% 정확도 손실이 보고되고, UnitConversion은 큰 모델에서도 20~30% 손실이 남는다고 제시된다. “스케일업만으로 해결”이라는 가정은 이 결과와 맞지 않을 수 있다.  
+- CoT를 사용자에게 그대로 노출한다면, **단위 변환·수학·단계 생략을 별도 검증(룰/툴)로 분리**하고, **다중 샘플 합의(Self-Consistency) + 요약/정제된 설명**을 기본값으로 두는 A/B 테스트를 검토할 만하다.
+
+## 현황
+CoT는 LLM이 “어떻게 생각했는지”를 단계적으로 쓰게 만들어 정답률을 높이려는 기법으로 알려져 있다. 다만 그 단계 자체가 공격 표면이 될 수 있다. arXiv:2603.03332v1 *Fragile Thoughts: How Large Language Models Handle Chain-of-Thought Perturbations*는 CoT 중간 단계에 구조적 교란을 주입했을 때 성능이 어떻게 변하는지 평가한다.
+
+
+한편 ExtraSteps는 정확도 저하가 크지 않고, Sycophancy는 소형 모델에서 비교적 완만한 영향, SkippedSteps는 그 중간 수준의 손상을 보인다고 정리돼 있다. 다만 “불확실성 표명(캘리브레이션)이 교란 유형별로 어떻게 달라지는지”는 여기 인용한 범위만으로는 단정하기 어렵다.
+
+## 분석
+의사결정 포인트는 하나다. **CoT 노출을 ‘투명성’만으로 보지 말고 ‘입력 채널’로도 봐야 한다**는 점이다. 사람이 읽을 수 있는 추론은 디버깅에 도움이 된다. 동시에 “읽기 좋은 오류”가 그대로 전달될 수도 있다. 특히 UnitConversion이 큰 모델에서도 20~30% 손실이 남는다는 결과는, 에이전트가 단위/환산/스케일을 다루는 작업(가격·물류·과학·헬스 등)에서 CoT를 그대로 신뢰할 때 위험이 커질 수 있음을 시사한다. 여기서의 교훈은 “모델을 키우면 해결”이 아니라 “실패 모드를 분리해 설계”에 가깝다.
+
+또 다른 트레이드오프도 있다. CoT를 숨기면 사용자가 오염된 추론을 근거처럼 받아들이는 위험은 줄어들 수 있다. OpenAI는 숨겨진 CoT가 모니터링에 유리하다는 관점을 언급하고, 사용자에게는 정책 준수 형태의 설명을 제공하려면 별도 요약/정제 모델을 쓰는 접근을 말한다. 다만 원문 CoT를 숨기면 외부 사용자는 실패 원인을 직접 추적하기 어려워지고, 제품 팀은 “설명 가능성” 관련 요구를 다른 방식으로 충족해야 한다. 즉, **노출은 신뢰를 올리는 장치가 아니라 운영 비용(감사·디버깅)과 공격 비용(주입·교란) 사이의 트레이드오프**가 된다.
+
+의사결정 메모로 정리하면 이렇게 갈린다.  
+- **If** 제품이 규제/감사/분쟁 대응이 핵심이고 사용자가 근거를 요구한다면 **Then** CoT 전체 노출 대신 “요약된 이유(정제)” + “검증 로그(툴 결과/계산 결과)” 결합이 더 안전할 수 있다.  
+- **If** 내부 운영(안전 점검, 이상행동 탐지)이 핵심이라면 **Then** CoT는 숨긴 채로 내부 모니터링에 쓰는 설계가 맞다(사용자에게 신뢰의 근거로 판매하는 용도와는 분리한다).  
+- **If** 제품이 단위 변환, 수치 계산, 단계적 계획을 다루고 결과가 금전/안전과 연결된다면 **Then** CoT의 문장보다 **외부 검증 가능한 산출물**(계산기, 단위 변환기, 스키마 검증)을 신뢰의 기준으로 삼아야 한다.
+
+## 실전 적용
+현실적인 방어는 “교란을 없애기”보다 “교란이 들어와도 결과가 쉽게 깨지지 않게 분산”하는 쪽에 가깝다. Self-Consistency(다중 샘플 합의)는 서로 다른 추론 경로를 여러 개 생성해 다수결/일관성으로 답을 고르는 디코딩 전략으로 알려져 있다. CoT 교란이 특정 경로를 망가뜨리는 유형이라면, 샘플을 늘려 합의로 수렴시키는 방식은 완충 장치가 될 수 있다(대신 비용이 늘 수 있다). 여기에 **단위 변환/산술은 툴로 분리 검증**, **SkippedSteps는 단계 수·형식 검증**(필수 항목 누락 감지) 같은 “타입별 가드레일”을 붙이는 편이 낫다. Fragile Thoughts가 다루는 요지는 취약성이 균일하지 않다는 점이다. 그러면 방어도 한 가지 방식으로 통일하기 어렵다.
+
+예: 견적서를 만드는 에이전트라면, 모델이 작성한 CoT를 근거로 삼기보다 “단위 변환 결과 테이블(입력 단위/출력 단위/변환식/결과)”을 별도로 생성해 검증하는 쪽이 안전하다. UnitConversion이 큰 모델에서도 어렵다는 결과를 설계 가정으로 두는 접근이다. 또한 사용자가 “맞죠? 당신 계산 자신 있죠?” 같은 아첨 유도를 넣더라도 답이 흔들리지 않게, 사용자 메시지에서 ‘동의/확신’ 유도 패턴을 분리해 처리하는 프롬프트/정책 레이어를 둘 수 있다.
+
+오늘 바로 할 일 체크리스트:
+- UnitConversion과 MathError를 **별도 검증기(툴/룰)로 분리**하고, 모델 출력에 “검증 통과/실패” 메타데이터를 붙인다.  
+- CoT를 그대로 노출하는 화면이 있다면 **요약/정제된 이유 + 검증 로그**로 UI를 바꾸는 실험을 설계한다.  
+- 중요한 작업 흐름에는 **Self-Consistency(다중 샘플 합의)**를 붙이고, 비용 상승을 감당할 수 있는 구간부터 단계적으로 켠다.  
+
+## FAQ
+**Q1. CoT를 보여주면 오히려 더 위험해지나요?**  
+A1. 상황에 따라 다릅니다. CoT는 디버깅에는 도움이 됩니다. 하지만 중간 단계가 교란되면 그럴듯한 오류가 사용자에게 “근거”처럼 전달될 수 있습니다. 그래서 사용자에게는 원문 CoT 대신 요약/정제된 설명과 검증 가능한 결과를 함께 제공하는 방식이 선택되기도 합니다.
+
+**Q2. 어떤 교란이 가장 골치 아픈가요?**  
+A2. 논문에서 제시된 범위에서는 MathError가 소형 모델에서 50~60% 정확도 손실로 가장 큰 영향을 줍니다. 반면 UnitConversion은 큰 모델에서도 20~30% 손실이 남아 스케일링만으로는 줄이기 어려운 유형으로 제시됩니다.
+
+**Q3. Self-Consistency만 붙이면 해결되나요?**  
+A3. 해결된다고 단정할 근거는 없습니다. 다만 Self-Consistency는 여러 추론 경로를 생성해 일관된 답을 선택하는 전략으로 알려져 있고, 단일 경로가 교란될 때 완충 장치로 쓸 수 있습니다. 대신 계산 비용이 늘어날 수 있으므로, 단위 변환·산술처럼 실패 비용이 큰 구간부터 적용하는 운영 설계가 필요합니다.
+
+## 결론
+CoT는 “추론의 창”이 아니라 “추론을 건드릴 수 있는 손잡이”가 될 수 있다. MathError의 50~60% 손실, UnitConversion의 20~30% 손실은 제품 설계에서 CoT를 신뢰 장치로만 취급하기 어렵다는 신호다. 다음 관전 포인트는 성능 경쟁만이 아니다. 교란 유형별로 검증·요약·합의를 어떻게 조합해 비용 대비 위험을 줄일지에 가깝다.
+
+## 다음으로 읽기
+- [AgentSelect: 질의로 에이전트 구성 추천](/ko/posts/agentselect-benchmark-query-conditioned-agent-configuration-recommendation)
+- [AI 자료 모음 (24h) - 2026-03-05](/ko/posts/ai-resources-roundup-2026-03-05)
+- [ChatGPT 모델 은퇴와 톤 변화](/ko/posts/chatgpt-model-retirement-tone-safety-creativity-balance)
+- [에이전틱 AI 실패, 모델이 아닌 거버넌스](/ko/posts/governance-reliable-agentic-ai-webgis-development)
+- [연구 에이전트 루프의 기록·평가](/ko/posts/logging-continuous-evaluation-research-agent-loops)
+---
+
+## 참고 자료
+
+- [Detecting misbehavior in frontier reasoning models | OpenAI - openai.com](https://openai.com/index/chain-of-thought-monitoring/)
+- [Learning to reason with LLMs | OpenAI - openai.com](https://openai.com/index/learning-to-reason-with-llms/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.03332)
+- [Self-Consistency Improves Chain of Thought Reasoning in Language Models - arxiv.org](https://arxiv.org/abs/2203.11171)
+- [Escape Sky-high Cost: Early-stopping Self-Consistency for Multi-step Reasoning - arxiv.org](https://arxiv.org/abs/2401.10480)
