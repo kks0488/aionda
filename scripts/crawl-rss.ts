@@ -54,8 +54,8 @@ interface RSSSource {
 // Note: Some major AI companies don't provide official RSS feeds
 const RSS_SOURCES: RSSSource[] = [
   // Official AI Company Blogs (Tier S)
-  // Anthropic: No official RSS - would need web scraping
-  // Meta AI: No reliable RSS endpoint found
+  { id: 'anthropic', name: 'Anthropic Blog', url: 'https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_news_rss.xml', tier: 'S', type: 'official', enabled: true },
+  { id: 'meta-ai', name: 'Meta AI Research', url: 'https://engineering.fb.com/category/ai-research/feed/', tier: 'S', type: 'official', enabled: true },
   { id: 'openai', name: 'OpenAI News', url: 'https://openai.com/news/rss.xml', tier: 'S', type: 'official', enabled: true },
   { id: 'google-ai-blog', name: 'Google AI Blog', url: 'https://blog.google/technology/ai/rss/', tier: 'S', type: 'official', enabled: true },
   { id: 'nvidia', name: 'Nvidia Blog', url: 'https://blogs.nvidia.com/feed/', tier: 'S', type: 'official', enabled: true },
@@ -64,21 +64,21 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'huggingface', name: 'Hugging Face Blog', url: 'https://huggingface.co/blog/feed.xml', tier: 'S', type: 'official', enabled: true },
   // Cloud + Security + Enterprise (sales-friendly, still filtered downstream)
   { id: 'aws-ml', name: 'AWS Machine Learning Blog', url: 'https://aws.amazon.com/blogs/machine-learning/feed/', tier: 'S', type: 'official', enabled: true },
-  { id: 'aws-security', name: 'AWS Security Blog', url: 'https://aws.amazon.com/blogs/security/feed/', tier: 'S', type: 'official', enabled: true },
+  { id: 'aws-security', name: 'AWS Security Blog', url: 'https://aws.amazon.com/blogs/security/feed/', tier: 'S', type: 'official', enabled: false },
   { id: 'aws-blog', name: 'AWS Official Blog', url: 'https://aws.amazon.com/blogs/aws/feed/', tier: 'A', type: 'official', enabled: true },
   { id: 'azure-blog', name: 'Microsoft Azure Blog', url: 'https://azure.microsoft.com/en-us/blog/feed/', tier: 'A', type: 'official', enabled: true },
-  { id: 'cloudflare', name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', tier: 'A', type: 'official', enabled: true },
-  { id: 'google-security', name: 'Google Online Security Blog', url: 'https://feeds.feedburner.com/GoogleOnlineSecurityBlog', tier: 'A', type: 'official', enabled: true },
-  { id: 'mandiant-ti', name: 'Google Threat Intelligence (Mandiant)', url: 'https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/', tier: 'A', type: 'official', enabled: true },
-  { id: 'crowdstrike', name: 'CrowdStrike Blog', url: 'https://www.crowdstrike.com/en-us/blog/feed', tier: 'A', type: 'official', enabled: true },
+  { id: 'cloudflare', name: 'Cloudflare Blog', url: 'https://blog.cloudflare.com/rss/', tier: 'A', type: 'official', enabled: false },
+  { id: 'google-security', name: 'Google Online Security Blog', url: 'https://feeds.feedburner.com/GoogleOnlineSecurityBlog', tier: 'A', type: 'official', enabled: false },
+  { id: 'mandiant-ti', name: 'Google Threat Intelligence (Mandiant)', url: 'https://cloudblog.withgoogle.com/topics/threat-intelligence/rss/', tier: 'A', type: 'official', enabled: false },
+  { id: 'crowdstrike', name: 'CrowdStrike Blog', url: 'https://www.crowdstrike.com/en-us/blog/feed', tier: 'A', type: 'official', enabled: false },
 
   // Korea tech/AI blogs (Tier A)
   { id: 'naver-d2', name: 'NAVER D2', url: 'https://d2.naver.com/d2.atom', tier: 'A', type: 'official', enabled: true },
   { id: 'kakao-tech', name: 'Kakao Tech', url: 'https://tech.kakao.com/feed/', tier: 'A', type: 'official', enabled: true },
   { id: 'toss-tech', name: 'Toss Tech', url: 'https://toss.tech/rss.xml', tier: 'A', type: 'official', enabled: true },
-  { id: 'woowahan-tech', name: 'Woowahan Tech Blog', url: 'https://techblog.woowahan.com/feed/', tier: 'A', type: 'official', enabled: true },
-  { id: 'gccompany-tech', name: 'GCCompany Tech Blog', url: 'https://techblog.gccompany.co.kr/feed', tier: 'A', type: 'official', enabled: true },
-  { id: 'coupang-engineering', name: 'Coupang Engineering (Medium)', url: 'https://medium.com/feed/coupang-engineering', tier: 'A', type: 'official', enabled: true },
+  { id: 'woowahan-tech', name: 'Woowahan Tech Blog', url: 'https://techblog.woowahan.com/feed/', tier: 'A', type: 'official', enabled: false },
+  { id: 'gccompany-tech', name: 'GCCompany Tech Blog', url: 'https://techblog.gccompany.co.kr/feed', tier: 'A', type: 'official', enabled: false },
+  { id: 'coupang-engineering', name: 'Coupang Engineering (Medium)', url: 'https://medium.com/feed/coupang-engineering', tier: 'A', type: 'official', enabled: false },
 
   // Tech News (Tier A)
   { id: 'techcrunch-ai', name: 'TechCrunch AI', url: 'https://techcrunch.com/category/artificial-intelligence/feed/', tier: 'A', type: 'news', enabled: true },
@@ -87,6 +87,24 @@ const RSS_SOURCES: RSSSource[] = [
   { id: 'mit-tech-review', name: 'MIT Tech Review', url: 'https://www.technologyreview.com/feed/', tier: 'A', type: 'news', enabled: true },
   { id: 'wired-ai', name: 'Wired AI', url: 'https://www.wired.com/feed/tag/ai/latest/rss', tier: 'A', type: 'news', enabled: true },
   { id: 'zdnet-ai', name: 'ZDNet AI', url: 'https://www.zdnet.com/topic/artificial-intelligence/rss.xml', tier: 'A', type: 'news', enabled: true },
+  { id: 'theverge-ai', name: 'The Verge AI', url: 'https://www.theverge.com/ai/rss/index.xml', tier: 'A', type: 'news', enabled: true },
+
+  // Research / Papers (Tier S)
+  { id: 'arxiv-cs-ai', name: 'arXiv CS.AI', url: 'https://rss.arxiv.org/rss/cs.AI', tier: 'S', type: 'official', enabled: true },
+  { id: 'hf-papers', name: 'HuggingFace Papers', url: 'https://huggingface.co/papers/rss', tier: 'S', type: 'official', enabled: true },
+
+  // Korea AI Media (Tier A)
+  { id: 'aitimes-kr', name: 'AI타임스', url: 'https://www.aitimes.com/rss/allArticle.xml', tier: 'A', type: 'news', enabled: true },
+  { id: 'etnews-ai', name: '전자신문 AI', url: 'https://rss.etnews.com/Section901.xml', tier: 'A', type: 'news', enabled: true },
+
+  // Independent Analysts / Newsletters (Tier A-B)
+  { id: 'simon-willison', name: 'Simon Willison', url: 'https://simonwillison.net/atom/everything/', tier: 'A', type: 'news', enabled: true },
+  { id: 'interconnects', name: 'Interconnects', url: 'https://www.interconnects.ai/feed', tier: 'A', type: 'news', enabled: true },
+  { id: 'ai-snake-oil', name: 'AI Snake Oil', url: 'https://www.aisnakeoil.com/feed', tier: 'B', type: 'news', enabled: true },
+
+  // Community (Tier B)
+  { id: 'hn-ai', name: 'Hacker News AI', url: 'https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT&points=50', tier: 'B', type: 'news', enabled: true },
+  { id: 'reddit-ml', name: 'Reddit ML', url: 'https://www.reddit.com/r/MachineLearning/.rss', tier: 'B', type: 'news', enabled: true },
 ];
 
 interface FeedItem {
