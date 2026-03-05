@@ -28,6 +28,7 @@ import { config } from 'dotenv';
 import { generateContent } from './lib/ai-text';
 import { extractJsonObject } from './lib/json-extract.js';
 import { EXTRACT_TOPIC_PROMPT, EXTRACT_TOPIC_FROM_NEWS_PROMPT } from './prompts/topics';
+import { checkSimilar, checkMemuHealth } from './lib/memu-client';
 
 config({ path: '.env.local' });
 
@@ -143,6 +144,7 @@ interface ExtractedTopic {
   keyInsights: string[];
   researchQuestions: string[];
   extractedAt: string;
+  aiRelevanceScore?: number;
 }
 
 const AI_RELEVANCE_PATTERN =
@@ -574,6 +576,13 @@ async function main() {
   };
   const extractedTopics: Array<{ id: string; file: string; sourceId: string; sourceType: SourceType; sourceTier: SourceTier }> = [];
 
+  const memuHealthy = await checkMemuHealth();
+  if (memuHealthy) {
+    console.log('✅ memU 연결 확인 - 중복 체크 활성화');
+  } else {
+    console.log('⚠️ memU 연결 불가 - 중복 체크 없이 진행');
+  }
+
   for (const post of sortedPosts) {
     if (extracted >= maxTopics) break;
 
@@ -634,6 +643,28 @@ async function main() {
     const topic = await extractTopicFromPost(post);
 
     if (topic) {
+      // AI 관련도 필터
+      if (topic.aiRelevanceScore !== undefined && topic.aiRelevanceScore < 0.5) {
+        console.log(`   ⏭️ AI 관련도 낮음: "${topic.title}" (score: ${topic.aiRelevanceScore})`);
+        skipCounts.notAiRelated++;
+        console.log('');
+        continue;
+      }
+
+      // memU 중복 체크
+      if (memuHealthy) {
+        const similar = await checkSimilar({
+          content: topic.title + ' ' + (topic.description || ''),
+          user_id: 'aionda',
+          threshold: 0.80,
+        });
+        if (similar && similar.is_similar) {
+          console.log(`   ⏭️ [memU] 유사 토픽 존재: "${similar.similar_items?.[0]?.summary?.slice(0, 60)}" (score: ${similar.similarity_score?.toFixed(2)})`);
+          console.log('');
+          continue;
+        }
+      }
+
       const topicFile = `${topic.id}.json`;
       writeFileSync(join(TOPICS_DIR, topicFile), JSON.stringify(topic, null, 2));
 
@@ -655,8 +686,24 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
+  // 동일 이벤트 제한: 같은 태그 세트를 공유하는 토픽은 상위 1편만 유지
+  const beforeDedup = extractedTopics.length;
+  const seen = new Map<string, typeof extractedTopics[0]>();
+  for (const t of extractedTopics) {
+    const topicData = JSON.parse(readFileSync(t.file, 'utf-8'));
+    const key = (topicData.tags || topicData.keyInsights || []).slice(0, 3).sort().join(',');
+    if (!key) { seen.set(t.id, t); continue; }
+    if (!seen.has(key)) {
+      seen.set(key, t);
+    }
+  }
+  const dedupedTopics = Array.from(seen.values());
+  if (beforeDedup > dedupedTopics.length) {
+    console.log(`   🔄 동일 이벤트 제한: ${beforeDedup} → ${dedupedTopics.length} (${beforeDedup - dedupedTopics.length}건 중복 제거)`);
+  }
+
   console.log('═'.repeat(60));
-  console.log(`✨ Done! Extracted ${extracted} topic(s)`);
+  console.log(`✨ Done! Extracted ${dedupedTopics.length} topic(s)`);
   console.log(
     `   Skipped: consumer=${skipCounts.consumerDrift}, not-ai=${skipCounts.notAiRelated}, low-signal=${skipCounts.lowSignal}`
   );
@@ -665,8 +712,8 @@ async function main() {
     JSON.stringify(
       {
         generatedAt: new Date().toISOString(),
-        extractedCount: extracted,
-        topics: extractedTopics,
+        extractedCount: dedupedTopics.length,
+        topics: dedupedTopics,
       },
       null,
       2

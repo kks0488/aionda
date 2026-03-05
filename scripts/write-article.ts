@@ -45,6 +45,12 @@ type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
 type EvergreenSchema = 'howto' | 'faq';
 type Locale = 'ko' | 'en';
 
+const INTRO_TYPES = ['A', 'B', 'C', 'D', 'E'] as const;
+function getIntroType(batchIndex: number): string {
+  if (batchIndex === 0) return 'F'; // 첫 글만 장면 묘사 허용
+  return INTRO_TYPES[(batchIndex - 1) % INTRO_TYPES.length];
+}
+
 function stripHtml(value: string): string {
   return String(value || '').replace(/<[^>]*>/g, '');
 }
@@ -237,12 +243,15 @@ function isPublishable(topic: ResearchedTopic): boolean {
   return topic.overallConfidence >= MIN_CONFIDENCE && (hasTrustedOverall || hasTrustedPrimary);
 }
 
-async function writeArticle(topic: ResearchedTopic, series: EditorialSeries): Promise<string> {
+async function writeArticle(topic: ResearchedTopic, series: EditorialSeries, introType?: string): Promise<string> {
   const findingsText = formatFindings(topic.findings);
   const primaryExcerpt = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
   const primaryTitle = primaryExcerpt?.title || '';
   const primaryText = primaryExcerpt?.excerpt || 'N/A';
-  const articlePromptTemplate = `${getWritePrompt(series)}
+  const introDirective = introType
+    ? `\n\n도입부 유형: ${introType} (위 6가지 중 해당 유형을 반드시 사용할 것)\n`
+    : '';
+  const articlePromptTemplate = `${getWritePrompt(series)}${introDirective}
 
 ## 참고 자료 포맷 규칙 (중요):
 - 참고 자료를 작성해야 할 때는 모든 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 작성한다.`;
@@ -1103,8 +1112,9 @@ async function main() {
       }
 
       // Write Korean article
-      console.log('   📝 Writing Korean article...');
-      let articleKo = await writeArticle(topic, series);
+      const introType = getIntroType(written);
+      console.log(`   📝 Writing Korean article... (도입부 유형: ${introType})`);
+      let articleKo = await writeArticle(topic, series, introType);
       articleKo = await polishArticleMarkdown('ko', articleKo);
       const primaryExcerptKo = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
       const evidenceTextKo = [

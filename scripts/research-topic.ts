@@ -22,6 +22,7 @@ import { searchAndVerify as geminiSearchAndVerify } from './lib/gemini';
 import { searchAndVerify as openaiSearchAndVerify } from './lib/openai-search.js';
 import { classifySource, SourceTier } from './lib/search-mode.js';
 import { getAiTextProvider } from './lib/ai-text.js';
+import { retrieve, memorize, checkMemuHealth } from './lib/memu-client';
 
 config({ path: '.env.local' });
 
@@ -35,6 +36,8 @@ const MIN_CONFIDENCE = 0.6;
 const DEFAULT_SINCE = (process.env.TOPICS_SINCE || '14d').trim();
 const TIER_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
 const AI_PROVIDER = getAiTextProvider();
+
+let memuHealthy = false;
 
 type EvergreenIntent = 'informational' | 'commercial' | 'troubleshooting';
 type EvergreenSchema = 'howto' | 'faq';
@@ -233,8 +236,29 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   console.log(`   Description: ${topic.description}`);
   console.log(`   Questions: ${topic.researchQuestions.length}\n`);
 
+  // memU에서 기존 관련 리서치 결과 참조
+  let existingContext = '';
+  if (memuHealthy) {
+    try {
+      const existing = await retrieve({
+        query: topic.title,
+        user_id: 'aionda',
+        top_k: 3,
+      });
+      if (existing?.items && existing.items.length > 0) {
+        existingContext = existing.items
+          .map((item: any) => item.summary || item.content)
+          .filter(Boolean)
+          .join('\n');
+        console.log(`   [memU] 기존 관련 리서치 ${existing.items.length}건 참조`);
+      }
+    } catch (e) {
+      // memU 실패해도 리서치는 계속 진행
+    }
+  }
+
   const findings: ResearchFinding[] = [];
-  const context = `${topic.title}\n${topic.description}\n${topic.keyInsights.join('\n')}`;
+  const context = `${topic.title}\n${topic.description}\n${topic.keyInsights.join('\n')}${existingContext ? '\n\n[기존 리서치 참고]\n' + existingContext : ''}`;
 
   for (const question of topic.researchQuestions) {
     const finding = await researchQuestion(question, context);
@@ -258,7 +282,9 @@ async function researchTopic(topic: ExtractedTopic): Promise<ResearchedTopic> {
   const hasTrustedPrimary = primaryTier === SourceTier.S || primaryTier === SourceTier.A;
   const hasTrustedEvidence = hasTrustedSources || hasTrustedPrimary;
 
-  const hasVerifiedContent = avgConfidence >= MIN_CONFIDENCE && hasTrustedEvidence;
+  // hasTrustedPrimary여도 avgConfidence < 0.4이면 차단
+  const effectiveMinConfidence = hasTrustedPrimary ? Math.max(MIN_CONFIDENCE, 0.4) : MIN_CONFIDENCE;
+  const hasVerifiedContent = avgConfidence >= effectiveMinConfidence && hasTrustedEvidence;
 
   // 전체 출처 통계
   const allSources = findings.flatMap(f => f.sources);
@@ -322,6 +348,13 @@ async function main() {
   }
   if (!existsSync(RESEARCHED_DIR)) {
     mkdirSync(RESEARCHED_DIR, { recursive: true });
+  }
+
+  memuHealthy = await checkMemuHealth();
+  if (memuHealthy) {
+    console.log('✅ memU 연결 확인 - 리서치 결과 저장/참조 활성화');
+  } else {
+    console.log('⚠️ memU 연결 불가 - 리서치 결과 저장 없이 진행');
   }
 
   // Get already researched topics
@@ -415,6 +448,26 @@ async function main() {
       join(RESEARCHED_DIR, `${topic.id}.json`),
       JSON.stringify(result, null, 2)
     );
+
+    // memU에 리서치 결과 저장
+    if (memuHealthy) {
+      try {
+        const summaryForMemU = `[Research] ${result.title}\n` +
+          result.findings.map((f: any) => f.answer).filter(Boolean).join('\n');
+        await memorize({
+          content: summaryForMemU,
+          user_id: 'aionda',
+          metadata: {
+            slug: result.topicId,
+            sourceType: result.sourceType,
+            confidence: result.overallConfidence,
+          },
+        });
+        console.log('   [memU] 리서치 결과 저장 완료');
+      } catch (e) {
+        console.log(`   [memU] 저장 실패 (무시): ${(e as Error).message}`);
+      }
+    }
 
     researched++;
     if (result.canPublish) publishable++;
