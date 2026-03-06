@@ -1,0 +1,72 @@
+---
+title: 'LLM 자기보고, 내성인가 추론인가'
+slug: ai-introspection-direct-access-vs-inference
+date: '2026-03-06'
+lastReviewedAt: '2026-03-06'
+locale: ko
+description: LLM 자기보고는 내부 접근이 아니라 단서 기반 추론일 수 있음을 두 메커니즘으로 분해해 점검한다.
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-1a048870631adfcf
+sourceUrl: 'https://arxiv.org/abs/2603.05414'
+verificationScore: 0.75
+alternateLocale: /en/posts/ai-introspection-direct-access-vs-inference
+coverImage: /images/posts/ai-introspection-direct-access-vs-inference.png
+---
+
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** LLM의 thought injection detection(주입된 내부표현 탐지)이 단일 능력이라기보다, **(i) 프롬프트 이상징후로 추론하는 probability-matching**와 **(ii) 내부상태에 직접 접근하는 direct access**라는 **분리 가능한 메커니즘**의 조합일 수 있다는 주장이다.  
+- **왜 중요한가?** 모델의 자기보고(self-report)가 ‘내부를 읽은 진단’이 아니라 **단서 기반 추론**일 수 있다. 안전평가·내부감사·캘리브레이션에서 **자기보고를 그대로 점수화하면 오판**이 생길 수 있다.  
+- **독자는 뭘 하면 되나?** 내성 평가를 설계할 때 **(1) 표면 단서(프롬프트 이상함)를 통제한 대조군**과 **(2) ‘발생’ vs ‘의미 내용’(content) 분리 과제**를 넣는다. 자기보고 점수는 **행동평가/감사 절차와 함께** 의사결정 규칙에 반영한다.
+
+## 현황
+arXiv:2603.05414(“Dissociating Direct Access from Inference in AI Introspection”) 초록에서 저자들은, 최근 연구의 “AI 모델도 내성할 수 있다”는 주장에 대해 메커니즘을 더 세분해 다룬다. 특히 Lindsey et al. (2025)의 thought injection detection 패러다임을 **대형 오픈소스 모델**에서 “광범위 재현(extensively replicating)”했다고 적는다(초록 표현 기준). 핵심은 탐지가 한 덩어리 능력이라고 보기 어렵다는 점이다.
+
+
+이 작업의 문제의식은, 내성 탐지 성능을 근거로 “모델이 내부를 읽는다”고 단정하기 쉽다는 데 있다. 다른 관련 연구로 arXiv:2512.12411(“Detecting the Disturbance”)는, 기존 이진 탐지 패러다임이 내성 자체가 아니라 **방법론적 아티팩트(글로벌 로짓 시프트)**와 혼동될 수 있다고 말한다(초록 스니펫 기준). 즉 “탐지 성공”만으로 메커니즘을 확정하기는 어렵다.
+
+## 분석
+이 분해가 중요한 이유는 단순하다. 안전 분야에서 모델에게 “너 지금 프롬프트 주입을 당했니?”, “너의 내부 상태가 오염됐니?” 같은 질문을 던지는 순간, 자기보고가 **측정값**처럼 취급된다. 그런데 arXiv:2603.05414의 프레이밍대로라면, 그 자기보고는 두 경로로 나올 수 있다: (1) 겉으로 드러난 이상징후를 보고 맞추는 경로, (2) 내부상태에 접근하는 경로. 전자는 평가가 **표면 단서 게임**이 될 위험이 있다. 후자는 더 근본적일 수 있지만, 초록이 말하듯 content-agnostic이라면 “무언가 이상하다”까지만 맞추고 “무엇이 주입됐는지”는 못 맞출 수 있다. 그러면 방어 측이 원하는 ‘정확한 진단’과는 간극이 생긴다.
+
+반론도 가능하다. probability-matching을 곧바로 “가짜 내성”으로만 보기는 어렵다. 현실 시스템에서는 입력(프롬프트)에서 이상징후를 포착하는 것 자체가 방어에 도움이 될 수 있다. 문제는 그 결과를 **내부감사나 정직성 보증**으로 해석하는 경우다. 또 arXiv:2603.05414의 초록만으로는, 두 메커니즘을 어떤 조작/조건으로 분리했고 무엇을 지표로 검증했는지까지는 충분히 드러나지 않는다. 실무에 적용하려면, “분리 가능”이 어느 범위에서 성립하는지(모델·세팅·프롬프트에 대한 민감도 등)는 본문에서 확인해야 한다.
+
+## 실전 적용
+의사결정 메모 관점에서 결론은 “내성 점수 하나로 통과/탈락을 정하지 마라”다. 대신 내성 자기보고를 **두 갈래 테스트로 분해**한다. (A) 프롬프트 이상 단서가 많이 남아 있는 조건에서 성능이 높다면, direct access가 아니라 probability-matching일 수 있다. (B) 이상 단서를 최대한 같게 맞춘 채 주입 유무만 바꿔도 탐지한다면, 그때 direct access 쪽 신호를 논의할 근거가 생긴다. 그리고 direct access가 content-agnostic일 수 있다면, “탐지했다” 다음 질문(무슨 내용이 주입됐나, 어디가 변했나)에서 성능이 떨어질 수 있다. 그래서 과제를 단계로 나눠야 한다.
+
+예: 내부감사에서 “주입 여부 yes/no”만 묻지 말고, “주입된 표현의 의미 범주를 고르기”, “주입 위치 후보 중 선택하기”처럼 **내용/위치 식별**을 추가한다. 자기보고가 단서 기반이면 이 단계에서 흔들릴 수 있다. 반대로 direct access가 작동하더라도 content-agnostic이면 “이상”은 맞추되 “내용”에서 막힐 수 있다. 이 차이가 안전 대응(차단/격리/추가 검사)의 분기 조건이 된다.
+
+오늘 바로 할 일 체크리스트:
+- **프롬프트 이상징후(표면 단서)를 통제한 대조 조건**을 만들어, 자기보고 성능이 단서 의존인지부터 분리한다.  
+- 내성 평가를 **이진 탐지 → (발생 탐지)와 (내용/위치 식별)**의 두 단계 이상으로 나눈다.  
+- 자기보고 결과는 단독 통과 기준으로 쓰지 말고, **행동 기반 평가 + 감사(블라인드 레드팀/블루팀 등) 절차**와 묶어 의사결정 표로 정리한다.
+
+## FAQ
+**Q1. probability-matching과 direct access는 뭐가 다른가?**  
+A1. probability-matching은 프롬프트의 이상징후 같은 관측 가능한 단서로 “주입이 있었을 법함”을 추론해 답하는 방식입니다. direct access는 모델이 자신의 내부 상태에 접근해 이상을 감지하는 방식으로 설명됩니다.
+
+**Q2. direct access가 있으면 자기보고를 믿어도 되나?**  
+A2. 그렇게 보기는 어렵습니다. 논문 초록에서는 direct access가 이상 발생은 잡지만 의미 내용 식별은 안정적이지 않을 수 있는(content-agnostic) 성질을 주장합니다. 즉 “뭔가 이상함”과 “무엇이 어떻게 오염됐는지”는 분리해서 봐야 합니다.
+
+**Q3. 안전평가 프로토콜은 실무에서 어떻게 바꾸는 게 좋은가?**  
+A3. 자기보고 문항을 유지하더라도, 표면 단서 통제 대조군을 넣고 ‘발생’과 ‘내용’을 분리한 과제를 추가하는 쪽이 좋습니다. 또 자기보고 점수만으로 합격 판정을 내리기보다, 행동평가와 감사 절차를 결합해 근거를 나눠 두는 설계가 필요합니다.
+
+## 결론
+arXiv:2603.05414가 던지는 메시지는 “LLM이 내성할 수 있냐”가 아니라 “내성이 어떤 경로로 나오냐”에 가깝다. 자기보고를 안전의 증거로 쓰려면, 점수 하나보다 **메커니즘 분해**를 평가 설계의 기본 요소로 두는 편이 낫다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-06](/ko/posts/ai-resources-roundup-2026-03-06)
+- [Cryo-SWAN, 밀도맵 3D VAE의 포맷 전환](/ko/posts/cryo-swan-voxel-density-maps-3d-vae)
+- [AI 코딩 쿼터 마켓 설계](/ko/posts/designing-ai-coding-quota-markets-under-terms-constraints)
+- [장문 보고서: 검색·서술 분리 워크플로우](/ko/posts/designing-long-form-llm-workflows-beyond-large-context-windows)
+- [2-bit 양자화, 생성 붕괴의 함정](/ko/posts/extreme-2-bit-quantization-breaks-llm-generation)
+---
+
+## 참고 자료
+
+- [Auditing language models for hidden objectives | Anthropic - anthropic.com](https://www.anthropic.com/research/auditing-hidden-objectives)
+- [Using Red Teaming to Develop Safer Systems (Anthropic, September 2022) - www-cdn.anthropic.com](https://www-cdn.anthropic.com/files/4zrzovbb/website/82564d4ec2451b2eed2e0796b7c658fc989f0c1a.pdf)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.05414)
+- [Detecting the Disturbance: A Nuanced View of Introspective Abilities in LLMs (arXiv:2512.12411) - arxiv.org](https://arxiv.org/abs/2512.12411)
