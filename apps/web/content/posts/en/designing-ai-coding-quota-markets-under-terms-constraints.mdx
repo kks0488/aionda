@@ -1,0 +1,167 @@
+---
+title: Designing AI Coding Quota Markets Under Terms Constraints
+slug: designing-ai-coding-quota-markets-under-terms-constraints
+date: '2026-03-06'
+lastReviewedAt: '2026-03-06'
+locale: en
+description: >-
+  If/Then guide to AI coding quota marketplaces: structure roles, avoid
+  key-transfer violations, and add SSDF-style verification.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - security
+author: AI온다
+sourceId: '1037428'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1037428'
+verificationScore: 0.83
+alternateLocale: /ko/posts/designing-ai-coding-quota-markets-under-terms-constraints
+coverImage: /images/posts/designing-ai-coding-quota-markets-under-terms-constraints.png
+---
+
+A quota-capped agent hits its request limit mid-sprint.  
+That moment reframes the agent from a tool to a constrained right.  
+You can treat it as a developer tool.  
+You can also treat it as scarce execution rights under usage caps.  
+If you choose the second view, the market can change.  
+Buyers may purchase quota plus operational capability.  
+That capability includes prompting, review, and deployment.  
+Problems can start at that interface.  
+Terms may limit transfer, circumvention, or acting on behalf.  
+Supply-chain security can discourage blind trust in agent output.  
+This article uses If/Then framing.  
+It maps where money is made and where issues can arise.  
+It targets anyone building or using an AI coding rights market.
+
+## TL;DR
+- Treat quota-capped agents as execution rights plus operations, not only a developer tool.  
+- Terms and security controls can raise legal, security, and dispute risk in proxy setups.  
+- Design role separation, verification artifacts, and logged secret handling before building a marketplace.  
+
+Example: A team wants faster fixes without sharing credentials. The operator works through a gated workflow and submits evidence with the change. The platform focuses on reviewable outputs and controlled access.
+
+## Current state
+AI coding agents are often sold as automation.  
+In operations, quotas and limits often drive behavior first.  
+GitHub Copilot documentation describes “premium requests.”  
+It describes rate limits separately.  
+It states you can keep using included models until month end.  
+This design encourages task triage.  
+Users may choose which work spends premium requests.  
+
+Replit documentation says limits may change.  
+It points to the plan or pricing page and documentation.  
+It says exceeding plan limits may incur additional Usage fees.  
+It states UBB is non-refundable.  
+It says the default is non-commercial use.  
+It separates commercial use into a distinct offering.  
+It mentions Teams or a Commercial Agreement.  
+Proxy execution can trigger disputes about cost and refunds.  
+It can also trigger disputes about commercial-use classification.  
+
+The OpenAI Business Terms use explicit prohibitions.  
+They say customers should not “(g) buy, sell, or transfer API keys.”  
+They also prohibit “(h) … circumvent any rate limits or restrictions.”  
+They also prohibit “(i) violate or circumvent Usage Limits.”  
+A rights market can drift into key transfer or sharing.  
+It can also drift into circumvention patterns.  
+A product design goal becomes structural compliance.  
+That goal is to reduce Terms violations by construction.  
+
+## Analysis
+The If/Then framing clarifies incentives.  
+If quota is scarce, a platform can price access.  
+That access can bundle quota plus operational capability.  
+Operational capability goes beyond prompt design.  
+NIST SSDF is NIST SP 800-218.  
+It emphasizes process and records.  
+It includes lessons learned from review and analysis.  
+It includes decisions about testing executable code.  
+It includes carrying out those tests.  
+Competitiveness may shift beyond model performance.  
+It can shift toward review, testing, and deliverable evidence.  
+Delivery language can become procedural.  
+It can shift from “the agent produced it.”  
+It can shift to “it passed the defined procedure.”  
+
+If the market runs as proxy execution, risk can grow.  
+It tends to grow along three branches.  
+(1) Terms risk can increase.  
+It can conflict with key transfer prohibitions.  
+It can also conflict with anti-circumvention language.  
+Those include rate limits, restrictions, and Usage Limits.  
+(2) Security risk can increase.  
+The main question is who touches code and secrets.  
+Another question is where keys are stored.  
+NIST SP 800-57 gives control examples.  
+It includes restricted access for keys and secrets.  
+It also includes logging key access.  
+(3) Quality and accountability risk can increase.  
+Missing records complicate dispute handling.  
+It becomes unclear who reviewed the code.  
+It becomes unclear which tests ran.  
+A market can broker responsibility transfer.  
+Hiding that transfer can destabilize operations.  
+
+## Practical application
+You should frame a rights market as a verified pipeline.  
+You can avoid an account-sharing bazaar framing.  
+The requester can provide reproducibility conditions.  
+They can limit repo access scope.  
+They can specify test commands.  
+They can list prohibited change areas.  
+The operator can provide more than execution.  
+They can provide review, testing, and records.  
+The core question is trust basis.  
+It is less about who executed.  
+It is more about what evidence supports the result.  
+
+**Checklist for Today:**
+- Design role and permission separation that avoids key transfer and sharing.  
+- Require test, review, and record artifacts as delivery attachments, aligned with NIST SP 800-218.  
+- Apply restricted access plus access logging for secrets, and document procedures to reduce leakage into logs.  
+
+## FAQ
+**Q1. What exactly is traded in an “AI coding rights market”?**  
+A1. It can trade limited execution rights, plus operating procedures.  
+It can include review, testing, and records.  
+It may trade more than code artifacts.  
+
+**Q2. What is the most dangerous point from a Terms perspective?**  
+A2. Key sharing can increase Terms risk.  
+OpenAI Business Terms prohibit key buy, sell, and transfer.  
+They prohibit circumvention of rate limits and restrictions.  
+They also prohibit violating or circumventing Usage Limits.  
+Proxy structures can lean on those prohibited patterns.  
+
+**Q3. What is the minimum verification required for agent-generated code?**  
+A3. Start with a defined SSDF-style flow.  
+Decide whether to run tests.  
+Run tests when chosen.  
+Record what review and analysis found.  
+You can add SBOM and provenance if available.  
+SPDX and CycloneDX are common SBOM formats.  
+SLSA and in-toto relate to provenance approaches.  
+
+## Conclusion
+An AI coding rights market can resemble an operations market.  
+It can settle quota, Terms, and security together.  
+Model performance may not be sufficient on its own.  
+Trust can depend on secret handling controls.  
+Trust can also depend on verification evidence in product features.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-06](/en/posts/ai-resources-roundup-2026-03-06)
+- [Cryo-SWAN Brings Voxel Density Maps Into 3D VAE](/en/posts/cryo-swan-voxel-density-maps-3d-vae)
+- [Extreme 2-Bit Quantization Can Break LLM Generation](/en/posts/extreme-2-bit-quantization-breaks-llm-generation)
+- [Measuring Goal Drift in Long-Running AI Agents](/en/posts/measuring-goal-drift-long-running-ai-agents)
+- [Tracking Continual Learning Collapse With Effective Rank Metrics](/en/posts/tracking-continual-learning-collapse-with-effective-rank-metrics)
+---
+
+## References
+
+- [Services agreement | OpenAI - openai.com](https://openai.com/policies/business-terms)
+- [NIST Special Publication 800-218 (SSDF) - nvlpubs.nist.gov](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-218.pdf)
+- [SP 800-218, Secure Software Development Framework (SSDF) Version 1.1 (CSRC) - csrc.nist.gov](https://csrc.nist.gov/publications/detail/sp/800-218/final)
+- [NIST SP 800-57 Part 1 Rev. 5 (PDF) - Recommendation for Key Management: Part 1 – General - nvlpubs.nist.gov](https://nvlpubs.nist.gov/nistpubs/specialpublications/nist.sp.800-57pt1r5.pdf)

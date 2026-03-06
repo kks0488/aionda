@@ -1,0 +1,163 @@
+---
+title: Designing Long-Form LLM Workflows Beyond Large Context Windows
+slug: designing-long-form-llm-workflows-beyond-large-context-windows
+date: '2026-03-06'
+lastReviewedAt: '2026-03-06'
+locale: en
+description: >-
+  For long policy reports, context and upload limits push chunked workflows that
+  separate evidence retrieval from drafting, improving traceability and quality.
+tags:
+  - llm
+  - robotics
+  - explainer
+  - rag
+  - workflow
+author: AI온다
+sourceId: '1037424'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1037424'
+verificationScore: 0.6
+alternateLocale: /ko/posts/designing-long-form-llm-workflows-beyond-large-context-windows
+coverImage: >-
+  /images/posts/designing-long-form-llm-workflows-beyond-large-context-windows.png
+---
+
+A 110k-token context window can still struggle with evidence-to-claim traceability in long policy reports.  
+Feeding a hundreds-page report as-is can blur the link between citations and conclusions.  
+ChatGPT Enterprise documentation states it can process **up to 110k tokens** from uploaded documents.  
+Claude.ai documentation states uploads are limited to **30MB per file**.  
+These constraints shape how you define work units for automation.  
+A workflow can separate **search (evidence collection)** from **logic/narration (draft writing)**.
+
+## TL;DR
+- Split long-report work into evidence bundles and narration steps, rather than one large paste.  
+- Token and upload limits, such as **110k tokens** and **30MB per file**, affect quality and auditability.  
+- Define segmentation rules, then run an evidence-to-paragraph verification loop for each segment.
+
+Example: A team handles a long report by splitting evidence gathering from drafting. They keep sources grouped. They verify each claim against the bundle.
+
+## TL;DR
+- The issue is often workflow design, not only “dumping a long policy report” into an LLM.  
+- Limits like **110k tokens** and **30MB per file** constrain the work unit and review process.  
+- Repeat the “evidence bundle → summary → outline → body → verification” loop per chapter or section.
+
+## Current state
+A common problem in policy-report automation is weak evidence linkage in long prose.  
+Sometimes the model contributes to the issue.  
+The ingestion method can also affect outcomes.
+
+Long-form work faces constraints like context limits and file upload limits.  
+For reports with hundreds of pages, segmentation can reduce strain on one conversation.  
+This approach can also make review steps clearer.
+
+ChatGPT Enterprise documentation states a context window of **up to 110k tokens** for uploaded documents.  
+This number suggests an upper bound for processing.  
+It does not imply stable control in every case.
+
+Policy reports include tables, footnotes, citations, and statutory language.  
+These elements can detach from the chapter’s main claims.  
+Errors can appear when the connection between evidence and claims loosens.
+
+A “dump everything at once” approach can increase verification burden.  
+A larger context window can help, but it can still degrade traceability.
+
+Claude.ai documentation states uploads are limited to **30MB per file**.  
+This limit can force document splitting into uploadable units.  
+Splitting then requires criteria and management rules.
+
+Long-form work can start with segmentation criteria like chapter, section, or evidence bundle.  
+Model selection can matter, but segmentation design often comes first.
+
+## Analysis
+This issue matters for long-form production in public institutions.  
+The debate often includes auditability, not only writing speed.  
+Readers may ask why a conclusion was reached.
+
+Policy reports can fail when conclusions lack traceable support.  
+A common practice separates two roles.  
+The first role collects and organizes evidence via search or RAG.  
+The second role builds logic and drafts text using the evidence bundle.
+
+If both roles share one conversation and one input blob, source tracking can blur.  
+That blur can make audits and edits harder.
+
+Official limits like **110k tokens** and **30MB per file** are close to tool boundaries.  
+User experience can vary with tables, scans, and extraction quality.  
+These variations can affect what fits and what stays coherent.
+
+Connective prose can read smoothly during narration.  
+Evidence can still be weak or mismatched.  
+That risk can reduce substantiation even when writing quality seems fine.
+
+Public-institution environments can add constraints.  
+Examples include access controls and mandated editing formats.  
+These constraints can influence adoption regardless of model performance.
+
+Workflow design can act as the quality-control system.  
+Segmentation and verification steps can make that control more explicit.
+
+## Practical application
+Separate **search (evidence collection)** from **logic/narration (drafting or rewriting)** by role.  
+Repeat the same procedure for each segmented unit.  
+Use segmentation units like chapter, section, or table.
+
+In a search session, gather sources for one unit.  
+Create an evidence bundle with source-by-source summaries and key sentences.  
+In a narration session, provide only the evidence bundle.  
+Draft an outline in claim–evidence–counterargument–policy alternative order.  
+Write body text from that outline.  
+Then verify which evidence bundle supports each paragraph.
+
+If you use section-level units and a rule like “5 evidence items per section,” operations become predictable.  
+This rule can help you work within context and upload limits.  
+It can also clarify where search ends and narration begins.
+
+Clear boundaries can reduce missing evidence.  
+They can reduce contradictions between paragraphs.  
+They can also reduce the burden of organizing citations.
+
+**Checklist for Today:**
+- Run separate sessions for evidence collection and for narration, and pass only the evidence bundle forward.  
+- Pick one segmentation unit, then repeat `summary → outline → body → evidence–paragraph mapping verification` per unit.  
+- Store the evidence bundle with the deliverable so later audits can trace each claim to sources.
+
+## FAQ
+**Q1. If the context is large (e.g., 110k tokens), can’t we paste hundreds of pages and summarize or write?**  
+A1. It can be possible in some cases.  
+Stability can vary by structure, tables, and citations.  
+The **110k tokens** figure is near a stated upper bound.  
+Bundled evidence per segment can make verification easier.
+
+**Q2. What design does a file upload limit (e.g., 30MB per file) force in practice?**  
+A2. It pushes you toward splitting documents into uploadable units.  
+You can segment by chapter, section, or table.  
+You can attach metadata like section identifier, source, and version.  
+Without rules, re-uploads and citation mixing can become more likely.
+
+**Q3. What improves when you separate ‘search’ and ‘narration’?**  
+A3. Evidence quality becomes easier to review.  
+Search can be checked for sufficiency, duplication, and extraction accuracy.  
+Narration can be checked for logical connection among claim, evidence, and alternatives.  
+This separation can help isolate which segment needs rework.
+
+## Conclusion
+In long policy reports, an LLM often functions as part of a process.  
+That process can divide labor between evidence collection and narration.  
+The next focus can include workflows, not only model specifications.
+
+Given limits like **110k tokens** and **30MB per file**, segmentation rules can matter.  
+Verification loops can also matter for traceability.  
+Organizations can assess whether these rules are standardized before scaling automation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-06](/en/posts/ai-resources-roundup-2026-03-06)
+- [Cryo-SWAN Brings Voxel Density Maps Into 3D VAE](/en/posts/cryo-swan-voxel-density-maps-3d-vae)
+- [Extreme 2-Bit Quantization Can Break LLM Generation](/en/posts/extreme-2-bit-quantization-breaks-llm-generation)
+- [Measuring Goal Drift in Long-Running AI Agents](/en/posts/measuring-goal-drift-long-running-ai-agents)
+- [Tracking Continual Learning Collapse With Effective Rank Metrics](/en/posts/tracking-continual-learning-collapse-with-effective-rank-metrics)
+---
+
+## References
+
+- [Optimizing File Uploads in ChatGPT Enterprise | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10029836)
+- [What kinds of documents can I upload to Claude.ai? | Anthropic Help Center - support.anthropic.com](https://support.anthropic.com/en/articles/8241126-what-kinds-of-documents-can-i-upload-to-claude-ai)
