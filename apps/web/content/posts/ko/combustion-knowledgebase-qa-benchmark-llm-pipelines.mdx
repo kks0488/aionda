@@ -1,0 +1,81 @@
+---
+title: 연소 LLM 지식주입+평가 파이프라인
+slug: combustion-knowledgebase-qa-benchmark-llm-pipelines
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: ko
+description: 3.5B 토큰 연소 지식베이스와 CombustionQA로 지식 주입과 평가를 파이프라인으로 고정.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - benchmark
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-704bf58049b46280
+sourceUrl: 'https://arxiv.org/abs/2603.04452'
+verificationScore: 0.77
+alternateLocale: /en/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines
+coverImage: /images/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines.png
+---
+
+3.5 billion tokens 규모의 연소과학 지식베이스를 먼저 구축하고, 그 위에서 LLM의 “지식 주입”과 “평가”를 하나의 파이프라인으로 묶겠다는 제안이 나왔다. 초록 기준으로 이 데이터는 200,000+ 편의 피어리뷰 논문, 8,000편의 학위논문(dissertations), 그리고 약 400,000 lines의 연소 CFD 코드에서 뽑았다고 한다. 벤치마크도 함께 제안한다. 8개 세부 분야를 다룬다고 설명하는 CombustionQA 436문항을 만들고, 제로샷 23%, RAG 단계 60%, 이론적 상한 87%를 함께 제시한다. 핵심은 “연소 도메인 LLM을 만들자” 자체라기보다, 무엇을 넣고(지식 주입) 무엇으로 검증할지(평가)를 함께 고정해 재현 가능한 의사결정 단위로 만들려는 시도라는 점이다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** 연소과학에서 논문·학위논문·CFD 코드까지 묶은 **3.5B 토큰 지식베이스**와 **CombustionQA 436문항**을 기반으로, 지식 주입+평가를 한 파이프라인으로 묶는 프레임워크가 제안됐다.  
+- **왜 중요한가?** 제로샷 23%·RAG 60%·이론 상한 87%처럼 단계별 지표를 함께 제시해, 도메인 LLM이 어디에서 성능이 막히는지 점수로 구분해 볼 여지가 생긴다(초록에 언급된 병목으로 context contamination이 포함된다).  
+- **독자는 뭘 하면 되나?** 베이스 모델을 정한 뒤 **(1) DAPT/SFT/RAG를 단계별로 추가하는 ablation**, **(2) CombustionQA류의 도메인 QA를 사내 태스크로 바꾼 평가셋 구성**, **(3) 오염(컨텍스트/평가셋) 차단 규칙의 선문서화**를 한 다음에 학습·배포 결정을 검토하라.
+
+## 현황
+이 연구는 연소과학용 LLM을 위해 “데이터 준비 → 지식 주입 → 평가”를 한 묶음으로 제시한다. 초록에 따르면 지식베이스는 **3.5 billion tokens** 규모다. 소스는 **200,000+** 피어리뷰 논문, **8,000** 학위논문, **약 400,000 lines**의 연소 CFD 코드라고 한다. 텍스트뿐 아니라 코드까지 포함한다. 이는 도메인 적응 난도를 높일 수 있지만, 연구자가 실제로 다루는 지식 형태에 더 가까운 구성일 수 있다.
+
+평가도 지표를 함께 제시한다. 초록 요약/조사 결과 스니펫 기준으로 **CombustionQA(436문항)**를 만들고 **8개 세부 분야**를 포함한다고 설명한다. 성능은 하나의 점수로만 제시하지 않고, **제로샷 23%**, **Stage 1 RAG 정확도 60%**, **이론적 상한 87%**처럼 단계별 수치를 함께 둔다. 이런 구성은 “모델 자체의 한계”와 “데이터/컨텍스트 파이프라인 문제”를 구분해 보려는 설계로 해석할 수 있다.
+
+다만 “지식 주입”을 어떤 절차로 구현했는지(continued pretraining인지, SFT인지, RAG인지, 또는 조합인지)는 제공된 스니펫만으로 확정하기 어렵다. 도메인 적응은 **continued pretraining(DAPT/TAPT)**, **지도 미세조정(SFT)**, **RAG(검색증강)**로 구분해 설명하는 경우가 많다. 각각 학습/추론 단계에서 비용과 리스크가 달라진다. 이 논문은 적어도 RAG 단계를 명시적으로 언급하고, 병목으로 **context contamination**을 지목한다.
+
+## 분석
+의사결정 관점에서 이 프레임워크의 가치는 “모델 개발” 자체보다 “실험 설계의 고정”에 더 가깝다. 도메인 LLM 프로젝트는 데이터 수집(논문 PDF, 내부 리포트, 코드 스니펫)로 시작한 뒤 미세조정이나 RAG로 곧바로 진행되는 경우가 있다. 이후에는 원인 분석이 어려워진다. *성능이 오르면 무엇 때문에 오른 것인가?* 데이터, 프롬프트, 검색 품질, 평가셋 중복(오염) 등이 분리되지 않을 수 있다. 이 연구는 최소한 **(제로샷 23% → RAG 60% → 상한 87%)**처럼 단계별 기준점을 제시해, 투입 지점을 비교 가능한 형태로 정리하려는 접근으로 보인다.
+
+트레이드오프도 있다. 지식베이스가 커질수록(여기서는 **3.5B tokens**, **200,000+** 논문 등) 잠재적 커버리지는 늘 수 있지만, 운영 리스크도 커질 수 있다.  
+첫째는 저작권/라이선스다. 초록만으로는 논문·학위논문·코드의 수집 경로, 저장 단위(원문 저장인지 파생 텍스트인지), 재배포 범위를 알 수 없다.  
+둘째는 평가 오염이다. 초록에서 **context contamination**을 병목으로 언급한 것은, 검색 컨텍스트가 부정확한 정보를 섞거나(또는 정답이 컨텍스트에 섞여) 결과를 왜곡할 수 있음을 문제로 다룬다는 뜻으로 읽힐 수 있다.  
+셋째는 과업 정합성이다. CombustionQA 같은 QA 정확도가 실제 작업(설계 의사결정, 시뮬레이션 파이프라인, 코드 작성/디버깅)의 성과와 얼마나 연결되는지는 스니펫만으로 판단하기 어렵다. QA는 출발점이 될 수 있지만, 현업 지표와 동일시하면 리스크가 생긴다.
+
+## 실전 적용
+이 내용을 “연소과학 전용”으로만 보면 적용 범위가 줄어든다. 핵심 패턴은 **도메인 지식베이스(텍스트+코드) → 지식 주입 절차 → 도메인 벤치마크**의 삼각형이다. 연소가 아니라 반도체 공정, 배터리, 소재, 제약처럼 “논문+내부 문서+코드”가 함께 돌아가는 조직도 유사한 구조를 고려할 수 있다. 구현은 조건을 명시해 진행하는 편이 낫다.  
+- **If** 내부 지식이 자주 바뀌고 최신성이 중요하다 **Then** 파라미터 주입(continued pretraining/SFT)보다 **RAG 중심**을 우선 검토하고, 문서 인덱싱·출처·컨텍스트 정제에 자원을 배분하라.  
+- **If** 반복되는 계산/코드 패턴이 많고 오프라인 환경이 필요하다 **Then** RAG만으로는 부족할 수 있으니 **SFT/continued pretraining** 같은 파라미터 적응을 검토하되, 평가셋 오염 방지 규칙을 먼저 고정하라.  
+- **If** “정답 문장”보다 “실행 가능한 절차”가 중요하다 **Then** QA 점수 외에 코드 실행/테스트 통과 같은 과업 지표를 별도로 설계하라(이 논문이 이를 포함하는지는 스니펫에서 확인되지 않는다).
+
+오늘 바로 할 일 체크리스트 3개  
+- 베이스라인을 **제로샷 → RAG → (선택) DAPT/SFT** 순서로 쌓는 실험표를 만들고, 단계별로 성능 변화와 정체 지점을 기록한다.  
+- 도메인 QA를 **436문항처럼 작은 규모로라도** 만들되, 정답 근거 문서(출처)와 컨텍스트 생성 규칙을 함께 저장해 재실험 가능성을 확보한다.  
+- “훈련/검색 코퍼스”와 “평가셋”의 중복을 막는 규칙(중복 제거, 유사도 필터, 시간 분할 등)을 코드로 고정해 평가 오염을 사후 논쟁이 아니라 사전 절차로 다룬다.
+
+## FAQ
+**Q1. ‘지식 주입’은 결국 무엇을 뜻하나? RAG만 말하는 건가?**  
+A1. 지식 주입은 한 가지 방식만을 뜻하지 않습니다. 보통 (1) 도메인 코퍼스로 continued pretraining을 하는 방식, (2) 지도 미세조정(SFT)으로 작업 형식을 학습시키는 방식, (3) RAG처럼 외부 지식을 검색해 추론 시점에 붙이는 방식으로 나뉩니다. 이 연구 스니펫에서는 RAG 단계와 그 병목(context contamination) 언급이 확인됩니다.
+
+**Q2. 각 방식의 “기여도”는 어떻게 공정하게 나누나?**  
+A2. 동일한 베이스 모델에서 단계를 하나씩 추가/제거하는 ablation이 보편적으로 쓰입니다. 예를 들어 Base, Base+RAG, Base+DAPT, Base+DAPT+SFT처럼 비교합니다. RAG 내부에서도 검색기/생성기 정렬을 수치화하려는 지표(WARG 등)가 제안된 바 있습니다.
+
+**Q3. 200,000+ 논문과 8,000 학위논문을 쓰면 저작권/재현성 이슈는 어떻게 되나?**  
+A3. 제공된 초록 스니펫만으로는 라이선스 처리, 원문 저장 여부, 공개 범위(데이터/코드/가중치 공개)를 확인할 수 없습니다. 실제로 유사한 접근을 하려면 수집 출처와 저장 단위, 재배포 가능 범위, 삭제 요청 대응 같은 항목을 프로젝트 초기에 문서로 정리하는 편이 안전합니다.
+
+## 결론
+이 프레임워크가 말하는 바는 단순한 편이다. 연소과학 LLM을 다루려면 “좋은 모델” 이전에 **3.5B 토큰급 지식베이스**, **436문항 벤치마크**, 그리고 **제로샷 23%·RAG 60%·상한 87%**처럼 단계별로 해석 가능한 성능 프레임을 먼저 두자는 제안이다. 이후 확인할 지점은, 이 파이프라인이 실제로 어떤 지식 주입 조합(continued pretraining/SFT/RAG)으로 구현되는지, 그리고 context contamination을 어떤 규칙과 절차로 줄이는지다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-07](/ko/posts/ai-resources-roundup-2026-03-07)
+- [LLM 자기보고, 내성인가 추론인가](/ko/posts/ai-introspection-direct-access-vs-inference)
+- [AI 자료 모음 (24h) - 2026-03-06](/ko/posts/ai-resources-roundup-2026-03-06)
+- [Cryo-SWAN, 밀도맵 3D VAE의 포맷 전환](/ko/posts/cryo-swan-voxel-density-maps-3d-vae)
+- [AI 코딩 쿼터 마켓 설계](/ko/posts/designing-ai-coding-quota-markets-under-terms-constraints)
+---
+
+## 참고 자료
+
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (arXiv) - arxiv.org](https://arxiv.org/abs/2005.11401)
+- [Fine-tuning large language models for domain adaptation: exploration of training strategies, scaling, model merging and synergistic capabilities (npj Computational Materials) - nature.com](https://www.nature.com/articles/s41524-025-01564-y)
+- [RAG-E: Quantifying Retriever-Generator Alignment and Failure Modes (arXiv) - arxiv.org](https://arxiv.org/abs/2601.21803)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.04452)

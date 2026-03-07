@@ -1,0 +1,166 @@
+---
+title: Memory Admission Control for Reliable LLM Agents
+slug: memory-admission-control-for-reliable-llm-agents
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  A practical look at memory admission control for LLM agents, reducing
+  long-term memory pollution while improving auditability and metrics.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+  - agent
+  - observability
+  - security
+author: AI온다
+sourceId: arxiv-cs-ai-7a43633939dc5ef5
+sourceUrl: 'https://arxiv.org/abs/2603.04549'
+verificationScore: 0.77
+alternateLocale: /ko/posts/memory-admission-control-for-reliable-llm-agents
+coverImage: /images/posts/memory-admission-control-for-reliable-llm-agents.png
+---
+
+When an agent writes a recent chat into long-term memory, errors can persist across sessions.  
+Hallucinations and stale facts can reappear as “known” information later.  
+That risk raises a design question about remembering versus forgetting.  
+This post frames the problem as **memory admission control**.  
+It describes an approach aimed at reducing contamination and improving auditability.
+
+## TL;DR
+- Memory admission control treats long-term storage as an admission decision, not automatic logging or LLM-only judgment.
+- It matters because contamination can propagate across store→retrieve→adopt, and memory can become an attack surface.
+- Next, add tracing and a tiered policy, and evaluate F1, latency, and attack success together.
+
+Example: A support agent stores a user preference for future help.  
+It avoids storing short-lived status messages that can mislead later.  
+It keeps sources so reviewers can check how a memory influenced behavior.
+
+## Current state
+Agents with long-term memory are not structured for performance to rise with more memories.  
+The chance of incorrect memories persisting can also increase.
+
+The arXiv paper *Adaptive Memory Admission Control for LLM Agents* describes two common extremes.  
+One approach stores large volumes of conversation.  
+This can also store hallucinations and stale facts.  
+Another approach asks an LLM to decide what to store.  
+That can raise cost and complicate audits.
+
+The paper treats memory storage as **admission**.  
+It reports evaluation on LoCoMo, a long-term memory benchmark.  
+Experiments on the LoCoMo benchmark report an F1 score of 0.583.  
+It also reports a **31% latency reduction**.  
+These results suggest more options than “store everything” or “LLM decides everything.”  
+They also suggest storage policy can be designed as a systems problem.
+
+Research also treats stored memory as an attack surface.  
+*MemoryGraft* describes planting a malicious “successful experience” into long-term memory.  
+If retrieval surfaces that memory, it may steer later behavior.  
+*CIMemories* proposes a benchmark for context-appropriate information-flow control in persistent memory.  
+Memory can become infrastructure with quality, security, and audit requirements.
+
+## Analysis
+Memory admission control treats storage as a **quality gate**, not only I/O.  
+It helps to split the pipeline into admission, retrieval, and usage.  
+This can be written as **admission (storage) → retrieval → usage (adoption)**.  
+Logs can then show where issues enter and amplify.
+
+This framing suggests more than measuring storage volume.  
+It suggests measuring contaminated content by stage.  
+That includes how much contaminated memory was stored.  
+It also includes how much was retrieved.  
+It also includes how much was adopted into outputs.
+
+The paper’s LoCoMo results provide two concrete metrics.  
+They include **31% latency reduction**.  
+Those numbers fit the idea of tracking quality and operational cost together.
+
+There are limitations.  
+Strict rules or statistics may drop useful information.  
+This can reduce recall and downstream performance.  
+Flexible LLM judgment can increase cost.  
+It can also reduce policy explainability during audits.  
+An attacker may also target what passes admission.  
+A “trusted” memory path can increase impact after retrieval.
+
+A likely design point is a hierarchical, cascade-style approach.  
+Low-cost layers can handle most decisions in visible ways.  
+More expensive layers can handle ambiguous or high-risk cases.  
+That can include LLM or learning-based escalation.
+
+## Practical application
+Memory admission control can start with an observable pipeline.  
+It can avoid dependence on a single model.
+
+At storage time, link events under one trace ID.  
+Include what was proposed for storage.  
+Include why it was stored or rejected.  
+Include whether it was later retrieved.  
+Include whether it influenced the final response or action.
+
+Then add a hierarchical policy.  
+Do first-pass filtering with rules.  
+Rules can cover PII, abnormal patterns, and expirable information.  
+Add statistics for duplication, frequency, and recency.  
+Escalate remaining cases to LLM judgment when ambiguity remains.
+
+Separate two questions in the design.  
+One question is “Should we store it?”.  
+Another question is “How should we summarize or normalize it?”.  
+This separation can simplify cost control and audit trails.
+
+**Checklist for Today:**
+- Connect store→retrieve→adopt under one trace ID, and log contamination signals at each stage.
+- Implement a two-tier admission policy that uses rules first, then escalates ambiguous cases to an LLM.
+- Review one dashboard with **F1 0.583**, **31% latency reduction**, and contamination-attack success rates.
+
+## FAQ
+**Q1. How is memory admission control different from “summarize and store”?**  
+A. Summarization addresses how to store information.  
+Admission control addresses whether to store information.  
+Keeping them separate can help auditing.  
+It can also help control when an LLM is used.
+
+**Q2. How do we measure whether hallucinations are entering memory and accumulating?**  
+A. Split measurement across admission, retrieval, and usage.  
+Instrument how often contaminated items are stored.  
+Instrument how often they are retrieved.  
+Instrument how often they influence final outputs.  
+Track benchmark metrics like F1 and operational latency together.  
+For MemoryGraft-like threats, track attack success and normal performance together.
+
+**Q3. Are rule-based policies safe and LLM-based policies risky?**  
+A. The trade-off is not binary.  
+Rules can be more auditable.  
+They can also cause recall loss.  
+LLM judgment can be more adaptive.  
+It can also reduce explainability and increase cost.  
+A hierarchical configuration can be a practical compromise.  
+Rules and statistics can cover common cases.  
+LLM escalation can cover ambiguous or high-risk cases.
+
+## Conclusion
+Memory admission control shifts focus from accumulating memories to operating memory quality.  
+The LoCoMo figures offer concrete targets for that view.  
+They include **F1 0.583** and a **31% latency reduction**.  
+Memory can affect performance and cost.  
+A remaining question is whether admission control can support audits.  
+Another question is whether it can help mitigate MemoryGraft-like threats.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Disentangling AI Introspection: Direct Access vs Inference Mechanisms](/en/posts/ai-introspection-direct-access-vs-inference)
+- [AI Resource Roundup (24h) - 2026-03-06](/en/posts/ai-resources-roundup-2026-03-06)
+- [Cryo-SWAN Brings Voxel Density Maps Into 3D VAE](/en/posts/cryo-swan-voxel-density-maps-3d-vae)
+- [Designing AI Coding Quota Markets Under Terms Constraints](/en/posts/designing-ai-coding-quota-markets-under-terms-constraints)
+---
+
+## References
+
+- [Towards Principled Training and Serving of Large Language - digicoll.lib.berkeley.edu](https://digicoll.lib.berkeley.edu/record/293070/files/EECS-2025-6.pdf)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.04549)
+- [MemoryGraft: Persistent Compromise of LLM Agents via Poisoned Experience Retrieval - arxiv.org](https://arxiv.org/abs/2512.16962)
+- [CIMemories: A Compositional Benchmark for Contextual Integrity of Persistent Memory in LLMs - arxiv.org](https://arxiv.org/abs/2511.14937)
+- [SkewRoute: Training-Free LLM Routing for Knowledge Graph Retrieval-Augmented Generation via Score Skewness of Retrieved Context - arxiv.org](https://arxiv.org/abs/2505.23841)

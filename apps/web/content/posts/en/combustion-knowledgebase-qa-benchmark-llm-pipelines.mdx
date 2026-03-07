@@ -1,0 +1,181 @@
+---
+title: Combustion Knowledgebase And QA Benchmark For LLM Pipelines
+slug: combustion-knowledgebase-qa-benchmark-llm-pipelines
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  A 3.5B-token combustion knowledgebase and CombustionQA benchmark unify
+  knowledge injection and evaluation into one pipeline.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - benchmark
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-704bf58049b46280
+sourceUrl: 'https://arxiv.org/abs/2603.04452'
+verificationScore: 0.77
+alternateLocale: /ko/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines
+coverImage: /images/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines.png
+---
+
+A user tries to answer a combustion question with an LLM.  
+The result can look plausible but remain hard to validate.  
+A proposal describes a combustion-science knowledge base of **3.5 billion tokens**.  
+It also proposes one pipeline for “knowledge injection” and “evaluation.”  
+The abstract says data came from **200,000+** peer-reviewed papers.  
+It also includes **8,000 theses and dissertations**.  
+It also includes about **400,000 lines** of combustion CFD code.  
+A benchmark is proposed with the data and pipeline.  
+They created **CombustionQA (436 questions)** across **8 subfields**.  
+They report **23%** zero-shot performance.  
+They report **60%** at the RAG stage.  
+They report a **theoretical upper bound of 87%**.  
+The focus is a reproducible decision unit for adapting domain LLMs.  
+It combines what to add and what to measure.
+
+## TL;DR
+- The proposal combines a **3.5B-token** combustion knowledge base with a single injection-and-evaluation pipeline and **CombustionQA (436)**.  
+- Stage metrics like **23%**, **60%**, and **87%** can help locate bottlenecks, including **context contamination**.  
+- Build staged ablations, adapt QA into internal tasks, and document contamination controls before training or deployment choices.  
+
+Example: You ask a domain question and retrieve mixed-quality context. The model answers confidently, and you later find sources disagree.
+
+## Current status
+This work presents one bundle for a combustion-science LLM.  
+The bundle is “data preparation → knowledge injection → evaluation.”  
+The abstract describes a knowledge base of **3.5 billion tokens**.  
+The sources include **200,000+** peer-reviewed papers.  
+They also include **8,000** dissertations.  
+They also include about **400,000 lines** of combustion CFD code.  
+The bundle includes text and code.  
+This could increase adaptation complexity.  
+It could also better match researchers’ mixed artifacts.
+
+The evaluation also includes stage metrics.  
+They created **CombustionQA (436 questions)**.  
+They describe it as covering **8 subfields**.  
+They report **23%** zero-shot performance.  
+They report **60%** accuracy at a Stage 1 RAG step.  
+They report a **theoretical upper bound of 87%**.  
+This layout can support bottleneck diagnosis by stage.  
+It can separate model limits from pipeline issues.
+
+The snippet does not fully specify “knowledge injection.”  
+It may include continued pretraining, SFT, RAG, or combinations.  
+Domain adaptation is often described as DAPT or TAPT.  
+It also often includes SFT.  
+It can also include RAG at inference time.  
+Each option has different cost and risk profiles.  
+This snippet explicitly mentions a RAG stage.  
+It also flags **context contamination** as a bottleneck.
+
+## Analysis
+This framework reads like experiment design work.  
+It is less directly about inventing a new model.  
+Domain LLM projects often start with mixed corpora.  
+Examples include PDFs, reports, and code.  
+Teams then move quickly to fine-tuning or RAG.  
+Afterward, causal analysis can become unclear.  
+Performance changes can have many causes.  
+Retrieval, prompts, data overlap, and contamination can interact.  
+This work groups interventions into a staged comparison frame.  
+The abstract’s numbers provide reference points.  
+They include **23% → 60% → 87%** across stages.
+
+Trade-offs appear alongside scale.  
+The knowledge base is described as **3.5B tokens**.  
+It also draws from **200,000+** papers and **8,000** dissertations.  
+Greater coverage could be possible with larger corpora.  
+Operational risks could also increase with scale.
+
+First, copyright and licensing are unclear.  
+The abstract alone does not show collection routes.  
+It also does not show storage formats.  
+It also does not show redistribution scope.
+
+Second, evaluation contamination is a risk.  
+The abstract mentions **context contamination** as a bottleneck.  
+This could include incorrect retrieved context.  
+It could also include answers embedded in retrieved context.  
+Either case can distort measured performance.
+
+Third, task alignment may be uncertain.  
+The snippet does not show how CombustionQA maps to work outputs.  
+Real outputs can include design decisions and simulations.  
+They can also include code writing and debugging.  
+QA can be a useful starting point.  
+However, QA scores may not match production metrics.
+
+## Practical application
+This pattern is not limited to combustion.  
+The structure is a three-part chain.  
+It is “knowledge base → injection procedure → benchmark.”  
+It can fit domains that mix text and code.  
+Examples include materials, semiconductors, and pharma.  
+Implementation can benefit from explicit conditions.
+
+- If knowledge changes often, consider RAG-first designs.  
+Document indexing, provenance, and context cleaning.  
+- If offline use and repeated code patterns matter, RAG may be insufficient.  
+Consider parameter adaptation like continued pretraining or SFT.  
+Define contamination prevention rules before measuring improvements.  
+- If executable procedures matter, add task metrics beyond QA accuracy.  
+Code execution and test pass rates are possible options.  
+The snippet does not confirm such metrics.
+
+**Checklist for Today:**
+- Create a stage matrix like **zero-shot → RAG → optional DAPT or SFT**, and log metrics per stage.  
+- Draft a domain QA set that can mirror **CombustionQA (436 questions)**, and store evidence sources with each item.  
+- Implement overlap controls between corpus and evaluation, and document rules for **context contamination** handling.  
+
+## FAQ
+**Q1. What does “knowledge injection” mean here?**  
+A1. “Knowledge injection” can refer to multiple methods.  
+Common categories include continued pretraining on domain text.  
+Another is supervised fine-tuning for task formats.  
+Another is retrieval at inference time, such as RAG.  
+This snippet explicitly mentions a RAG stage.  
+It also mentions **context contamination** as a bottleneck.
+
+**Q2. How can you separate each method’s effect?**  
+A2. Ablations can help isolate contributions.  
+They can add or remove one component at a time.  
+One sequence is Base, then Base+RAG.  
+Another is Base+DAPT.  
+Another is Base+DAPT+SFT.  
+RAG can also be evaluated by retriever and generator alignment.  
+The snippet does not provide such breakdown details.
+
+**Q3. What about copyright and reproducibility with large corpora?**  
+A3. The abstract snippet does not verify licensing handling.  
+It also does not verify whether originals are stored.  
+It also does not verify disclosure scope for data or weights.  
+A similar project can document these constraints early.  
+It can also track permissions and takedown handling.
+
+## Conclusion
+The proposal describes a combined frame for domain LLM work.  
+It pairs a **3.5B-token** knowledge base with a benchmark.  
+It uses **CombustionQA (436 questions)** as one evaluation piece.  
+It reports stage metrics like **23%**, **60%**, and **87%**.  
+The next verification steps remain unclear from the snippet.  
+One step is the exact injection recipe used in the pipeline.  
+Another step is the procedures to reduce **context contamination**.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Disentangling AI Introspection: Direct Access vs Inference Mechanisms](/en/posts/ai-introspection-direct-access-vs-inference)
+- [AI Resource Roundup (24h) - 2026-03-06](/en/posts/ai-resources-roundup-2026-03-06)
+- [Cryo-SWAN Brings Voxel Density Maps Into 3D VAE](/en/posts/cryo-swan-voxel-density-maps-3d-vae)
+- [Designing AI Coding Quota Markets Under Terms Constraints](/en/posts/designing-ai-coding-quota-markets-under-terms-constraints)
+---
+
+## References
+
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks (arXiv) - arxiv.org](https://arxiv.org/abs/2005.11401)
+- [Fine-tuning large language models for domain adaptation: exploration of training strategies, scaling, model merging and synergistic capabilities (npj Computational Materials) - nature.com](https://www.nature.com/articles/s41524-025-01564-y)
+- [RAG-E: Quantifying Retriever-Generator Alignment and Failure Modes (arXiv) - arxiv.org](https://arxiv.org/abs/2601.21803)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.04452)
