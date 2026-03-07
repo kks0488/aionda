@@ -1,0 +1,159 @@
+---
+title: Why PDF-to-Excel Rankings Flip Across Input Methods
+slug: pdf-to-excel-rankings-flip-input-methods
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  PDF-to-Excel results vary by upload limits and text vs visual parsing. Use
+  structure metrics and fixed schemas for fair evaluation.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1041606'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1041606'
+verificationScore: 0.86
+alternateLocale: /ko/posts/pdf-to-excel-rankings-flip-input-methods
+coverImage: /images/posts/pdf-to-excel-rankings-flip-input-methods.png
+---
+
+Even so, “PDF → Excel table extraction” can still look poorly structured.  
+Some systems extract **digital text only** and drop image elements.  
+Some systems describe visual analysis for PDFs under **100 pages**.  
+Some routes add limits, like a **50MB** inline cap.  
+These differences can shift perceived rankings across systems.  
+An evaluation method for document tables often helps more than “who is smarter.”
+
+## TL;DR
+- Input limits and parsing routes vary across systems, which changes PDF table extraction outcomes.  
+- Structural errors can drive costs, so structure metrics and schema checks help explain failures.  
+- Run a repeatable test harness with metrics, schema-fixed output, and validation retries.  
+
+Example: A team exports a table and sees shifted columns. They rerun extraction with layout hints. They compare outputs across tools. They keep the version that needs the least manual cleanup.
+
+## TL;DR
+- **Core issue:** Excel-like extraction from multi-page PDFs is sensitive to test conditions.  
+  The input method can affect outcomes.  
+  Text-only parsing versus visual analysis can change results.  
+- **Why it matters:** Correct text can still produce unusable spreadsheets.  
+  Common issues include missing rows and misaligned columns.  
+  Broken merged cells can also raise cleanup time.  
+  Metrics like **GriTS**, **TEDS**, and **DAR** can separate structure quality.  
+- **What to do:** Use one PDF with a bundle of controls.  
+  Combine structural metrics, schema-fixed output, and automated validation.  
+  This can keep rankings explainable when conditions change.  
+
+## Current state
+PDF input is not only a “works or doesn’t work” question.  
+Official documentation indicates several products accept PDF input.  
+The limits and interpretations vary across systems.  
+OpenAI’s file upload FAQ states **512MB** per file.  
+It also states a **2M token** cap per document file.  
+That supports long PDFs as inputs.  
+It does not, by itself, imply accurate table structuring.
+
+A major branch is how the system interprets the PDF.  
+One approach treats the PDF as text.  
+Another approach also uses layout or visual elements.  
+This research summary notes ChatGPT may extract **digital text only** on general plans.  
+It also notes image elements may be discarded.  
+By contrast, Claude is summarized as supporting visual element analysis.  
+That summary limits this to PDFs under **100 pages**.  
+Even a **4-page** PDF can vary by scan status and layout.  
+Merged cells and graphic headers can further change results.
+
+On the Gemini side, the input route can be the first constraint.  
+That can change test conditions for the same document.  
+Copilot details are unclear from this snippet.  
+We only state that PDF support exists and constraints vary.
+
+## Analysis
+PDF-to-Excel comparisons can be hard to interpret.  
+The task combines three linked problems.  
+First, you detect the table region.  
+Second, you recognize the table structure.  
+Third, you extract the cell contents.  
+Stable text generation can still fail at structure recognition.  
+That can make the spreadsheet hard to use.
+
+A single “accuracy” score can be misleading.  
+It can hide where errors originate.  
+Structure-centric metrics are used in technical materials.  
+**GriTS** compares tables in a grid-like form.  
+**TEDS** uses tree-edit distance similarity ideas.  
+**DAR** uses precision, recall, and F1 over adjacency relations.  
+PDF-to-Excel often fails with missing or duplicate rows.  
+Column alignment errors are also common.  
+Merged cell breakage can be especially disruptive.  
+It can help to track structure and content scores separately.  
+That can clarify why a ranking changed across conditions.
+
+## Practical application
+Workflows can focus on detecting failures and retrying.  
+That can reduce dependence on one-shot perfection.  
+This material includes evidence for JSON Schema-based structured outputs.  
+The OpenAI API supports `response_format: { type: "json_schema" }`.  
+It also specifies a **`refusal`** field.  
+That can help detect refusals or schema mismatches in code.  
+Gemini documentation notes Structured Outputs follow schema key order.  
+That can help lock column order for table extraction.  
+This snippet does not confirm that official guides recommend CSV as best practice.
+
+Example: If you are extracting tables from a multi-page PDF, avoid direct Excel writes.  
+Define an intermediate schema like `tables[] -> rows[] -> cells[]`.  
+Include `row_index`, `col_index`, `text`, `rowspan`, and `colspan`.  
+Validate that `row_index` is contiguous.  
+Check that merged cells do not overlap.  
+Check that header structure stays consistent across pages.  
+If validation fails, retry with a revised prompt.  
+This loop can surface repeated merged-cell failure modes.
+
+**Checklist for Today:**
+- Split tests by whether the PDF has a text layer or is scanned.  
+- Enforce JSON Schema, and retry on schema mismatches or `refusal`.  
+- Report at least one of GriTS, TEDS, or DAR, with structure and content separated.  
+
+## FAQ
+**Q1. For evaluating PDF → Excel table extraction, which metric should I look at first?**  
+A1. If structure matters most, consider GriTS or DAR first.  
+These focus on row and column relationships.  
+If values also matter, add a content-oriented view.  
+GriTS content scoring or TEDS can help.
+
+**Q2. Is the right answer “extract as CSV,” or is JSON the right answer?**  
+A2. This research did not confirm “CSV” as an official best practice.  
+It did confirm schema-fixed JSON outputs in official guides.  
+A validation loop can reduce parsing failures.
+
+**Q3. If upload limits suggest long documents are supported, why are results unstable?**  
+A3. Limits mainly determine whether input is accepted.  
+Table extraction depends on structure restoration.  
+Some systems may extract digital text only.  
+Some systems may apply visual analysis under certain conditions.  
+Different interpretations can produce different outputs.
+
+## Conclusion
+PDF-to-Excel extraction mixes input interpretation and structure restoration.  
+It also benefits from validation and retries.  
+Spec limits like **512MB**, **2M tokens**, **50MB** inline, and **100 pages** inform acceptance.  
+They do not fully predict table structure quality.  
+Structure metrics like **GriTS**, **TEDS**, and **DAR** can make evaluations more explainable.  
+Schema-fixed outputs can help stabilize downstream parsing.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Combustion Knowledgebase And QA Benchmark For LLM Pipelines](/en/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [Memory Admission Control for Reliable LLM Agents](/en/posts/memory-admission-control-for-reliable-llm-agents)
+- [Disentangling AI Introspection: Direct Access vs Inference Mechanisms](/en/posts/ai-introspection-direct-access-vs-inference)
+- [AI Resource Roundup (24h) - 2026-03-06](/en/posts/ai-resources-roundup-2026-03-06)
+---
+
+## References
+
+- [File Uploads FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555545-file-uploads-faq)
+- [Structured model outputs - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas%E3%80%82)
+- [Introducing Structured Outputs in the API | OpenAI - openai.com](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+- [GriTS: Grid table similarity metric for table structure recognition - arxiv.org](https://arxiv.org/abs/2203.12555)
+- [Improving tabular data extraction in scanned laboratory reports using deep learning models - PubMed - pubmed.ncbi.nlm.nih.gov](https://pubmed.ncbi.nlm.nih.gov/39393477/)

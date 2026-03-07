@@ -1,0 +1,93 @@
+---
+title: Tradeoffs Between Web Search and Reasoning Modes
+slug: web-search-reasoning-tradeoffs
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  How web search and reasoning modes trade off accuracy, reproducibility, and
+  latency—plus a simple test procedure to verify results yourself.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: '1041610'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1041610'
+verificationScore: 0.8
+alternateLocale: /ko/posts/web-search-reasoning-tradeoffs
+coverImage: /images/posts/web-search-reasoning-tradeoffs.png
+---
+
+Turning on web search can slow responses. Turning on Reasoning mode can lengthen answers. Many users still want both enabled. The tension often shows up as longer waits and more cited claims. The core question becomes trust in the output. This article summarizes trade-offs in accuracy, reproducibility, and response time. It also includes a procedure readers can run themselves.
+
+## TL;DR
+- Web search and Reasoning use different pipelines. This can change speed, grounding, and reproducibility.
+- Some published metrics suggest fewer major errors and higher preference. Latency and cost can increase.
+- Run repeated tests with Search and Reasoning toggles. Then set a team rule for when citations matter.
+
+Example: A teammate asks for a policy summary before a leadership meeting. You want speed and traceable sources. You also want fewer logical gaps. You try different modes and compare outputs. You keep the workflow that fits the risk level.
+
+## TL;DR
+- **What is the core issue?** Web search (Search/Deep research) and reasoning (Reasoning/“no reasoning”) use different pipelines. Speed, grounding, and reproducibility can shift.
+- **Why does it matter?** Some public examples report *major errors down 39%* and *preference up 56%*. Latency, including TTFT and E2E, can increase. Web search can help freshness and verification. Web search can also add response time.
+- **What should readers do?** Repeat the same question 10 times for each toggle setting. Use “Search ON/OFF” and “Reasoning ON/OFF.” Track TTFT, E2E, and citation consistency. Use Deep research for decision-grade questions. Verify linked originals before final conclusions.
+
+## Current state
+Official ChatGPT documentation separates capabilities into items like “Search,” “Deep research,” and “Apps/Connectors.” These items appear in plan comparison tables. The ChatGPT Pricing page shows **“Search: Yes” for Business and Enterprise**. It lists **Deep research as “Yes” on Business**. It lists **Deep research as “Flexible” on Enterprise**. This frames web search as a plan feature. It also suggests Deep research can vary by plan.
+
+Deep research is described separately from simple search. An OpenAI Help Center article describes Deep research as multi-source analysis. It also says it includes **“citations back to the originals.”** The same article describes “Search” as **using connected third-party apps to “search and reference”** information. Source labels can mix search links and Deep research citations. They can also include connector-based references.
+
+Reasoning is described more clearly in API docs than in the product UI. OpenAI developer docs mention **a “no reasoning” mode**. They state that this mode **supports web search**. Responses API documentation says reasoning models may take **“several minutes”** on complex problems. It also describes **reasoning summaries** similar to ChatGPT. Web search pulls external grounding. Reasoning increases internal computation. The two can be combined.
+
+## Analysis
+It helps to split “accuracy” into multiple dimensions. Web search can help with freshness and fact-checking. Official documentation describes a retrieval flow. It retrieves results from a third-party search provider or partner. It opens and summarizes some pages. It stores citation metadata like URL and title. Users can open links to verify claims.
+
+Web search does not fully disclose source-selection logic. Ranking criteria are not fully described. The number of pages read is not fully described. Source sets can change for the same question. Answers can drift as sources change. This drift can matter for reproducibility. Reproducibility often means similar input yields similar output.
+
+Reasoning influences a different dimension of accuracy. More computation can reduce logical mistakes in some tasks. It can also be optimized for user preference. One public example is the OpenAI o3-mini introduction. It reports **testers preferred responses 56% more**. It reports **“major errors” decreased by 39%**. Latency can also increase with reasoning.
+
+A Microsoft Azure OpenAI blog proposes a latency measurement method. It suggests repeating the same prompt **10 times** as synchronous requests. It suggests computing average, min, and max latency. It proposes comparing **TTFT and E2E latency**. An example table includes **o1 (TTFT 3.8s, E2E 35s)**. It includes **o3-mini (TTFT 1.8s, E2E 12s)**. It includes **GPT-4o-mini (TTFT 1.0s, E2E 9s)**. These figures are examples from that post. They may not generalize across prompts and setups. They show that model families can shift TTFT and E2E differently. Teams can manage cost by tracking measurable indicators.
+
+## Practical application
+A simple model can help. Search can bring evidence. Reasoning can increase computation. You can classify questions using that model. HR policy, legal review, and budgets often need supporting links. Search or Deep research can fit those cases. Code refactoring strategy or math often depends on internal logic. Reasoning can fit those cases. Some questions need both. “Revise the design based on the latest standards” is one example. You can gather evidence via Deep research. You can then apply reasoning within that evidence.
+
+Citations alone do not ensure summary accuracy. A procedure can reduce errors. The procedure should include checking originals. It should also define when slower modes are justified.
+
+**Checklist for Today:**
+- Test Search ON and OFF with Reasoning ON and OFF, and repeat each condition 10 times.
+- Record TTFT, E2E, and core-conclusion drift, and compare citation stability across runs.
+- Open at least two citation links, and document a team rule for citation-required questions.
+
+## FAQ
+**Q1. What is the difference between web search (Search) and Deep research?**  
+A1. Search focuses on searching and referencing. Deep research is described as multi-source analysis with citations to originals.
+
+**Q2. Does web search work even in “no reasoning” mode?**  
+A2. OpenAI developer documentation states that “no reasoning” mode supports web search.
+
+**Q3. Does turning on Reasoning mode often make answers more accurate?**  
+A3. It can vary by task and setup. Some published examples report preference at 56% and major errors down 39%. Latency can increase. Measuring TTFT and E2E can help set scope.
+
+## Conclusion
+Web search can leave evidence through citations. Reasoning can add computation aimed at reducing mistakes. Both can increase latency and cost. Teams can benefit from measurable operating habits. They can match modes to question types. They can track TTFT and E2E. They can cross-check citations against originals.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Combustion Knowledgebase And QA Benchmark For LLM Pipelines](/en/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [Memory Admission Control for Reliable LLM Agents](/en/posts/memory-admission-control-for-reliable-llm-agents)
+- [Disentangling AI Introspection: Direct Access vs Inference Mechanisms](/en/posts/ai-introspection-direct-access-vs-inference)
+- [AI Resource Roundup (24h) - 2026-03-06](/en/posts/ai-resources-roundup-2026-03-06)
+---
+
+## References
+
+- [ChatGPT Pricing | OpenAI - openai.com](https://openai.com/business/chatgpt-pricing/)
+- [Apps in ChatGPT | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11487775-connectors-in-chatgpt.webp)
+- [Introducing GPT-5.1 for developers | OpenAI - openai.com](https://openai.com/index/gpt-5-1-for-developers/)
+- [New tools and features in the Responses API | OpenAI - openai.com](https://openai.com/index/new-tools-and-features-in-the-responses-api/)
+- [Introducing ChatGPT search | OpenAI - openai.com](https://openai.com/index/introducing-chatgpt-search/)
+- [OpenAI o3-mini | OpenAI - openai.com](https://openai.com/index/openai-o3-mini/)
+- [General-Purpose vs. Reasoning LLMs: Choosing the Right Model in Azure OpenAI - techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/general-purpose-vs-reasoning-models-in-azure-openai/4403091)
+- [Reasoning best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/reasoning-best-practices)

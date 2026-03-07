@@ -1,0 +1,74 @@
+---
+title: 'PDF 표 추출, 조건 따라 성능이 바뀐다'
+slug: pdf-to-excel-rankings-flip-input-methods
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: ko
+description: PDF 표 추출은 입력 방식·용량 제한·시각 분석 여부에 따라 결과가 달라져 구조 지표 기반 평가가 필요하다.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1041606'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1041606'
+verificationScore: 0.86
+alternateLocale: /en/posts/pdf-to-excel-rankings-flip-input-methods
+coverImage: /images/posts/pdf-to-excel-rankings-flip-input-methods.png
+---
+
+PDF 한 파일이 **512MB**까지 들어가고, 문서 파일은 **2M 토큰**까지 처리된다고 적혀 있어도 “PDF→엑셀 표 추출” 결과가 그만큼 정돈된 형태로 나오지는 않는다. 어떤 시스템은 **디지털 텍스트만** 뽑고 이미지 요소를 버린다. 어떤 시스템은 **100페이지 이하 PDF에서 시각 요소 분석**을 지원한다고 밝힌다. 입력 경로에 따라 **50MB 인라인 제한**처럼 별도 상한이 걸리기도 한다. 이런 차이로 “모델 3개 성능 순위가 뒤집혔다” 같은 결과가 나온다. 따라서 필요한 것은 ‘누가 더 똑똑하냐’가 아니라, **문서·표 과제에 맞춘 평가법**이다.
+
+## 세 줄 요약
+- **핵심 이슈:** PDF(여러 페이지)에서 엑셀형 표를 뽑는 작업은 비교 조건에 따라 “예상 순위”가 바뀌기 쉽다. 입력 지원 방식(텍스트 추출 vs 시각 분석)이 결과를 가른다.  
+- **왜 중요한가:** 표 추출은 정답 텍스트만 맞추는 문제가 아니다. **행 누락/중복, 열 정렬, 병합 셀** 같은 구조 오류가 바로 비용으로 이어진다. 구조 평가 지표(GriTS, TEDS, DAR)를 쓰면 구조 품질을 분리해 기록할 수 있다.  
+- **뭘 하면 되나:** 같은 PDF로 **(1) 구조 지표 + (2) 스키마 고정 출력 + (3) 자동 검증·재시도**를 한 묶음으로 돌려, 조건이 바뀌어도 설명 가능한 순위를 만든다.
+
+## 현황
+
+가장 큰 분기점은 “PDF를 텍스트로 보느냐, 문서 레이아웃(시각 요소)까지 보느냐”다. 조사 결과 요약에는 ChatGPT가 일반 플랜에서 PDF의 **디지털 텍스트만 추출**하고 이미지 요소는 버리는 동작이 언급돼 있다. 반대로 Claude는 **100페이지 이하 PDF에서 시각 요소(차트/그래픽) 분석**을 지원한다고 정리돼 있다. 같은 4페이지 PDF라도, 표가 스캔 이미지인지(텍스트 레이어가 없는지), 병합 셀이 많은지, 머리글이 그래픽 처리됐는지에 따라 결과가 달라진다.
+
+
+## 분석
+“PDF-엑셀 추출 성능비교”가 어려운 이유는 이 과제가 세 가지 문제를 묶고 있기 때문이다. 첫째, 표를 **검출**해야 한다(페이지에서 표 영역을 찾는다). 둘째, 표를 **구조 인식**해야 한다(행·열 경계, 병합 셀, 머리글 계층). 셋째, 셀의 **콘텐츠 추출**을 해야 한다(텍스트 값, 숫자, 기호). 텍스트 생성이 안정적이어도, 구조 단계에서 틀어지면 엑셀에서는 “값이 있어도 활용하기 어려운 결과”가 된다.
+
+따라서 평가도 “정확도” 하나로 묶으면 결과 해석이 흔들린다. 학술/기술 자료에서는 구조 중심 테이블 평가로 **GriTS**(그리드 형태로 예측 테이블을 비교), **TEDS**(트리 편집 거리 기반 유사도), **DAR**(셀 인접관계 기반 정밀도/재현율/F1) 같은 지표가 정리돼 있다. PDF→엑셀에서는 특히 **행 누락/중복, 열 정렬 오류, 병합 셀 깨짐**이 문제로 남는다. 그래서 구조 점수(GriTS_Top 같은 토폴로지 관점)와 내용 점수(GriTS_Con 또는 TEDS 계열)를 분리해 기록해야, 순위가 바뀐 이유를 추적할 수 있다.
+
+## 실전 적용
+워크플로우는 “한 번에 잘 뽑기”보다 “구조를 고정하고, 실패를 감지하고, 재시도하는” 쪽으로 설계하는 편이 낫다. 이번 자료에서 근거가 있는 축은 **JSON Schema 기반 Structured Outputs**다. OpenAI API는 `response_format: { type: "json_schema" }` 형태의 구조화 출력 가이드를 제공한다. 스키마 불일치나 거부를 프로그램으로 감지할 수 있도록 **`refusal` 필드**도 명시한다. Gemini 문서에서는 Structured Outputs가 **스키마 키 순서를 따른다**는 점이 언급돼 있다. 열 순서가 중요한 표 추출에서는 “컬럼 순서 고정”에 활용할 수 있다. (이번 조사 스니펫만으로는 ‘CSV 출력’을 공식 베스트 프랙티스로 권장한다는 문구는 확인되지 않았다.)
+
+예: 4페이지 PDF에서 표를 뽑는다면, 모델 출력 결과를 바로 엑셀로 보내지 말고 중간 산출물을 고정한다. `tables[] -> rows[] -> cells[]` 같은 스키마를 먼저 정한다. 각 셀에 `row_index`, `col_index`, `text`, `rowspan`, `colspan` 같은 필드를 둔다. 그다음 자동 검증에서 “row_index가 연속인지”, “병합 셀이 겹치지 않는지”, “헤더 행 수가 페이지마다 변하지 않는지”를 체크한다. 실패하면 같은 입력에 프롬프트를 바꿔 재시도한다. 이 루프를 만들면 ‘모델 A가 잘함/못함’ 대신 ‘병합 셀에서 어떤 오류가 반복되는가’처럼 운영 가능한 결론으로 정리된다.
+
+**오늘 바로 할 일 체크리스트 (3개)**  
+- 동일 PDF로 “텍스트 레이어 있음/없음(스캔)”을 구분해 테스트 케이스를 나눈다. 각 케이스에서 구조 오류(누락·중복·정렬·병합)를 별도 카운트로 기록한다.  
+- 출력은 JSON Schema로 고정한다. 스키마 불일치 또는 `refusal`을 감지하면 자동 재시도(프롬프트 변형 포함)로 복구하는 파이프라인을 만든다.  
+- 평가 리포트에 GriTS·TEDS·DAR 중 최소 하나를 넣는다. “구조 점수”와 “내용 점수”를 분리해 순위 변동의 이유를 남긴다.
+
+## FAQ
+**Q1. PDF→엑셀 표 추출 평가는 어떤 지표를 먼저 봐야 합니까?**  
+A1. 구조가 핵심이면 GriTS(토폴로지 관점)나 DAR처럼 행·열 관계를 보는 지표를 먼저 보시는 게 좋습니다. 값까지 중요한 업무라면 GriTS의 콘텐츠 관점이나 TEDS 같은 구조-콘텐츠 유사도 지표를 함께 보시면 됩니다.
+
+**Q2. “표를 CSV로 뽑아라”가 정답인가요, JSON이 정답인가요?**  
+A2. 이번 조사 범위의 공식 문서 근거로는 “CSV를 베스트 프랙티스로 권장”까지는 확인되지 않았습니다. 대신 JSON Schema 기반 Structured Outputs처럼 스키마를 고정해 파싱 실패를 줄이고 검증 루프를 두는 접근은 공식 가이드에서 확인됩니다.
+
+**Q3. PDF 업로드 한도만 보면 긴 문서도 되는데, 왜 결과가 불안정합니까?**  
+A3. 파일 크기/토큰 한도는 “입력 가능 여부”의 문제입니다. 표 추출은 “문서 구조 복원”의 문제입니다. 어떤 시스템은 디지털 텍스트만 추출해 이미지 요소를 버릴 수 있습니다. 어떤 시스템은 시각 요소 분석을 지원한다고 밝히기도 합니다. 입력 해석 단계부터 차이가 나면 결과도 달라질 수 있습니다.
+
+## 결론
+PDF에서 엑셀형 표를 뽑는 작업은 **입력 해석 + 구조 복원 + 검증 루프**의 조합 문제다. 업로드 한도(512MB, 2M 토큰, 50MB 인라인, 100페이지 시각 분석 같은 조건)를 스펙 비교로만 끝내기 어렵다. 구조 지표(GriTS·TEDS·DAR)와 스키마 고정 출력을 함께 적용해, 조건 변화에도 설명 가능한 평가를 만드는 데 시간을 써야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-07](/ko/posts/ai-resources-roundup-2026-03-07)
+- [연소 LLM 지식주입+평가 파이프라인](/ko/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [LLM 에이전트 메모리 입장제어](/ko/posts/memory-admission-control-for-reliable-llm-agents)
+- [LLM 자기보고, 내성인가 추론인가](/ko/posts/ai-introspection-direct-access-vs-inference)
+- [AI 자료 모음 (24h) - 2026-03-06](/ko/posts/ai-resources-roundup-2026-03-06)
+---
+
+## 참고 자료
+
+- [File Uploads FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555545-file-uploads-faq)
+- [Structured model outputs - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/structured-outputs/supported-schemas%E3%80%82)
+- [Introducing Structured Outputs in the API | OpenAI - openai.com](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+- [GriTS: Grid table similarity metric for table structure recognition - arxiv.org](https://arxiv.org/abs/2203.12555)
+- [Improving tabular data extraction in scanned laboratory reports using deep learning models - PubMed - pubmed.ncbi.nlm.nih.gov](https://pubmed.ncbi.nlm.nih.gov/39393477/)
