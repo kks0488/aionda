@@ -1,0 +1,157 @@
+---
+title: Gating Robot Autonomy Using Deep Perception Uncertainty Signals
+slug: gating-robot-autonomy-using-deep-perception-uncertainty-signals
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  SPIRIT uses deep perception uncertainty to gate shared autonomy, switching
+  between semi-autonomous manipulation and haptic teleoperation.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+  - safety
+author: AI온다
+sourceId: arxiv-cs-ai-a20e661cb186e370
+sourceUrl: 'https://arxiv.org/abs/2603.05111'
+verificationScore: 0.67
+alternateLocale: /ko/posts/gating-robot-autonomy-using-deep-perception-uncertainty-signals
+coverImage: >-
+  /images/posts/gating-robot-autonomy-using-deep-perception-uncertainty-signals.png
+---
+
+A robotic arm pauses while reaching for an object on a workbench.  
+The camera view looks plausible, but not fully reliable.  
+SPIRIT frames a simple response to this moment.  
+High perception confidence can allow more autonomy.  
+Higher uncertainty can shift control to haptic teleoperation.
+
+## TL;DR
+- **What changed / what this is:** This describes “perceptive shared autonomy” that uses perception uncertainty to regulate robot authority.  
+- **Why it matters:** It can support graceful degradation when deep-learning perception becomes unreliable in safety-sensitive work.  
+- **What you should do next:** Add and log an uncertainty score, then test switching rules before deployment.
+
+Example: A robot manipulates parts on a line.  
+Perception becomes shaky, so autonomy eases back.  
+A person guides motion through touch feedback.  
+As perception steadies, the robot resumes more of the task.
+
+## Current status
+SPIRIT is described in “SPIRIT: Perceptive Shared Autonomy for Robust Robotic Manipulation under Deep Learning Uncertainty.”  
+The preprint is listed as arXiv:2603.05111v1.  
+It targets two concerns in safety-critical settings.  
+These concerns are robustness and interpretability.
+
+The central idea goes beyond treating uncertainty as a warning.  
+It uses uncertainty as a signal to regulate autonomy level.  
+The abstract describes two operating modes.  
+One mode is semi-autonomous manipulation under confidence.  
+The other mode is haptic teleoperation under higher uncertainty.
+
+The abstract mentions an “uncertainty-aware point cloud registration” method.  
+It ties this method to Neural Tangent Kernels (NTK).  
+This suggests uncertainty is considered during 3D registration.  
+This registration aligns point clouds of objects or environments.
+
+From the abstract alone, implementation details remain unclear.  
+The abstract does not specify calibration, ensembles, or MC dropout.  
+It also does not report numeric uncertainty quality metrics.  
+Examples include AUROC or ECE.
+
+This “uncertainty to authority regulation” aligns with shared autonomy research.  
+One related line models shared autonomy as a POMDP.  
+An example is “Shared Autonomy via Hindsight Optimization,” arXiv:1503.07619.  
+Another line adds safety constraints with a CBF layer.  
+An example is “A Barrier Pair Method for Safe Human-Robot Shared Autonomy,” arXiv:2112.00279.  
+SPIRIT places perception uncertainty at the center of regulation.  
+This differs from work emphasizing user goal uncertainty.
+
+## Analysis
+Safety-critical robotics often faces recurring distribution shifts.  
+Lighting, occlusions, and novel objects can change inputs.  
+More training can help, but may not resolve field uncertainty.  
+A practical need is a policy for graceful degradation.  
+This policy decides behavior under possible perception errors.
+
+Perceptive shared autonomy brings uncertainty into collaboration.  
+It treats humans as part of the risk management loop.  
+This can make failure handling more explicit at runtime.  
+It can also make operator involvement more structured.
+
+Several limitations remain visible from the abstract-only view.  
+The uncertainty score may not correlate well with hazards.  
+Hazards include collision, breakage, and failed picks.  
+False alarms could trigger frequent human takeovers.  
+That could reduce throughput and increase fatigue.
+
+User experience can depend on the gating design.  
+A policy could use a hard threshold switch.  
+It could also use continuous blending.  
+It could use cost-based optimization.  
+Frequent switching could create authority conflicts.  
+Delayed switching could increase intervention risk.
+
+## Practical deployment
+Transferring the concept requires operational rules.  
+Uncertainty estimation is only part of the system design.  
+An uncertainty value is not self-explanatory.  
+Its meaning can vary by task and risk context.  
+Picking and insertion can tolerate different errors.  
+Obstacle proximity and failure cost also change decisions.
+
+Authority division should be designed explicitly.  
+Uncertainty can feed a POMDP-style cost-to-go framework.  
+It can also sit under a CBF-style safety constraint layer.  
+The goal is a clear mapping from uncertainty to control allocation.
+
+**Checklist for Today:**
+- Add an uncertainty or confidence field to perception outputs, and log it with success or failure outcomes.  
+- Draft switching or blending rules between autonomy and teleoperation, and review them against safety constraints.  
+- Define evaluation measures that include success rate, switching frequency, and operator workload logs.  
+
+## FAQ
+**Q1. How is perceptive shared autonomy different from existing shared autonomy?**  
+A1. Many shared autonomy methods focus on user goal uncertainty.  
+They often infer intent or correct human inputs.  
+SPIRIT emphasizes deep-learning perception uncertainty.  
+It uses that signal to regulate robot authority.  
+It aims to increase autonomy under confidence.  
+It shifts toward teleoperation under higher uncertainty.
+
+**Q2. What uncertainty estimation technique does SPIRIT use?**  
+A2. The abstract highlights NTK-based uncertainty-aware point cloud registration.  
+The abstract does not specify the full uncertainty stack.  
+It does not confirm calibration, ensembles, or Bayesian approximations.  
+Those details may exist outside the abstract.
+
+**Q3. Does uncertainty gating help ensure safety?**  
+A3. It does not help ensure safety.  
+Effectiveness depends on alignment between uncertainty and real risk.  
+It also depends on a task-appropriate switching policy.  
+A safety layer like a CBF may complement gating.  
+That layer can constrain behavior regardless of uncertainty.
+
+## Conclusion
+SPIRIT focuses on backing off when perception is less trustworthy.  
+It frames uncertainty as a control signal, not only a diagnostic.  
+Two validations remain important for deployment decisions.  
+One is predictive value of uncertainty for field failures.  
+The other is the safety and productivity tradeoff under authority regulation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Combustion Knowledgebase And QA Benchmark For LLM Pipelines](/en/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [EVMbench Benchmarks Detect Patch And Exploit Agent Workflows](/en/posts/evmbench-benchmarks-detect-patch-and-exploit-agent-workflows)
+- [LegalBench And Auditable Argumentation For Legal LLMs](/en/posts/legalbench-auditable-argumentation-for-legal-llms)
+- [Memory Admission Control for Reliable LLM Agents](/en/posts/memory-admission-control-for-reliable-llm-agents)
+---
+
+## References
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.05111)
+- [Shared Autonomy via Hindsight Optimization - arxiv.org](https://arxiv.org/abs/1503.07619)
+- [A Barrier Pair Method for Safe Human-Robot Shared Autonomy - arxiv.org](https://arxiv.org/abs/2112.00279)
+- [SAFe-Copilot: Unified Shared Autonomy Framework - arxiv.org](https://arxiv.org/abs/2511.04664)
+- [Levels of shared autonomy in brain-robot interfaces: enabling multi-robot multi-human collaboration for activities of daily living - frontiersin.org](https://www.frontiersin.org/journals/human-neuroscience/articles/10.3389/fnhum.2025.1718713/full)
