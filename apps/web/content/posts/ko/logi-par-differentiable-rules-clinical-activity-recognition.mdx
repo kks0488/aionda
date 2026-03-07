@@ -1,0 +1,79 @@
+---
+title: 'Logi-PAR: 임상 PAR에 미분가능 규칙'
+slug: logi-par-differentiable-rules-clinical-activity-recognition
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: ko
+description: Logi-PAR은 임상 PAR에 미분가능 논리 규칙을 넣어 규칙 추적과 반사실 개입으로 설명·감사를 강화한다.
+tags:
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-e44e1c029f3c31c0
+sourceUrl: 'https://arxiv.org/abs/2603.05184'
+verificationScore: 0.68
+alternateLocale: /en/posts/logi-par-differentiable-rules-clinical-activity-recognition
+coverImage: /images/posts/logi-par-differentiable-rules-clinical-activity-recognition.png
+---
+
+임상 현장에서 “위험이 **65%** 줄어든다” 같은 문장은 설득력 있어 보인다. 하지만 신경망이 그 결론에 이르는 과정이 블랙박스면, 의료진은 결과를 그대로 신뢰하기 어렵다. arXiv **2603.05184v1**(Logi-PAR)은 이 지점을 문제로 둔다. 모델이 활동을 “맞히는 것”을 넘어, **규칙(rule)** 형태로 “왜 위험인지”를 설명하고 그 규칙을 **미분가능(differentiable)** 하게 학습 파이프라인에 포함하겠다고 제안한다.
+
+## 세 줄 요약
+
+- **핵심 이슈:** Logi-PAR(arXiv **2603.05184v1**)은 임상 Patient Activity Recognition(PAR)에 **neural-guided differentiable rules**를 넣어, 신경망이 내부적으로만 학습하던 패턴을 **명시적 논리 규칙**으로 다루려 한다.  
+- **왜 중요한가:** 임상 PAR는 오탐/미탐의 비용이 크다. 초록 기준 Logi-PAR은 **rule traces(규칙 추적)** 같은 감사 가능한 설명과 **counterfactual interventions**를 함께 제시해, 안전 논의를 모델 출력과 연결하려 한다.  
+- **독자가 할 일:** 운영 중인 PAR/비디오 분석 파이프라인에 대해 (1) “규칙으로 검증 가능한 안전 주장”을 먼저 문장으로 만들고, (2) 그 규칙을 **학습 중 제약/보조 목표**로 넣는 설계를 작은 실험으로 점검한 뒤, (3) 배포 단계에서는 **임계값 조정(threshold adjustment)** 같은 후처리 옵션까지 포함해 검증 플로우를 고정한다.
+
+## 현황
+
+Logi-PAR은 arXiv 초록에서, 임상 환경 PAR이 안전과 치료 품질을 높이기 위해 활동 데이터를 쓴다고 전제한다. 동시에 기존 모델이 주로 “어떤 활동인지”를 맞히는 데 집중해 왔다고 문제를 제기한다. 이들은 global/local attention으로 “드문 시각 단서(sub-sparse visual cues)”를 조합하지만, 신경망 파이프라인 특성상 **논리적으로는 암묵적인 패턴**만 학습한다고 설명한다.
+
+
+다만 초록만으로는 핵심 구현이 충분히 드러나지 않는다. 규칙이 시간적 제약인지(예: 활동 전이), 공간 관계인지(예: 침대/난간/환자 자세), 혹은 다른 논리 템플릿인지가 명확하지 않다. AND/OR/함의 같은 논리 연산을 어떤 방식으로 미분가능하게 만드는지(t-norm/soft logic/relaxation 등)도 초록에는 설명이 없다. 또한 “risk would decrease by **65%**”라는 문구는 보이지만, 어떤 지표에서 어떤 실험 설계로 나온 값인지(또는 설명 예시인지)는 초록만으로 판단하기 어렵다.
+
+## 분석
+
+이 흐름이 의미 있는 이유는, “정확도 점수”만으로 임상 안전 요구를 대체하기 어렵기 때문이다. 의료 현장에서는 모델 성능이 높아도 알람이 잦으면(거짓 경보) 팀이 알람에 둔감해질 수 있다. 반대로 놓치면(미탐) 사고로 이어질 수 있다. Logi-PAR이 강조하는 **rule traces**는 “모델이 어떤 규칙을 따라 결론에 도달했는지”를 남기겠다는 구상이다. 이는 안전 케이스 작성이나 감사(audit) 같은 요구와 연결된다. attention 맵보다 “규칙 경로”가 커뮤니케이션에 더 맞을 가능성도 있다.
+
+동시에 규칙을 학습시키는 전략은 다른 실패 모드도 만든다. 규칙이 데이터 편향을 학습해 “논리” 형태로 정당화될 수 있다. 규칙이 학습 가능한 파라미터가 되면, 해석 단서가 늘어나는 대신 **검증 부담**도 커진다. 또 초록만으로는 Logi-PAR이 정확도 외에 false alarm rate, OOD/도메인 시프트 견고성 같은 안전 지표를 정량으로 개선했는지 알기 어렵다. “설명 가능”과 “안전 성능 개선”은 분리해서 다뤄야 한다.
+
+## 실전 적용
+
+현장 적용은 “논리 규칙을 보기 좋게 적는 일”이 아니라, **검증 가능한 주장**을 개발 프로세스에 묶는 일이다. 먼저 안전/품질 팀이 납득할 규칙을 문장으로 만들고(예: 특정 활동 조합이 위험 이벤트와 연결되는 조건), 그 규칙을 학습 중 제약으로 넣거나 학습된 규칙을 별도 검증기가 재검토하는 구성을 잡는다. 논리 제약을 미분가능하게 넣는 접근은 임상뿐 아니라, 규정 준수나 공정성 요구가 있는 도메인에서도 “예측 + 근거”를 함께 다루는 형태로 확장될 수 있다.
+
+편향과 오류 완화는 배포 단계에서도 다룰 수 있다. npj Digital Medicine 논문은 **threshold adjustment**가 equal opportunity difference 같은 지표를 낮추는 방법으로 보고한다(세부 수치는 맥락마다 다르다). 규칙 기반 설명이 붙는 시스템일수록, “어떤 임계값에서 누구에게 더 자주 경보가 울리는가”를 운영 관점에서 관리할 필요가 있다.
+
+오늘 바로 할 일 체크리스트  
+- PAR이 다루는 “위험”을 한 문장 규칙 5개로 먼저 정의하고(팀 합의), 각 규칙에 필요한 관측 신호가 실제로 수집되는지 점검한다.  
+- 모델 예측마다 rule trace(또는 유사한 추적 로그)를 남기고, 샘플링 리뷰 프로세스를 운영(의료진/QA) 루프에 포함한다.  
+- 배포 전후로 임계값 조정(threshold adjustment)을 포함한 후처리 플랜을 준비하고, 하위 집단별 경보율/놓침률을 함께 모니터링한다.
+
+## FAQ
+
+**Q1. “미분가능 규칙”은 정확히 뭘 뜻하나요?**  
+A. 규칙(논리 제약)을 학습 최적화에 포함시키기 위해, 규칙 만족도를 연속값으로 계산해 기울기 기반 학습이 가능하도록 만드는 뜻입니다. 다만 Logi-PAR 초록만으로는 AND/OR/함의 등을 어떤 수식으로 완화했는지까지는 알기 어렵습니다.
+
+**Q2. Logi-PAR의 규칙은 전문가가 쓰는 건가요, 데이터에서 뽑는 건가요?**  
+A. 초록에 따르면 Logi-PAR은 시각 단서로부터 규칙을 “자동으로 학습”한다고 설명합니다. 전문가 규칙을 하드코딩하는 방식인지, 전문가 템플릿 위에 가중치를 학습하는 혼합형인지 같은 구성은 초록만으로 판단하기 어렵습니다.
+
+**Q3. 규칙을 넣으면 안전 지표(false alarm, OOD 견고성)가 실제로 좋아지나요?**  
+A. Logi-PAR 초록만으로는 정확도 외 안전 지표의 정량 개선 여부를 확인할 수 없습니다. 다만 rule traces 같은 감사 가능한 설명과 반사실적 개입을 지원한다고 주장하므로, 운영 단계에서 경보 정책·검증 프로세스를 설계하는 데 참고가 될 수 있습니다.
+
+## 결론
+
+Logi-PAR은 임상 PAR을 “분류 문제”에서 “규칙으로 설명하고 검증하는 문제”로 옮기려 한다. 이후 관전 포인트는 정확도 자체보다, 규칙이 어떤 형태로 정의되는지(시간/공간/전이 등), 어떤 검증 절차로 오류·편향을 통제하는지, 운영 지표(거짓 경보·도메인 시프트)까지 함께 다루는지다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-07](/ko/posts/ai-resources-roundup-2026-03-07)
+- [연소 LLM 지식주입+평가 파이프라인](/ko/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [EVMbench: 탐지·패치·공격까지 평가](/ko/posts/evmbench-benchmarks-detect-patch-and-exploit-agent-workflows)
+- [불확실성으로 로봇 권한 조절](/ko/posts/gating-robot-autonomy-using-deep-perception-uncertainty-signals)
+- [LegalBench로 보는 법률 AI 감사가능성](/ko/posts/legalbench-auditable-argumentation-for-legal-llms)
+---
+
+## 참고 자료
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.05184)
+- [Comparing differentiable logics for learning with logical constraints - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S016764232500019X)
+- [Identifying and mitigating algorithmic bias in the safety net | npj Digital Medicine - nature.com](https://www.nature.com/articles/s41746-025-01732-w)

@@ -1,0 +1,91 @@
+---
+title: Logi-PAR Adds Differentiable Rules to Clinical Activity Recognition
+slug: logi-par-differentiable-rules-clinical-activity-recognition
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  Logi-PAR (arXiv:2603.05184v1) integrates neural-guided differentiable rules
+  into clinical PAR, enabling rule traces and counterfactual interventions.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-e44e1c029f3c31c0
+sourceUrl: 'https://arxiv.org/abs/2603.05184'
+verificationScore: 0.68
+alternateLocale: /ko/posts/logi-par-differentiable-rules-clinical-activity-recognition
+coverImage: /images/posts/logi-par-differentiable-rules-clinical-activity-recognition.png
+---
+
+In a clinic, a claim like “risk is reduced by **65%**” can sound persuasive. Trust can drop when the model reasoning remains a black box. arXiv **2603.05184v1** (Logi-PAR) describes this gap. It discusses explaining “why it is risky” using **rules**. It also discusses making those rules **differentiable** inside training.
+
+## TL;DR
+
+- This summarizes Logi-PAR in arXiv **2603.05184v1**, using neural-guided differentiable rules for clinical PAR.  
+- It matters because rule traces and counterfactuals can support audits beyond accuracy.  
+- Next, draft verifiable safety rules, test rule-based training constraints, and plan threshold adjustments in deployment.  
+
+Example: A nurse sees repeated alerts with unclear causes. The team asks for a short rationale. They want a rule trail. They also want a safe way to adjust alerts.
+
+## TL;DR
+
+- **Core issue:** Logi-PAR (arXiv **2603.05184v1**) introduces **neural-guided differentiable rules** into clinical Patient Activity Recognition (PAR). It aims to externalize patterns as **explicit logical rules**.  
+- **Why it matters:** Clinical PAR can carry high costs for false positives and false negatives. The abstract mentions **rule traces** and **counterfactual interventions**. These can connect safety discussions to model outputs.  
+- **What the reader should do:** For an existing PAR or video analytics pipeline, start from verifiable safety claims. Add rules as training-time constraints or auxiliary objectives. Then plan deployment validation with post-processing like **threshold adjustment**.  
+
+## Current state
+
+The arXiv abstract frames PAR as activity recognition for safety and quality of care. It also says many models focus on predicting “which activity it is.” It describes combining “rare visual cues (sub-sparse visual cues)” via attention. It also describes neural pipelines as learning **logically implicit patterns**.
+
+Logi-PAR proposes two changes. It says it **automatically learns rules from visual cues**. It also says it includes rules as **neural-guided differentiable rules**. It then optimizes them **end-to-end**. This can reduce separation between hand-coded rules and separate training.
+
+The abstract alone leaves several specifics unclear. The rule templates are not specified in the abstract. They could involve time, space, or transitions. The differentiable logic method is also not specified. AND, OR, and implication could use relaxations like soft logic. The abstract mentions “risk would decrease by **65%**.” The abstract does not specify the metric. It also does not specify the experimental design behind **65%**.
+
+## Analysis
+
+Clinical safety needs more than accuracy scores. False positives can cause alarm fatigue in teams. False negatives can contribute to incidents. Logi-PAR emphasizes **rule traces**. These record which rules contributed to a conclusion. This can support audits and safety cases. It can also be easier to discuss than attention maps.
+
+Learning rules can add its own risks. Learned rules can encode bias and justify it as logic. Learnable rules can increase interpretability signals. They can also raise the verification burden. The abstract does not confirm improvements on safety metrics beyond accuracy. Examples include false alarm rate and OOD robustness. Explainability and safety performance can be treated as separate claims.
+
+## Practical application
+
+Real-world use can focus on binding **verifiable claims** into development. Draft rules as sentences that safety or quality teams can evaluate. Then select an approach for training-time constraints or a separate verifier. Differentiable logical constraints can also apply in regulated settings. They can help manage “prediction + rationale” together.
+
+Mitigation can also occur at deployment. The text cites an npj Digital Medicine paper on **threshold adjustment**. It mentions reducing equal opportunity difference, with numbers varying by context. Thresholds can change who gets alerts. This can change subgroup alert rates and miss rates. Rule-based explanations can make threshold policies more operationally visible.
+
+**Checklist for Today:**
+- Define the PAR “risk” as one-sentence rules, and confirm each rule’s needed signals are collected.  
+- Record a rule trace per prediction, and schedule a sampling review loop with clinicians or QA.  
+- Prepare a post-processing plan with threshold adjustment, and monitor subgroup alert and miss rates.  
+
+## FAQ
+
+**Q1. What exactly does “differentiable rules” mean?**  
+A. It can mean scoring rule satisfaction as a continuous value. That can enable gradient-based training. The abstract does not specify the exact relaxation formulas. It also does not specify the operators used.
+
+**Q2. Are Logi-PAR’s rules written by experts, or extracted from data?**  
+A. The abstract says rules are “automatically learned” from visual cues. The abstract does not clarify expert templates versus free-form learning. A hybrid approach also remains possible.
+
+**Q3. If you add rules, do safety metrics (false alarms, OOD robustness) actually improve?**  
+A. The abstract does not confirm quantitative gains beyond accuracy. It does mention rule traces and counterfactual interventions. Those can still inform alert policy and verification design. They can also guide operational reviews.
+
+## Conclusion
+
+Logi-PAR frames clinical PAR as explanation and verification via rules. It shifts emphasis beyond classification. The next checks involve rule form and rule scope. They also involve verification procedures for errors and bias. Operational metrics like false alarms and domain shift can be tracked alongside explanations.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Combustion Knowledgebase And QA Benchmark For LLM Pipelines](/en/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [EVMbench Benchmarks Detect Patch And Exploit Agent Workflows](/en/posts/evmbench-benchmarks-detect-patch-and-exploit-agent-workflows)
+- [Gating Robot Autonomy Using Deep Perception Uncertainty Signals](/en/posts/gating-robot-autonomy-using-deep-perception-uncertainty-signals)
+- [LegalBench And Auditable Argumentation For Legal LLMs](/en/posts/legalbench-auditable-argumentation-for-legal-llms)
+---
+
+## References
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.05184)
+- [Comparing differentiable logics for learning with logical constraints - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S016764232500019X)
+- [Identifying and mitigating algorithmic bias in the safety net | npj Digital Medicine - nature.com](https://www.nature.com/articles/s41746-025-01732-w)

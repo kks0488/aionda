@@ -1,0 +1,87 @@
+---
+title: Evaluating Zero-Shot MLLMs for Reliable Video Anomaly Alerts
+slug: evaluating-zero-shot-mllms-reliable-video-anomaly-alerts
+date: '2026-03-07'
+lastReviewedAt: '2026-03-07'
+locale: en
+description: >-
+  Assesses zero-shot MLLMs for video anomaly detection, focusing on false
+  alarms/misses, prompt specificity, 1–3s clips, and PR/F1 evaluation.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+  - prompting
+author: AI온다
+sourceId: arxiv-cs-ai-e746f20c73e896e2
+sourceUrl: 'https://arxiv.org/abs/2603.04727'
+verificationScore: 0.75
+alternateLocale: /ko/posts/evaluating-zero-shot-mllms-reliable-video-anomaly-alerts
+coverImage: /images/posts/evaluating-zero-shot-mllms-reliable-video-anomaly-alerts.png
+---
+
+When a CCTV system flags “abnormal behavior,” the alert can arrive with little context. You may consider responding fast. Zero-shot multimodal LLMs can speed early prototypes for video anomaly detection. Operations still depend on controlled false positives and false negatives.
+
+## TL;DR
+- Zero-shot MLLM-VAD can be reframed as prompt-based binary classification on **1–3 second** clips.  
+- Prompt wording and clip length can shift Precision–Recall trade-offs and raise false-negative risk.  
+- Run internal evaluations using Precision/Recall/F1, then document thresholds, logging, and oversight.
+
+Example: An operator watches an alert queue during a busy shift. A short clip looks ordinary. A cautious model labels it normal. The operator moves on. Later, a supervisor asks why no alert escalated.
+
+## Current state
+Traditional VAD often outputs an anomaly score from reconstruction methods. Normal patterns reconstruct well. Anomalous patterns reconstruct poorly. Other pipelines use pose or motion features. Many studies rank samples by score. They often compare methods using AUC.
+
+This workflow is convenient for research comparisons. Field deployments still need a clear decision boundary. They need “raise an alarm” versus “do not raise an alarm.”
+
+
+The paper also highlights operational sensitivity. Prompts can change false-positive and false-negative tendencies. Window length can also change those tendencies. The paper links **prompt specificity** and **1–3 second** windows to a precision–recall trade-off.
+
+## Analysis
+A general video explanation can look persuasive. It may not match operational reliability. Surveillance often involves rare events. Systems can also exhibit a “normal-leaning” tendency. The paper describes a conservative bias toward normal in zero-shot settings. That bias can increase false negatives. High precision can still hide low recall. Missed alerts can remain silent until review.
+
+Some limitations should be stated carefully. The paper mentions calibration. The main text does not make calibration methods fully clear. Specific techniques like ECE or temperature scaling are not confirmed here.
+
+Prompt-based text output can be sensitive. HeadHunt-VAD raises concerns about information loss and prompt sensitivity. It also describes “normalcy bias” risks. It proposes using prompt-robust internal attention heads. Text explanations can help operators. They can also reduce consistency and recall. Those issues matter for alerting.
+
+## Practical application
+
+AUC-only comparisons can miss deployment choices. Threshold policy often decides escalation. Escalation design shapes workload and risk. Those choices affect real alert performance.
+
+Guardrails can be part of system design. Some summaries link the EU AI Act to oversight and monitoring. They cite **Article 14**, **Article 19**, and **Article 72**. The ICO also discusses logging for human review. Logged overrides can support audits. Logs can also support post-incident review. These points relate to accountability. They do not replace model evaluation.
+
+**Checklist for Today:**
+- Recut videos into **1–3 second** clips and compare Precision/Recall/F1 across two prompt styles.  
+- Document which events prioritize low false negatives versus low false positives, then set thresholds per category.  
+- Log each alert outcome, including human review and any override, plus a short rationale.
+
+## FAQ
+**Q1. What is different about the ‘in the wild’ evaluation in this paper?**  
+A1. Traditional VAD often ranks anomaly scores and reports AUC. This paper uses **1–3 second** clips. It asks for prompt-induced binary decisions. It evaluates with video-level **Precision/Recall/F1**. This framing can align better with alert decisions.
+
+**Q2. What is a representative failure of zero-shot MLLM-VAD?**  
+A2. The paper reports a conservative bias toward normal in zero-shot settings. This bias can reduce recall. It also links prompt specificity to outcome shifts. It also links the **1–3 second** window to a precision–recall trade-off.
+
+**Q3. What are the minimum operational requirements when attaching it to surveillance/security?**  
+A3. High-risk contexts often rely on oversight and logging. Some summaries cite EU AI Act **Article 14**, **Article 19**, and **Article 72**. The ICO discusses logging human intervention and overrides. These controls can support audits and monitoring. They can also clarify responsibility.
+
+## Conclusion
+Zero-shot MLLM-VAD can reduce early labeling needs. Operational reliability still depends on decision boundaries. Prompts can shift performance. Clip length can shift performance. The paper highlights conservative bias risk. Next steps include measuring false-negative conditions. Next steps also include connecting thresholds to logging, oversight, and monitoring.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-07](/en/posts/ai-resources-roundup-2026-03-07)
+- [Combustion Knowledgebase And QA Benchmark For LLM Pipelines](/en/posts/combustion-knowledgebase-qa-benchmark-llm-pipelines)
+- [EVMbench Benchmarks Detect Patch And Exploit Agent Workflows](/en/posts/evmbench-benchmarks-detect-patch-and-exploit-agent-workflows)
+- [Gating Robot Autonomy Using Deep Perception Uncertainty Signals](/en/posts/gating-robot-autonomy-using-deep-perception-uncertainty-signals)
+- [LegalBench And Auditable Argumentation For Legal LLMs](/en/posts/legalbench-auditable-argumentation-for-legal-llms)
+---
+
+## References
+
+- [Making AI Accountable: Real-Time Governance for EU AI Act Compliance | Futurium - futurium.ec.europa.eu](https://futurium.ec.europa.eu/hu/apply-ai-alliance/community-content/making-ai-accountable-real-time-governance-eu-ai-act-compliance)
+- [AI Risk Management Framework | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework)
+- [AI RMF Core - AIRC (NIST AI RMF 1.0 발췌) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [Are Multimodal LLMs Ready for Surveillance? A Reality Check on Zero-Shot Anomaly Detection in the Wild - arxiv.org](https://arxiv.org/pdf/2603.04727)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.04727)
+- [HeadHunt-VAD: Hunting Robust Anomaly-Sensitive Heads in MLLM for Tuning-Free Video Anomaly Detection (arXiv:2512.17601) - arxiv.org](https://arxiv.org/abs/2512.17601)
