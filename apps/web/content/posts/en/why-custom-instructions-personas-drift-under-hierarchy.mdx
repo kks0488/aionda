@@ -1,0 +1,175 @@
+---
+title: Why Custom Instructions Personas Drift Under Hierarchy
+slug: why-custom-instructions-personas-drift-under-hierarchy
+date: '2026-03-08'
+lastReviewedAt: '2026-03-08'
+locale: en
+description: >-
+  Model Spec’s chain of command can override custom instructions, causing
+  persona and reasoning drift. Design priorities, exceptions, and fallbacks to
+  improve reproducibility.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - prompting
+  - safety
+author: AI온다
+sourceId: '1044353'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1044353'
+verificationScore: 0.87
+alternateLocale: /ko/posts/why-custom-instructions-personas-drift-under-hierarchy
+coverImage: /images/posts/why-custom-instructions-personas-drift-under-hierarchy.png
+---
+
+On 2025/10/27, you might see your assistant’s tone shift after you add custom instructions.  
+This can happen even for the same user.  
+The OpenAI Model Spec describes an instruction chain of command.  
+It lists “Root > System > Developer > User > Guideline.”  
+This structure can make a fixed persona less stable across contexts.  
+Higher-authority instructions can change tone and judgment.  
+This can happen even when your custom instructions stay unchanged.  
+So, designing priorities and exception handling can help.  
+That design can come before sentence vibe.
+
+## TL;DR
+- This explains how custom-instruction personas can vary under “Root > System > Developer > User > Guideline.”  
+- It matters because conflicts can soften, omit, or refuse parts of your instruction set.  
+- Split instructions into Judgment Core and Character Core, and add explicit conflict fallbacks.
+
+Example: A writer asks for a consistent persona.  
+A sensitive topic appears mid-chat.  
+The assistant shifts into a more neutral voice.  
+The writer notices the reasoning style stayed steadier than the tone.
+
+## TL;DR
+- **What is the core issue?** This covers a prompt pattern using only default custom instructions.  
+  It tries to fix persona and a thinking process together.  
+  The thinking process includes problem essence, inefficiency detection, principles, and actionable conclusions.
+- **Why does it matter?** The chain of command is “Root > System > Developer > User > Guideline.”  
+  Usage Policies and safety requirements can also apply.  
+  Absolute rules like “often” can conflict and reduce consistency.
+- **What should readers do?** Split instructions into “Character Core (low priority)” and “Judgment Core (high priority).”  
+  State which rules to drop on conflict.  
+  State fallback behavior and test reproducibility.
+
+## Current state
+Custom instructions are described as being kept in mind for all future conversations, and considered for every conversation going forward.  
+Another line says they may not often be interpreted.  
+It says they can be omitted, especially during the beta period.  
+So, custom instructions aim for continuity.  
+Still, omission can be a reasonable assumption.
+
+Authority is another variable.  
+The Model Spec sets priority as “Root > System > Developer > User > Guideline.”  
+The model tries to follow user requests when possible.  
+If conflict occurs, it should drop lower-authority instructions.  
+They can still be ignored or softened under higher-level instructions.  
+That includes safety and policy constraints.
+
+Safety and policy boundaries also shape persona design.  
+The Usage Policies prohibit “threats, intimidation, harassment, or defamation” in service use.  
+The Model Spec also discourages “gratuitous abuse, harassment, or negativity” toward an individual.  
+So, a “brutally insulting character” can create conflicts.  
+If it reads as targeted harassment, the tone can change.  
+The model can also refuse.
+
+## Analysis
+People often want two outcomes from custom instructions.  
+They want character consistency, like tone and forms of address.  
+They also want thinking consistency, like repeated reasoning steps.
+
+A common trap is that style rules are highly visible.  
+Dense tone rules can feel stable.  
+Output quality often depends more on judgment method.  
+Under “Root > System > Developer > User > Guideline,” style rules can break first.  
+Thinking rules can be more resilient when brief.  
+They can also be written as robust defaults.
+
+Another trap is absolute rules.  
+Words like “often” can create conflicts with other goals.  
+That can push the model toward violation avoidance.  
+Repetition can increase.  
+Readability can drop.  
+Format can crowd out the core answer.  
+A more durable approach can specify rule order.  
+It can also specify fallback behavior when rules fail.
+
+## Practical application
+If you want character plus thinking process in default custom instructions, avoid one unstructured block.  
+Use layers instead.
+
+Place the “Judgment Core” first.  
+It can define a processing order across many tasks.  
+One example is “redefine the request → key variables → risks and constraints → execution steps.”
+
+Place the “Character Core” after it.  
+Style elements include forms of address and sentence length.  
+Criticism intensity is also a style element.  
+These can be followed if possible.  
+Add an exception clause for conflicts with higher-level instructions.  
+Mention policy, safety, and developer directives.  
+This clause can absorb conflict situations.
+
+Example: adding “exception rules” to custom instructions like this.  
+- Judgment Core: “often: first restate the problem in one sentence.”  
+  “If unclear, confirm with 1–3 questions.”  
+  “Then write in the order principle → actionable conclusion.”
+- Character Core: “If possible: maintain informal speech and a friendly tone.”  
+  “If it conflicts with safety, policy, or higher-level instructions, switch to neutral tone.”  
+  “Also switch if it increases misunderstanding.”
+
+Written this way, style can wobble while thinking stays steadier.  
+The reader may feel smaller breaks in consistency.
+
+**Checklist for Today:**
+- Split your custom instructions into “Judgment Core” first and “Character Core” second.  
+- Add one sentence that states what to drop on conflict and what fallback to use.  
+- Ask the same question 5 times with varied tones or sensitive topics, and log omissions.
+
+## FAQ
+**Q1. Are custom instructions absolute like system messages?**  
+A. Not usually.  
+The priority order is “Root > System > Developer > User > Guideline.”  
+Higher-authority instructions can override lower-authority ones.  
+Custom instructions are considered in every response.  
+They can still be softened under policy and safety constraints.
+
+**Q2. Is a persona like “allow profanity but ban insulting the user” possible?**  
+A. It can be possible in a limited way.  
+Usage Policies prohibit threats, harassment, and defamation.  
+The Model Spec discourages excessive insults targeting an individual.  
+If it becomes a targeted attack, the model can refuse.  
+Tone can also change despite persona text.
+
+**Q3. Why can many “often” rules make results worse?**  
+A. Hard constraints can elevate “not violating” over flexible choices.  
+This can happen in conflict situations.  
+The documents suggest pairing priorities with fallback behavior.  
+That can reduce brittleness.
+
+## Conclusion
+Default custom instructions can act like operating rules with priorities.  
+They can be less like a device that fixes a character.  
+Chain-of-command and policy conflicts can occur.  
+So, fix the Judgment Core first.  
+Design style as conditional.  
+Add exceptions and fallback behavior for conflicts.
+
+## Further Reading
+- [Adult Mode Requires Age Assurance And Safety Architecture](/en/posts/adult-mode-age-assurance-safety-architecture)
+- [AI Resource Roundup (24h) - 2026-03-08](/en/posts/ai-resources-roundup-2026-03-08)
+- [Beyond Benchmark Scores: Reproducible, Multi-Metric Model Evaluation](/en/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation)
+- [Detecting UI Action Mismatches Beyond Schema Validation](/en/posts/detecting-ui-action-mismatches-beyond-schema-validation)
+- [Estimating Rankings via Pairwise LLM Comparisons and MCMC](/en/posts/estimating-rankings-via-pairwise-llm-comparisons-and-mcmc)
+---
+
+## References
+
+- [Model Spec (2025/10/27) - model-spec.openai.com](https://model-spec.openai.com/2025-10-27.html)
+- [Custom instructions for ChatGPT - openai.com](https://openai.com/index/custom-instructions-for-chatgpt/)
+- [Introducing the Model Spec - openai.com](https://openai.com/index/introducing-the-model-spec/)
+- [Usage policies | OpenAI - openai.com](https://openai.com/policies/usage-policies/)
+- [Model Spec (2025/09/12) - model-spec.openai.com](https://model-spec.openai.com/2025-09-12.html)
+- [The Instruction Hierarchy: Training LLMs to Prioritize Privileged Instructions | OpenAI - openai.com](https://openai.com/index/the-instruction-hierarchy/)
+- [Claude's Constitution | Anthropic - anthropic.com](https://www.anthropic.com/constitution)
