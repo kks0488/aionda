@@ -1,0 +1,170 @@
+---
+title: 'Beyond Benchmark Scores: Reproducible, Multi-Metric Model Evaluation'
+slug: beyond-benchmark-scores-reproducible-multi-metric-model-evaluation
+date: '2026-03-08'
+lastReviewedAt: '2026-03-08'
+locale: en
+description: >-
+  Why tiny benchmark gaps mislead: evaluation settings, reproducible logs, and
+  multi-metric, roadmap-driven model selection.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: '1044225'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1044225'
+verificationScore: 0.86
+alternateLocale: /ko/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation
+coverImage: >-
+  /images/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation.png
+---
+
+A team might argue over a **0.1** benchmark difference during a model selection meeting.  
+That **0.1** can shift with one evaluation setting, such as **temperature=0**.  
+People may still treat that number as “the model’s capability.”  
+A better question is this.  
+What are we measuring.  
+Does that measurement help product selection.  
+
+## TL;DR
+- This article reframes benchmarks as bundles of settings, not pure capability scores.  
+- This matters because small differences like **0.1** can hide trade-offs and ranking instability.  
+- Next, define scenarios first, then choose multi-metrics, and keep re-runnable logs and configs.  
+
+Example: A team compares two assistants for support work. They run the same scripts. They still debate which result reflects user experience. They decide to log prompts and outputs. They also agree on what success means for their product.  
+
+This article organizes common wobble points as “limitations of evaluation metrics.”  
+It then proposes a framework.  
+The framework uses roadmap hypotheses, not scores alone.  
+
+## TL;DR
+- **Core issue:** If you line up models using a small set of benchmark scores, settings can drive results.  
+Settings include prompts, sampling, length limits, and scoring rules.  
+- **Why it matters:** HELM argues for multiple metrics within one scenario.  
+It includes accuracy, calibration, robustness, fairness, bias, toxicity, and efficiency.  
+Single-score rankings are also described as potentially unstable.  
+- **What you should do:** For the next comparison, define workload scenarios before leaderboards.  
+Choose multi-metrics that match those scenarios.  
+Keep re-runnable logs under the same prompts and settings.  
+
+## Current state
+Benchmarks can look like they summarize “who is smarter” into one number.  
+In practice, they behave like a bundle of evaluation settings.  
+
+Documentation usually needs several elements.  
+These elements often group into four parts.  
+(1) Prompt templates and in-context examples.  
+(2) Sampling parameters, such as temperature and top_p.  
+(3) Length limits, such as max_seq_len and max_new_tokens.  
+(4) A scoring method, such as multiple-choice accuracy or LLM-as-a-judge.  
+
+Reproducibility is not only “run it again.”  
+It often means using the same prompts, examples, and settings.  
+It also means publishing original requests and responses.  
+Another option is publishing a configuration file or framework.  
+That file can allow third parties to re-run the evaluation.  
+
+One example appears in NVIDIA NeMo Evaluator SDK documentation.  
+It also states that `fewshot_seed` can make example selection consistent.  
+
+Some critiques target “a score that ends everything in one shot.”  
+The HELM paper describes a multi-metric approach.  
+It measures **7 metrics** for each scenario.  
+It evaluates across **16 core scenarios**.  
+It also raises concerns about aggregation into a single ranking.  
+It describes a “natural aggregation” as potentially incoherent or unstable.  
+
+## Analysis
+Benchmark debates can intensify because a number seems to reduce decision burden.  
+The number can depend on test conditions.  
+It may not reflect a stable “essence of the model.”  
+
+Sampling settings can change output determinism.  
+NeMo documentation links **temperature=0** to reproducibility.  
+Prompt templates and few-shot examples can shift model interpretation.  
+Teams may focus on a **0.1** difference.  
+They may delay questions about latency, cost, failure modes, and safety risk.  
+
+A single score can hide trade-offs.  
+HELM aims to show toxicity and efficiency alongside accuracy.  
+That can matter for product selection.  
+Accuracy gains can coincide with cost, latency, or safety issues.  
+
+Aggregation concerns can add another layer of confusion.  
+A leaderboard’s meaning can change when the model set changes.  
+Numbers can look objective.  
+Metric choice still reflects product priorities.  
+
+## Practical application
+Reducing debate does not require measuring everything.  
+It can help to separate metric design from roadmap hypotheses.  
+Metric design answers “what to measure.”  
+Roadmap hypotheses answer “why it will matter.”  
+
+Start with changes your product may face.  
+Turn them into roadmap hypotheses as sentences.  
+Examples include traffic increase or stronger safety requirements.  
+Then build metrics and experiments to test those hypotheses.  
+If you reverse the order, you may import someone else’s assumptions.  
+
+Example: Suppose you are choosing a customer support agent.  
+You may not want “higher accuracy” as the main target.  
+You may want “resolution without policy violations in long conversations.”  
+Then multiple-choice accuracy may not be central.  
+You can examine several axes together.  
+You can include task completion, safety violations, and run-to-run variability.  
+For reproducibility, you can fix prompts, sampling, length limits, and scoring rules.  
+You can store them in a config file.  
+You can also keep request and response logs for re-runs.  
+
+**Checklist for Today:**
+- Define **3 scenarios** and write one-sentence success criteria for each scenario.  
+- Bundle prompts, sampling, length limits, and scoring rules into one config file.  
+- Put efficiency and toxicity or policy violations beside accuracy in one comparison table.  
+
+## FAQ
+**Q1. So are benchmark scores meaningless?**  
+A1. They can be meaningful within their evaluation settings.  
+A score can reflect a specific prompt, sampling, length limits, and scoring method.  
+
+**Q2. What should be fixed to run a reproducible evaluation?**  
+A2. You should fix prompts and examples.  
+You should fix sampling parameters, including temperature and top_p.  
+You should fix length limits and the scoring method.  
+You can also publish request and response logs.  
+You can publish a configuration file or framework for re-runs.  
+
+**Q3. What should we look at instead of a single score?**  
+A3. HELM proposes viewing multiple metrics within the same scenario.  
+It includes calibration, robustness, fairness, bias, toxicity, and efficiency.  
+For products, you can add task completion rate and failure modes.  
+Failure modes can include hallucination, policy violations, and omissions.  
+
+## Conclusion
+Benchmark debate often treats a score as a decision substitute.  
+Scores can still help.  
+They can help more when settings are disclosed or fixed.  
+Multiple metrics can surface trade-offs.  
+Final choices should align with roadmap hypotheses.  
+A useful next focus is re-runnable evaluation.  
+It can turn claims and rebuttals into verifiable re-runs.
+
+## Further Reading
+- [Adult Mode Requires Age Assurance And Safety Architecture](/en/posts/adult-mode-age-assurance-safety-architecture)
+- [AI Resource Roundup (24h) - 2026-03-08](/en/posts/ai-resources-roundup-2026-03-08)
+- [Detecting UI Action Mismatches Beyond Schema Validation](/en/posts/detecting-ui-action-mismatches-beyond-schema-validation)
+- [Estimating Rankings via Pairwise LLM Comparisons and MCMC](/en/posts/estimating-rankings-via-pairwise-llm-comparisons-and-mcmc)
+- [Learnable Pixel Weights For Controllable Medical Diffusion Pipelines](/en/posts/learnable-pixel-weights-controllable-medical-diffusion-pipelines)
+---
+
+## References
+
+- [Massive Multitask Language Understanding (MMLU) on HELM — Stanford CRFM - crfm.stanford.edu](https://crfm.stanford.edu/2024/05/01/helm-mmlu.html)
+- [Evaluation Configuration Parameters — NeMo Evaluator SDK - docs.nvidia.com](https://docs.nvidia.com/nemo/evaluator/latest/evaluation/parameters.html)
+- [OpenAI o3 and o4-mini System Card - OpenAI Deployment Safety Hub - deploymentsafety.openai.com](https://deploymentsafety.openai.com/o3/tacit-knowledge-and-troubleshooting)
+- [Challenges in evaluating AI systems | Anthropic - anthropic.com](https://www.anthropic.com/research/evaluating-ai-systems)
+- [Stanford CRFM — Introducing HELM (blog/project page) - crfm.stanford.edu](https://crfm.stanford.edu/2022/11/17/helm.html)
+- [Holistic Evaluation of Language Models (HELM) - arxiv.org](https://arxiv.org/abs/2211.09110)
+- [Beyond Arrow: From Impossibility to Possibilities in Multi-Criteria Benchmarking - arxiv.org](https://arxiv.org/abs/2602.07593)
