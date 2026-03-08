@@ -1,0 +1,80 @@
+---
+title: LLM과 과학모델 결합의 평가 루프
+slug: combining-llm-agents-with-science-models-for-reliable-loops
+date: '2026-03-08'
+lastReviewedAt: '2026-03-08'
+locale: ko
+description: 'LLM은 설계·조정, 과학모델은 제약·평가를 맡아 재귀 최적화를 만든다.'
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1044378'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1044378'
+verificationScore: 0.84
+alternateLocale: /en/posts/combining-llm-agents-with-science-models-for-reliable-loops
+coverImage: /images/posts/combining-llm-agents-with-science-models-for-reliable-loops.png
+---
+
+실험실 모니터에 단백질 구조가 3D로 떠 있다. 옆 화면에는 LLM 채팅창이 열려 있고, “다음으로 어떤 변이를 만들까” 같은 질문이 오간다. 이 조합이 다시 관심을 받는 이유는 역할이 갈리기 때문이다. LLM은 그럴듯한 설명을 만들 수 있지만, 현실 제약을 놓치는 경우가 있다. 과학·물리 기반 모델은 제약을 점수와 오차로 표현하는 경우가 있다. 둘을 결합하면 LLM은 설계·조정 역할을 맡고, 과학 모델은 평가 역할을 맡는다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** LLM을 “계획·검색·실험 설계·해석”에 두고, 과학/물리 기반 예측·시뮬레이션 모델을 “제약·평가”에 두는 결합 패턴이 퍼지고 있다.  
+- **왜 중요한가?** 반복(재귀) 최적화 루프를 만들 수 있다. 다만 점수(신뢰도 지표)·홀드아웃·재현성 같은 평가 장치가 없으면 오류가 누적될 수 있다.  
+- **독자는 뭘 하면 되나?** 도메인 모델의 **신뢰도 지표(pLDDT/PAE 같은 것)**를 게이트로 삼고, LLM 에이전트는 **Plan-and-Execute/ReAct/ToT/Reflexion** 중 하나로 고정한다. 그 뒤 블라인드 홀드아웃과 재현성 체크리스트로 루프를 통제한다.
+
+## 현황
+
+LLM 쪽은 과학 모델을 직접 대체하기보다, 바깥에서 작업을 “조정하는” 역할로 정리되는 경우가 많다. 문서·논문들에서 자주 언급되는 패턴은 크게 네 가지다. **ReAct**는 추론과 행동(툴/환경 호출)을 교차하며 외부 시스템을 호출한다. **Plan-and-Execute**는 먼저 계획을 만들고 하위 작업을 실행으로 내려보낸다. **Tree of Thoughts(ToT)**는 후보 해를 여러 갈래로 만들고 평가하며 탐색한다. **Reflexion**은 실행 결과의 피드백을 언어로 기록해 다음 시도에 반영한다. 실무 가이드는 툴 콜 중심의 연결과, “매니저가 전문 에이전트를 호출하는” 오케스트레이션을 함께 다루기도 한다.
+
+둘을 붙인 전형적 파이프라인은 다음처럼 그릴 수 있다. LLM(매니저)이 가설/설계를 만들고, 과학 모델이 예측을 내고, 신뢰도 지표로 걸러낸다. 그 결과를 다시 LLM이 요약하고 다음 실험 설계로 이어간다. 여기서 중요한 점은 ‘재귀적 개선’ 자체가 아니라, **반복마다 무엇을 점수로 삼고 어디서 멈출지**가 설계에 포함돼야 한다는 점이다. 과학 모델이 pLDDT/PAE 같은 형태로 불확실성을 표시할 수 있으면, LLM 루프에 중단 조건을 넣기 쉬워진다.
+
+## 분석
+이 결합에서 핵심은 역할 분리다. LLM은 말로 모든 것을 해결하려 할 때 취약해질 수 있다. 반면 계획·검색·실험 설계·결과 해석처럼 “언어가 필요한 구간”에 두면 도움이 될 수 있다. 과학/물리 기반 모델은 제약이 강한 도메인에서 세계의 구조를 근사하고, 출력에 **신뢰도(pLDDT 0~100, PAE는 Å로 정의)** 같은 지표를 함께 제공할 수 있다. LLM이 후보를 제안하되, 최종 판정은 ‘제약 기반 점수’가 맡는 구조가 가능해진다.
+
+리스크도 함께 생긴다. 첫째, 재귀 루프는 평가가 약하면 “그럴듯함 최적화”로 흐를 수 있다. LLM이 만든 가설을 LLM이 만든 평가로 반복 칭찬하면 오류가 누적될 수 있다. 둘째, 분포 이동이다. 모델이 잘 맞던 입력 범위를 벗어나면 pLDDT/PAE 같은 신뢰도 지표가 흔들릴 수 있다. 또는 지표가 높게 나오더라도 실제로는 틀리는 경우가 생기거나, 사용자가 신호를 잘못 해석할 수 있다. 셋째, 재현성이다. 시뮬레이션·자동 실험 루프는 실행 조건이 조금만 달라도 결론이 달라질 수 있다. 그래서 분자 동역학 시뮬레이션 재현성 체크리스트 같은 형태로 “어떻게 돌렸는지” 자체를 결과만큼 엄격히 기록하는 습관이 필요하다.
+
+## 실전 적용
+실무에서는 “LLM에게는 키를 주되, 브레이크는 점수로 건다”라는 접근이 자주 쓰인다. LLM은 Plan-and-Execute로 실험 계획을 만들고, Executor로 과학 모델(예: 구조 예측/시뮬레이션)을 호출한다. 결과는 pLDDT/PAE처럼 모델이 제공하는 신뢰도 신호를 먼저 읽고, 기준 이하인 후보는 폐기하거나 추가 샘플링으로 보낸다. 탐색이 필요하면 ToT로 후보를 넓게 뽑되, 평가 함수는 과학 모델의 수치와 홀드아웃된 검증으로 고정한다. Reflexion은 “왜 실패했는지”를 자연어로 남겨 다음 반복에서 같은 실수를 줄이는 용도로 쓴다. 다만 반성 텍스트 자체가 정답 역할을 하게 만들면 곤란하다.
+
+예: 단백질 변이 설계를 한다면, LLM이 변이 후보를 생성하고(탐색), AlphaFold류 예측으로 구조를 만들고(실행), pLDDT/PAE로 신뢰도를 체크해(평가) 낮은 신뢰도 후보를 제외하거나 “근거가 더 필요한 후보”로 라벨링한다. 그 다음 LLM은 남은 후보를 실험 우선순위로 정렬하고, 실패한 후보의 패턴을 Reflexion 로그로 남긴다. 이때 중심은 “LLM의 설득력”이 아니라 “점수와 프로토콜”이 루프를 통제하도록 만드는 일이다.
+
+오늘 바로 할 일 체크리스트:
+- LLM 에이전트 패턴을 **ReAct / Plan-and-Execute / ToT / Reflexion 중 하나로 고정**하고, 어떤 단계에서 어떤 툴을 호출하는지 흐름도를 먼저 만든다.  
+- 과학/월드모델 출력에서 **신뢰도 지표(pLDDT 0~100, PAE는 Å 단위 정의 등)**를 읽어 “통과/보류/폐기” 게이트를 문서로 박아 둔다.  
+- 반복 실험/시뮬레이션은 **홀드아웃 평가와 재현성 체크리스트(실행 조건·반복·통계 보고)**를 함께 묶어 자동 로그로 남긴다.  
+
+## FAQ
+**Q1. 월드모델이 LLM의 ‘환각’을 없애줍니까?**  
+A1. 완전히 없애주지는 않습니다. 다만 과학/물리 기반 모델이 **pLDDT(0~100)**, **PAE(Å 단위의 expected positional error 정의)**처럼 불확실성을 수치로 제공할 수 있어, LLM이 만든 제안을 점수로 걸러 환각이 제품/실험으로 이어질 가능성을 낮출 수 있습니다.
+
+**Q2. LLM-과학 모델 결합에서 가장 무난한 아키텍처는 뭔가요?**  
+A2. 문헌에서 자주 언급되는 출발점으로는 **Plan-and-Execute**와 **ReAct**가 있습니다. Plan-and-Execute는 계획과 실행을 분리해 검증 지점을 넣기 쉽습니다. ReAct는 툴 호출을 촘촘히 넣어 중간 점검을 자주 하도록 구성할 수 있습니다.
+
+**Q3. 재귀(반복) 최적화 루프가 ‘진짜로’ 좋아졌는지 어떻게 증명하나요?**  
+A3. 최소한 (1) train/validation/test 같은 **홀드아웃 분리**, (2) 반복 횟수·불확실성 보고, (3) 코드·환경·실행 방법을 남기는 **재현성 기준**이 필요합니다. 시뮬레이션 분야에서는 재현성 보고를 위한 체크리스트 형태의 가이드가 제시되기도 하므로, 이런 체크리스트를 루프의 통과 조건으로 삼을 수 있습니다.
+
+## 결론
+LLM+월드모델 결합의 요지는 “더 그럴듯한 말”이 아니라 “통제 가능한 루프”다. LLM이 계획하고 과학 모델이 점수로 제약을 걸면, 자동 반복 개선을 구성할 수 있다. 이후 관전 포인트는 각 도메인에서 **어떤 신뢰도 지표를 게이트로 삼는지**, 그리고 그 게이트를 **홀드아웃·재현성**으로 얼마나 엄격히 운영하는지다.
+
+## 다음으로 읽기
+- [성인 모드는 토글이 아니다](/ko/posts/adult-mode-age-assurance-safety-architecture)
+- [AI 자료 모음 (24h) - 2026-03-08](/ko/posts/ai-resources-roundup-2026-03-08)
+- [벤치 점수 집착을 넘는 평가 프레임](/ko/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation)
+- [유효 UI가 속이는 순간: 행위 정합성](/ko/posts/detecting-ui-action-mismatches-beyond-schema-validation)
+- [쌍대비교로 추정하는 LLM 랭킹](/ko/posts/estimating-rankings-via-pairwise-llm-comparisons-and-mcmc)
+---
+
+## 참고 자료
+
+- [pLDDT: Understanding local confidence | AlphaFold (EMBL-EBI Training) - ebi.ac.uk](https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/plddt-understanding-local-confidence/)
+- [PAE: A measure of global confidence in AlphaFold2 predictions | AlphaFold (EMBL-EBI Training) - ebi.ac.uk](https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/pae-a-measure-of-global-confidence-in-alphafold-predictions/)
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-updates)
+- [A practical guide to building agents | OpenAI - openai.com](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)
+- [Highly accurate protein structure prediction with AlphaFold - nature.com](https://www.nature.com/articles/s41586-021-03819-2)
+- [ReAct: Synergizing Reasoning and Acting in Language Models - arxiv.org](https://arxiv.org/abs/2210.03629)
+- [ADaPT: As-Needed Decomposition and Planning with Language Models - arxiv.org](https://arxiv.org/abs/2311.05772)
+- [Tree of Thoughts: Deliberate Problem Solving with Large Language Models - arxiv.org](https://arxiv.org/abs/2305.10601)
+- [Reflexion: Language Agents with Verbal Reinforcement Learning - arxiv.org](https://arxiv.org/abs/2303.11366)
+- [Reliability and reproducibility checklist for molecular dynamics simulations | Communications Biology - nature.com](https://www.nature.com/articles/s42003-023-04653-0)

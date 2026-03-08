@@ -1,0 +1,194 @@
+---
+title: Combining LLM Agents With Science Models for Reliable Loops
+slug: combining-llm-agents-with-science-models-for-reliable-loops
+date: '2026-03-08'
+lastReviewedAt: '2026-03-08'
+locale: en
+description: >-
+  A practical pattern: LLMs handle planning and interpretation, while science
+  models provide constraint-based scoring and stopping gates.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1044378'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1044378'
+verificationScore: 0.84
+alternateLocale: /ko/posts/combining-llm-agents-with-science-models-for-reliable-loops
+coverImage: /images/posts/combining-llm-agents-with-science-models-for-reliable-loops.png
+---
+
+A protein structure rotates in 3D on a lab monitor.  
+An LLM chat window sits beside it.  
+Questions like “What mutation should we make next?” pass between them.  
+
+This pairing is getting renewed attention.  
+The roles can be separated with some clarity.  
+An LLM can produce plausible explanations.  
+It can still miss real-world constraints.  
+Scientific and physics-based models can express constraints as scores and errors.  
+When combined, the LLM often handles design and coordination.  
+The scientific model often handles evaluation.  
+
+## TL;DR
+- The pattern combines an LLM for planning with scientific models for constraint-based evaluation.  
+- It matters because iterative loops can drift without numeric gates and stopping rules.  
+- Next, define gating using pLDDT and PAE, and log holdouts and reproducibility details.  
+
+Example: A researcher asks the assistant for mutation ideas. The assistant proposes candidates and records rationale. A scientific model evaluates constraints and flags uncertainty. The researcher iterates and documents decisions with a consistent protocol.
+
+## TL;DR
+- **What changed / what is the key issue?** A combination pattern is spreading. The LLM handles planning, search, design, and interpretation. Scientific models handle constraints and evaluation.  
+- **Why does it matter?** This setup can support an iterative optimization loop. Weak evaluation can still let errors accumulate over iterations.  
+- **What should readers do?** Use domain confidence indicators, such as pLDDT and PAE, as gates. Choose an agent pattern like Plan-and-Execute, ReAct, ToT, or Reflexion. Control the loop using blind holdouts and a reproducibility checklist.  
+
+## Current state
+On the scientific or physics-based side, the pattern is clearer.  
+The flow often looks like input to constrained output to confidence score.  
+
+AlphaFold2 provides one example.  
+Its structure module outputs 3D coordinates.  
+It uses FAPE, frame-aligned point error, as a core training loss.  
+It also reports pLDDT for per-residue confidence.  
+pLDDT uses a 0–100 scale.  
+It also reports PAE for placement confidence.  
+PAE is defined in Å units.  
+These outputs provide uncertainty as numbers.  
+
+On the LLM side, the role is often framed as coordination.  
+It is often described as supporting scientific models, not replacing them.  
+Documents and papers often mention four patterns.  
+
+**ReAct** alternates reasoning and action.  
+Actions can include tool or environment calls.  
+**Plan-and-Execute** creates a plan first.  
+It then delegates subtasks to execution steps.  
+**Tree of Thoughts (ToT)** generates multiple candidate branches.  
+It searches among them using evaluation.  
+**Reflexion** records feedback from execution in language.  
+It uses that feedback to inform the next attempt.  
+Guides sometimes also describe manager and specialist agents.  
+
+A typical pipeline can be drawn in three stages.  
+The LLM generates hypotheses or designs.  
+The scientific model produces predictions.  
+Candidates are filtered using confidence indicators.  
+The LLM then summarizes results.  
+It carries the results into the next design step.  
+
+The key design issue is scoring and stopping.  
+Each iteration should specify what gets scored.  
+It should also specify where the loop stops.  
+If the model exposes uncertainty through pLDDT or PAE, gating becomes easier.  
+
+## Analysis
+The core idea is role separation.  
+An LLM can be fragile when it tries to solve everything in text.  
+It can help in language-heavy segments.  
+These segments include planning, search, design, and interpretation.  
+
+Scientific and physics-based models encode domain constraints.  
+They can provide confidence indicators alongside outputs.  
+Examples include pLDDT on a 0–100 scale.  
+Another example is PAE defined in Å units.  
+This supports a workflow where the LLM proposes candidates.  
+A constraint-based score can drive the acceptance decision.  
+
+Risks still arise.  
+First, weak evaluation can shift the loop toward plausibility.  
+If both the hypothesis and evaluation are LLM-generated, errors can compound.  
+
+Second, distribution shift can matter.  
+Inputs can move outside the model’s fitted range.  
+pLDDT and PAE may then become unstable.  
+Even high indicators can still be wrong.  
+Users can also misread the signals.  
+
+Third, reproducibility can be fragile.  
+Simulation and automation loops can vary with small execution changes.  
+It helps to record how the run was executed.  
+This record can be as strict as the results.  
+Molecular dynamics checklists are one example of this approach.  
+
+## Practical application
+A practical framing is keys with brakes.  
+The LLM can lead the workflow.  
+Scores can act as braking and steering signals.  
+
+The LLM can use Plan-and-Execute for an experimental plan.  
+As executor, it can call structure prediction or simulation tools.  
+You then read model-provided confidence signals.  
+These include pLDDT on a 0–100 scale.  
+They also include PAE defined in Å units.  
+You can discard candidates below a threshold.  
+You can also send them to additional sampling.  
+
+If exploration is needed, ToT can widen the candidate set.  
+The evaluation function should stay fixed to the scientific model’s numbers.  
+Held-out validation can also help control drift.  
+Reflexion can keep a language record of failures.  
+This record can reduce repeated mistakes.  
+The reflection text should not be treated as the final answer.  
+
+**Checklist for Today:**
+- Choose one agent pattern, then draw a tool-call flow diagram for each step.  
+- Define pass, hold, and discard gates using pLDDT 0–100 and PAE in Å units.  
+- Log holdout evaluation and reproducibility conditions as part of each run.  
+
+## FAQ
+**Q1. Does a world model eliminate an LLM’s ‘hallucinations’?**  
+A1. Not largely.  
+Scientific models can provide uncertainty as numbers.  
+Examples include pLDDT on a 0–100 scale.  
+Another example is PAE defined in Å units.  
+You can use these scores to filter LLM proposals.  
+This can reduce the chance of errors reaching experiments or products.  
+
+**Q2. What is the safest, most general architecture for combining an LLM with a scientific model?**  
+A2. Literature often mentions Plan-and-Execute and ReAct as starting points.  
+Plan-and-Execute separates planning from execution.  
+This can make verification checkpoints easier to insert.  
+ReAct can insert frequent tool calls.  
+That can allow more mid-process checks.  
+
+**Q3. How do you prove that a recursive optimization loop got ‘actually’ better?**  
+A3. You can start with holdout splits.  
+Common splits include train, validation, and test.  
+You can also report iteration counts and uncertainty.  
+Reproducibility criteria can preserve code, environment, and execution method.  
+Simulation fields sometimes propose checklist-style reporting guides.  
+You can adopt such a checklist as a gate for the loop.  
+
+## Conclusion
+The point is a controllable loop, not better-sounding text.  
+An LLM can plan and coordinate.  
+A scientific model can impose constraints via scores.  
+This can support automated iteration with explicit gates.  
+
+Next, watch which confidence indicators become gates.  
+Examples include pLDDT on a 0–100 scale.  
+Another example is PAE defined in Å units.  
+Also watch how gates are enforced using holdouts and reproducibility logs.
+
+## Further Reading
+- [Adult Mode Requires Age Assurance And Safety Architecture](/en/posts/adult-mode-age-assurance-safety-architecture)
+- [AI Resource Roundup (24h) - 2026-03-08](/en/posts/ai-resources-roundup-2026-03-08)
+- [Beyond Benchmark Scores: Reproducible, Multi-Metric Model Evaluation](/en/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation)
+- [Detecting UI Action Mismatches Beyond Schema Validation](/en/posts/detecting-ui-action-mismatches-beyond-schema-validation)
+- [Estimating Rankings via Pairwise LLM Comparisons and MCMC](/en/posts/estimating-rankings-via-pairwise-llm-comparisons-and-mcmc)
+---
+
+## References
+
+- [pLDDT: Understanding local confidence | AlphaFold (EMBL-EBI Training) - ebi.ac.uk](https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/plddt-understanding-local-confidence/)
+- [PAE: A measure of global confidence in AlphaFold2 predictions | AlphaFold (EMBL-EBI Training) - ebi.ac.uk](https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/pae-a-measure-of-global-confidence-in-alphafold-predictions/)
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-updates)
+- [A practical guide to building agents | OpenAI - openai.com](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)
+- [Highly accurate protein structure prediction with AlphaFold - nature.com](https://www.nature.com/articles/s41586-021-03819-2)
+- [ReAct: Synergizing Reasoning and Acting in Language Models - arxiv.org](https://arxiv.org/abs/2210.03629)
+- [ADaPT: As-Needed Decomposition and Planning with Language Models - arxiv.org](https://arxiv.org/abs/2311.05772)
+- [Tree of Thoughts: Deliberate Problem Solving with Large Language Models - arxiv.org](https://arxiv.org/abs/2305.10601)
+- [Reflexion: Language Agents with Verbal Reinforcement Learning - arxiv.org](https://arxiv.org/abs/2303.11366)
+- [Reliability and reproducibility checklist for molecular dynamics simulations | Communications Biology - nature.com](https://www.nature.com/articles/s42003-023-04653-0)
