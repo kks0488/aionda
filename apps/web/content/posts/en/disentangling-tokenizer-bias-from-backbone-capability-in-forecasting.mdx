@@ -1,0 +1,161 @@
+---
+title: Disentangling Tokenizer Bias From Backbone Capability In Forecasting
+slug: disentangling-tokenizer-bias-from-backbone-capability-in-forecasting
+date: '2026-03-09'
+lastReviewedAt: '2026-03-09'
+locale: en
+description: >-
+  Separate time-series gains from LLM backbone ability versus tokenizer/decoder
+  bias using controlled swaps and LLM-free baselines.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-c06126336af0faa7
+sourceUrl: 'https://arxiv.org/abs/2504.08818'
+verificationScore: 0.75
+alternateLocale: /ko/posts/disentangling-tokenizer-bias-from-backbone-capability-in-forecasting
+coverImage: >-
+  /images/posts/disentangling-tokenizer-bias-from-backbone-capability-in-forecasting.png
+---
+
+A time-series forecasting experiment can look successful, yet the tokenizer can shape most of the result.  
+One side uses an LLM backbone for forecasting.  
+The other side uses tokenization and detokenization for numbers.  
+Those steps can determine outcomes.  
+This can make the backbone look more capable than it is.  
+arXiv 2504.08818v2 targets this separation.  
+It focuses on “Tokenizer Bias” versus “Backbone Capability.”  
+The framing also links to reproducibility and fair comparison issues.
+
+## TL;DR
+- Tokenizer and reconstruction choices can explain forecasting gains that look like backbone improvements.  
+- Controlled swaps can reduce confusion and help compare results across papers and teams.  
+- Run split tests that isolate tokenization versus backbone effects, and include an “LLM removed” baseline.
+
+Example: You compare two forecasting systems in production.  
+One uses different preprocessing and token mapping.  
+The other keeps preprocessing stable and changes the backbone.  
+The results differ, and you investigate what actually drove the change.
+
+## TL;DR
+- **Core issue:** Time-series gains can come from the **LLM backbone** or from **tokenizer and reconstruction design**.  
+- **Why it matters:** Some ablations in 2406.16964 report similar or better results without an LLM backbone.  
+- **Reader action:** Split-test by swapping one component at a time, and include an “LLM removed” baseline.
+
+## Current landscape
+A typical LLM time-series pipeline has several steps.  
+It splits a time series into patches.  
+It maps numeric patches into token space using a tokenizer.  
+It feeds tokens to a frozen or fine-tuned backbone.  
+It restores numeric forecasts using a detokenizer.  
+
+arXiv 2504.08818v2 foregrounds this separation in its title.  
+It aims to separate “Tokenizer Bias” from “Backbone Capability.”  
+This post does not quote the paper verbatim.  
+It also does not lock in the paper’s conclusions.  
+The structure still points toward that separation goal.
+
+Both supportive and skeptical claims exist in the literature.  
+“Are Language Models Actually Useful for Time Series Forecasting?” is 2406.16964.  
+Snippets describe ablations that remove the LLM.  
+They also describe replacing it with basic attention layers.  
+Those snippets report no degradation in some cases.  
+They report improvements in some cases.  
+This motivates controls before crediting the backbone.
+
+Tokenizer-focused warnings also appear.  
+“Small Vocabularies, Big Gains” is 2511.11622.  
+Snippets claim tokenizer configuration affects capacity and stability.  
+They cite scaling and quantization as examples.  
+Snippets also claim misaligned tokenization can shrink gains.  
+They also claim it can flip the direction of gains.  
+This makes tokenization alignment a key comparison variable.
+
+## Analysis
+The evaluation question is shifting in emphasis.  
+It is not only “Do scores rise with an LLM attached?”  
+A more controlled question is becoming common.  
+It asks about swaps under fixed tokenization conditions.  
+It also asks about swaps under fixed backbone conditions.  
+One targeted question is the following.  
+“Under the same tokenizer, does swapping to an LLM increase performance?”  
+
+Without these controls, teams can misattribute gains.  
+They may scale infrastructure based on backbone narratives.  
+Yet gains may come from tokenization bias.  
+The cost could rise without commensurate backbone value.
+
+Production trade-offs are part of the same decision.  
+LeMoLE is 2412.00053.  
+Snippets describe increased compute cost and inference complexity.  
+They connect this to alignment with the LLM semantic space.
+
+Under distribution shift, other claims appear.  
+“Rethinking the Role of LLMs in Time Series Forecasting” is 2602.14744.  
+Snippets claim pretraining matters under distribution shift.  
+Snippets also claim strengths for complex temporal dynamics.  
+One interpretation is conditional impact across regimes.  
+Encoding design may dominate in stationary segments.  
+Pretraining may matter more in drift segments.  
+This remains hard to conclude from snippets alone.
+
+## Practical application
+Teams can move from trend-driven adoption to controllable experiments.  
+The tokenizer and detokenizer can be treated as first-order components.  
+They can confound statements like “the LLM got it right.”  
+A competing explanation can be distribution-aligned tokenization.  
+That explanation can be more accurate in some cases.
+
+**Checklist for Today:**
+- Run one experiment that swaps only the backbone and keeps tokenization fixed.  
+- Run one experiment that swaps only tokenization and keeps the backbone fixed.  
+- Add an “LLM removed” baseline and report drift versus non-drift slices separately.  
+
+## FAQ
+**Q1. Does that mean LLM backbones are useless for time-series forecasting?**  
+A1. That conclusion looks too strong based on the cited snippets.  
+Snippets from 2406.16964 describe cases with maintained or improved performance.  
+Those cases appear after removing the LLM or using basic attention.  
+Snippets from 2602.14744 claim pretraining matters under distribution shift.  
+A more cautious view is about attribution risk.  
+Without controls, backbone contribution can be overstated.
+
+**Q2. What exactly does “tokenizer bias” mean?**  
+A2. It refers to how numbers become tokens and return to numbers.  
+It includes scaling, quantization, and patch construction.  
+Those choices can change representational capacity and stability.  
+Snippets from 2511.11622 describe tokenizer configuration as influential.  
+They also describe misalignment reducing or reversing pretraining gains.
+
+**Q3. What costs does an LLM backbone impose in production?**  
+A3. Compute cost and inference complexity can increase.  
+Snippets from 2412.00053 connect this to semantic-space alignment.  
+One snippet also reports about 35 ms average prompt latency.  
+That figure is for 1-step forecasting in one case.  
+It may vary by environment.
+
+## Conclusion
+The debate focus is shifting toward controlled decomposition.  
+That means separating tokenizer bias from backbone contribution.  
+Teams can reduce attribution risk with component-level ablations.  
+They can also avoid paying higher cost for unclear benefit.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Copilot Cowork Shifts AI From Prompts To Workflows](/en/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows)
+- [Treat Label Disagreement As A Product Requirement](/en/posts/treat-label-disagreement-as-a-product-requirement)
+- [When Long-Term Memory Hurts New Task Learning](/en/posts/when-long-term-memory-hurts-new-task-learning)
+- [Adult Mode Requires Age Assurance And Safety Architecture](/en/posts/adult-mode-age-assurance-safety-architecture)
+---
+
+## References
+
+- [Large language model-driven time-series forecasting of financial network indicators - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12894265/)
+- [Are Language Models Actually Useful for Time Series Forecasting? - arxiv.org](https://arxiv.org/abs/2406.16964)
+- [Small Vocabularies, Big Gains: Pretraining and Tokenization in Time Series Models - arxiv.org](https://arxiv.org/abs/2511.11622)
+- [LeMoLE: LLM-Enhanced Mixture of Linear Experts for Time Series Forecasting - arxiv.org](https://arxiv.org/abs/2412.00053)
+- [Rethinking the Role of LLMs in Time Series Forecasting - arxiv.org](https://arxiv.org/abs/2602.14744)
+- [iTransformer: Inverted Transformers Are Effective for Time Series Forecasting - arxiv.org](https://arxiv.org/abs/2310.06625)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2504.08818)
