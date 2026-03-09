@@ -1,0 +1,158 @@
+---
+title: Treat Label Disagreement As A Product Requirement
+slug: treat-label-disagreement-as-a-product-requirement
+date: '2026-03-09'
+lastReviewedAt: '2026-03-09'
+locale: en
+description: >-
+  Review across seven venues (2020–2025) argues consensus labeling can erase
+  sociotechnical signals; proposes rules for distribution labels.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-5cb64e9c30ec953a
+sourceUrl: 'https://arxiv.org/abs/2602.11318'
+verificationScore: 0.81
+alternateLocale: /ko/posts/treat-label-disagreement-as-a-product-requirement
+coverImage: /images/posts/treat-label-disagreement-as-a-product-requirement.png
+---
+
+A literature review sets a window from **2020 to 2025**.  
+It scans **7 venues**: ACL, AIES, CHI, CSCW, EAAMO, FAccT, and NeurIPS.  
+It raises a concern about how labels become “ground truth.”  
+Once labels become “ground truth,” disagreement can look like noise.  
+That framing can drop sociotechnical signals.  
+arXiv **2602.11318v2** calls this a “positivistic fallacy.”  
+It critiques consensus-centered pipelines as a possible error source.  
+The risks include evaluation, safety, and fairness errors.  
+This memo organizes decision rules and trade-offs.  
+The goal is not “make consensus stronger.”  
+The goal is “treat disagreement as a product requirement.”
+
+## TL;DR
+- This memo reframes label disagreement as information, not contamination, for subjective tasks.  
+- It matters because consensus labels can hide uncertainty and weaken minority perspectives in evaluations.  
+- In the next data cycle, adjust pipelines to keep label distributions, rationales, and group comparisons.  
+
+Example: A team reviews a model answer and sees mixed reactions. They keep disagreement visible and document why. They then adjust system behavior to reflect uncertainty.
+
+## Current state
+In machine learning, “ground truth” refers to reference labels.  
+Those labels support training and evaluation.  
+arXiv **2602.11318v2** argues this paradigm can rest on a “positivistic fallacy.”  
+That fallacy treats human disagreement as technical noise.  
+The paper reviews work from **2020–2025** across **7** major venues.  
+It argues consensus-centered labeling can erase subjectivity and value conflicts.
+
+A common practice creates gold labels via majority vote.  
+Low-agreement samples can be treated as “quality issues.”  
+Crowd-Calibrator (arXiv **2408.14141**) discusses subjective NLP tasks.  
+It notes majority-vote gold labels can conceal disagreement and uncertainty.  
+It discusses treating annotator disagreement as calibration information.  
+Some approaches compare crowd label distributions to model distributions.  
+Some report performance in settings like selective prediction.  
+This text does not provide a quantitative improvement magnitude.
+
+Fairness and representation perspectives add warnings.  
+arXiv **2311.09743** discusses subjective-task label aggregation.  
+It warns aggregation can yield biased labels and biased models.  
+It also warns aggregation can miss minority opinions.  
+High agreement can then become a proxy for one norm.
+
+## Analysis
+From a decision perspective, the objective function can shift.  
+Some tasks are close to a single correct answer.  
+Examples include sensor readings and rule-based adjudication.  
+In those cases, a single label can reduce cost and complexity.  
+Agreement rate can serve as a quality indicator in some settings.
+
+Other tasks involve context and values.  
+Examples include hate speech, harmfulness, and political speech.  
+In those tasks, disagreement can signal where people diverge.  
+Majority vote can hide branching points.  
+It can also remove the ability to mark an item “controversial.”  
+Operators then have less support for risk segmentation.  
+Policy and UX handling can become harder to justify.
+
+There are counterarguments and trade-offs.  
+Distributional labels can increase labeling and review costs.  
+They can slow some decisions.  
+Preserving disagreement can diffuse accountability in sensitive topics.  
+Evaluation also becomes harder without single-label accuracy.  
+Teams then need new KPIs that stakeholders can interpret.  
+The problem becomes partitioning, not abandoning consensus.  
+The question becomes where consensus helps, and where disagreement stays visible.
+
+## Practical application
+Redesign often starts with deliverables.  
+Labeling outputs can be bundled beyond one “correct label.”  
+One deliverable can be a label distribution.  
+Another can be metadata about disagreement reasons.  
+A third can be group-level distribution comparisons.  
+If agreement rate is treated as the final goal, disagreement looks like a penalty.  
+Quality goals can shift toward reproducible disagreement patterns.  
+Quality goals can also include preserving minority perspectives in aggregation.
+
+In safety red-team labeling, keep the label distribution.  
+Avoid collapsing “harmful” versus “harmless” into a single vote.  
+Record a rationale code about the context of perceived harm.  
+This supports operational logic in uncertain regions.  
+Operators can abstain, ask follow-up questions, or apply stricter policies.  
+Crowd-Calibrator (arXiv **2408.14141**) links disagreement to calibration signals.  
+That framing can expand response options in uncertain areas.
+
+**Checklist for Today:**
+- Update schemas to store individual labels and a label distribution for subjective datasets.  
+- Decouple agreement metrics, such as κ, from incentives, and reward rationale metadata submission.  
+- Add group-level distribution tables to evaluation reports alongside any single-number scores.  
+
+## FAQ
+**Q1. Then do we have to give up on ‘correct answers’?**  
+A1. You may not need to.  
+Some tasks can support a single correct answer.  
+Consensus labels can be cost-effective in those domains.  
+Subjective tasks often involve context and values.  
+For those tasks, treating disagreement as only noise can add risk.  
+Keeping distributions and rationales can reduce safety and fairness risks.
+
+**Q2. Why is it a problem to use agreement rate (a metric like κ) as a quality goal?**  
+A2. In subjective tasks, maximizing agreement can treat value differences as mistakes.  
+Aggregation can then privilege the majority viewpoint.  
+Minority viewpoints can weaken during label consolidation.  
+The cited literature links this trend to biased labels and models.
+
+**Q3. If we use distributional labels, do model performance or calibration actually improve?**  
+A3. Claims should stay limited to the cited material.  
+Majority-vote labels can conceal uncertainty in subjective tasks.  
+Disagreement can be modeled as a distribution.  
+Some methods use distances between crowd and model distributions.  
+Some methods calibrate using crowd agreement signals.  
+This memo does not include quantitative effect sizes.
+
+## Conclusion
+The equation “consensus = quality” can reduce costs in some settings.  
+In subjective tasks, it can also defer costs into safety and fairness.  
+It can also affect evaluation reliability.  
+The next cycle can track more than single-score competition.  
+Teams can standardize how disagreement is recorded as distributions.  
+Teams can standardize how disagreement is explained with metadata.  
+Teams can standardize how disagreement is compared across groups.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Adult Mode Requires Age Assurance And Safety Architecture](/en/posts/adult-mode-age-assurance-safety-architecture)
+- [AI Resource Roundup (24h) - 2026-03-08](/en/posts/ai-resources-roundup-2026-03-08)
+- [Beyond Benchmark Scores: Reproducible, Multi-Metric Model Evaluation](/en/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation)
+- [Combining LLM Agents With Science Models for Reliable Loops](/en/posts/combining-llm-agents-with-science-models-for-reliable-loops)
+---
+
+## References
+
+- [Balancing Knowledge and Governance: Foundations for Effective Risk Management of Artificial Intelligence | NIST - nist.gov](https://www.nist.gov/speech-testimony/balancing-knowledge-and-governance-foundations-effective-risk-management-artificial)
+- [AI Risk Management Framework FAQs | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework/ai-risk-management-framework-faqs)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2602.11318)
+- [Crowd-Calibrator: Can Annotator Disagreement Inform Calibration in Subjective Tasks? - arxiv.org](https://arxiv.org/abs/2408.14141)
+- [Capturing Perspectives of Crowdsourced Annotators in Subjective Learning Tasks - arxiv.org](https://arxiv.org/abs/2311.09743)
+- [The 'Problem' of Human Label Variation: On Ground Truth in Data, Modeling and Evaluation - arxiv.org](https://arxiv.org/abs/2211.02570)
