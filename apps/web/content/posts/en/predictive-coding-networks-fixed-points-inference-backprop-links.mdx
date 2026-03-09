@@ -1,0 +1,84 @@
+---
+title: 'Predictive Coding Networks: Fixed Points, Inference, Backprop Links'
+slug: predictive-coding-networks-fixed-points-inference-backprop-links
+date: '2026-03-09'
+lastReviewedAt: '2026-03-09'
+locale: en
+description: >-
+  Overview of PCN: iterative inference, fixed-point convergence (dv≈0), links to
+  backprop equivalence/approximation, and compute bottlenecks.
+tags:
+  - hardware
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-93abce3004f25a32
+sourceUrl: 'https://arxiv.org/abs/2407.04117'
+verificationScore: 0.82
+alternateLocale: /ko/posts/predictive-coding-networks-fixed-points-inference-backprop-links
+coverImage: >-
+  /images/posts/predictive-coding-networks-fixed-points-inference-backprop-links.png
+---
+
+At arXiv IDs like **2407.04117v3**, the key question is whether inference reaches **dv_{ℓ}=0**. That condition affects whether Predictive Coding Networks (PCNs) look “neuroscience-inspired” or BP-adjacent. PCNs describe learning as **iterative inference that reduces error**. This shifts computation toward inference and local updates. The arXiv:2407.04117v3 tutorial/survey frames predictive coding as **hierarchical Bayesian inference**. It also discusses links to backpropagation (BP) via **equivalence or approximation**.
+
+## TL;DR
+- PCNs center learning on iterative inference, and the discussion often uses **dv_{ℓ}=0** or **dv_{ℓ}≈0** as a key condition.  
+- Iterative inference can add compute cost, while local updates and parallelism may fit some hardware designs.  
+- Log convergence metrics and iteration counts, then test speed and accuracy trade-offs under controlled inference budgets.  
+
+Example: A robot receives changing sensor signals and keeps updating internal states through inference. The weights adjust gradually from prediction error. The goal includes stability and responsiveness, not only accuracy.
+
+## Status
+PCNs start from a predictive-coding view of the brain as a hierarchical inference system. This view emphasizes predictions and prediction-error reduction through feedback. arXiv:**2407.04117v3** presents this work in a NeuroAI context. It frames PCNs as **hierarchical Bayesian inference**. It also organizes learning around an **inference learning (IL)** perspective. This differs from an FNN framing of “one forward pass plus one backward pass.” Here, the key computation is **iterative inference** that updates internal states.
+
+The relationship to BP is often posed as a condition question. One common condition is **fixed-point convergence**, written as **dv_{ℓ}=0**. The referenced line of work states some PCN algorithms can match BP’s **dθ** under that condition. The same literature also discusses **approximate** convergence, written as **dv_{ℓ}≈0**. It suggests an approximation to BP may still be possible. The provided material does not confirm whether **2407.04117v3** lists stability conditions in a summary form. Examples include step size or energy-function properties.
+
+Scaling concerns often focus on compute cost. arXiv:**2101.06848** describes DPCN’s **forward-backward inference** as a “major computational bottleneck.” It also reports that increasing depth can lead to training stagnation. The **2407.04117** survey notes IL has historically been more compute-intensive than BP. It also suggests parallelization could improve efficiency. The evidence here remains directional without quantitative benchmarks.
+
+## Analysis
+PCNs ask whether learning can shift from gradients to inference dynamics. BP provides gradients but raises plausibility debates. These include locality and the role of feedback pathways. PCNs reframe learning around feedback and prediction-error minimization. This makes dynamical conditions central. A key example is **fixed-point convergence (dv_{ℓ}=0)**. That condition often separates cases that match BP-like updates.
+
+This framing can fit settings with continuous observations. Examples include robotics and agent loops. Internal states may need ongoing updates at each interaction step. In that setting, inference can become part of learning design. The key metrics can extend beyond final accuracy. They can include convergence behavior and inference stability.
+
+The main cost driver is iterative inference. It adds repeated computation and can affect wall-clock time. It can also introduce stability issues. arXiv:**2101.06848** highlights forward-backward inference as a bottleneck. It also links inference cost to depth scaling limits. This suggests “BP substitute” expectations may not match outcomes in some regimes.
+
+Some papers highlight potential hardware-aligned properties. arXiv:**2510.25993** describes predictive coding with **local, Hebbian-like** updates. It also notes that **multiple inference iterations** add overhead. arXiv:**2602.15571** emphasizes local updates and layer-parallel learning. A cautious summary is a trade-off. PCNs may offer local and parallel-friendly structure. They may also impose iterative inference cost.
+
+## Practical application
+Start by separating goals. One goal is BP substitution or approximation. Another goal is online inference and adaptation. For BP-like comparisons, track whether you reach **dv≈0** with few iterations. For online adaptation, inference may be a state-estimation cost. In that case, fewer iterations may be possible by using temporal correlations. arXiv:**2510.25993** mentions this motivation.
+
+**Checklist for Today:**
+- Add **dv_{ℓ}** or an equivalent convergence metric to logs, and review stability against **dv≈0**.  
+- Sweep the inference iteration budget, and record wall-clock time alongside task performance.  
+- Prototype layer-parallel or module-parallel execution, and compare it against a serial inference baseline.  
+
+## FAQ
+**Q1. Does PCN largely replace backpropagation?**  
+A1. The provided sources do not support a definitive claim. Some work states **dv_{ℓ}=0** can yield BP-matching **dθ**. Other work suggests **dv_{ℓ}≈0** may still support an approximation.
+
+**Q2. Why do many people say PCNs are slow?**  
+A2. Iterative inference is the core computation. arXiv:**2101.06848** calls forward-backward inference a bottleneck. arXiv:**2510.25993** also notes overhead from multiple inference iterations.
+
+**Q3. Is there still a reason to consider PCNs?**  
+A3. Some papers emphasize local updates and layer parallelism. These may map to neuromorphic motivations in arXiv:**2510.25993**. For online adaptation, the inference-centric framing can fit the problem language.
+
+## Conclusion
+PCNs describe learning as **iterative inference** plus prediction-error minimization. A practical hinge is whether inference reaches **dv_{ℓ}=0** or gets close with **dv_{ℓ}≈0**. When convergence is unreliable, PCNs may fit less as BP substitution. They may fit more as a design choice with explicit inference cost.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Copilot Cowork Shifts AI From Prompts To Workflows](/en/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows)
+- [Disentangling Tokenizer Bias From Backbone Capability In Forecasting](/en/posts/disentangling-tokenizer-bias-from-backbone-capability-in-forecasting)
+- [Prompt Group Training For Robust Text Guided Segmentation](/en/posts/prompt-group-training-robust-text-guided-segmentation)
+- [Treat Label Disagreement As A Product Requirement](/en/posts/treat-label-disagreement-as-a-product-requirement)
+---
+
+## References
+
+- [On the relationship between predictive coding and backpropagation - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC8970408/)
+- [Tight Stability, Convergence, and Robustness Bounds for Predictive Coding Networks - arxiv.org](https://arxiv.org/abs/2410.04708)
+- [Faster Convergence in Deep-Predictive-Coding Networks to Learn Deeper Representations - arxiv.org](https://arxiv.org/abs/2101.06848)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2407.04117)
+- [Efficient Online Learning with Predictive Coding Networks: Exploiting Temporal Correlations (arXiv:2510.25993) - arxiv.org](https://arxiv.org/abs/2510.25993)
+- [Accelerated Predictive Coding Networks via Direct Kolen-Pollack Feedback Alignment (arXiv:2602.15571) - arxiv.org](https://arxiv.org/abs/2602.15571)
