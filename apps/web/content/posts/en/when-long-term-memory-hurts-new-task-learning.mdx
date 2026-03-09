@@ -1,0 +1,159 @@
+---
+title: When Long-Term Memory Hurts New Task Learning
+slug: when-long-term-memory-hurts-new-task-learning
+date: '2026-03-09'
+lastReviewedAt: '2026-03-09'
+locale: en
+description: >-
+  Long-term memory can boost performance yet cause negative forward transfer as
+  tasks evolve. Design deletion, summarization, and replacement policies.
+tags:
+  - agi
+  - llm
+  - deep-dive
+  - rag
+author: AI온다
+sourceId: '1045696'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1045696'
+verificationScore: 0.82
+alternateLocale: /ko/posts/when-long-term-memory-hurts-new-task-learning
+coverImage: /images/posts/when-long-term-memory-hurts-new-task-learning.png
+---
+
+In a conference review, an agent retrieves last month’s decision word-for-word.  
+A newly added requirement conflicts with that retrieved decision.  
+The model weights stay the same.  
+Only the memory layer changes.  
+The outcome becomes unstable.  
+The long-term memory problem often shifts from storage volume to forgetting design.  
+
+## TL;DR
+- Long-term memory can improve performance, yet exact recall can increase negative forward transfer.  
+- This can reduce reliability as memory grows across rounds, even without model changes.  
+- Measure FWT from the R(i,j) matrix, then test deletion and summarization policies first.  
+
+Example: A support agent consults a prior decision during a tense incident. The new policy conflicts. The system repeats old guidance. The agent hesitates.  
+
+## TL;DR
+- **What changed / what is the core issue?** Continual learning and external memory can improve performance. Exact remembering can hinder new learning. This shows up as **negative forward transfer**.  
+- **Why does it matter?** Some external-memory reports describe performance dropping as memory grows and rounds progress. Compression and integration can shift costs with limited accuracy gains. This can destabilize production reliability.  
+- **What should readers do?** Treat long-term memory as **deletion, summarization, and replacement policies**. Evaluate **FWT** using the **R(i,j) performance matrix**. If negative transfer appears, start with experiments that reduce memory.  
+
+## Status quo
+A classic problem in continual learning is catastrophic forgetting.  
+This is a sudden loss of old knowledge.  
+There is also an opposite problem.  
+Strong retention can interfere with learning new tasks.  
+
+Some work defines this as interference.  
+In that framing, **forward transfer is negative**.  
+This is described as old knowledge interfering with new learning.  
+AFEC discusses a related concern at NeurIPS 2021.  
+It notes that precise remembering can increase interference.  
+
+The measurement frame is fairly organized.  
+Lopez-Paz & Ranzato proposed the **R(i,j) performance matrix** at NeurIPS 2017.  
+Practitioners compute **FWT**, **BWT**, and **ACC** from that matrix.  
+This splits effects across new and old tasks.  
+In practice, **negative FWT** often acts as an interference signal.  
+
+Warnings also come from external-memory systems.  
+These include retrieval augmentation, log memory, and buffers.  
+Neuromem (2026) reports a tendency for performance to drop.  
+The drop appears when memory grows across rounds.  
+It also summarizes limits of “aggressive compression” and “generative integration.”  
+It suggests these can shift insertion and retrieval costs.  
+It reports limited accuracy gains in those cases.  
+Unlimited accumulation may not yield better long-run memory.  
+
+This helps explain fixed-capacity sampling in practice.  
+Experience replay often uses a fixed-size buffer.  
+**Reservoir Sampling (RS)** is one baseline alternative to FIFO.  
+The goal is representativeness of past data.  
+Some refinements add more selective storage rules.  
+Confidence Reservoir Sampling uses margin-based metrics for storage value.  
+One example appears in “Principal Gradient Direction and Confidence Reservoir Sampling” (2021).  
+
+## Analysis
+The equation “long-term memory equals performance” can fail.  
+Continual learning balances stability and plasticity.  
+Stability preserves old knowledge.  
+Plasticity supports new learning.  
+
+When this balance breaks, users may report worse memory.  
+The cause can be overly strong old memories.  
+Old rules can block learning new rules.  
+This often appears as **negative forward transfer**.  
+A decision criterion can focus on where FWT turns negative.  
+This can be more informative than storing more.  
+
+A similar logic applies to external memory operations.  
+More memory can look helpful in the short term.  
+Neuromem (2026) reports declines as rounds accumulate and memory grows.  
+Compression is also not a universal remedy.  
+Neuromem reports compression can shift costs with limited accuracy gains.  
+Teams can instead define what to summarize and when to discard.  
+They can also define retrieval-time trust and value judgments.  
+
+There are counterarguments worth tracking.  
+FWT, BWT, and ACC assume a task sequence.  
+That may not map directly to conversation memory or RAG memory.  
+Reservoir sampling targets representativeness.  
+It may not capture what matters right now.  
+Trust scoring like ClaimTrust targets document reliability in RAG.  
+Scores can drift if production distributions change.  
+Long-term memory can be treated as a bundle of policies.  
+Those policies should be controlled with metrics.  
+
+## Practical application
+Break decisions down into If/Then.  
+
+- **If** quality drops after a new feature and old rules dominate, **Then** treat forgetting as interference reduction. Build the R(i,j) matrix. Find where **FWT** becomes negative. Consider whether **ACC** improves after reducing blocking memories.  
+- **If** external memory becomes unstable as rounds accumulate, **Then** add lifecycle policies. Consider a fixed-size buffer with replacement, such as **reservoir sampling**. For histories beyond the context limit, replace text with summaries. Document deletion and replacement criteria before stronger compression.  
+
+**Checklist for Today:**
+- Record the task-order **R(i,j)** matrix so you can compute **FWT**, **BWT**, and **ACC**.  
+- Choose a default external-memory policy, such as a fixed-size buffer with replacement or summary replacement.  
+- In A/B tests, check whether higher exact recall correlates with more negative **FWT**.  
+
+## FAQ
+**Q1. Is there an industry-standard term for ‘excessive memory retention’?**  
+A1. A single widely agreed term is hard to point to.  
+Interference is often measured as negative transfer.  
+In continual learning, this is commonly tracked when **FWT** becomes negative.  
+
+**Q2. What metric is the most practical for measuring interference/negative transfer?**  
+A2. **FWT** computed from the **R(i,j) performance matrix** is central.  
+**BWT** and **ACC** can add context.  
+They separate old-task loss from blocked new learning.  
+
+**Q3. Can you maintain quality by managing memory only, without updating the model (weights)?**  
+A3. Some approaches suggest it may be possible in some settings.  
+In RAG, methods like **ClaimTrust** have been proposed.  
+These propagate trust via support and contradiction relations.  
+Reports describe penalizing false information during retrieval.  
+More review is needed before broad conclusions.  
+
+## Conclusion
+Long-term memory is an operational design.  
+It includes storage and forgetting mechanisms.  
+When **FWT** collapses into the negative, more remembering may not help.  
+Redesign can start from what to discard.  
+Next, examine whether policy can cut off declines across rounds.  
+This can matter as much as memory size.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Treat Label Disagreement As A Product Requirement](/en/posts/treat-label-disagreement-as-a-product-requirement)
+- [Adult Mode Requires Age Assurance And Safety Architecture](/en/posts/adult-mode-age-assurance-safety-architecture)
+- [AI Resource Roundup (24h) - 2026-03-08](/en/posts/ai-resources-roundup-2026-03-08)
+- [Beyond Benchmark Scores: Reproducible, Multi-Metric Model Evaluation](/en/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation)
+---
+
+## References
+
+- [Improvements to dark experience replay and reservoir sampling for better balance between consolidation and plasticity - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12961966/)
+- [AFEC: Active Forgetting of Negative Transfer in Continual Learning (NeurIPS 2021) - arxiv.org](https://arxiv.org/abs/2110.12187)
+- [Neuromem: A Granular Decomposition of the Streaming Lifecycle in External Memory for LLMs - arxiv.org](https://arxiv.org/abs/2602.13967)
+- [Principal Gradient Direction and Confidence Reservoir Sampling for Continual Learning - arxiv.org](https://arxiv.org/abs/2108.09592)
+- [ClaimTrust: Propagation Trust Scoring for RAG Systems - arxiv.org](https://arxiv.org/abs/2503.10702)

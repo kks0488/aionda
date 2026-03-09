@@ -1,0 +1,78 @@
+---
+title: 'Copilot Cowork, 실행 루프의 전환'
+slug: copilot-cowork-shifts-ai-from-prompts-to-workflows
+date: '2026-03-09'
+lastReviewedAt: '2026-03-09'
+locale: ko
+description: Copilot Cowork는 장시간·다단계 작업을 실행 루프로 관리해 AI 경쟁을 바꾼다.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - workflow
+author: AI온다
+sourceId: '1045669'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1045669'
+verificationScore: 0.85
+alternateLocale: /en/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows
+coverImage: /images/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows.png
+---
+
+2026년 3월 9일, 마이크로소프트는 공식 블로그에서 ‘Copilot Cowork’를 “research preview”로 소개했다. 키워드는 ‘long‑running’과 ‘multi‑step’이다. 한 번 묻고 한 번 답하는 챗봇이 아니라, 시간이 지나며 실행이 전개되고 사용자가 중간에 조향·검토·중지를 반복하는 업무 루프를 Copilot 안으로 가져오겠다는 방향을 제시한다. 이 변화가 중요하게 다뤄지는 이유는 분명하다. AI의 사용 단위가 ‘프롬프트’에서 ‘워크플로(진행 관리)’로 옮겨가면, 제품의 경쟁 지점이 모델 성능만이 아니라 “어떻게 일을 굴리게 하느냐”로 이동하기 때문이다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** Microsoft 365 Copilot의 ‘Copilot Cowork’는 장시간·다단계 작업을 프롬프트/응답을 넘어 “시간에 따라 실행이 전개되는” 형태로 다루려는 시도다(2026-03-09, research preview).
+- **왜 중요한가?** Copilot이 단일 앱·단일 턴에서 벗어나 도구·파일을 가로지르는 위임과 진행 가시화를 전면에 두면, 기업의 AI 도입 경쟁이 ‘좋은 답변’보다 ‘업무 통제 가능한 실행 루프’ 설계로 옮겨갈 수 있다.
+- **독자는 뭘 하면 되나?** 지금 쓰는 Copilot 업무를 ‘한 방 프롬프트’가 아니라 **(1) 단계로 쪼개기 (2) 중간 검토 지점 넣기 (3) 멈춤/되돌림 규칙 정하기**로 재설계해, 코워킹형 경험이 실제로 생산성에 어떤 영향을 주는지 확인하라.
+
+## 현황
+
+동작 방식도 문서에서 구체적으로 묘사된다. 복잡한 요청을 단계로 분해하고, 도구·파일을 가로질러 추론하며, 진행 상황을 가시적으로 보여준다. 사용자는 중간에 조향(steer)·검토(review)·중지(stop)할 수 있다. 결과적으로 ‘위임(delegation) + 루프 유지(keeping humans in the loop)’를 제품 패턴으로 강조한다.
+
+적용 범위는 “단일 턴/단일 앱에 제한되지 않는다”는 방향성만 공식 문구로 확인된다. 같은 맥락에서 Word/Excel/PowerPoint/Outlook, Copilot Chat(채팅), 그리고 Work IQ가 함께 언급된다. 다만 이 기능이 각 앱에서 어떤 UI(버튼/명령)로 드러나는지, 어떤 테넌트/라이선스/지역에서 가능한지는 공식 인용문만으로는 확정하기 어렵다.
+
+Anthropic 쪽 공식 발표(2025년 11월 18일 및 이후 공지)에서 확인되는 포인트는 “협업의 범위”다. Microsoft–Anthropic 파트너십은 Azure(Microsoft Foundry)에서 Claude 접근을 넓히고, Microsoft의 Copilot 패밀리(GitHub Copilot, Microsoft 365 Copilot, Copilot Studio) 전반에서 Claude에 대한 접근을 지속한다고 명시돼 있다. 제품 기능 수준의 단서로는, Anthropic이 Microsoft 365 Copilot의 ‘Researcher agent’에 Claude가 쓰인다고 말하고, Copilot Studio의 커스텀 에이전트 개발에도 Claude가 쓰인다고 적는다. 또 Excel의 ‘Agent Mode’에서 Claude 옵션(프리뷰)을 제공해 스프레드시트를 직접 생성·편집(수식 생성, 데이터 분석, 오류 식별 등)할 수 있다고 언급한다.
+
+## 분석
+Copilot Cowork는 “답변 품질”만의 경쟁에서 “실행 운영” 쪽으로 관심을 옮기려는 시도에 가깝다. 업무용 AI는 그동안 ‘프롬프트를 잘 쓰는 사람’에게 유리하게 작동하는 경우가 많았다. 하지만 장시간·다단계 작업은 프롬프트만으로 끝나기 어렵다. 중간 산출물의 검토, 다음 단계로 넘어가는 조건, 실패 시 되돌리는 규칙, 어디까지 자동으로 하고 어디서 멈출지 같은 운영 설계가 결과를 좌우한다. 마이크로소프트가 ‘진행 상황 가시화’와 ‘중간 조향/중지’를 제품 정의에 포함한 것도, 평가 기준이 “AI가 일을 한다”에만 머무르지 않을 수 있음을 전제한 선택으로 읽힌다.
+
+Anthropic과의 협업을 ‘Cowork 경험’ 관점에서 보면, UX 수준에서 “Claude Cowork가 Copilot Cowork로 어떻게 녹아들었는지”에 대한 직접 설명은 공식 문서에서 확인되지 않는다. 대신 제품 단서가 분산돼 있다. Researcher agent(복잡·다단계 조사)와 Copilot Studio(에이전트 제작), Excel Agent Mode(스프레드시트 생성·편집) 같은 지점은 공통적으로 “한 번 답하고 끝”이 아니라 “작업을 이어서 굴리는” 성격이 있다. 따라서 협업의 체감은 모델 브랜드보다 워크플로 형태에서 먼저 드러날 수 있다.
+
+리스크도 함께 봐야 한다. 첫째, 장시간·다단계로 갈수록 오류가 누적될 수 있다. 한 단계의 작은 착오가 다음 단계의 입력이 되면 결과물이 그럴듯해 보여도 틀릴 가능성이 커진다. 둘째, 가시화가 통제를 보장하지는 않는다. 진행 상황을 보여줘도 사용자가 “어디를 어떻게 검토해야 하는지”를 모르면, 검토가 형식으로 흐를 수 있다. 셋째, “단일 앱/단일 턴이 아니다”라는 방향은 강하지만, 기업 환경에서는 권한·데이터 경계·감사 요구가 워크플로를 끊는 경우가 있다. 코워킹이 자동화라기보다 ‘사람이 설계해야 하는 운영 시스템’으로 남을 가능성도 고려해야 한다.
+
+## 실전 적용
+Copilot Cowork를 ‘새 기능’으로만 보면 핵심을 놓치기 쉽다. 요지는 지금 하던 Copilot 사용법을 “일의 진행 방식” 중심으로 바꾸라는 신호에 가깝다. 장시간·다단계 작업에서 차이를 만드는 지점은 프롬프트 자체보다 **중간 체크포인트**다. 문서 초안, 표 구조, 이메일 문구처럼 “한 번에 끝나는 출력”이 아니라, 초안→검토→수정→확정의 루프를 설계하는 쪽으로 접근해야 한다.
+
+예: “시장 리서치 요약 작성”을 한 번에 시키는 대신 (1) 질문 리스트 만들기 (2) 근거 출처/문서 후보 모으기 (3) 요약 초안 (4) 반론 섹션 (5) 최종 정리처럼 단계로 쪼갠다. 그리고 각 단계 끝에 ‘검토 질문’을 고정한다. 다단계 에이전트가 강화될수록, 사용자는 ‘좋은 프롬프트’보다 ‘좋은 게이트(검토 문턱)’를 준비해야 한다.
+
+오늘 바로 할 일 체크리스트:
+- 지금 Copilot로 하는 업무 1개를 골라 **3~5단계로 분해**하고, 단계별 산출물을 한 줄로 정의한다.  
+- 각 단계 끝에 **검토 질문 1개**(예: “이 단계의 근거 문서는 무엇인가?”)를 붙여 루프를 강제한다.  
+- 결과물이 틀렸을 때를 대비해 **중지/되돌림 규칙**(어떤 신호가 보이면 중단할지)을 문서로 적어 팀에 공유한다.  
+
+## FAQ
+**Q1. Copilot Cowork는 정확히 무엇인가요?**  
+A. 마이크로소프트는 Copilot Cowork를 장시간(long‑running)·다단계(multi‑step) 작업을 Microsoft 365 Copilot으로 가져와, 프롬프트/응답을 넘어 시간에 따라 실행이 전개되게 하는 방식으로 설명합니다.
+
+**Q2. 어디에서 쓸 수 있나요? Word나 Excel에 버튼이 생기나요?**  
+A. 공식 블로그 인용문 기준으로는 “단일 턴/단일 앱에 제한되지 않으며” Microsoft 365 Copilot 내에서 작동한다고만 확인됩니다. Word/Excel/PowerPoint/Outlook과 Copilot Chat이 함께 언급되지만, 어떤 UI로 노출되는지까지는 공식 인용문만으로 확정하기 어렵습니다.
+
+**Q3. Anthropic(Claude) 협업은 제품에서 어떻게 확인할 수 있나요?**  
+A. Anthropic은 Microsoft 365 Copilot의 Researcher agent에 Claude가 사용된다고 밝히고, Copilot Studio의 커스텀 에이전트 개발에도 Claude가 쓰인다고 설명합니다. 또한 Excel의 Agent Mode에서 Claude 옵션(프리뷰)을 제공해 스프레드시트를 직접 생성·편집할 수 있다고 언급합니다.
+
+## 결론
+Copilot Cowork는 “AI에게 일을 시킨다”에서 “AI가 일을 하는 과정을 사람이 운영한다”로 Microsoft 365 Copilot의 무게중심을 옮기려는 시도다. 관전 포인트는 이 코워킹이 실제 제품 UX에서 ‘가시화된 진행 + 중간 조향 + 멈출 권리’를 어느 정도로 제공하느냐다. 그리고 그 설계가 팀 단위 업무 표준으로 정착할 수 있는지도 함께 봐야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-09](/ko/posts/ai-resources-roundup-2026-03-09)
+- [라벨 불일치를 요구사항으로](/ko/posts/treat-label-disagreement-as-a-product-requirement)
+- [성인 모드는 토글이 아니다](/ko/posts/adult-mode-age-assurance-safety-architecture)
+- [AI 자료 모음 (24h) - 2026-03-08](/ko/posts/ai-resources-roundup-2026-03-08)
+- [벤치 점수 집착을 넘는 평가 프레임](/ko/posts/beyond-benchmark-scores-reproducible-multi-metric-model-evaluation)
+---
+
+## 참고 자료
+
+- [Introducing the First Frontier Suite built on Intelligence + Trust - The Official Microsoft Blog - blogs.microsoft.com](https://blogs.microsoft.com/blog/2026/03/09/introducing-the-first-frontier-suite-built-on-intelligence-trust/)
+- [Microsoft, NVIDIA and Anthropic announce strategic partnerships - The Official Microsoft Blog - blogs.microsoft.com](https://blogs.microsoft.com/blog/2025/11/18/microsoft-nvidia-and-anthropic-announce-strategic-partnerships/)
+- [Claude now available in Microsoft Foundry and Microsoft 365 Copilot | Anthropic - anthropic.com](https://www.anthropic.com/news/claude-in-microsoft-foundry)
