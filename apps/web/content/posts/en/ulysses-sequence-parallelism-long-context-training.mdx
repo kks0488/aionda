@@ -1,0 +1,139 @@
+---
+title: Ulysses Sequence Parallelism for Long Context Training Efficiency
+slug: ulysses-sequence-parallelism-long-context-training
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: en
+description: >-
+  Ulysses splits sequences across GPUs and exchanges K/V via all-to-all to
+  reduce long-context attention bottlenecks and track throughput.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: huggingface-5ccb6851805d833a
+sourceUrl: 'https://huggingface.co/blog/ulysses-sp'
+verificationScore: 0.79
+alternateLocale: /ko/posts/ulysses-sequence-parallelism-long-context-training
+coverImage: /images/posts/ulysses-sequence-parallelism-long-context-training.png
+---
+
+A training run can reach a **96K-token** context while keeping peak GPU memory near **66GB**.  
+At **64K tokens**, **sequence parallelism (SP)=4** can reach **13,396 tokens/s** in the cited setup.  
+That corresponds to about **3.7×** throughput versus the stated baseline.  
+These results suggest long context involves VRAM limits and attention-related communication overhead.  
+**Ulysses Sequence Parallelism** addresses this by partitioning along the **sequence dimension**.
+
+## TL;DR
+- Ulysses uses sequence parallelism to split tokens across GPUs and exchange K/V via all-to-all.  
+- It can reduce peak memory and raise throughput at long context, but adds communication overhead.  
+- Benchmark your stack at **64K tokens** with SP on and off. Compare tokens/s, memory, and all-to-all time.  
+
+Example: A team fine-tunes a model on long documents. They see attention costs rise. They test sequence sharding. They also watch network contention.
+
+## TL;DR
+- **What is the core issue?** Ultra-long training, like **96K to 1M tokens**, can hit memory and communication limits. Ulysses splits the sequence across GPUs. It distributes attention by exchanging K/V via all-to-all.  
+- **Why does it matter?** A Hugging Face blog cited **66GB peak memory at 96K** and “**12x longer**.” It also reported **13,396 tokens/s** at **64K** with **SP=4**, or **3.7×** baseline throughput. This frames long context as cost, throughput, and communication efficiency.  
+- **What should readers do?** Choose a length band like **64K** in your stack. Measure tokens/s, peak memory, and all-to-all overhead with SP on and off. If network headroom looks limited, set rules. Consider reducing length or lowering SP.  
+
+## Current state
+Ulysses (DeepSpeed-Ulysses) partitions inputs along the sequence, or token, dimension.  
+For attention, it exchanges key/value (K/V) pairs via all-to-all collective communication.  
+Each GPU holds a subset of tokens.  
+It communicates to receive the K/V needed for its head computation.  
+Each GPU then computes a subset of attention heads.  
+This frames attention cost as a cluster-level distributed issue.  
+It does not treat it only as a single-GPU memory limit.
+
+The Hugging Face blog measurements can be summarized from the cited text.  
+It mentioned **66GB** peak memory at **96K tokens**.  
+It labeled this as “**12x longer**.”  
+It stated this fit within H100 **80GB** capacity.  
+It also wrote that at **64K**, **SP=4** achieved **13,396 tokens/s**.  
+It reported **3.7×** throughput versus the baseline.  
+This shifts the question from OOM avoidance to throughput under communication cost.
+
+This trend may not be limited to Ulysses.  
+An NVIDIA technical blog discusses context parallel (CP) from **16K to 1M tokens**.  
+It says that at **1M tokens**, CP is “mandatory.”  
+On the research side, DISTFLASHATTN reports “**8x longer**.”  
+It also reports a **4.45–5.64×** speedup versus Ring Self-Attention.  
+Another comparison reports **1.26–1.88×** versus Ring Attention and DeepSpeed-Ulysses.  
+It also reports **1.67×** in a separate comparison.  
+These claims suggest a mixed toolbox for long context.  
+The toolbox includes distributed parallelism, kernel optimization, and approximations.
+
+## Analysis
+Ulysses shifts the partitioning axis rather than relying on larger GPUs.  
+Data parallelism shards batches.  
+Tensor parallelism shards weights or matrices.  
+Pipeline parallelism shards layers.  
+These may not reduce attention pressure enough as sequence length grows.  
+Ulysses splits the sequence itself.  
+This targets the terms that grow with long contexts.  
+Numbers like **96K** and **66GB** support a system design framing.
+
+There are trade-offs in the presented scope.  
+Ulysses adds or increases all-to-all communication for K/V exchange.  
+The bottleneck can move from VRAM to networking or collectives.  
+A definitive dollars-per-token TCO table is not supported by these citations.  
+A safer summary is conditional.  
+You may gain long-context headroom.  
+You may also pay higher communication cost.  
+The benefit can shrink depending on the environment.
+
+## Practical application
+Long-context products can drive hardware and network decisions.  
+Sequence parallelism can add options.  
+It can also add debugging surface area.  
+If tokens/s drops, isolate likely causes.  
+Check GPU idle time and all-to-all delays.  
+Check whether sequence sharding is imbalanced.
+
+Workflows can shift as documents grow very large.  
+The boundary between RAG splitting and end-to-end long context can move.  
+Drawing performance curves by length can help.  
+Run LongBench alongside a length-sweep stress test like RULER.  
+Validate what length-only changes improve in your setup.
+
+**Checklist for Today:**
+- Fix **64K tokens** and run SP on and off. Log tokens/s, like **13,396**, and peak memory, like **66GB**.  
+- Profile all-to-all sections. Track communication share of step time as a separate metric.  
+- Evaluate with LongBench and RULER. If possible, sweep RAG chunking to compare long-context against RAG.  
+
+## FAQ
+**Q1. In one line, what is different about Ulysses Sequence Parallelism?**  
+A. It splits the sequence across GPUs, exchanges K/V via all-to-all, and assigns each GPU some attention heads.
+
+**Q2. What do you gain and what do you lose?**  
+A. You may gain room to scale to long sequences. You may lose throughput to higher collective communication overhead. The network can become the bottleneck.
+
+**Q3. What is a good way to validate the effect of “1M-token training”?**  
+A. Use LongBench and synthetic sweeps like RULER or ONERULER. You can also examine ∞Bench or InfiniteBench for ultra-long regimes.
+
+## Conclusion
+Ulysses sequence parallelism frames long context as distributed system design.  
+The next checkpoint is not only increasing length.  
+You should verify the length-wise performance curve with LongBench and RULER.  
+You should include all-to-all communication cost in that evaluation.
+
+## Further Reading
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [Distinguishing Logprobs From Self-Reported Confidence in Prompts](/en/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts)
+- [Grounding Self-Driving Explanations With Retrieval-Augmented Demonstrations](/en/posts/grounding-self-driving-explanations-with-retrieval-augmented-demonstrations)
+- [Using LIM Energy Lower Bounds in System Design](/en/posts/lim-energy-lower-bounds-system-design)
+---
+
+## References
+
+- [huggingface.co - huggingface.co](https://huggingface.co/blog/ulysses-sp)
+- [DeepSpeed Ulysses: System Optimizations for Enabling Training of Extreme Long Sequence Transformer Models - huggingface.co](https://huggingface.co/papers/2309.14509)
+- [Scaling to Millions of Tokens with Efficient Long-Context LLM Training | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/scaling-to-millions-of-tokens-with-efficient-long-context-llm-training/)
+- [DISTFLASHATTN: Distributed Memory-efficient Attention for Long-context LLMs Training - arxiv.org](https://arxiv.org/abs/2310.03294)
+- [USP: A Unified Sequence Parallelism Approach for Long Context Generative AI - arxiv.org](https://arxiv.org/abs/2405.07719)
+- [LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding - arxiv.org](https://arxiv.org/abs/2308.14508)
+- [RULER: What's the Real Context Size of Your Long-Context Language Models? - arxiv.org](https://arxiv.org/abs/2404.06654)
+- [One ruler to measure them all: Benchmarking multilingual long-context language models (ONERULER) - arxiv.org](https://arxiv.org/abs/2503.01996)
+- [LongBench Pro: A More Realistic and Comprehensive Bilingual Long-Context Evaluation Benchmark - arxiv.org](https://arxiv.org/abs/2601.02872)

@@ -1,0 +1,81 @@
+---
+title: Ulysses로 긴 컨텍스트 병목 줄이기
+slug: ulysses-sequence-parallelism-long-context-training
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: ko
+description: Ulysses 시퀀스 병렬화로 긴 컨텍스트 학습의 VRAM·통신 병목을 분산하고 처리량을 비교 측정한다.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: huggingface-5ccb6851805d833a
+sourceUrl: 'https://huggingface.co/blog/ulysses-sp'
+verificationScore: 0.79
+alternateLocale: /en/posts/ulysses-sequence-parallelism-long-context-training
+coverImage: /images/posts/ulysses-sequence-parallelism-long-context-training.png
+---
+
+96K 토큰 컨텍스트를 학습에 넣으면서도 GPU당 피크 메모리를 66GB로 유지하는 방법이 소개된 바 있다. 같은 조건에서 시퀀스 병렬화(SP)=4는 64K 토큰에서 초당 13,396 토큰을 처리해 베이스라인 대비 3.7배 처리량을 기록했다. 여기서 핵심은 “긴 컨텍스트”의 제약이 VRAM만의 문제가 아니라, 어텐션이 만드는 메모리·통신 병목과도 연결된다는 점이다. Ulysses Sequence Parallelism은 이 병목을 시퀀스 차원에서 분할해 다루는 접근이다.
+
+## 세 줄 요약
+- **무슨 핵심이슈인가?** 초장문(예: 96K~100만 토큰) 학습에서 Ulysses는 시퀀스를 GPU들에 나눠 담고(all-to-all로 K/V 교환) 어텐션을 분산 계산하는 “시퀀스 병렬화” 접근을 쓴다.  
+- **왜 중요한가?** HF 블로그에선 96K에서 피크 메모리 66GB를 언급하며 “12x longer”를 제시했고, 64K에서 SP=4가 13,396 tokens/s로 3.7배 처리량을 기록했다고 썼다. 긴 컨텍스트는 “가능/불가능”뿐 아니라 “운영 비용과 처리량”의 문제로도 다뤄야 한다.  
+- **독자는 뭘 하면 되나?** 현재 스택에서 64K 같은 길이 구간을 고정해 “처리량(tokens/s) vs 피크 메모리 vs 통신(all-to-all) 오버헤드”를 SP on/off로 비교 측정한다. 네트워크 여유가 부족하면 길이를 줄이거나 SP 팩터를 낮추는 규칙을 먼저 정한다.  
+
+## 현황
+Ulysses(DeepSpeed-Ulysses)는 입력을 **시퀀스(토큰) 차원으로 분할**하고, 어텐션 계산을 위해 **all-to-all collective 통신으로 key/value(K/V) 쌍을 교환**한다. 각 GPU는 “토큰의 일부”를 들고 있다가 통신으로 “헤드 계산에 필요한 K/V”를 맞춰 받아 **어텐션 head의 일부를 계산**한다. 이 접근은 긴 컨텍스트에서 커지는 어텐션 비용을 단일 GPU의 메모리/연산 한계만으로 보지 않고, 클러스터 수준의 분산 문제로 다루려는 시도다.
+
+Hugging Face 블로그가 제시한 실측은 다음과 같이 정리된다. **96K 토큰(‘12x longer’로 표기)에서 피크 메모리 66GB**를 언급했고, **H100 80GB 용량 안에 들어왔다**고 적었다. 또 **64K에서 SP=4가 13,396 tokens/s**, **베이스라인 대비 3.7x** 처리량을 기록했다고 썼다. 이 자료는 “길이를 늘리면 OOM”으로 끝나는 상황을, “통신 비용을 포함해도 처리량을 확보할 수 있는지”로 옮겨서 보자는 문제의식을 담고 있다.
+
+이 흐름이 Ulysses만의 이야기라고 보기는 어렵다. NVIDIA 기술 블로그는 **16K~100만 토큰** 시퀀스 길이 범위에서 **context parallel(CP)**의 효율을 다루며, **100만 토큰에서는 CP가 ‘mandatory’**라고 명시한다. 연구 쪽에선 DISTFLASHATTN이 **Ring Self-Attention 대비 8x longer, 4.45–5.64x speedup**을 보고하고, 또 다른 비교에서 **Ring Attention과 DeepSpeed-Ulysses 대비 1.26–1.88x**, 그리고 **1.67x** 같은 수치를 제시한다. 긴 컨텍스트는 한 가지 기법만으로 정리되기보다, 분산(시퀀스/컨텍스트 병렬)과 커널 최적화(FlashAttention 계열), 그리고 근사(sparse 등)가 함께 쓰이는 영역이다.
+
+## 분석
+Ulysses의 포인트는 ‘더 큰 GPU’가 아니라 ‘다른 분할 축’이다. 데이터 병렬(배치 분할), 텐서 병렬(가중치/행렬 분할), 파이프라인 병렬(레이어 분할)은 길이가 길어질수록 어텐션이 만드는 메모리·연산·통신 압력을 충분히 줄이지 못하는 구간이 생길 수 있다. 반대로 Ulysses는 **시퀀스 자체를 분할**해 긴 컨텍스트에서 폭증하는 항을 직접 건드린다. HF 블로그의 96K/66GB 같은 수치는 이 문제를 기능 데모가 아니라 시스템 설계 관점에서 다루게 만든다.
+
+다만 비용이 함께 따른다. 제시된 내용 범위에서 확실한 트레이드오프는 다음이다. Ulysses는 **K/V 교환을 위한 all-to-all 통신 패턴이 추가되거나 증가**한다. 병목이 “VRAM”에서 “네트워크/집단통신 효율”로 이동할 수 있다. 또한 ‘총 학습비용(TCO)’을 달러/토큰으로 정리한 표준 비교 수치는 여기 근거만으로는 제시하기 어렵다. 따라서 현 단계에서는, **긴 컨텍스트를 다루는 여지를 얻는 대신 통신 비용이 늘고, 환경에 따라 이득이 줄어들 수 있다** 정도로 정리하는 편이 안전하다.
+
+## 실전 적용
+긴 컨텍스트가 필요한 제품(장문 문서·코드베이스·에이전트 메모리)을 만들 때, 컨텍스트 길이만 늘리는 결정은 하드웨어·네트워크 설계로 이어진다. Ulysses류 시퀀스 병렬화는 선택지를 늘리지만, 성능 디버깅 포인트도 늘린다. tokens/s가 떨어지면 GPU가 대기 중인지, all-to-all이 지연되는지, 시퀀스 샤딩이 비대칭인지 같은 항목을 분리해 본다.
+
+예를 들어 내부 문서 1개가 수만~수십만 토큰으로 커지는 워크플로(법무·보안·게임 라이브옵스 로그)라면, “RAG로 쪼개서 넣기”와 “긴 컨텍스트로 통째로 학습/추론” 사이의 경계가 바뀔 수 있다. 이때는 길이별 성능 곡선을 먼저 그리는 편이 낫다. LongBench 같은 멀티태스크 벤치와 RULER 같은 길이 스윕 스트레스 테스트를 함께 돌려, “길이만 늘린 설정”이 실제로 무엇을 더 잘하는지 확인한다.
+
+오늘 바로 할 일 체크리스트:
+- 64K 같은 고정 길이를 잡고 **SP on/off**로 **tokens/s(예: 13,396)와 피크 메모리(예: 66GB)**를 같은 실험 로그 포맷으로 남긴다.  
+- all-to-all이 들어가는 구간을 프로파일링해서 **통신 시간이 스텝 시간에서 차지하는 비중**을 별도 지표로 고정한다.  
+- 평가에서는 LongBench(실태스크) + RULER(길이/난이도 스윕)를 묶고, 가능하면 **RAG의 chunk 수를 스윕**해 “긴 컨텍스트 단독 vs RAG”를 같은 태스크에서 비교한다.  
+
+## FAQ
+**Q1. Ulysses Sequence Parallelism은 한 줄로 뭐가 다릅니까?**  
+A. 시퀀스를 GPU들에 나눠 담고, all-to-all 통신으로 key/value를 교환해 각 GPU가 어텐션 head의 일부를 계산하도록 만드는 방식입니다.
+
+**Q2. 얻는 것과 잃는 것은 무엇입니까?**  
+A. 얻는 것은 긴 시퀀스에서의 스케일링 여지입니다. 잃는 것은 all-to-all 같은 집단 통신 부담이 커진다는 점입니다. 환경에 따라 네트워크가 새 병목이 될 수 있습니다.
+
+**Q3. “백만 토큰 학습” 효과는 무엇으로 검증하는 게 좋습니까?**  
+A. LongBench(및 후속 계열)처럼 장문 멀티태스크 벤치와, RULER/ONERULER처럼 길이·난이도를 스윕하는 합성 스트레스 테스트를 함께 쓰는 것이 적절합니다. 초장문 구간 자체를 다루는 ∞Bench/InfiniteBench 계열도 함께 보는 접근이 도움이 됩니다.
+
+## 결론
+Ulysses 시퀀스 병렬화는 긴 컨텍스트를 “모델 기능”만의 문제가 아니라 “분산 시스템 설계”의 문제로 다루게 만든다. 다음 체크포인트는 길이를 늘리는 것에서 끝나지 않는다. **all-to-all 통신 비용을 포함해도, LongBench·RULER 같은 평가에서 길이별 성능 곡선이 실제로 개선되는지**를 확인해야 한다.
+
+## 다음으로 읽기
+- [셀 페인팅 배치 효과와 ABRA](/ko/posts/abra-batch-invariant-representations-cell-painting)
+- [AI 자료 모음 (24h) - 2026-03-10](/ko/posts/ai-resources-roundup-2026-03-10)
+- [확률형 다중응답, logprobs와 자기평가 구분](/ko/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts)
+- [RAG-Driver로 자율주행 설명 그라운딩](/ko/posts/grounding-self-driving-explanations-with-retrieval-augmented-demonstrations)
+- [LIM 학습 에너지 하한, KPI로 쓸까?](/ko/posts/lim-energy-lower-bounds-system-design)
+---
+
+## 참고 자료
+
+- [huggingface.co - huggingface.co](https://huggingface.co/blog/ulysses-sp)
+- [DeepSpeed Ulysses: System Optimizations for Enabling Training of Extreme Long Sequence Transformer Models - huggingface.co](https://huggingface.co/papers/2309.14509)
+- [Scaling to Millions of Tokens with Efficient Long-Context LLM Training | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/scaling-to-millions-of-tokens-with-efficient-long-context-llm-training/)
+- [DISTFLASHATTN: Distributed Memory-efficient Attention for Long-context LLMs Training - arxiv.org](https://arxiv.org/abs/2310.03294)
+- [USP: A Unified Sequence Parallelism Approach for Long Context Generative AI - arxiv.org](https://arxiv.org/abs/2405.07719)
+- [LongBench: A Bilingual, Multitask Benchmark for Long Context Understanding - arxiv.org](https://arxiv.org/abs/2308.14508)
+- [RULER: What's the Real Context Size of Your Long-Context Language Models? - arxiv.org](https://arxiv.org/abs/2404.06654)
+- [One ruler to measure them all: Benchmarking multilingual long-context language models (ONERULER) - arxiv.org](https://arxiv.org/abs/2503.01996)
+- [LongBench Pro: A More Realistic and Comprehensive Bilingual Long-Context Evaluation Benchmark - arxiv.org](https://arxiv.org/abs/2601.02872)
