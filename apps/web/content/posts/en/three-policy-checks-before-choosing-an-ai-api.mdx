@@ -1,0 +1,177 @@
+---
+title: Three Policy Checks Before Choosing an AI API
+slug: three-policy-checks-before-choosing-an-ai-api
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: en
+description: >-
+  How auth (OAuth/OIDC vs API keys), rate/spend limits, and tiered model access
+  policies shape SaaS cost, security, and reliability.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1046397'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1046397'
+verificationScore: 0.87
+alternateLocale: /ko/posts/three-policy-checks-before-choosing-an-ai-api
+coverImage: /images/posts/three-policy-checks-before-choosing-an-ai-api.png
+---
+
+You add a “Log in” button for a multi-tenant SaaS.  
+You then discover the AI API docs focus on API keys only.  
+From there, product design can diverge quickly.  
+You can be building SaaS with per-user billing and audit logs.  
+Or you can be building a single-tenant integration on your server.
+
+This post summarizes three operational policy areas.  
+It covers OAuth or OIDC support.  
+It covers rate limits and spend limits.  
+It covers model access policies.  
+The goal is to check operational fit before model performance.
+
+## TL;DR
+- **What changed / what this is:** This breaks AI API selection into auth, limits, and model access policies.  
+- **Why it matters:** These policies shape multi-tenancy, retries on 429, and cost ceilings over time.  
+- **What to do next:** Document each policy before adoption, then test it against your tenant model.  
+
+Example: A team builds an app with per-user features and shared infrastructure. It chooses an API policy set, then iterates on reliability controls and fallbacks.
+
+## TL;DR
+- **What changed / what’s the core issue?** AI API choice often hinges on OAuth or OIDC support, limits structure.
+Model access conditions.
+- **Why does it matter?** These affect multi-tenancy, 429 retry behavior, and monthly cost control.  
+- **What should the reader do?** Write decision rules for API key use, limits visibility and increase steps, and tier or verification gating.  
+
+## Current state
+OpenAI documentation describes authentication using API keys.  
+It states, “The OpenAI API uses API keys for authentication.”  
+The header format is `Authorization: Bearer OPENAI_API_KEY`.  
+This differs from OAuth or OIDC delegated authorization per user.  
+That difference can affect per-user account linking designs.  
+It can also affect key storage and proxying patterns.  
+It can affect tenant separation and key rotation practices.
+
+OpenAI documents limits using rate limits and spend-based tiers.  
+It describes checking a limits page in settings.  
+It also describes submitting “apply for an increase” at the page bottom.  
+Platform docs also mention limits in an organization limits section.
+
+Anthropic describes two limit axes in its docs.  
+It describes spend limits for maximum monthly cost.  
+It describes rate limits like requests or tokens per minute.  
+It also describes usage tiers.  
+It links tier movement to a documented credit purchase requirement.  
+It also mentions requesting custom limits via a sales inquiry in the console.
+
+Google Gemini API docs describe Free to Paid conversion.  
+They describe enabling Cloud Billing for that move.  
+They also describe requesting a tier upgrade in AI Studio.  
+They describe an ‘Upgrade’ action on the API keys page.  
+Separately, they describe a rate limit increase request process.
+
+Model access policies can be presented as access conditions.  
+OpenAI Help Center describes model access using usage tier and verification.  
+It uses **usage tier 1–5** and organization verification status.  
+It states availability conditions per model or feature.  
+Some items are available to tiers 1 through 5.  
+Some items can require org verification.  
+Platform docs also say usage tier can increase with usage or spend.
+
+Some docs include numeric examples.  
+The o4-mini docs include tier examples with rate limits.  
+They include **Tier 1: RPM 1,000 / TPM 100,000**.  
+They include **Tier 5: RPM 30,000 / TPM 150,000,000**.  
+They state that usage tier determines how high limits are set.
+
+## Analysis
+OAuth or OIDC support can affect more than security posture.  
+It can affect product shape and operational responsibility.  
+API key auth can be straightforward for server-to-server calls.  
+Multi-tenant SaaS often needs per-customer separation.  
+You can store keys per tenant with BYOK.  
+You can also proxy calls using a central key.  
+The proxy pattern can use internal metering and enforcement.  
+BYOK can introduce onboarding friction for customers.  
+A central key can couple customers through shared limits and cost.
+
+Limits and model access documentation can shape operations.  
+A console-based limits page can encourage status checks in workflows.  
+A monthly spend cap can simplify cost ceiling enforcement.  
+However, credit or payment conditions can become a throughput constraint.  
+Billing activation can slow conversion from prototyping to production.  
+It can also simplify billing control once enabled.
+
+Higher rate limits can correlate with stability.  
+However, they do not remove the need for resiliency work.  
+Retry strategy for **429 Too Many Requests** can dominate outcomes.  
+Per-tenant budgets can reduce cross-tenant blast radius.  
+A predictable increase path can reduce firefighting load.  
+OpenAI docs discuss exponential backoff for retries.  
+Limits can still become binding under bursty traffic.  
+Service behavior can degrade gracefully or cascade.  
+That depends on queuing, retries, and fallback design.
+
+## Practical application
+Selection criteria can shift earlier than model quality checks.  
+Start by clarifying authentication expectations.  
+OpenAI docs describe API key Bearer auth.  
+They do not describe OAuth or OIDC in the cited sections.  
+If you need per-user delegation, you can choose between patterns.  
+You can use BYOK per tenant.  
+You can proxy calls with a server key.  
+You can then implement tenant-level metering and enforcement.
+
+Next, design around limits and access conditions.  
+For OpenAI, include the limits page and increase request flow.  
+For Anthropic, include monthly spend limits and usage tier movement rules.  
+For Google, include Billing activation and upgrade procedures.  
+Align limits to business rhythms and traffic patterns.  
+Consider month-end budget constraints and burst windows.  
+Also consider how tier gating affects feature availability.
+
+**Checklist for Today:**
+- Capture where limits appear in the console and how increase requests are submitted.  
+- Add exponential backoff on 429 and define per-tenant request or token budgets.  
+- Detect tier or verification gated model errors and route to a fallback path.  
+
+## FAQ
+**Q1. Can the OpenAI API be authenticated via OAuth/OIDC?**  
+A1. The cited official docs describe API keys, not OAuth or OIDC.  
+They show HTTP Bearer, like `Authorization: Bearer ...`.
+
+**Q2. Where do I check and increase OpenAI API limits?**  
+A2. Help Center guidance describes a limits page in settings.  
+It also describes “apply for an increase” at the bottom.
+
+**Q3. What determines model access?**  
+A3. Help Center describes access by usage tier and verification status.  
+It describes usage tier **1–5** and organization verification.  
+Platform docs also say usage tier can rise with usage or spend.
+
+## Conclusion
+Operational policy comparison can include more than OAuth support.  
+A practical checklist can cover three axes.  
+It can cover API key authentication shape.  
+It can cover limits and usage tier mechanics.  
+It can cover tier and verification-based model access.  
+This can reduce surprises in cost, security, and quality tradeoffs.  
+Next, check whether your tenant model conflicts with these policies.  
+Then check whether it fits without large architectural changes.
+
+## Further Reading
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [Using LIM Energy Lower Bounds in System Design](/en/posts/lim-energy-lower-bounds-system-design)
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Copilot Cowork Shifts AI From Prompts To Workflows](/en/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows)
+---
+
+## References
+
+- [API Reference - OpenAI API - platform.openai.com](https://platform.openai.com/docs/api-reference/debugging-requests)
+- [Is API usage subject to any rate limits? | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/5955598)
+- [Rate limits - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/rate-limits/retrying-with-exponential-backoff%20.eot)
+- [Rate limits - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/api/rate-limits)
+- [API Model Availability by Usage Tier and Verification Status | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10362446-api-access-to-o1-o3-and-o4-models)
+- [o4-mini Model | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/o4-mini)

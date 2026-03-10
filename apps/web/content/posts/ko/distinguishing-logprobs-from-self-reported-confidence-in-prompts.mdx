@@ -1,0 +1,83 @@
+---
+title: '확률형 다중응답, logprobs와 자기평가 구분'
+slug: distinguishing-logprobs-from-self-reported-confidence-in-prompts
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: ko
+description: logprobs와 자연어 확률은 다르다. 다중후보 프롬프트의 신뢰도 표기와 실험법을 정리한다.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - evals
+  - prompting
+author: AI온다
+sourceId: '1046394'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1046394'
+verificationScore: 0.69
+alternateLocale: /en/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts
+coverImage: >-
+  /images/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts.png
+---
+
+토큰의 *로그확률*(`logprobs`)은 API가 계산해 반환하는 값이다. 반면 모델에게 “답 3개와 확률을 같이 써라”라고 지시하면, 그 확률은 **모델이 자연어로 생성한 자기평가**인 경우가 많다. 이 차이는 “확률형 다중응답 프롬프트”를 실험 도구로 쓸지, 제품 UI에 넣을지 판단할 때 중요하다. 여러 후보를 내게 하면 아이디어는 늘 수 있지만, 그 옆의 ‘확률’을 보정된 정답확률처럼 취급하긴 어렵다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** LLM에 *여러 후보 답*을 내고 각 답의 *확률/신뢰도*까지 같이 출력하라고 요구하는 “확률형 다중응답 프롬프트”가, 단일 답변으로의 수렴을 프롬프트 차원에서 흔드는 방법으로 쓰인다.  
+- **왜 중요한가?** RLHF/선호학습은 보상모델의 보상과 함께 기준 정책과의 거리(KL 벌점)를 함께 다루는 형태로 설명되며, 이 구조는 실무에서 “무난한 한 답”으로의 수렴과 긴장 관계가 생길 수 있다(다만 공식 문서에서 ‘다양성 감소’를 직접 확인하긴 어렵다).  
+- **독자는 뭘 하면 되나?** 확률 표기를 *자기평가*와 `logprobs`로 분리해 기록한다. seed/temperature를 고정한 실험과 Evals류 테스트셋 비교로 “다양성-정확도” 트레이드오프를 직접 재본다.
+
+## 현황
+확률을 다루는 길은 크게 두 갈래다. 첫째는 API가 제공하는 **토큰 로그확률**이다. OpenAI Cookbook은 `logprobs`를 켜면 “각 출력 토큰의 로그확률과, 각 위치에서 가장 가능성 높은 토큰 일부와 그 로그확률”을 반환한다고 적는다. 이 값은 “정답일 객관적 확률”이라기보다, **모델이 다음 토큰을 고르는 과정의 상대적 가능성**에 가깝다.
+
+둘째는 프롬프트로 유도하는 **자연어 확률/신뢰도**다. OpenAI는 “질문을 주면 답과 함께 ‘90% confidence’ 같은 자신감 수준을 생성하게 할 수 있고, 그 수준이 확률로 보정(calibrated)될 수 있다”는 연구 결과를 소개한 적이 있다. 하지만 이 결과만으로, 모든 제품/업무 상황에서 “모델이 말한 90%는 90%다”로 받아도 된다고 보긴 어렵다. 공식 문서 스니펫 기준으로는, *항상 신뢰 가능한 정답확률로 간주하라*는 보장이나 권고까지는 확인되지 않는다.
+
+다중 후보 생성은 프롬프트만으로 하는 방법만 있는 게 아니다. API 레벨에도 한 번에 여러 출력을 만드는 기능이 있다. OpenAI API Reference는 `n`이 “프롬프트당 몇 개 completion을 생성해 반환할지”를 뜻하고, `best_of`는 내부적으로 더 많이 만든 뒤 그중 “가장 높은 로그확률 결과”를 대표로 고르는 방식이라고 설명한다(또한 `best_of`는 `n`보다 커야 한다고 적는다). 즉 “여러 후보를 만들고 고른다”는 메커니즘은 이미 제품 인터페이스 안에서 제공된다.
+
+## 분석
+“확률형 다중응답 프롬프트”의 핵심은 디코딩 파라미터 조정보다 **출력 목표를 바꾼다**는 데 있다. temperature/top-p는 샘플링의 무작위성을 조절한다. 반면 “후보 N개를 펼치고, 각 후보의 신뢰도까지 적어라”는 지시는 모델이 답을 *하나로 수렴*시키기 전에 **가설 공간을 글로 펼치게** 만든다. 브레인스토밍, 리스크 점검, 반례 찾기 같은 작업에서 도움이 된다. 한 번의 호출에서 “주장-근거-대안”을 병렬로 확보하기도 쉽다.
+
+대신 비용과 품질의 부담이 생긴다. 첫째, 모델이 말로 적은 확률은 **보정되지 않았을 수** 있다. `logprobs`는 토큰 선택의 수치지만, “이 답이 맞을 확률”과는 다른 값이다. 둘째, RLHF/선호학습은 “인간 피드백으로 보상모델을 학습하고 그 보상을 최대화”하는 흐름으로 설명되며, 구현/문서 생태계에서는 기준 정책에서 멀어지는 것을 막는 **KL 벌점(β·KL)** 같은 항을 함께 다루는 형태가 알려져 있다(예: TRL 문서가 KL을 ‘non-score reward’로 반영하는 구현 관측을 명시). 이 구조는 안전성과 일관성을 얻는 대신, 프롬프트가 요구하는 “다중 가설을 그대로 펼치기”와 충돌할 때가 있다. 다만 “RLHF가 다양성을 줄인다”는 문장을 공식 문서에서 직접 인용해 결론으로 삼긴 어렵고, 관련 논의는 학술/서드파티에서 더 자주 다뤄진다.
+
+## 실전 적용
+실무에서 이 기법을 쓰려면, 확률을 **두 층으로 분리**하는 게 출발점이다. 화면에 보여주는 “신뢰도(%)”는 사용자 커뮤니케이션용 자기평가로 둔다. 내부 평가는 `logprobs`나 다중 샘플링 결과의 *상대 비교*로 처리한다. 예를 들어 후보 3개를 받되, 각 후보의 핵심 주장 토큰/라벨 토큰에 대한 `logprobs`를 함께 수집한다. 그런 다음 “모델 내부에서 더 일관되게 지지하는 후보”를 별도로 랭킹할 수 있다. 재현성을 원하면 OpenAI 문서가 안내하듯 seed를 고정한다. prompt/temperature 같은 다른 파라미터도 동일하게 유지한다.
+
+예: 고객 문의 분류에서 모델이 하나의 라벨만 내면 애매한 케이스가 묻힐 수 있다. “라벨 후보 3개 + 각 라벨의 근거 1문장 + (자체)신뢰도”로 받으면, 운영자는 *2순위 후보*를 보고 룰을 보강하거나 케이스를 라우팅할 수 있다. 다만 최종 자동화는 “자체 신뢰도 80% 이상이면 통과” 같은 방식으로 고정하지 않는다. 테스트셋에서 임계값을 조정해 운영 기준을 맞춘다. 공식 문서 관점에서 ‘품질 비교’는 Evals처럼 정답(ground truth) 기반으로 하라는 방향이 더 분명하다.
+
+오늘 바로 할 일 체크리스트  
+- `logprobs`를 켠 요청과 “자체 확률 표기” 요청을 **같은 프롬프트/같은 seed**로 나란히 돌린다. 둘의 상관관계를 먼저 로그로 남긴다.  
+- 후보 N개 출력은 `n`/`best_of` 같은 생성 옵션과 프롬프트 지시를 분리해 실험한다. 비용·지연·품질 변화를 표로 정리한다.  
+- Evals류 테스트셋(정답 라벨/기대 출력이 있는 데이터)로 “단일답 vs 후보N”을 비교한다. 정확도·거절률·사람 검수시간 중 무엇을 지표로 볼지 하나를 정해 함께 기록한다.
+
+## FAQ
+**Q1. 모델이 말하는 “90% confidence”는 믿어도 됩니까?**  
+A1. 항상 믿을 수 있는 “정답 확률”로 보긴 어렵습니다. OpenAI는 불확실성을 말로 표현하게 했을 때 보정이 잘 될 수 있다는 연구 결과를 소개했지만, 제품/일반 상황에서 그 퍼센트를 보장하거나 표준으로 쓰라고 권장한 내용은 이번 조사 스니펫에서 확인되지 않습니다.
+
+**Q2. `logprobs`는 그럼 정답 확률입니까?**  
+A2. 아닙니다. `logprobs`는 모델이 각 토큰을 생성할 때의 로그확률을 제공하는 기능입니다. 후보 간 상대 비교, 스코어링/랭킹, 임계값 기반 분류 같은 용도에 쓸 수 있지만, 그것만으로 “정답일 확률”을 뜻한다고 보긴 어렵습니다.
+
+**Q3. 다중 후보는 temperature/top-p만 올리면 대체됩니까?**  
+A3. 완전히 대체되진 않습니다. temperature/top-p는 샘플링의 무작위성을 조절하는 파라미터이고, `n`/`best_of`는 한 번에 여러 completion을 만들고 일부를 반환하는 방식입니다. 프롬프트로 “후보와 근거를 병렬로 내라”는 출력 구조를 요구하는 것은 별도의 설계 요소입니다.
+
+## 결론
+확률형 다중응답 프롬프트는 “모델이 내놓는 한 문장”을 “모델이 펼치는 후보 공간”으로 바꾸는 기법이다. 다만 확률 표기는 `logprobs`와 자기평가를 분리해 다룬다. seed 고정 실험과 테스트셋 평가로 트레이드오프를 직접 측정하는 쪽이 위험을 줄인다.
+
+## 다음으로 읽기
+- [셀 페인팅 배치 효과와 ABRA](/ko/posts/abra-batch-invariant-representations-cell-painting)
+- [AI 자료 모음 (24h) - 2026-03-10](/ko/posts/ai-resources-roundup-2026-03-10)
+- [LIM 학습 에너지 하한, KPI로 쓸까?](/ko/posts/lim-energy-lower-bounds-system-design)
+- [AI 자료 모음 (24h) - 2026-03-09](/ko/posts/ai-resources-roundup-2026-03-09)
+- [Copilot Cowork, 실행 루프의 전환](/ko/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows)
+---
+
+## 참고 자료
+
+- [Learning from human preferences | OpenAI - openai.com](https://openai.com/index/learning-from-human-preferences/)
+- [Improving Model Safety Behavior with Rule-Based Rewards | OpenAI - openai.com](https://openai.com/index/improving-model-safety-behavior-with-rule-based-rewards/)
+- [Using logprobs (OpenAI Cookbook) - developers.openai.com](https://developers.openai.com/cookbook/examples/using_logprobs)
+- [Using logit bias to alter token probability with the OpenAI API (OpenAI Help Center) - help.openai.com](https://help.openai.com/en/articles/5247780-using-logit-bias-to-alter-token-probability-with-the-openai-api)
+- [Teaching models to express their uncertainty in words (OpenAI) - openai.com](https://openai.com/index/teaching-models-to-express-their-uncertainty-in-words/)
+- [Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/completions/create)
+- [Production best practices - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/production-best-practices/model-overview)
+- [Advanced usage - OpenAI API - platform.openai.com](https://platform.openai.com/docs/advanced-usage/reproducible-outputs%3B.midi)
+- [Training language models to follow instructions with human feedback - arxiv.org](https://arxiv.org/abs/2203.02155)

@@ -1,0 +1,153 @@
+---
+title: Distinguishing Logprobs From Self-Reported Confidence in Prompts
+slug: distinguishing-logprobs-from-self-reported-confidence-in-prompts
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: en
+description: >-
+  Explains why token logprobs differ from natural-language confidence, and how
+  to test multi-candidate prompts with seeds and evals.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - evals
+  - prompting
+author: AI온다
+sourceId: '1046394'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1046394'
+verificationScore: 0.69
+alternateLocale: /ko/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts
+coverImage: >-
+  /images/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts.png
+---
+
+On an API call with `logprobs` enabled, the response can include per-token log probabilities.  
+Those values differ from probabilities written by the model in natural language.  
+A prompt like “write 3 answers and include probabilities” often yields self-assessments.  
+Those self-assessments are generated text, not an API-returned probability field.  
+This difference can matter when designing experiments or product UI.  
+Multiple candidates can increase ideas.  
+However, adjacent “probabilities” can be hard to interpret as calibrated correctness.
+
+## TL;DR
+- A probabilistic multiple-response prompt asks for multiple answers plus confidence, unlike API `logprobs`.  
+- This matters because self-reported confidence and token likelihood can diverge in meaning and reliability.  
+- Separate confidence display from `logprobs`, then test trade-offs with fixed seed and eval datasets.
+
+Example: A support agent sees several plausible replies with brief reasons. The agent compares tone and risk. The agent uses the options to ask a better follow-up.
+
+## TL;DR
+- **What changed / what is the core issue?** A “probabilistic multiple-response prompt” asks an LLM for multiple candidate answers plus probability or confidence.  
+It is a prompt-level way to reduce convergence on one answer.
+- **Why does it matter?** RLHF is often described using a reward objective plus a distance term like a KL penalty.  
+That structure can push toward safe, acceptable single answers.  
+However, official documentation can be hard to cite for a direct “reduced diversity” claim.
+- **What should the reader do?** Record probability displays separately as self-assessment versus `logprobs`.  
+Re-run the diversity–accuracy trade-off with fixed seed and temperature.  
+Compare results on Evals-like test sets.
+
+## Status
+There are two major paths for handling probabilities.  
+The first path uses token log probabilities from the API.  
+The OpenAI Cookbook says `logprobs` returns log probabilities for each output token.  
+It also returns likely tokens per position and their log probabilities.  
+This value is not an objective probability of correctness.  
+It is closer to relative likelihood in next-token selection.
+
+The second path uses natural-language probability or confidence from prompting.  
+OpenAI has described research where models output an answer with confidence like “90% confidence.”  
+That confidence can be calibrated under some conditions.  
+From that result alone, general product interpretation remains uncertain.  
+This survey snippet does not confirm a help ensure for correctness probabilities.  
+It also does not confirm a recommendation to treat them as reliable.
+
+Multiple candidates are also available without prompting.  
+The API can generate multiple outputs in one request.  
+The OpenAI API Reference says `n` is the number of completions returned per prompt.  
+It describes `best_of` as generating more internally and selecting the highest log probability result.  
+It also states `best_of` should be greater than `n`.  
+This already supports “generate many, then choose one” behavior.
+
+## Analysis
+A probabilistic multiple-response prompt changes the output objective.  
+It does more than adjust decoding parameters.  
+Temperature and top-p control sampling randomness.  
+In contrast, “lay out N candidates and write confidence for each” expands hypotheses in text.  
+It can help brainstorming, risk checks, and counterexample hunting.  
+It can also elicit claim–evidence–alternatives in one call.
+
+This approach can add cost and quality burdens.  
+First, worded probabilities may not be calibrated.  
+`logprobs` are numeric values for token selection.  
+They are not “the probability this answer is correct.”  
+Second, RLHF is often described as training a reward model from human feedback.  
+It is also described as maximizing reward while limiting drift with a KL penalty.  
+This is sometimes written as β·KL.  
+Some tooling notes KL as a “non-score reward,” as in TRL documentation observations.  
+This can support safety and consistency.  
+It can also clash with a prompt asking for multiple hypotheses.  
+Still, an official sentence like “RLHF reduces diversity” is hard to cite.  
+Related discussions often appear in academic or third-party sources.
+
+## Practical application
+Start by separating probabilities into two layers.  
+Treat UI “confidence (%)” as self-assessment for communication.  
+Use `logprobs` for internal evaluation and comparisons.  
+You can request 3 candidates and collect `logprobs` for key-claim tokens.  
+You can then rank candidates by internal consistency signals.  
+If you want reproducibility, fix the seed as documentation suggests.  
+Keep prompt and temperature unchanged across comparisons.
+
+Avoid hard automation rules like “pass if self-confidence ≥ 80%.”  
+That threshold may not transfer across tasks.  
+Instead, tune thresholds on a labeled test set.  
+For quality comparison, ground-truth evaluation like Evals can be clearer.
+
+**Checklist for Today:**
+- Run one request with `logprobs`, and one with self-reported confidence, using the same prompt and seed.  
+- Compare multi-output via `n` and `best_of` versus prompt-based candidate formatting in a small table.  
+- Evaluate single-answer versus N-candidate outputs on an Evals-like dataset with one consistent metric.
+
+## FAQ
+**Q1. Can we trust the model’s “90% confidence”?**  
+A1. It can be hard to treat it as a reliable probability of correctness.  
+Some research suggests calibration can work in certain setups.  
+This survey snippet does not confirm broad product help ensure.
+
+**Q2. Then is `logprobs` a probability of correctness?**  
+A2. No.  
+`logprobs` reports log probabilities for generated tokens.  
+It can support ranking, relative comparison, and some scoring setups.  
+It does not directly mean correctness probability.
+
+**Q3. Can multiple candidates be replaced by increasing temperature or top-p?**  
+A3. Not largely.  
+Temperature and top-p adjust sampling randomness.  
+`n` and `best_of` generate multiple completions and return selections.  
+Prompting for candidates plus rationales is a separate design choice.
+
+## Conclusion
+A probabilistic multiple-response prompt turns one output into a candidate space.  
+Probability displays should separate `logprobs` from self-assessment.  
+Fixed-seed experiments and test-set evaluation can reduce deployment risk.
+
+## Further Reading
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [Using LIM Energy Lower Bounds in System Design](/en/posts/lim-energy-lower-bounds-system-design)
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Copilot Cowork Shifts AI From Prompts To Workflows](/en/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows)
+---
+
+## References
+
+- [Learning from human preferences | OpenAI - openai.com](https://openai.com/index/learning-from-human-preferences/)
+- [Improving Model Safety Behavior with Rule-Based Rewards | OpenAI - openai.com](https://openai.com/index/improving-model-safety-behavior-with-rule-based-rewards/)
+- [Using logprobs (OpenAI Cookbook) - developers.openai.com](https://developers.openai.com/cookbook/examples/using_logprobs)
+- [Using logit bias to alter token probability with the OpenAI API (OpenAI Help Center) - help.openai.com](https://help.openai.com/en/articles/5247780-using-logit-bias-to-alter-token-probability-with-the-openai-api)
+- [Teaching models to express their uncertainty in words (OpenAI) - openai.com](https://openai.com/index/teaching-models-to-express-their-uncertainty-in-words/)
+- [Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/completions/create)
+- [Production best practices - OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/production-best-practices/model-overview)
+- [Advanced usage - OpenAI API - platform.openai.com](https://platform.openai.com/docs/advanced-usage/reproducible-outputs%3B.midi)
+- [Training language models to follow instructions with human feedback - arxiv.org](https://arxiv.org/abs/2203.02155)
