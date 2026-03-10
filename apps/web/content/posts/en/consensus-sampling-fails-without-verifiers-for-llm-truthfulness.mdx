@@ -1,0 +1,169 @@
+---
+title: Consensus Sampling Fails Without Verifiers For LLM Truthfulness
+slug: consensus-sampling-fails-without-verifiers-for-llm-truthfulness
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: en
+description: >-
+  Without external verifiers, polling/majority-vote consensus over many samples
+  can miss truth, even at 25× inference cost, and reinforce shared
+  misconceptions.
+tags:
+  - agi
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-0258506a594cb92d
+sourceUrl: 'https://arxiv.org/abs/2603.06612'
+verificationScore: 0.73
+alternateLocale: /ko/posts/consensus-sampling-fails-without-verifiers-for-llm-truthfulness
+coverImage: >-
+  /images/posts/consensus-sampling-fails-without-verifiers-for-llm-truthfulness.png
+---
+
+The arXiv paper *Consensus is Not Verification: Why Crowd Wisdom Strategies Fail for LLM Truthfulness* studies this risk.  
+It focuses on truthfulness tasks without an external verifier.  
+A verifier is a mechanism that can automatically filter correct answers.  
+The paper examines polling or majority-vote aggregation.  
+That means sampling multiple answers and selecting by vote.  
+The abstract suggests accuracy gains can be inconsistent.  
+This can raise cost and latency without clearly reducing product risk.
+
+## TL;DR
+- Consensus voting for truthfulness tasks, even at **25×** inference cost, can show inconsistent accuracy changes.  
+- This matters because correlated errors can make shared misconceptions look more confident than truth.  
+- Next, use consensus mainly where verification exists, and add retrieval plus citations for factuality.
+
+Example: A team builds a support bot that answers policy questions. It fetches documents, quotes relevant text, and answers within that scope. It uses voting only to suggest which passages to cite.
+
+## TL;DR
+- **What changed / key issue?** On truthfulness tasks without an external verifier, multi-sampling and voting showed inconsistent improvements, even at **25×** cost.  
+- **Why does it matter?** In safety-sensitive products, “sample more” can amplify correlated mistakes and shared misconceptions.  
+- **What should readers do?** For factuality, prioritize retrievable evidence and citations, then use consensus where verification exists.
+
+## Current state
+This paper targets a common operational pattern.  
+A one-shot answer feels unreliable.  
+So teams ask the same question multiple times.  
+They collect candidates through sampling.  
+They select an answer using majority vote or aggregation.
+
+The premise comes from math and code tasks.  
+Those tasks can use an external verifier.  
+The verifier can mechanically filter wrong answers.  
+Pass@k-style scaling can help in those settings.
+
+Factuality and truthfulness often lack a convenient verifier.  
+The abstract reports results across **5 benchmarks**.  
+It also mentions testing **multiple models**.  
+Polling-style aggregation did not show consistent accuracy gains.  
+The abstract also notes **25× inference cost** versus naive sampling.  
+The results changed little in some cases.  
+In some cases, aggregation can reinforce shared misconceptions.
+
+Consensus does not equal verification.  
+Models can be wrong in similar ways.  
+Those errors can be correlated across samples.  
+Votes can then strengthen a misconception signal.  
+That can drown out a weaker truth signal.
+
+## Analysis
+This can be framed as an If/Then decision memo.  
+The conditions depend on verification.
+
+- **If** the task resembles math or code, **Then** a verifier can filter candidates.  
+An external verifier can automatically judge correctness.  
+Compute scaling can be reasonable to consider in that setup.  
+Extra inference cost can translate into better selection.
+
+- **If** the task resembles factuality, **Then** correctness is not judged immediately.  
+Sampling many candidates and voting can have unstable returns.  
+The abstract suggests “consensus = correct” can fail.  
+It notes this even at **25×** inference cost.  
+It also warns about reinforcing shared misconceptions.
+
+There are trade-offs in engineering effort.  
+Consensus can be simple to implement.  
+It often means more model calls and a vote.  
+Retrieval-based grounding can add system complexity.  
+It can involve search, ranking, and context building.  
+It can also require citation formatting and error handling.
+
+That complexity can still be worth considering.  
+Retrieval-augmented approaches argue for grounding.  
+They aim to reduce factually inconsistent generation.  
+They can also support systematic attribution.  
+Citation enforcement also aims to ground responses.  
+It can encourage links from answers to retrieved passages.  
+This can shift effort from “more samples” to “more verifiable linkages.”
+
+Counterpoints remain from the abstract-only view.  
+Consensus may still help in some setups.  
+Failure causes may vary by task.  
+Correlated errors can be one reason.  
+Calibration and uncertainty expression can be another.  
+The main risk is confusing consensus with verification.  
+That can raise costs while packaging errors more convincingly.
+
+## Practical application
+Make product and policy decisions with explicit verification.  
+Use consensus differently across task types.
+
+- **If** you can judge correctness externally, **Then** multi-sampling plus filtering can be useful.  
+Examples include test cases, compilation, execution, or rule-based checks.  
+Consensus can help choose among verifier-passing candidates.
+
+- **If** you cannot judge correctness externally, **Then** treat consensus as draft generation.  
+Examples include news facts, medical claims, and legal claims.  
+Require evidence from search or documents.  
+Require citations for the final answer.  
+If evidence is insufficient, allow an “I don’t know” response.
+
+**Checklist for Today:**
+- Classify consensus features by whether an external verifier exists, and reduce default voting in verifier-less cases.  
+- Add a citations or sources field, and restrict confident claims when citations are missing.  
+- Log accuracy plus correlation and uncertainty signals, including repeated error patterns across samples.
+
+## FAQ
+**Q1. Doesn’t majority voting at least make things safer?**  
+A1. It may not.  
+Without a verifier, voting selects the mode answer.  
+It does not directly select the correct answer.  
+The abstract reports inconsistent accuracy improvements.  
+It also mentions reinforcing shared misconceptions.
+
+**Q2. Then when is Pass@k-style inference compute scaling valid?**  
+A2. It can fit tasks with an external verifier.  
+The verifier can reliably filter wrong answers.  
+The abstract contrasts this with truthfulness tasks.  
+Those tasks often lack immediate correctness checks.
+
+**Q3. What is a realistic alternative for verifier-less factuality problems in products?**  
+A3. Retrieval-based grounding and forced citations are common options.  
+Related work argues retrieval can reduce inconsistency.  
+It can also support source attribution.  
+Other work explores grounding in retrieved passages.  
+It also explores citation generation.
+
+## Conclusion
+The paper’s core message is that consensus differs from verification.  
+Teams can spend **25×** inference cost and still fail to improve truthfulness.  
+The next focus can be structural evidence binding.  
+That includes search, citations, and evaluation rules.  
+Consensus can remain useful in stages with verification.
+
+## Further Reading
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [Bridging Pathology AI Benchmarks and Real-World Clinical Deployment](/en/posts/bridging-pathology-ai-benchmarks-and-real-world-clinical-deployment)
+- [Distinguishing Logprobs From Self-Reported Confidence in Prompts](/en/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts)
+- [Grounding Self-Driving Explanations With Retrieval-Augmented Demonstrations](/en/posts/grounding-self-driving-explanations-with-retrieval-augmented-demonstrations)
+---
+
+## References
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.06612)
+- [Large language models show Dunning-Kruger-like effects in multilingual fact-checking | Scientific Reports - nature.com](https://www.nature.com/articles/s41598-026-39046-w)
+- [Mirror-Consistency: Harnessing Inconsistency in Majority Voting (arXiv) - arxiv.org](https://arxiv.org/abs/2410.10857)
+- [In-Context Retrieval-Augmented Language Models - arxiv.org](https://arxiv.org/abs/2302.00083)
+- [Effective Large Language Model Adaptation for Improved Grounding and Citation Generation - arxiv.org](https://arxiv.org/abs/2311.09533)

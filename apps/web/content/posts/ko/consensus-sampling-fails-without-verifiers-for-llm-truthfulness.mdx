@@ -1,0 +1,90 @@
+---
+title: 컨센서스는 진실 검증이 아니다
+slug: consensus-sampling-fails-without-verifiers-for-llm-truthfulness
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: ko
+description: 외부 검증기 없는 사실성 과제에서 다수결 컨센서스는 25배 비용에도 성능이 불안정하다.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-0258506a594cb92d
+sourceUrl: 'https://arxiv.org/abs/2603.06612'
+verificationScore: 0.73
+alternateLocale: /en/posts/consensus-sampling-fails-without-verifiers-for-llm-truthfulness
+coverImage: >-
+  /images/posts/consensus-sampling-fails-without-verifiers-for-llm-truthfulness.png
+---
+
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** 외부 검증기 없는 진실성 과제에서, 다수 샘플링→투표로 고르는 컨센서스 전략이 **최대 25배 추론 비용**을 써도 **일관된 성능 향상**을 내지 못했다는 문제를 다룬다.  
+- **왜 중요한가?** 안전·신뢰가 중요한 제품에서 “샘플을 더 뽑으면 된다”는 기대가 성립하지 않으면, 추론 비용만 커지고 **공유된 오해(shared misconceptions)**가 강화될 수 있다.  
+- **독자는 뭘 하면 되나?** 사실성 문제는 “k를 키우기” 전에 **검증 가능한 근거(검색/문서) + 인용/출처 강제** 파이프라인을 우선 설계한다. 컨센서스는 **검증이 붙는 구간**에 제한적으로 쓰는 규칙을 정리한다.
+
+## 현황
+이 논문이 겨누는 대상은 익숙한 운영 패턴이다. 모델이 답을 한 번 내면 불안하니, 같은 질문을 여러 번 던져 후보를 모으고(샘플링), 그중 다수결이나 집계로 “가장 그럴듯한” 답을 고르는 방식이다. 수학·코드처럼 외부 검증기가 있어 오답을 자동으로 걸러낼 수 있으면 Pass@k 같은 방식이 성능을 올릴 수 있다는 전제가 깔려 있다.
+
+문제는 사실성/진실성처럼 **편리한 검증기가 없는 영역**이다. 초록에 따르면 저자들은 **5개 벤치마크**와 **여러 모델**에서, 폴링형 집계가 단일 샘플 베이스라인 대비 **일관된 정확도 향상**을 내지 못했다고 주장한다. 또한 **나이브 샘플링 대비 25배 추론 비용**을 써도 결과가 크게 달라지지 않았고, 경우에 따라서는 **공유된 오해를 강화**할 수 있다고 적었다.
+
+여기서 중요한 디테일은 “컨센서스가 생겼다”는 사실이 “검증이 끝났다”는 뜻은 아니라는 점이다. 모델들이 독립적으로 틀리면 다수결이 완충 역할을 할 수 있다. 하지만 초록이 강조하듯 LLM의 오류는 종종 **서로 상관**되어 비슷한 방향으로 틀릴 수 있다. 이 경우 표를 모아도 ‘진실 신호’보다 ‘오해 신호’가 더 선명해질 수 있다.
+
+## 분석
+의사결정 메모 관점에서 핵심은 If/Then이다.
+
+- **If** 과제가 수학·코드처럼 “정답을 자동 판정하는 외부 검증기”를 붙일 수 있다면, **Then** 후보를 많이 만들고(Pass@k), 검증기로 필터링하는 컴퓨트 스케일링은 선택지로 검토할 만하다. 틀린 답을 기계적으로 제거할 수 있으니, 추가 추론 비용이 성능으로 바뀔 가능성이 생긴다.
+- **If** 과제가 사실성·진실성처럼 “정답 판정이 곧바로 안 되는 영역”이라면, **Then** 후보를 많이 뽑아 투표하는 전략은 비용 대비 성과가 불안정해질 수 있다. 초록에 따르면 **25배 비용**을 써도 “컨센서스=정답”이 되지 않았고, 집계가 **shared misconceptions**를 강화할 수 있다.
+
+트레이드오프도 있다. 컨센서스 전략은 구현이 단순하다. 모델 호출을 늘리고 투표하면 된다. 반면 검색 기반 근거화나 인용 강제는 파이프라인이 복잡해진다(검색, 랭킹, 컨텍스트 구성, 인용 포맷, 실패 처리). 다만 외부 검증기가 없는 영역에서는 이 복잡함이 비용으로만 보이지 않을 수 있다. RALM 계열 연구는 검색·근거화가 사실과 어긋나는 텍스트 생성을 줄이는 데 도움이 될 수 있고, 출처 귀속을 시스템적으로 다룰 여지를 준다고 논의한다. 인용 생성/강제 연구도 모델을 **retrieved passages에 grounding**하고 **citations**를 제공하도록 하는 목표를 둔다. 즉, 진실성 개선은 추론 호출 수를 늘리는 것보다 “검증 가능한 연결고리”를 시스템에 넣는 쪽으로 무게중심이 이동할 수 있다.
+
+반론도 남는다. “그럼 컨센서스는 완전히 쓸모없나?”까지는 초록만으로 결론 내리기 어렵다. 또한 다수결 실패의 원인이 **상관된 오류**인지, 모델의 **캘리브레이션(불확실성 표현) 문제**인지, 또는 둘 다인지는 과제/설정에 따라 달라질 수 있다. 다만 실무 관점에서는, **검증기 없는 곳에서 컨센서스를 검증으로 오해하는 순간** 비용만 늘고 오답이 더 그럴듯하게 포장될 위험이 커진다.
+
+## 실전 적용
+제품/정책 결정을 이렇게 내리면 된다.
+
+- **If** 답의 정답 여부를 “외부에서” 판단할 수 있으면(테스트 케이스, 컴파일/실행, 규칙 기반 체커), **Then** 다중 샘플링+필터링/선택을 허용한다. 이때 컨센서스는 “검증기 통과 후보 중 선택” 같은 보조로 둔다.
+- **If** 답의 정답 여부를 외부에서 곧바로 판단할 수 없으면(뉴스 요약의 사실, 의학/법률 상식, 인물/연도/통계), **Then** 컨센서스는 신뢰 장치가 아니라 “여러 초안 생성”으로 취급한다. 최종 답은 근거(검색/문서)와 인용을 필수로 붙인다. 근거가 부족하면 “모른다/근거 없음”을 반환하도록 설계한다.
+
+예: 사내 위키/정책 질의응답 봇이라면, 같은 질문에 대한 5개 답안을 투표로 고르기보다 “정책 문서 조항을 검색→해당 문단을 인용→인용 범위 안에서만 답변”을 기본 루프로 둔다. 컨센서스는 ‘인용 후보 문단을 여러 개 제안’하는 단계에만 쓰고, 마지막은 사람이든 규칙이든 “인용 적합성”으로 거른다.
+
+오늘 바로 할 일 체크리스트 3개  
+- 컨센서스(다수결)를 쓰는 모든 기능을 “외부 검증기 유무”로 분류한다. 검증기 없는 기능에서는 컨센서스를 기본값에서 제외한다.  
+- 답변 포맷에 “인용/출처 필드”를 강제한다. 인용이 비거나 검색 근거가 없으면 확신형 문장을 제한하는 규칙을 둔다.  
+- 배포 전 평가에서 “정확도”만 보지 않는다. 같은 오류가 반복되는 **오류 상관**(비슷하게 틀리는지)과 불확실성 표현(과신)을 별도 지표로 로그에 남긴다.
+
+## FAQ
+**Q1. 다수결을 쓰면 최소한 안전해지는 것 아닌가요?**  
+A1. 그렇지 않습니다. 외부 검증기가 없으면 다수결은 “정답”이 아니라 “최빈 답”을 고릅니다. 논문 초록은 이 방식이 일관된 정확도 향상을 주지 못했고 공유된 오해를 강화할 수 있다고 말합니다.
+
+**Q2. 그럼 Pass@k 같은 추론 컴퓨트 스케일링은 언제 유효한가요?**  
+A2. 외부 검증기가 있어 오답을 신뢰성 있게 걸러낼 수 있을 때 유효합니다. 초록도 수학·코드처럼 검증기가 있는 도메인에서 성능이 개선될 수 있다는 전제를 두고, 그 전제가 없는 진실성 영역에서는 같은 전략이 기대만큼 작동하지 않는다고 대비합니다.
+
+**Q3. 검증기 없는 사실성 문제를 제품에서 다루는 현실적인 대안은 뭔가요?**  
+A3. 검색 기반 근거화와 인용/출처 강제가 대표적입니다. 관련 연구들은 검색을 붙이면 사실과 어긋나는 생성이 줄어들 여지가 있고, 출처 귀속을 다룰 수 있다고 논의합니다. 또한 retrieved passages에 grounding시키고 citations를 생성하도록 학습/적응하는 접근을 제시합니다.
+
+## 결론
+이 논문이 강조하는 메시지는 “합의는 검증이 아니다”에 가깝다. 검증기 없는 진실성 문제를 “k를 키우는 전략”으로만 풀려는 팀은, 비용이 늘어도 품질이 따라오지 않는 구간을 만날 수 있다. 다음으로 볼 지점은 컨센서스의 확장이라기보다, 제품이 답을 “근거에 묶는 방식(검색·인용·평가)”을 어느 수준까지 구조적으로 강제하는가다.  
+
+- [Consensus is Not Verification: Why Crowd Wisdom Strategies Fail for LLM Truthfulness - arXiv](https://arxiv.org/abs/2603.06612)  
+- [In-Context Retrieval-Augmented Language Models - arXiv](https://arxiv.org/abs/2302.00083)  
+- [Effective Large Language Model Adaptation for Improved Grounding and Citation Generation - arXiv](https://arxiv.org/abs/2311.09533)  
+- [Large language models show Dunning-Kruger-like effects in multilingual fact-checking - Scientific Reports](https://www.nature.com/articles/s41598-026-39046-w)  
+- [Mirror-Consistency: Harnessing Inconsistency in Majority Voting - arXiv](https://arxiv.org/abs/2410.10857)
+
+## 다음으로 읽기
+- [셀 페인팅 배치 효과와 ABRA](/ko/posts/abra-batch-invariant-representations-cell-painting)
+- [AI 자료 모음 (24h) - 2026-03-10](/ko/posts/ai-resources-roundup-2026-03-10)
+- [병리 AI, 벤치마크와 현장 사이](/ko/posts/bridging-pathology-ai-benchmarks-and-real-world-clinical-deployment)
+- [확률형 다중응답, logprobs와 자기평가 구분](/ko/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts)
+- [RAG-Driver로 자율주행 설명 그라운딩](/ko/posts/grounding-self-driving-explanations-with-retrieval-augmented-demonstrations)
+---
+
+## 참고 자료
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.06612)
+- [Large language models show Dunning-Kruger-like effects in multilingual fact-checking | Scientific Reports - nature.com](https://www.nature.com/articles/s41598-026-39046-w)
+- [Mirror-Consistency: Harnessing Inconsistency in Majority Voting (arXiv) - arxiv.org](https://arxiv.org/abs/2410.10857)
+- [In-Context Retrieval-Augmented Language Models - arxiv.org](https://arxiv.org/abs/2302.00083)
+- [Effective Large Language Model Adaptation for Improved Grounding and Citation Generation - arxiv.org](https://arxiv.org/abs/2311.09533)
