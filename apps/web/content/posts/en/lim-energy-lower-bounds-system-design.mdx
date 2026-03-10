@@ -1,0 +1,119 @@
+---
+title: Using LIM Energy Lower Bounds in System Design
+slug: lim-energy-lower-bounds-system-design
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: en
+description: >-
+  Discusses whether LIM learning-energy lower bounds should be design KPIs or
+  only benchmarks, given ADC/DAC and calibration overheads.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-a8574767ad1f569d
+sourceUrl: 'https://arxiv.org/abs/2402.14878'
+verificationScore: 0.65
+alternateLocale: /ko/posts/lim-energy-lower-bounds-system-design
+coverImage: /images/posts/lim-energy-lower-bounds-system-design.png
+---
+
+When estimating LIM energy, a single training update can look cheap at the cell level.  
+Peripheral circuits can still dominate total power and cost.  
+So you can decide whether the LIM lower bound fits as a design metric.  
+Or you can keep it as a comparison baseline.
+
+## TL;DR
+- LIM energy lower bounds are used to frame update energy, not only read energy, in CIM and LIM discussions.
+- Peripheral overhead can be large, so a core-only bound may not track total system energy.
+- Build a split core-versus-peripheral model, and evaluate the same workload under both views.
+
+Example: A team compares an ideal update path against a practical one. They find overhead from interfaces and procedures. They then choose which metric guides tradeoffs.
+
+## TL;DR
+- **What changed / what is the key issue?** Some work estimates theoretical lower bounds for training energy dissipation in neuromorphic LIM. It also targets learning and update bottlenecks.
+- **Why does it matter?** In CIM systems, peripheral circuits can take a large energy share. One report shows ADC share changing from **79.8% to 22.5%**.
+- **What should the reader do?** Build a system model that separates core energy from peripheral energy. Then evaluate the **same workload** using both models.
+
+## Status quo
+Neuromorphic optimizers can use local and parallel parameter updates.  
+The abstract of **arXiv:2402.14878** describes scope from quadratic programming to Ising machines.  
+It also emphasizes compute-in-memory (CIM) to reduce repeated read energy.  
+It then points to learning-in-memory (LIM) to address learning-stage energy bottlenecks.  
+This shifts focus from read energy to update energy.
+
+System implementation constraints can remain substantial.  
+Many CIM reports suggest the array core may not dominate total energy.  
+Readout circuitry can be a major contributor.  
+One study reports ADC energy contribution dropped **from 79.8% to 22.5%**.  
+These numbers imply ADC share can vary with design and conditions.  
+Another arXiv study states ADC dependence adds power and area overhead.  
+It also states ADC area can constrain throughput.
+
+Devices and arrays can require repeated procedures.  
+An RRAM silicon case reports using **write-verify** to tighten resistance distributions.  
+It also reports auxiliary procedures like **ADC offset calibration**.  
+So product-level energy and latency can be shaped by these procedures.  
+This can apply even if a lower bound focuses on the cell or array.
+
+## Analysis
+A decision memo can ask how much to rely on a lower bound.  
+A lower-bound framework can separate algorithmic update requirements from physical dissipation.  
+That separation can support hardware–algorithm co-design discussions.  
+It can help compare choices like local rules and parallelism.  
+It can also frame precision discussions.
+
+Using a lower bound as a design KPI can be difficult.  
+Total measured energy can include ADC/DAC, calibration, and write-verify.  
+It can also include data movement and control logic.  
+In surveyed cases, ADC share can reach **79.8%** of total energy.  
+So reducing a core lower bound may translate weakly to total energy.  
+Extending comparisons across training rules can also be challenging.  
+The available material does not pin down one comparison unit.  
+Teams may need to align precision, convergence criteria, and time-to-solution definitions.  
+That alignment can add work to the evaluation process.
+
+## Practical application
+Organized as If/Then.
+
+- **If** your goal is architectural direction, **Then** treat the LIM lower bound as a benchmark floor. Treat it as a reference coordinate. Split gaps into core effects versus peripheral effects.
+- **If** your goal is chip or board power budget, **Then** avoid decisions based only on the LIM lower bound. Some configurations show ADC share as high as **71.5%**. In those cases, reducing system overhead can matter more.
+
+**Checklist for Today:**
+- Create a template that itemizes core energy and peripheral energy, including ADC/DAC, calibration, and write-verify.
+- Run two scenario analyses, including an ADC-heavy case like **79.8%**, and a reduced-share case like **22.5%**.
+- Fix one convergence definition, then compare whether both metrics rank design options similarly.
+
+## FAQ
+**Q1. If the LIM energy lower bound includes ADC/DAC, calibration, and write-verify, does it still work as a design metric?**  
+A1. The surveyed results do not settle this decisively. Reports include ADC shares like **79.8%**. Silicon cases also mention write-verify and ADC calibration. So a core-only bound may not represent total system cost. Keeping a baseline plus a system model can be a safer approach.
+
+**Q2. Can this lower-bound framework be used not only for neuromorphic optimization like Ising/QP but also for deep learning training?**  
+A2. The abstract of **arXiv:2402.14878** includes Ising and quadratic programming. It also signals intent to cover broader workloads. Some papers discuss training energy using concepts like the Landauer principle. Evidence is limited on one standard for comparing local rules quantitatively.
+
+**Q3. In practice, what decisions does a “lower bound” help with the most?**  
+A3. It can separate costs that are structurally hard to reduce from implementation-dependent costs. It can help when adjusting parallel updates and precision. It can also help when considering write-verify and calibration procedures. The goal is to size core limits versus overhead.
+
+## Conclusion
+A LIM energy lower bound can reframe discussions toward how low dissipation could go.  
+Real chips can still be shaped by peripheral energy shares like **79.8%**.  
+They can also include write-verify and calibration procedures.  
+A useful next step is locating the gap between the bound and total system cost.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [AI Resource Roundup (24h) - 2026-03-09](/en/posts/ai-resources-roundup-2026-03-09)
+- [Copilot Cowork Shifts AI From Prompts To Workflows](/en/posts/copilot-cowork-shifts-ai-from-prompts-to-workflows)
+- [Disentangling Tokenizer Bias From Backbone Capability In Forecasting](/en/posts/disentangling-tokenizer-bias-from-backbone-capability-in-forecasting)
+- [Dynamic Chunking for Efficient Diffusion Transformer Inference](/en/posts/dynamic-chunking-efficient-diffusion-transformer-inference)
+---
+
+## References
+
+- [Memristor-based adaptive analog-to-digital conversion for efficient and accurate compute-in-memory - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12592462/)
+- [In-Memory Computing: Advances and prospects (IEEE Solid-State Circuits Magazine, 2019 PDF) - cs.princeton.edu](https://www.cs.princeton.edu/courses/archive/spr22/cos598D/VermaJiaValaviTangOzatayChenZhangDeaville_SSCSMagazine2019.pdf)
+- [HCiM: ADC-Less Hybrid Analog-Digital Compute in Memory Accelerator for Deep Learning Workloads - arxiv.org](https://arxiv.org/abs/2403.13577)
+- [High-Throughput In-Memory Computing for Binary Deep Neural Networks with Monolithically Integrated RRAM and 90nm CMOS - arxiv.org](https://arxiv.org/abs/1909.07514)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2402.14878)
+- [Temporal Contrastive Learning through implicit non-equilibrium memory - nature.com](https://www.nature.com/articles/s41467-025-57043-x)
