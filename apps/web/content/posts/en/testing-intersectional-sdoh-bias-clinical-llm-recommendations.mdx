@@ -1,0 +1,155 @@
+---
+title: Testing Intersectional SDoH Bias in Clinical LLM Recommendations
+slug: testing-intersectional-sdoh-bias-clinical-llm-recommendations
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: en
+description: >-
+  Clinical LLM recommendations can shift with intersecting SDoH (gender,
+  insurance, housing). Test cross-profiles and measure over-refusal before
+  deployment.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-58e86bf2bcac800d
+sourceUrl: 'https://arxiv.org/abs/2603.09416'
+verificationScore: 0.71
+alternateLocale: /ko/posts/testing-intersectional-sdoh-bias-clinical-llm-recommendations
+coverImage: >-
+  /images/posts/testing-intersectional-sdoh-bias-clinical-llm-recommendations.png
+---
+
+A short line appears on an ER triage screen: “female, uninsured, housing instability.”  
+A clinician may have seconds to choose a next question.  
+An LLM can generate a textual recommendation nearby.  
+That recommendation may reflect more than medical knowledge.  
+Gender stereotypes and SDoH can combine in one prompt.  
+A plausible answer can still create equity risk.
+
+## TL;DR
+- This reframes medical LLM bias testing around intersectional SDoH profiles, not single attributes alone.  
+- It matters because odds ratios and refusal rates suggest safety and equity impacts beyond accuracy.  
+- Next, test intersectional scenarios and track refusal plus audit-ready logging with human review.
+
+Example: A clinician reads a brief triage note and asks an assistant model for guidance. The answer sounds confident, but it subtly shifts blame and changes urgency.
+
+## TL;DR
+- To evaluate LLM bias in medical settings, you should assess combined attributes.  
+- You can compare answers when SDoH factors operate together.  
+- These factors include insurance, housing, income, and access.
+
+- This connects to safety, trust, and equity beyond accuracy.  
+
+- In pre-deployment testing, create intersectional profile scenarios.  
+- You can measure excessive refusal rates on medical queries.  
+- In high-risk contexts, specify human review plus logging in policy.
+
+## Current state
+LLM bias benchmarks often score along one axis.  
+Examples include gender or race and ethnicity.  
+Clinical profiles rarely match a single label.  
+SDoH can change access and decision-making context.  
+Examples include insurance, housing, occupation, and geographic access.  
+That shift can influence model outputs.
+
+Intersectionality is not only an ethics topic.  
+It can change recommendation direction and intensity.  
+One study reported quantitative associations with SDoH elements.  
+The study design affects what these numbers mean.  
+Scope and causality can depend on that design.
+
+Safety guardrails can also fail in healthcare.  
+A paper in *npj Digital Medicine* discussed high refusal rates.  
+Over-refusal can affect clinical workflows.  
+It can also affect user experience.
+
+## Analysis
+Evaluation can depend on both model and context.  
+Bias can extend beyond offensive language.  
+Outputs can vary in recommendation intensity across profiles.  
+Follow-up suggestions can also shift.  
+Moralizing tone can appear, such as “poor self-management.”  
+These shifts can become safety and equity risks.  
+Single-attribute benchmark success may not transfer to medicine.
+
+Bias mitigation can be mistaken for stronger filtering.  
+Medical prompts often include sensitive terms.  
+Those terms can appear in legitimate counseling.  
+Examples include sex, drugs, self-harm, violence, and pregnancy.  
+Some research separates truly harmful prompts from merely sensitive prompts.  
+arXiv:2603.03323 describes contrastive refinement for this distinction.  
+Fairness and safety can trade off in practice.  
+The NIST AI RMF discusses managing such trade-offs.
+
+## Practical application
+A single gender bias score may be incomplete.  
+Intersectional scenarios can better match clinical context.  
+You can hold symptoms and labs constant across profiles.  
+You can vary gender, insurance, housing, occupation, and travel distance.  
+Then compare recommendation intensity across profiles.  
+You can compare immediate visit versus watchful waiting.  
+You can compare follow-up tests and risk communication phrasing.  
+You can also track whether the model refuses to answer.
+
+Policy linkage should be planned in advance.  
+WHO emphasizes responsibility and accountability.  
+WHO also emphasizes equity and inclusiveness.  
+WHO also emphasizes safety.  
+FDA guidance defines an audit trail in clinical trial systems.  
+It calls the record **secure**, **computer generated**, and **time-stamped**.  
+It should enable reconstructing creation, modification, and deletion events.  
+A real workflow can make “do not use” hard to apply.  
+Operating rules can narrow contexts and required controls.  
+Controls can include human review, logging, and access control.
+
+**Checklist for Today:**
+- Create intersectional profile sets and compare recommendation direction and intensity for the same scenario.  
+- Measure refusal rates on medical queries alongside bias metrics, including over-filtering patterns.  
+- Document human final judgment and retain time-stamped logs of prompts, outputs, and edits for high-risk contexts.  
+
+## FAQ
+**Q1. Why is single-attribute evaluation insufficient?**  
+A1. SDoH operate together in healthcare.  
+The same symptoms can prompt different questions and recommendations.  
+Single-axis testing can miss risky combinations.
+
+**Q2. Will stronger safety filters increase refusals?**  
+A2. It can happen.  
+Reported non-response rates include **94.4%** and **99.5%**.  
+Over-refusal can be tracked as a separate metric.
+
+**Q3. How should evaluation connect to product policy?**  
+A3. Policy can require human review in high-risk contexts.  
+Policy can also require auditable logs.  
+FDA describes audit trails as **secure** and **time-stamped** records.  
+It also expects reconstruction of creation, modification, and deletion events.  
+These controls can support accountability and root-cause analysis.
+
+## Conclusion
+Medical LLM bias evaluation can go beyond gender stereotypes.  
+It can ask how SDoH combinations change recommendations.  
+The next step can focus on operational readiness.  
+That can include intersectional testing and over-refusal metrics.  
+It can also include governance with logging, auditing, and human oversight.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+- [FuzzingRL Finds VLM Failures via Reinforcement Fine-Tuning](/en/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [Routing and Gating for Stable Online Continual Learning](/en/posts/routing-gating-stable-online-continual-learning)
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+---
+
+## References
+
+- [AI Risk Management Framework FAQs | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework/ai-risk-management-framework-faqs)
+- [Mitigating the risk of health inequity exacerbated by large language models - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12049425/)
+- [WHO calls for safe and ethical AI for health - who.int](https://www.who.int/news/item/16-05-2023-who-calls-for-safe-and-ethical-ai-for-health)
+- [Guidance for Industry - COMPUTERIZED SYSTEMS USED IN CLINICAL TRIALS | FDA - fda.gov](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/fda-bioresearch-monitoring-information/guidance-industry-computerized-systems-used-clinical-trials)
+- [Evaluation of algorithmic bias in large language models for retinal clinical recommendations - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S2950253526000109)
+- [Discern Truth from Falsehood: Reducing Over-Refusal via Contrastive Refinement (arXiv:2603.03323) - arxiv.org](https://arxiv.org/abs/2603.03323)
+- [Evaluation and mitigation of cognitive biases in medical language models | npj Digital Medicine - nature.com](https://www.nature.com/articles/s41746-024-01283-6)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.09416)

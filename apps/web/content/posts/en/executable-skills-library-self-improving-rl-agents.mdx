@@ -1,0 +1,139 @@
+---
+title: Executable Skills Library for Self-Improving RL Agents
+slug: executable-skills-library-self-improving-rl-agents
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: en
+description: >-
+  Defines skills as executable function code and manages them online via
+  create-run-update-on-fail-save-on-success loops.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - agent
+author: AI온다
+sourceId: arxiv-cs-ai-15a658ad19a8fdd5
+sourceUrl: 'https://arxiv.org/abs/2512.17102'
+verificationScore: 0.79
+alternateLocale: /ko/posts/executable-skills-library-self-improving-rl-agents
+coverImage: /images/posts/executable-skills-library-self-improving-rl-agents.png
+---
+
+arXiv:2512.17102에서는 스킬을 여러 액션으로 구성된 ‘스킬 함수(skill function)’로 생성·호출·실패 시 업데이트·성공 시 저장하는 형태로 설명한다.  
+The focus is less on “prompt fragments.”  
+The focus is more on accumulating “executable code” as an asset.  
+The paper proposes turning units of execution into a library.
+
+## TL;DR
+- This describes arXiv **2512.17102**, which treats skills as executable functions in a library.  
+- It can improve traceability and debugging, compared with prompt-only skill storage.  
+- Try a use-create-update-save loop with logs, eval, and cautious promotion rules.
+
+Example: a support agent tries to check a refund with an internal tool.  
+The agent wraps the steps into a callable skill.  
+The skill is retried after a small fix.  
+A safer version is promoted after checks.
+
+## Current state
+In arXiv:2512.17102, the agent generates and calls a skill function composed of multiple actions, and the paper focuses on executable skills that can be directly implemented in the environment.  
+When called, it can compress a complex action sequence into a reusable unit.  
+The motivation resembles “turn repeated procedures into executable units and call them.”  
+It differs from “write long procedures into long context.”
+
+The library interface is presented as a flow, within this post’s scope.  
+For each task, the agent retrieves skills from the library.  
+It then puts selected skills into the context.  
+It then performs **four operations**.  
+“Create” means define a function and call it immediately.  
+“Update” uses failure logs and then re-calls the skill.  
+“Save” happens when execution completes without errors.
+
+Generalization is framed as part of a learning signal, within this post’s scope.  
+Two named devices are **Sequential Rollout** and **Skill-integrated Reward**.  
+Sequential Rollout links similar tasks in a chain.  
+Skills created earlier can be reused later in the chain.  
+Skill-integrated Reward includes skill creation and use in the reward.  
+The reward connects to whether the skill gets reused in the next problem.
+
+## Analysis
+This approach aims to turn reliable repeatable execution into skills.  
+Those skills can accumulate in a library.  
+Prompt-based accumulation can face reproducibility issues.  
+Behavior can shift with context length or prompt position.  
+Behavior can also shift with wording changes.  
+The same task can fail depending on timing.  
+Executable function code can clarify what was executed.  
+Failure points can become easier to locate.  
+Updates can become easier to test.
+
+There are risks to manage.  
+“Saving a skill” is not the same as “trusting a skill.”  
+One success can be insufficient for safety or robustness.  
+Adding an RL signal can increase operational cost.  
+Online exploration can incur failure costs in real environments.  
+It can also raise safety concerns.
+
+Operations controls can help.  
+Run **structured, auto-graded eval** to detect regressions.  
+Consider automated red-teaming for safety and robustness checks.  
+Some gaps may remain for automated grading.  
+Manual review can cover part of those gaps.  
+This can reduce reliance on single-run success.
+
+## Practical application
+A practical starting point is changing the “shape of a skill.”  
+Store a skill as **a function (executable code) + inputs/outputs + update rules on failure**.  
+This differs from storing prompts in a team wiki.  
+Library calling can go beyond “put search results into the context.”  
+Adjust the control flow to include an update-and-recall step on failure.  
+This mirrors the paper’s **four operations**.  
+Logging can then reflect the skill lifecycle more directly than documents.
+
+**Checklist for Today:**
+- Define skills as executable functions with inputs, outputs, and logged failures.  
+- Add structured, auto-graded eval for each skill creation or update.  
+- Use canary observation and rollback paths for skills promoted to wider use.  
+
+## FAQ
+**Q1. If you make skills as “function code,” what changes compared to prompt skills?**  
+A1. Prompts can lead to variable execution paths for the same goal.  
+Function code can make paths and failure points clearer.  
+This can help reproducibility testing, debugging, and updates.
+
+**Q2. Doesn’t skill verification ultimately require humans to look at it?**  
+A2. Some verification can still require humans.  
+Auto-gradable eval can narrow what humans review.  
+Automated red-teaming can also reduce some manual workload.
+
+**Q3. If you keep fixing skills with online RL, doesn’t operational risk increase?**  
+A3. Risk can increase in some environments.  
+Controls can separate reward from cost and safety concerns.  
+Canary deployment and rollback can limit blast radius.
+
+## Conclusion
+An RL skill library is closer to accumulating execution as an asset.  
+It is less focused on writing prompts well.  
+The next step is not only increasing the number of skills.  
+You may also need conditions for saving and promoting skills.  
+You may also need deployment failure detection and rollback.  
+These controls can support verification and gating goals.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+- [FuzzingRL Finds VLM Failures via Reinforcement Fine-Tuning](/en/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [Routing and Gating for Stable Online Continual Learning](/en/posts/routing-gating-stable-online-continual-learning)
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+---
+
+## References
+
+- [Evaluation best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/evaluation-best-practices)
+- [Findings from a pilot Anthropic–OpenAI alignment evaluation exercise: OpenAI Safety Tests | OpenAI - openai.com](https://openai.com/index/openai-anthropic-safety-evaluation/)
+- [Improving Model Safety Behavior with Rule-Based Rewards | OpenAI - openai.com](https://openai.com/index/improving-model-safety-behavior-with-rule-based-rewards/)
+- [Reinforcement Learning for Self-Improving Agent with Skill Library (arXiv:2512.17102) - HTML - ar5iv.labs.arxiv.org](https://ar5iv.labs.arxiv.org/html/2512.17102)
+- [HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal - arxiv.org](https://arxiv.org/abs/2402.04249)
+- [Reinforcement Learning from Human Feedback with High-Confidence Safety Constraints - arxiv.org](https://arxiv.org/abs/2506.08266)
+- [Safety-constrained reinforcement learning with a distributional safety critic | Machine Learning - link.springer.com](https://link.springer.com/article/10.1007/s10994-022-06187-8)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2512.17102)

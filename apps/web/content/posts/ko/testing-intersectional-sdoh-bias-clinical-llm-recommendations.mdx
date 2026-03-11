@@ -1,0 +1,76 @@
+---
+title: '의료 LLM 편향, SDoH 교차성 평가'
+slug: testing-intersectional-sdoh-bias-clinical-llm-recommendations
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: ko
+description: 의료 LLM 권고는 성별·보험·주거 등 SDoH 교차성에 따라 달라질 수 있어 배포 전 시나리오 테스트와 거부율 측정이 필요하다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-58e86bf2bcac800d
+sourceUrl: 'https://arxiv.org/abs/2603.09416'
+verificationScore: 0.71
+alternateLocale: /en/posts/testing-intersectional-sdoh-bias-clinical-llm-recommendations
+coverImage: >-
+  /images/posts/testing-intersectional-sdoh-bias-clinical-llm-recommendations.png
+---
+
+응급실 트리아지 화면에 “여성, 무보험, 주거 불안정” 같은 짧은 문장이 뜬다. 의사는 몇 초 안에 다음 질문과 처치를 정해야 한다. 그 옆에서 LLM이 문장으로 ‘권고’를 내놓는다. 문제는 그 권고가 의학 지식만으로 만들어지지 않을 수 있다는 점이다. 성별 고정관념과 사회적 건강 결정요인(SDoH)이 함께 작동하면, 그럴듯한 답이 형평성 리스크로 이어질 수 있다.
+
+## 세 줄 요약
+- 의료 맥락에서 LLM 편향을 보려면 성별 같은 단일 속성만이 아니라 보험·주거·소득 등 SDoH가 **함께 작동할 때** 답이 어떻게 달라지는지도 평가해야 한다.  
+- 배포 전 테스트에서 “교차 프로필” 시나리오를 만들고, 과잉 거부율(예: 의료 질의 자체를 거부)까지 함께 측정한다. 리스크가 큰 사용 맥락은 **사람 검토+로깅**을 정책으로 명시해야 한다.
+
+## 현황
+LLM 편향 벤치마크는 성별, 인종/민족 같은 단일 축을 분리해 점수를 내는 경우가 많다. 하지만 의료에서는 한 사람의 프로필이 단일 레이블로 고정되지 않는다. 보험 유무, 주거 안정성, 직업/소득, 거주지 접근성 같은 SDoH가 진료 접근과 의사결정의 맥락을 바꾼다. 그 맥락 변화가 모델 출력에도 영향을 줄 수 있다.
+
+
+의료 분야에서 “안전장치”는 다른 종류의 실패를 만들 수도 있다. npj Digital Medicine의 한 논문은 의료 조언 요청에서 안전 필터가 작동해 높은 비율로 응답을 거부하는 사례를 지적했고, 한 모델의 non-response rates가 **one-shot 94.4%**, **few-shot 99.5%**로 보고됐다고 썼다. 편향을 줄이려는 과정에서 정당한 의료 질의까지 막히면, 사용자 경험 문제를 넘어 임상 워크플로에 영향을 줄 수 있다.
+
+## 분석
+핵심은 평가의 단위가 “모델”만이 아니라 “모델×맥락”이라는 점이다. 의료에서 편향은 불쾌한 문장 생성으로만 끝나지 않는다. 특정 환자 프로필에서 더 낮은 강도의 권고, 더 느슨한 추적 관찰, 더 큰 도덕적 판단(예: “자기관리 부족” 같은 뉘앙스)을 재생산하면 안전·형평성 리스크가 된다. 단일 속성 벤치마크만 통과한 모델을 의료에도 그대로 적용하는 것은 위험할 수 있다.
+
+또 하나의 함정은 “편향 완화 = 더 강한 필터”로 단순화하는 접근이다. 의료 상담은 민감어를 포함하는 경우가 많다. 성, 약물, 자해, 폭력, 임신 같은 단어가 들어간다고 해서 유해 프롬프트라고 단정할 수는 없다. over-refusal을 다루는 연구는 “진짜 유해”와 “겉보기 유해(의료 상담에서 흔한 민감어 포함)”를 구분하자는 방향을 제안한다. arXiv:2603.03323은 contrastive refinement로 독성처럼 보이는 프롬프트와 실제 독성 프롬프트를 구분하는 능력을 키우려 한다고 설명한다. 공정성과 안전은 서로 영향을 주기 때문에, NIST AI RMF가 말하듯 트레이드오프를 전제로 관리할 필요가 있다.
+
+## 실전 적용
+평가를 “성별 편향 점수” 하나로 끝내지 말고, 진료 문맥에 가까운 교차 시나리오를 설계해야 한다. 예를 들어 동일한 증상·검사값을 두고 성별, 보험, 주거 안정성, 직업/소득, 이동거리 같은 변수를 조합한 환자 프로필을 만든다. 그리고 모델이 내놓는 권고의 강도(즉시 내원 vs 경과관찰), 추적검사 제안, 위험 커뮤니케이션 문구(환자 책임 전가 표현 여부), 응답 거부 여부를 함께 본다.
+
+제품 정책으로 이어지는 연결고리도 미리 만들어야 한다. WHO가 AI for health에서 강조한 핵심 원칙 중에는 ‘책임과 책무성’, ‘형평성과 포용성’, ‘안전’이 포함된다. FDA는 임상시험 전산시스템 가이던스에서 audit trail을 “**secure**, **computer generated**, **time-stamped** electronic record”로 정의한다. 또한 생성·수정·삭제 사건의 재구성을 가능하게 해야 한다고 적었다. 의료 LLM을 실제 워크플로에 얹는다면, 편향 평가 결과가 나쁜 케이스를 단순히 “사용 금지”로만 처리하기는 어렵다. 대신 “어떤 맥락에서, 어떤 통제(사람 검토/로깅/권한관리)로 제한할지”로 운영 규칙을 정해야 한다.
+
+오늘 바로 할 일 체크리스트:
+- 동일 임상 시나리오에 대해 성별×보험×주거 안정성×직업/소득을 섞은 교차 프로필 세트를 만들고, 권고의 방향/강도 차이를 비교하라.  
+- 편향 점수만 보지 말고 의료 질의에 대한 응답 거부(과잉 필터링)도 함께 측정해, “안전해 보이지만 사용이 어려운 모델”을 걸러라.  
+- 고위험 사용 맥락(트리아지/약물/자살위험 등)은 출력·프롬프트·수정 이력을 time-stamped 로그로 남기고, 사람 최종판단을 정책 문서에 명시하라.  
+
+## FAQ
+**Q1. 단일 속성(성별만, 인종만) 평가로는 왜 부족합니까?**  
+A1. 의료에서는 보험, 주거, 소득, 접근성 같은 SDoH가 함께 작동합니다. 그 결과 같은 증상도 다른 질문과 권고로 이어질 수 있습니다. 단일 축만 보면 “어떤 조합에서” 문제가 커지는지 놓칠 수 있습니다.
+
+**Q2. 편향을 줄이면 안전 필터가 더 강해져서 의료 질문을 더 거부하지 않나요?**  
+
+**Q3. 평가 결과를 제품 정책으로는 어떻게 연결해야 합니까?**  
+A3. WHO가 강조하는 책임·형평·안전 원칙에 맞춰, 고위험 맥락은 사람 검토를 의무화하고 감사 가능한 로그를 남기는 방식으로 연결할 수 있습니다. 또한 FDA가 정의한 audit trail처럼 **secure**하고 **time-stamped**이며 사건 재구성이 가능한 기록을 갖추면, 문제 발생 시 원인 규명과 책임 정리에 도움이 됩니다.
+
+## 결론
+의료 LLM 편향 평가는 “성별 고정관념이 있나?”를 넘어 “SDoH가 함께 작동할 때 모델이 누구에게 어떤 권고를 덜 하는가?”로 확장할 필요가 있다. 다음 단계는 벤치마크 점수 경쟁이 아니다. 교차 맥락 테스트, over-refusal 지표, 로깅·감사·사람 감독을 묶은 운영 체계를 먼저 갖추는 일이다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-11](/ko/posts/ai-resources-roundup-2026-03-11)
+- [VLM 실패를 만드는 퍼징 강화학습](/ko/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [OCL에서 라우팅으로 망각 줄이기](/ko/posts/routing-gating-stable-online-continual-learning)
+- [셀 페인팅 배치 효과와 ABRA](/ko/posts/abra-batch-invariant-representations-cell-painting)
+- [AI 자료 모음 (24h) - 2026-03-10](/ko/posts/ai-resources-roundup-2026-03-10)
+---
+
+## 참고 자료
+
+- [AI Risk Management Framework FAQs | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework/ai-risk-management-framework-faqs)
+- [Mitigating the risk of health inequity exacerbated by large language models - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12049425/)
+- [WHO calls for safe and ethical AI for health - who.int](https://www.who.int/news/item/16-05-2023-who-calls-for-safe-and-ethical-ai-for-health)
+- [Guidance for Industry - COMPUTERIZED SYSTEMS USED IN CLINICAL TRIALS | FDA - fda.gov](https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/fda-bioresearch-monitoring-information/guidance-industry-computerized-systems-used-clinical-trials)
+- [Evaluation of algorithmic bias in large language models for retinal clinical recommendations - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S2950253526000109)
+- [Discern Truth from Falsehood: Reducing Over-Refusal via Contrastive Refinement (arXiv:2603.03323) - arxiv.org](https://arxiv.org/abs/2603.03323)
+- [Evaluation and mitigation of cognitive biases in medical language models | npj Digital Medicine - nature.com](https://www.nature.com/articles/s41746-024-01283-6)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.09416)
