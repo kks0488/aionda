@@ -1,0 +1,162 @@
+---
+title: Designing Reproducible Rubrics for LLM Code Integration Evaluations
+slug: reproducible-rubrics-llm-code-integration-evaluations
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: en
+description: >-
+  Move beyond context/output limits: evaluate LLM code integration with task
+  decomposition, tool parity, and reproducible build/test rubrics.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - tool-calling
+author: AI온다
+sourceId: '1047739'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1047739'
+verificationScore: 0.78
+alternateLocale: /ko/posts/reproducible-rubrics-llm-code-integration-evaluations
+coverImage: /images/posts/reproducible-rubrics-llm-code-integration-evaluations.png
+---
+
+A model with a **200,000-token context window** can ingest large repos in one prompt.  
+Some systems also list a **100,000-token max output**.  
+Other APIs advertise a **1M-token context**.  
+These specs suggest “code integration” evaluation should move beyond impressions.  
+Longer inputs can help in some cases.  
+Integration outcomes also depend on tools and verification.  
+Evaluations can work better as a rubric.  
+The rubric can decompose tasks into **interface → contract → flow → errors/retries**.  
+Results can be checked via **builds and tests**.
+
+## TL;DR
+- Integration evaluation is shifting from impressions to task decomposition and test-verifiable rubrics.  
+- Token limits like **200,000**, **100,000**, and **1M** do not explain integration quality by themselves.  
+- Split work into four stages, add builds and tests, and compare models under matched tools.  
+
+Example: You connect two codebases and notice one change breaks a downstream service. You rerun tests, adjust contracts, and iterate with tool feedback.
+
+## Current state
+In code-integration evaluation, common comparison axes can feel complex.  
+They can still be organized into a small set.  
+Within what official documentation can confirm, use four axes.  
+Use **context limits (input/output tokens)** as one axis.  
+Use **function or tool calling support** as another axis.  
+Use **file or codebase access approach** as a third axis.  
+This includes search tools, workspace editing, and terminal execution.  
+Use **output constraints**, such as max output tokens, as a fourth axis.  
+These axes can help compare models under similar conditions.
+
+The documented numbers can still create practical differences.  
+OpenAI documentation for the o1 model states a **200,000 context window**.  
+It also states **100,000 max output tokens**.  
+Anthropic documentation states a **1M token context window** is available.  
+It lists specific channels.  
+Those channels include Anthropic API, Amazon Bedrock, and Google Cloud Vertex AI.  
+This “how much fits at once” factor can affect spec comparisons.
+
+Specs alone can miss key integration differences.  
+OpenAI describes **file search** as a hosted tool.  
+It is usable via the Responses API.  
+It can query an uploaded-file knowledge base via keyword or semantic search.  
+OpenAI also specifies “Structured Outputs.”  
+When `strict: true` is enabled in function calling, arguments should exactly match JSON Schema.  
+Anthropic documentation also discusses tool use.  
+It notes Anthropic-defined tools like “computer use” and “text editor.”  
+It says these tools can require client implementation.  
+The same label, “tool use,” can still imply different setup work.  
+This difference can affect experiment design.
+
+## Analysis
+Connecting two codebases often involves more than code generation.  
+It often includes four recurring steps.  
+Step one aligns interfaces.  
+Step two fixes the data contract.  
+Step three connects the call flow.  
+Step four handles failure scenarios.  
+These scenarios include timeouts, retries, and partial failures.
+
+Reading model output often does not verify integration.  
+Mechanical verification can provide a steadier pass or fail signal.  
+Common checks include **build**, **test**, **lint**, and **type-check**.  
+These checks can support reproducible comparisons.
+
+Schema conformance can support clearer evaluation items.  
+`strict: true` can enforce that arguments match JSON Schema.  
+This can surface issues like missing fields and type mismatches.  
+The measured change can still depend on test design and scope.  
+So comparisons should be run under matched conditions.
+
+There are limitations.  
+Official docs can make vendor editing protocols hard to compare.  
+This includes diff or patch conventions and conflict rules.  
+A large context can also create expectations that exceed practice.  
+Even with **1M** context, some systems recommend search-first designs.  
+Hosted file search can support that approach.  
+Other systems may push tool implementation to clients.  
+So outcomes can depend on token limits and harness control.  
+Harness factors include **permissions, tools, and the verification loop**.
+
+## Practical application
+A rubric framed as an “integration task” can simplify comparison.  
+Start with one goal connecting two projects.  
+One example is pushing Service A events into Service B work queue.  
+Then split work into four pieces.  
+Turn each piece’s success criteria into tests.  
+Compilation or type-checking can verify the interface.  
+Schema-based tests can verify the data contract.  
+Integration tests can verify the call flow.  
+Failure-injection tests can probe errors and retries.
+
+Tool support changes the evaluation harness cost.  
+Hosted file search can reduce client-side setup.  
+Client-implemented tools can increase operational burden.  
+This difference can affect interpretation of results.  
+So it should appear in the evaluation table.
+
+Example: Don’t ask the LLM to merge everything in one pass. Instead, propose interfaces, define a contract, implement calls, then validate with tests. Use tool feedback to iterate safely.
+
+**Checklist for Today:**
+- Define one integration goal and a pass or fail test suite for it.  
+- Record each model’s **200,000**, **100,000**, or **1M** limits and its tool options, then align permissions.  
+- Add an in-repo instruction file and keep secrets in GitHub Secrets, not prompts.  
+
+## FAQ
+**Q1. If I choose a model with a large context, will code integration automatically work better?**  
+A1. A larger context can let you provide more information at once.  
+Integration success can still depend on the verification loop and tool usage.  
+
+**Q2. How does function calling’s `strict: true` help code-integration evaluation?**  
+A2. It can enforce that function arguments match the JSON Schema.  
+This can make schema violations measurable.  
+It can also highlight missing fields and type mismatches.  
+
+**Q3. What is the minimum you should provide an LLM agent for a reproducible evaluation?**  
+A3. You should provide repository structure guidance and build or test commands.  
+An in-repo instruction file like `CLAUDE.md` can help consistency.  
+Secrets should be injected via a secret store like GitHub Secrets.  
+
+## Conclusion
+Code-integration evaluation is not only about “who writes code well.”  
+Under matched conditions, passing builds and tests can matter more.  
+Context limits like **200,000** and **1M** are only part of the picture.  
+Output limits like **100,000** are also only part of the picture.  
+Tool design and test-based rubrics can drive divergent results.
+
+## Further Reading
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [Bridging Pathology AI Benchmarks and Real-World Clinical Deployment](/en/posts/bridging-pathology-ai-benchmarks-and-real-world-clinical-deployment)
+- [Consensus Sampling Fails Without Verifiers For LLM Truthfulness](/en/posts/consensus-sampling-fails-without-verifiers-for-llm-truthfulness)
+- [Distinguishing Logprobs From Self-Reported Confidence in Prompts](/en/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts)
+---
+
+## References
+
+- [o1 Model | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/o1)
+- [File search | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/tools-file-search)
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-in-the-openai-api)
+- [Context windows - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/context-windows)
+- [Tool use with Claude - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
+- [Claude Code GitHub Actions - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/github-actions)

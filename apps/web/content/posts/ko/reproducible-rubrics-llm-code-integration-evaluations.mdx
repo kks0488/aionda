@@ -1,0 +1,82 @@
+---
+title: '코드 통합 LLM 평가, 스펙보다 루브릭'
+slug: reproducible-rubrics-llm-code-integration-evaluations
+date: '2026-03-10'
+lastReviewedAt: '2026-03-10'
+locale: ko
+description: '컨텍스트·출력 한도 비교를 넘어, 과업 분해와 빌드·테스트로 재현 가능한 코드 통합 평가 설계.'
+tags:
+  - hardware
+  - llm
+  - explainer
+  - tool-calling
+author: AI온다
+sourceId: '1047739'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1047739'
+verificationScore: 0.78
+alternateLocale: /en/posts/reproducible-rubrics-llm-code-integration-evaluations
+coverImage: /images/posts/reproducible-rubrics-llm-code-integration-evaluations.png
+---
+
+200,000 토큰 컨텍스트 창과 100,000 토큰 출력 한도를 가진 모델이 있다는 사실은, “코드 통합” 평가가 인상평 수준에 머물기 어렵다는 점을 보여준다. 반대로 1M 토큰 컨텍스트를 내세우는 API도 있다. 입력을 길게 넣을 수 있으면 유리할 수는 있다. 다만 두 개의 코드 프로젝트를 한 워크플로로 묶는 일은 “길이”만으로 결정되지 않는다. 어떤 도구를 쓰고, 무엇을 검증하는지에 따라 결과가 달라진다. 그래서 평가는 모델 감상이 아니라, 과업을 쪼개고(인터페이스→계약→흐름→오류/재시도) 결과를 빌드·테스트로 재현 가능하게 확인하는 루브릭으로 설계해야 한다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** 두 코드 프로젝트를 연결하는 LLM 평가의 중심이 “모델 감상”이 아니라 **과업 분해 + 테스트로 검증 가능한 평가 설계**로 이동하고 있다.  
+- **왜 중요한가?** 컨텍스트 창(예: **200,000 토큰**, **1M 토큰**)과 출력 한도(예: **100,000 토큰**) 차이만으로는 통합 품질을 설명하기 어렵다. **도구 호출·파일 검색·테스트 실행을 포함한 동일 조건 실험**이 생산성과 실패율에 영향을 준다.  
+- **독자는 뭘 하면 되나?** 통합 작업을 4단계(인터페이스/데이터 계약/호출 흐름/오류·재시도)로 쪼개고, 각 단계에 **자동 테스트·빌드 명령**을 붙인다. 그다음 모델마다 **같은 입력 범위·도구 권한**으로 실행해 결과물을 비교한다.
+
+## 현황
+코드 통합 LLM 평가에서 비교 가능한 “공통 축”은 복잡해 보이지만 정리할 수 있다. 공식 문서로 확인 가능한 범위에서 최소한 다음 네 가지를 축으로 잡는다: **컨텍스트 한도(입력/출력 토큰)**, **함수/도구 호출 지원**, **파일/코드베이스 접근 방식(검색 도구/워크스페이스 편집/터미널 실행 같은 통합 여부)**, **출력 제한(최대 출력 토큰 등)**이다. 이 축이 있어야 모델을 같은 조건에서 비교하기 쉽다.
+
+수치는 이미 차이를 만든다. OpenAI의 o1 모델 문서에는 **200,000 context window**와 **100,000 max output tokens**가 명시돼 있다. Anthropic 문서에는 **1M token context window**가 특정 제공 채널(Anthropic API, Amazon Bedrock, Google Cloud Vertex AI)에서 가능하다고 적혀 있다. “한 번에 더 많이 넣을 수 있는가”는 스펙 비교에서 빠지기 어렵다.
+
+하지만 코드 통합은 스펙만으로 평가가 끝나지 않는다. OpenAI는 Responses API에서 쓸 수 있는 **hosted tool**로 **file search**를 제공한다고 설명한다(업로드된 파일 기반 지식 베이스를 키워드/시맨틱 검색으로 조회). 또 OpenAI는 function calling에서 `strict: true`를 켜면, 모델이 생성하는 함수 인자(arguments)가 제공한 JSON Schema와 **정확히 일치**하도록 하는 “Structured Outputs”를 명시한다. 반면 Anthropic 문서에서는 도구 사용(tool use) 맥락에서 “computer use, text editor” 같은 **Anthropic-defined tools**가 있고, 이 도구들은 **클라이언트 구현이 필요**하다고 적는다. 같은 “도구 사용”이라도 운영 부담과 실험 설계가 달라질 수 있다.
+
+## 분석
+이 변화가 중요한 이유는, 코드 2개를 붙이는 작업이 LLM의 “코드 생성”만으로 끝나지 않기 때문이다. 통합 작업은 보통 (1) 인터페이스를 맞추고, (2) 데이터 계약을 고정하고, (3) 호출 흐름을 연결하고, (4) 실패 시나리오(타임아웃/재시도/부분 실패)를 다룬다. 여기서 LLM이 실제로 일을 했는지 확인하려면 결과물을 읽는 것만으로는 부족하다. **빌드·테스트·린트·타입체크** 같은 기계적 검증으로 통과/실패를 가르는 편이 더 일관된 기준이 된다.
+
+특히 function calling에서 `strict: true`처럼 스키마 일치를 강제할 수 있으면, 통합 지점에서 흔한 “필드 누락/타입 불일치”를 평가 항목으로 분리하기 쉬워진다. 다만 이때도 “감소” 여부는 테스트 설계와 적용 범위에 따라 달라질 수 있으므로, 동일 조건에서 확인하는 편이 낫다.
+
+한계도 있다. 첫째, 공식 문서만으로는 “파일 편집이 어떻게 이뤄지는가(예: diff/patch 규약, 원자적 편집 단위, 충돌 해결 규칙)” 같은 편집 프로토콜을 벤더 간 동등한 수준으로 비교하기 어렵다. 둘째, 컨텍스트가 크면 모든 게 해결된다는 기대가 생길 수 있다. 컨텍스트 1M이 가능하더라도, 어떤 시스템은 hosted file search 같은 방식으로 “넣지 않고 찾는” 설계를 권하고, 어떤 시스템은 클라이언트가 도구를 구현해야 한다. 결국 성패는 토큰 수만이 아니라 **권한·도구·검증 루프**를 포함한 실험 조건을 어떻게 통제하느냐에 달려 있다.
+
+## 실전 적용
+평가를 “통합 과업”으로 설계하면, 모델 비교가 단순해진다. 먼저 두 프로젝트를 잇는 목표를 하나로 고정한다(예: 서비스 A의 이벤트를 서비스 B의 작업 큐로 넣는다). 그다음 과업을 4조각으로 쪼개고 각 조각의 성공 조건을 테스트로 만든다. 예를 들어 인터페이스는 컴파일/타입체크로, 데이터 계약은 스키마 기반 테스트로, 호출 흐름은 통합 테스트로, 오류/재시도는 실패 주입 테스트로 확인한다.
+
+이때 모델이 file search 같은 hosted 도구를 쓸 수 있는지, tool use를 위해 클라이언트 구현이 필요한지에 따라 “평가 하네스(실험 실행 환경)” 비용과 리스크가 달라진다. 이 차이는 결과 해석에 영향을 줄 수 있으니 평가 표에 함께 적는다.
+
+예: 두 저장소를 하나의 워크플로로 자동화하려면, LLM에게 “전체 코드를 붙여라”라고만 주지 않는다. 대신 “(1) 연결할 엔드포인트/함수 시그니처 제안 → (2) 데이터 계약(JSON Schema 등) 작성 → (3) 호출부 구현 → (4) 테스트 추가 및 실행” 순서로 작업 티켓을 쪼개서 준다. 함수 호출을 쓴다면 `strict: true` 같은 스키마 강제 옵션을 켠 실험과 끈 실험을 분리한다. 그리고 스키마 준수율과 테스트 실패율을 각각 기록해 비교한다.
+
+오늘 바로 할 일 체크리스트:
+- 통합 목표를 “단일 시나리오 + 명확한 성공 테스트”로 고정하고, 모델마다 같은 테스트 스위트를 돌릴 준비를 한다.  
+- 모델별로 **컨텍스트 한도(예: 200,000 / 1M), 출력 한도(예: 100,000), file search/tool use 가능 여부**를 표로 정리한다. 그리고 입력 범위·도구 권한을 가능한 한 동일하게 맞춘다.  
+- 저장소 루트에 작업 지침 파일을 두고(예: `CLAUDE.md`), 비밀키는 GitHub Secrets로 주입해 프롬프트/코드에 남지 않게 한다.  
+
+## FAQ
+**Q1. 컨텍스트가 큰 모델을 고르면 코드 통합이 자동으로 더 잘 되나요?**  
+A1. 그렇지 않습니다. 컨텍스트가 크면 한 번에 더 많은 정보를 넣을 수 있습니다. 하지만 통합의 성패는 빌드·테스트 같은 검증 루프와 도구 사용(파일 검색/함수 호출/편집 방식)에 더 크게 좌우될 수 있습니다.
+
+**Q2. function calling의 `strict: true`는 코드 통합 평가에 어떤 도움이 되나요?**  
+A2. 함수 인자가 JSON Schema와 정확히 일치하도록 강제할 수 있습니다. 그 결과 필드 누락·타입 불일치 같은 통합 실패를 줄이는 데 도움이 될 수 있습니다. 또한 “스키마 위반 건수”처럼 측정 가능한 평가 항목을 만들기 쉬워집니다.
+
+**Q3. LLM 에이전트에게 최소로 무엇을 제공해야 재현 가능한 평가가 되나요?**  
+A3. 저장소 구조 안내, 빌드·테스트 실행 명령, 그리고 저장소 내 지침 파일(예: `CLAUDE.md`)이 최소 단위로 유용합니다. 비밀키는 프롬프트나 파일에 두지 말고 GitHub Secrets 같은 비밀 저장소로 환경 변수 주입을 사용하는 것이 권장됩니다.
+
+## 결론
+코드 통합 LLM 평가는 “누가 코드를 잘 짜나”만을 가르는 작업이 아니다. 같은 조건에서 누가 더 일관되게 빌드·테스트를 통과하는지가 중요해진다. 컨텍스트(200,000, 1M)와 출력 한도(100,000)는 비교 항목 중 일부다. 실제 평가는 도구 사용 설계와 테스트 기반 루브릭에서 차이가 난다.
+
+## 다음으로 읽기
+- [셀 페인팅 배치 효과와 ABRA](/ko/posts/abra-batch-invariant-representations-cell-painting)
+- [AI 자료 모음 (24h) - 2026-03-10](/ko/posts/ai-resources-roundup-2026-03-10)
+- [병리 AI, 벤치마크와 현장 사이](/ko/posts/bridging-pathology-ai-benchmarks-and-real-world-clinical-deployment)
+- [컨센서스는 진실 검증이 아니다](/ko/posts/consensus-sampling-fails-without-verifiers-for-llm-truthfulness)
+- [확률형 다중응답, logprobs와 자기평가 구분](/ko/posts/distinguishing-logprobs-from-self-reported-confidence-in-prompts)
+---
+
+## 참고 자료
+
+- [o1 Model | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/o1)
+- [File search | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/tools-file-search)
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-in-the-openai-api)
+- [Context windows - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/context-windows)
+- [Tool use with Claude - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
+- [Claude Code GitHub Actions - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/github-actions)
