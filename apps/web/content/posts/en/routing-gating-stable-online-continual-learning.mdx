@@ -1,0 +1,171 @@
+---
+title: Routing and Gating for Stable Online Continual Learning
+slug: routing-gating-stable-online-continual-learning
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: en
+description: >-
+  In one-pass non-stationary streams, evaluate PEFT limits and use
+  routing/gating plus stability budgets to reduce forgetting and latency.
+tags:
+  - agi
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-2414449514a87c51
+sourceUrl: 'https://arxiv.org/abs/2603.09576'
+verificationScore: 0.85
+alternateLocale: /ko/posts/routing-gating-stable-online-continual-learning
+coverImage: /images/posts/routing-gating-stable-online-continual-learning.png
+---
+
+A non-stationary stream can present each sample once and then move on.  
+In that setting, it is worth checking whether small parameter tweaks are sufficient.  
+Those tweaks include prompts, adapters, and LoRA.  
+Online Continual Learning (OCL) assumes revisiting samples is difficult.  
+The emphasis often shifts toward limiting damage to prior knowledge.  
+Routing and gating can help decide what to update per sample.
+
+## TL;DR
+- Routing and gating are discussed for OCL streams where each sample may be seen once.  
+- This can reduce interference, but it can add collapse risks and latency costs.  
+- Add a stability gate first, then monitor routing crowding and latency signals.
+
+Example: A support chatbot faces shifting topics over time.  
+You can route updates based on uncertainty signals.  
+You can also gate edits based on observed regressions.  
+This scene is hypothetical and not evidence.
+
+## TL;DR
+- **What is the core issue?** In OCL, PEFT methods can look unstable in one-pass streams. Routing and gating per sample are discussed as alternatives.  
+- **Why does it matter?** Routing can reduce interference across updates. It can also raise risks like routing collapse and higher latency.  
+- **What should the reader do?** Add a gate that checks a pre-update stability budget. If it exceeds a threshold, rescale or reject the update.
+
+## Current state
+Transformer continual learning is often described as freezing the backbone.  
+Only PEFT modules are attached for specialization.  
+These modules include prompts, adapters, and LoRA.  
+
+The abstract of *Routing without Forgetting* frames a different concern.  
+Controlled multi-epoch settings may behave differently than OCL-like streams.  
+In those streams, each sample may be seen only once.  
+In such streams, gradual gradient specialization can become shaky.  
+In OCL, the key decision is when and where to allow updates.  
+Another decision is how far to allow those updates.
+
+From the investigation results, confirmed routing signals split into two branches.  
+One branch combines class-conditional routing with uncertainty-based adjustment.  
+This is stated in the abstract snippet of that paper.  
+The other branch looks closer to LLM continual editing procedures.  
+It emphasizes operational checks before applying an update.
+
+STABLE evaluates each update with a stability budget.  
+It uses metrics like Exact Match drop, bits increase, and KL divergence.  
+If a threshold is exceeded, the LoRA update is rescaled or rejected.  
+The rescaling is described as clipping in the snippet.
+
+Some studies report numeric trade-offs.  
+PaCA reports a 22% reduction in training time versus LoRA.  
+PaCA reports a 16% reduction in total memory usage versus LoRA.  
+It also describes accuracy as “comparable,” per snippet.  
+
+MiLoRA notes possible latency increases in multi-tenant environments.  
+It describes a mitigation based on reusing routing results.  
+The snippet says routing is done before generating the first token.  
+That routing result is reused for subsequent tokens.  
+In OCL, routing can affect latency and forgetting together.
+
+## Analysis
+Routing-based OCL aims to avoid one update corridor for every sample.  
+Even PEFT updates can wobble when the stream drifts.  
+A single update can also affect later samples.  
+
+Routing and modularization change how updates are applied.  
+They select which parameters to update per sample or situation.  
+This can reduce interference and may mitigate forgetting.  
+STABLE’s stability budget reads like an operational rule.  
+You check degradation indicators before applying an edit.  
+If indicators exceed a criterion, you reduce or discard the update.
+
+Routing can introduce new failure modes.  
+The investigation results describe routing collapse in MoE settings.  
+Tokens can crowd into initially preferred experts.  
+Those experts then receive more gradients and become more preferred.  
+This creates a rich-get-richer loop.  
+Load imbalance among experts can contribute.  
+Router softmax logits can become overly sharp.  
+The snippet frames this as logit overconfidence or runaway.
+
+Mitigations are also mentioned in the investigation results.  
+They include an auxiliary load-balancing loss.  
+They include z-loss to suppress router logit runaway.  
+They include auxiliary-loss-free balancing via dynamic per-expert bias updates.  
+They also include replay plus co-training procedures in continual learning.  
+The snippet describes routing evenly to unused experts for extra updates.  
+Routing can help reduce forgetting, but collapse risks need management.
+
+## Practical application
+OCL routing can look like an architecture change.  
+That framing can raise the adoption barrier.  
+An operational starting point can be smaller.  
+
+The STABLE pattern can be applied without routing.  
+Add a gate that computes stability indicators before an update.  
+The indicators can include EM drop, bits increase, and KL divergence.  
+If a threshold is exceeded, rescale or reject the update.  
+
+If you add routing, monitor router concentration alongside forgetting metrics.  
+MoE collapse may show up before a performance drop.  
+It can look like training signals shrinking to one side.
+
+**Checklist for Today:**
+- Add a stability budget gate that can rescale or reject updates past thresholds.  
+- If routing is used, track expert usage concentration and define alert conditions.  
+- If latency matters, test routing-result reuse and check its fit to your system.
+
+## FAQ
+**Q1. In OCL, what do people actually use as routing signals (gating criteria)?**  
+A1. The investigation results confirm two examples.  
+One combines class-conditional routing with uncertainty-based adjustment.  
+Another is STABLE’s stability budget gate.  
+It uses EM drop, bits increase, and KL divergence.  
+It can rescale or reject updates when thresholds are exceeded.
+
+**Q2. What mechanisms make routing work “stably”?**  
+A2. The STABLE snippet describes rescaling or rejecting updates.  
+This is done when they exceed the stability budget.  
+It constrains updates through operational rules.  
+It does not directly stabilize routing itself.
+
+**Q3. When does routing collapse happen, and what prevents it?**  
+A3. The investigation results describe a positive feedback loop in MoE.  
+Tokens crowd into preferred experts.  
+Those experts get more gradients and become more preferred.  
+Load imbalance and router logit runaway are also mentioned.  
+Mitigations include load-balancing loss and z-loss.  
+They include auxiliary-loss-free balancing via dynamic bias updates.  
+They include replay plus co-training procedures in continual learning.
+
+## Conclusion
+In OCL, routing focuses on learning while damaging less.  
+The operational focus includes collapse risk and latency cost.  
+Measurement and rules can help manage both concerns.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+- [FuzzingRL Finds VLM Failures via Reinforcement Fine-Tuning](/en/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [ABRA Learns Batch-Invariant Representations for Cell Painting Screens](/en/posts/abra-batch-invariant-representations-cell-painting)
+- [AI Resource Roundup (24h) - 2026-03-10](/en/posts/ai-resources-roundup-2026-03-10)
+- [Bridging Pathology AI Benchmarks and Real-World Clinical Deployment](/en/posts/bridging-pathology-ai-benchmarks-and-real-world-clinical-deployment)
+---
+
+## References
+
+- [Comparison between parameter-efficient techniques and full fine-tuning: A case study on multilingual news article classification - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC11068208/)
+- [Enhancing Online Continual Learning with Plug-and-Play State Space Model and Class-Conditional Mixture of Discretization - arxiv.org](https://arxiv.org/abs/2412.18177)
+- [STABLE: Gated Continual Learning for Large Language Models - arxiv.org](https://arxiv.org/abs/2510.16089)
+- [PaCA: Partial Connection Adaptation for Efficient Fine-Tuning - arxiv.org](https://arxiv.org/abs/2503.01905)
+- [MiLoRA: Efficient Mixture of Low-Rank Adaptation for Large Language Models Fine-tuning - arxiv.org](https://arxiv.org/abs/2410.18035)
+- [Auxiliary-Loss-Free Load Balancing Strategy for Mixture-of-Experts - arxiv.org](https://arxiv.org/abs/2408.15664)
+- [PASs-MoE: Mitigating Misaligned Co-drift among Router and Experts via Pathway Activation Subspaces for Continual Learning - arxiv.org](https://arxiv.org/abs/2601.13020)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.09576)
