@@ -1,0 +1,148 @@
+---
+title: Multi-LLM Consensus Workflow for Missing Child Investigations
+slug: multi-llm-consensus-workflow-missing-child-investigations
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: en
+description: >-
+  Guardian proposes a multi-LLM pipeline with a consensus engine for early
+  missing-child searches, emphasizing auditable TEVV operations.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-86b71ebe46956c36
+sourceUrl: 'https://arxiv.org/abs/2603.08954'
+verificationScore: 0.71
+alternateLocale: /ko/posts/multi-llm-consensus-workflow-missing-child-investigations
+coverImage: /images/posts/multi-llm-consensus-workflow-missing-child-investigations.png
+---
+
+Once the first **72 hours** pass, leads in a missing-person investigation can weaken quickly.  
+This shifts attention from single answers to visible, correctable workflow errors.  
+An arXiv paper (**2603.08954**) proposes an end-to-end pipeline called Guardian.  
+The abstract does not show the consensus rules or quantitative error reduction.
+
+## TL;DR
+- Guardian (**arXiv: 2603.08954**) describes a multi-LLM pipeline with a consensus engine for conflicting outputs.  
+- The approach matters because errors can distort resource allocation in public-safety work.  
+- Start with a pilot TEVV loop, focused on disagreements, logging, and controlled handoffs.  
+
+Example: A team reviews mixed tips. Several assistants extract details from the same text. One assistant flags conflict instead of forcing a single narrative. The team routes the case for verification before planning.
+
+## TL;DR
+- **Core issue:** It discusses a multi-LLM pipeline, Guardian, plus a “consensus LLM engine” for inconsistencies.  
+- **Why it matters:** In public safety, hallucinations and false positives can affect allocation and judgment.  
+- **What to do:** Start with a pilot. Focus on failure modes, disagreement cases, and a TEVV re-evaluation loop.  
+
+## Current state
+Investigations often ingest tips, documents, and memos.  
+Teams repeat “organize → summarize → prioritize → search plan” under time pressure.  
+The paper (**2603.08954**) presents Guardian for this workflow segment.  
+It highlights the **first 72 hours** as important for success.  
+
+Guardian is not presented as a single LLM.  
+It coordinates end-to-end execution with task-specialized LLM models.  
+When results diverge, a consensus LLM engine compares outputs.  
+It then resolves inconsistencies between models, according to the abstract.  
+The abstract frames LLMs as auditable extraction and labeling tools.  
+It contrasts that with unstructured decision-making by a single model.  
+
+The abstract does not specify the consensus method.  
+Majority vote, weighted voting, and arbiter models remain unclear.  
+The abstract also omits performance numbers.  
+It does not report accuracy, error rate, or time savings.  
+
+Prior work may offer relevant context on consensus.  
+ReConcile (**2309.13007**) uses **confidence-weighted voting**.  
+It reports up to an **11.4%** performance improvement.  
+The benchmarks and conditions can vary by paper structure.  
+
+A related paper (**2603.08933**) hints at planning integration.  
+The LLM is positioned as post hoc validation before deployment.  
+This structure reduces end-to-end decision authority by the LLM alone.
+
+## Analysis
+This approach emphasizes auditability over raw model cleverness.  
+In high-risk domains, average accuracy can be insufficient.  
+Teams often need traceability for inputs, artifacts, and rationale.  
+
+The NIST AI RMF Core recommends regular testing across lifecycles.  
+It includes testing before deployment and during operation.  
+It also describes **TEVV** as a repeatable practice after measurement.  
+Multi-LLM disagreement can become an observation point within TEVV.  
+Divergence can indicate candidate failure modes.  
+
+Consensus can still introduce risks if misinterpreted as safety.  
+The abstract only says it resolves inconsistencies.  
+Bias and accountability can depend on the chosen rule.  
+Consensus can also strengthen a plausible wrong answer.  
+Models can repeat unsupported reasoning in similar ways.  
+That can amplify confidence rather than evidence.  
+
+Operational concerns remain unverified from the abstract.  
+These include personal data handling and child-protection constraints.  
+They also include logging fields and human approval gates.  
+Field deployment can need more than a consensus algorithm.  
+It can also need evaluation design and control design.  
+
+OpenAI’s eval guide suggests defining supported and blocked cases.  
+This can help manage high-variance generative systems.  
+In public safety, blocked cases can align with SOP design.  
+This can include stopping on conflicting or risky inputs.
+
+## Practical application
+Disagreement handling can matter more than model selection.  
+Workflows can define when to stop and who receives handoff.  
+If a consensus engine manages disagreements, logging can help audits.  
+If consensus fails, the system can hold for human review.  
+Risk signals can include insufficient evidence or conflicting inputs.  
+Evaluation can include domain cost, not only accuracy.  
+One cost could be false positives that waste search resources.  
+TEVV can be treated as a loop, not a one-time validation.  
+It can include re-measurement during operation.
+
+**Checklist for Today:**
+- Define outputs that should trigger holds when models disagree, and route them to human review.  
+- Turn likely failure modes into an eval set, including conflicts and unsupported assertions.  
+- Log holds, edits, and disagreements, and schedule TEVV re-evaluation in operations.  
+
+## FAQ
+**Q1. Is Guardian’s “consensus” majority voting, or an arbiter model?**  
+A1. The abstract for **2603.08954** only says it compares outputs and resolves inconsistencies.  
+It does not describe majority voting, weighted voting, or an arbiter model.
+
+**Q2. Are there numbers showing how much consensus actually reduced errors?**  
+A2. The abstract for **2603.08954** does not provide quantitative error reduction.  
+ReConcile (**2309.13007**) reports up to an **11.4%** improvement with weighted voting.  
+
+**Q3. In high-risk settings like public safety, how should hallucinations be handled operationally?**  
+A3. NIST AI RMF suggests repeatable **TEVV** across pre-deployment and operation.  
+OpenAI’s eval guide suggests defining blocked cases, alongside supported cases.  
+This can help the system stop on conflicting inputs or risky requests.
+
+## Conclusion
+Guardian points toward modular, auditable workflow components.  
+It treats disagreements and uncertainty as recordable artifacts.  
+It also supports stopping and handing off when risks appear.  
+Next, the full paper can clarify consensus rules and evaluation metrics.  
+It can also clarify audit logs and human approval gates beyond the abstract.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+- [Executable Skills Library for Self-Improving RL Agents](/en/posts/executable-skills-library-self-improving-rl-agents)
+- [FuzzingRL Finds VLM Failures via Reinforcement Fine-Tuning](/en/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [Markov Risk Surfaces And RL Search With LLM QA](/en/posts/markov-risk-surfaces-rl-search-llm-qa)
+- [Measure Generative Search Visibility as Distributions, Not KPIs](/en/posts/measure-generative-search-visibility-as-distributions-not-kpis)
+---
+
+## References
+
+- [AI RMF Core - AIRC (NIST AI Risk Management Framework Core excerpt) - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [Evaluation best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evaluation-best-practices)
+- [GenAI - Evaluating Generative AI Technologies | NIST - ai-challenges.nist.gov](https://ai-challenges.nist.gov/genai)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.08954)
+- [ReConcile: Round-Table Conference Improves Reasoning via Consensus among Diverse LLMs (arXiv) - arxiv.org](https://arxiv.org/abs/2309.13007)
+- [ReConcile (ar5iv HTML): Round-Table Conference Improves Reasoning via Consensus among Diverse LLMs - ar5iv.labs.arxiv.org](https://ar5iv.labs.arxiv.org/html/2309.13007)
+- [Interpretable Markov-Based Spatiotemporal Risk Surfaces for Missing-Child Search Planning with Reinforcement Learning and LLM-Based Quality Assurance - arxiv.org](https://arxiv.org/abs/2603.08933)
