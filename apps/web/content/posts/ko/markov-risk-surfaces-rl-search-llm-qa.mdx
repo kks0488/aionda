@@ -1,0 +1,78 @@
+---
+title: '실종 수색, RL+LLM QA 3층 설계'
+slug: markov-risk-surfaces-rl-search-llm-qa
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: ko
+description: 비정형 문서를 스키마화해 마코프 리스크 표면과 RL 수색정책을 만들고 LLM이 QA로 점검한다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-6b3a54ccca1dfe4d
+sourceUrl: 'https://arxiv.org/abs/2603.08933'
+verificationScore: 0.73
+alternateLocale: /en/posts/markov-risk-surfaces-rl-search-llm-qa
+coverImage: /images/posts/markov-risk-surfaces-rl-search-llm-qa.png
+---
+
+비가 막 그친 새벽, 수색팀은 지도에 체크펜을 들고 “어디부터”를 두고 언쟁한다. 실종 사건의 초기 판단은 빠르게 내려지지만, 근거는 흩어져 있다. 신고서, 목격자 진술, 통화 기록, 현장 메모 같은 비정형 문서가 여기저기 흩어져 있고, 그 사이에서 72시간의 골든타임이 지나간다. arXiv 2603.08933v1의 ‘Guardian’은 이런 조각들을 스키마에 정렬된 시공간 표현으로 바꾼다. 그 위에서 해석 가능한 마코프 기반 리스크 표면을 만들고, RL로 수색 계획을 구성한다. 마지막으로 LLM을 “결정”이 아니라 “품질보증(QA)” 역할로 두어 계획을 점검한다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** 비정형 수사 문서를 시공간 상태로 정렬(스키마화)하고, 마코프 기반 리스크 표면 위에서 RL 수색 정책을 만든다. 그다음 LLM이 사후 검증으로 계획을 점검하는 “3층 파이프라인”을 제안한다.  
+- **왜 중요한가?** 공공안전 같은 고위험 도메인에서 LLM을 의사결정 엔진으로 쓰기보다, 검증·감사 레이어로 두는 설계가 안전장치가 될 수 있다. 다만 환각과 과신 문제는 남을 수 있다.  
+- **독자는 뭘 하면 되나?** 문서→스키마→리스크 표면→정책→QA의 인터페이스를 분리해 PoC를 만든다. QA 레이어에는 “모순 탐지/근거 요구/불확실성 표시”를 체크리스트로 넣고, 운영 로그를 남긴다.
+
+## 현황
+Guardian(논문 제목: *Interpretable Markov-Based Spatiotemporal Risk Surfaces for Missing-Child Search Planning with Reinforcement Learning and LLM-Based Quality Assurance*, arXiv:2603.08933)은 실종아동 수사의 “초기 수색 계획”을 겨냥한다. 초록에서 저자들은 첫 72시간이 중요하다고 말한다. 경찰이 겪는 문제로 “단편화된 비정형 데이터”와 “동적으로 업데이트되는 지리 예측 도구의 부재”를 든다. 이에 따라 시스템은 “이질적이고 비정형인 사건 문서”를 “스키마에 정렬된 시공간 표현”으로 바꾸는 단계를 첫 단계로 둔다.
+
+핵심은 ‘해석가능성’을 구조로 확보하려는 방식이다. 논문 초록에 따르면 1층은 마코프 체인이다. 전이(transition)에 **도로 접근성 비용(road accessibility costs)**, **은닉/외딴 장소 선호(seclusion preferences)**, **이동 회랑 편향(corridor bias)**, **주/야 분리 파라미터(day/night parameterizations)** 같은 요인을 포함한다. “왜 그 칸이 위험하냐”를 신경망의 잠재벡터로 숨기기보다, 사람이 읽을 수 있는 전이 요인으로 드러내려는 접근에 가깝다.
+
+3층에서 LLM은 계획을 만드는 주체가 아니다. 초록은 “세 번째 레이어의 LLM이 2층의 수색 계획을 공개하기 전에 사후 검증(post hoc validation)한다”고 설명한다. 역할 배치의 요점은 LLM이 ‘다음 행동을 고르는 손’이 아니라, RL이 만든 계획을 배포 전에 점검하는 단계에 놓인다는 점이다.
+
+## 분석
+이 접근이 말하는 바는 단순하다. 에이전트형 의사결정 지원이 “LLM 하나”로 끝나지 않는다는 점이다. 비정형 입력을 상태로 정렬하고, 리스크를 공간 표면으로 만들고, 그 위에서 정책을 최적화한다. 마지막에 QA를 둬서 결과를 점검하는 파이프라인을 기본형으로 둔다.
+
+특히 마코프 체인을 1층에 둔 선택은, 현장 조직이 요구하는 “설명 가능한 근거”를 제품 요구사항으로 두려는 선택으로 읽힌다. 커널 밀도 기반의 시공간 핫스팟(STKDE) 같은 접근도 시간 차원을 포함하는 방법론(예: 시공간 KDE)을 제시한다. 다만 Guardian은 “전이 요인 기반 설명”을 앞에 둔다. 한편 이 방식이 핫스팟/베이지안 계열 대비 예측력·캘리브레이션에서 더 낫다는 정량 비교는, 제공된 근거 범위에서는 확인되지 않는다.
+
+LLM을 QA로 두면 안전해지느냐는 별개의 문제다. 외부 연구에는 LLM 기반 스키마 최적화/추출 개선을 정량으로 보고한 사례가 있다. 예를 들어 PARSE(arXiv:2510.08623)는 SWDE에서 추출 정확도가 **최대 64.7% 개선**됐고, 첫 재시도 내 추출 오류를 **92% 줄였다**고 보고했다. 하지만 “검증을 붙이면 환각이 사라진다”로 연결되지는 않는다. 환각 탐지 연구(Nature, semantic entropy)는 환각이 **65%에서 50%로 감소**하는 결과를 제시하면서도, 탐지가 “사실성을 보장하지 않는다(does not help ensure factuality)”고 명시한다. Guardian의 3층 QA가 의도한 방향과 별개로, 운영 설계가 없으면 ‘검사관’이 ‘도장 찍는 자동화’로 바뀔 위험이 있다. 예컨대 무엇을 실패로 기록하는지, 어떤 경우에 사람 검토로 되돌리는지, 최종 결정을 누가 내리는지가 빠지면 QA의 의미가 약해진다.
+
+## 실전 적용
+지금 당장 따라 하려면, “최적 정책”부터 목표로 두지 말고 경계면부터 나눠야 한다. 문서 정규화(스키마화), 리스크 표면 생성, 정책 생성(RL), 사후 검증(LLM QA)을 독립 모듈로 둔다. 모듈 간 입출력 스키마를 고정한다.
+
+특히 QA는 “정답 생성”이 아니라 “오류 발견”에 맞춰 설계한다. 예컨대 시간·지리 모순(같은 시간대에 불가능한 이동), 문서 근거 없는 가정, 주/야 파라미터와의 불일치 같은 항목을 체크리스트로 둔다. LLM이 ‘확신’이 아니라 ‘근거 위치’를 내놓게 요구하는 방식이 된다.
+
+예: 한 사건에서 입력 문서에 “마지막 목격은 야간, 도보”라는 진술이 있다. 그런데 계획이 주간 파라미터 기반의 장거리 이동 회랑을 상위 우선순위로 올린다. 이때 QA 레이어가 “주/야 파라미터 불일치”로 플래그를 올린다. 담당자가 근거 문서를 다시 확인하는 흐름으로 연결한다.
+
+**오늘 바로 할 일 체크리스트**
+- 비정형 문서에서 뽑아낼 최소 스키마(시간, 위치, 이동수단, 신뢰도/출처)를 정의한다. 스키마 밖 정보는 “미정”으로 남기는 규칙을 문서화한다.  
+- 리스크 표면의 전이 요인을 도로 접근성·은폐 선호·회랑 편향·주/야처럼 설명 가능한 항목으로 먼저 제한한다.  
+- LLM QA에 “근거 인용(문서 조각) 없으면 경고”와 “모순 항목(시간/지리/파라미터) 우선 탐지”를 포함한다. 경고/무시/수정의 로그를 남긴다.
+
+## FAQ
+**Q1. LLM을 QA 레이어로 두면 실제 오류가 얼마나 줄어듭니까?**  
+A1. 특정 시스템(Guardian)에서 오류 감소 수치는 제공된 근거 범위에서 확인되지 않습니다. 다만 다른 연구인 PARSE(arXiv:2510.08623)는 SWDE에서 추출 정확도 최대 64.7% 개선과 첫 재시도 내 추출 오류 92% 감소를 보고합니다.
+
+**Q2. QA를 붙여도 환각은 남습니까?**  
+A2. 남습니다. Nature의 환각 탐지 연구는 환각이 65%에서 50%로 줄어드는 결과를 제시하지만, 탐지가 “사실성을 보장하지 않는다(does not help ensure factuality)”고 명시합니다.
+
+**Q3. Guardian의 ‘마코프 기반 리스크 표면’은 현실 수색 요인을 어떻게 반영합니까?**  
+A3. 논문 초록에 따르면 전이에 도로 접근성 비용, 은닉/외딴 장소 선호, 이동 회랑 편향, 주/야 분리 파라미터 같은 요인을 포함합니다. 다만 RL의 보상 함수가 인력·제약조건을 어떤 형태로 반영하는지, 현장 일반화를 어떻게 평가했는지는 제공된 초록 범위에서는 확인되지 않습니다.
+
+## 결론
+Guardian이 제안하는 핵심은 “LLM로 결정하지 말고, 결정 과정을 정렬하고 감사하라”는 설계 철학이다. 다음 관전 포인트는 이 파이프라인이 운영에서 실패를 어떻게 기록하고 되돌리는지다. 로그·감사·책임선이 제품 수준으로 구체화되는지도 함께 봐야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-11](/ko/posts/ai-resources-roundup-2026-03-11)
+- [실행 코드 스킬 라이브러리](/ko/posts/executable-skills-library-self-improving-rl-agents)
+- [VLM 실패를 만드는 퍼징 강화학습](/ko/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [생성형 검색 가시성, KPI를 분포로 측정하라](/ko/posts/measure-generative-search-visibility-as-distributions-not-kpis)
+- [OCL에서 라우팅으로 망각 줄이기](/ko/posts/routing-gating-stable-online-continual-learning)
+---
+
+## 참고 자료
+
+- [PARSE: LLM Driven Schema Optimization for Reliable Entity Extraction - arxiv.org](https://arxiv.org/abs/2510.08623)
+- [Detecting hallucinations in large language models using semantic entropy - nature.com](https://www.nature.com/articles/s41586-024-07421-0)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.08933)
+- [A Spatio-Temporal Kernel Density Estimation Framework for Predictive Crime Hotspot Mapping and Evaluation - arxiv.org](https://arxiv.org/abs/2006.00272)
