@@ -1,0 +1,151 @@
+---
+title: 'Measure Generative Search Visibility as Distributions, Not KPIs'
+slug: measure-generative-search-visibility-as-distributions-not-kpis
+date: '2026-03-11'
+lastReviewedAt: '2026-03-11'
+locale: en
+description: >-
+  Because citations can be non-deterministic, treat visibility as a sampled
+  distribution and compare it statistically over time.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-5c468547eaf017fd
+sourceUrl: 'https://arxiv.org/abs/2603.08924'
+verificationScore: 0.75
+alternateLocale: /ko/posts/measure-generative-search-visibility-as-distributions-not-kpis
+coverImage: >-
+  /images/posts/measure-generative-search-visibility-as-distributions-not-kpis.png
+---
+
+A recurring KPI report shows a domain’s citations rising in one run and falling in the next.  
+That swing can make a single “visibility” number hard to interpret.  
+Can we expect an LLM answer engine to cite the same sources each time.  
+The arXiv paper *“Quantifying Uncertainty in AI Visibility: A Statistical Framework for Generative Search Measurement”* (arXiv:2603.08924v1) treats citations as non-deterministic.  
+It proposes visibility as a distribution, not a single score.  
+That choice affects evaluation, monitoring, and audit systems.
+
+## TL;DR
+- Visibility in generative search can be measured as a distribution via repeated sampling, not one run.  
+- This can help separate noise from drift in KPIs like citation share or appearance rate.  
+- Re-run identical queries, log outputs, and compare distributions across time windows.  
+
+Example: A team checks an answer engine and sees different cited sources for the same query. They debate whether the change reflects real drift or random variation.
+
+## Current state
+Generative search engines may not produce identical outputs for identical inputs.  
+The abstract of arXiv:2603.08924v1 describes this as non-determinism.  
+The same query at different times can yield different answers and cited sources.  
+Domain visibility is often treated as a fixed value from one run.  
+That framing can hide variance.
+
+This issue can extend beyond report formatting.  
+The measured object can shift from rankings to probabilistic outcomes.  
+A citation list from one run is a snapshot.  
+Snapshots can obscure variance between runs.  
+Operations teams may still say, “citations decreased this week.”  
+That statement can mix multiple causes.  
+Possible causes include sampling fluctuation, model or environment changes, or pipeline changes.
+
+Evaluation research has discussed degradation over time.  
+arXiv:2508.05452 introduces LLMEval-3 as a dynamic evaluation framework.  
+arXiv:2402.11894 argues benchmarks can be updated when mastered or leaked.  
+Visibility measurement can show similar instability over time.
+
+## Analysis
+The paper’s main shift is the unit of visibility.  
+Many KPIs compare single measurements across time.  
+Examples include week-over-week comparisons and A/B tests.  
+If observations are distributions, comparisons can focus on distribution shifts.  
+A shift can include mean changes or shape changes.
+
+Repeated sampling at a fixed point can estimate inherent fluctuation.  
+That fluctuation can be treated as a noise floor.  
+Later samples can be compared against that baseline.  
+This can add evidence for separating drift from variability.
+
+There are trade-offs.
+- Repeated runs can increase API cost, time, and infrastructure needs.  
+- Metrics can become more complex than a single number.  
+- Confidence intervals, variance, and coverage can require careful reporting.  
+- Citation correctness remains a separate measurement problem.  
+- A citation link may not imply correct evidence.  
+- Visibility can include appearance and correctness.  
+- That can require labeling or verification.
+
+An If/Then framing can guide decision memos.
+- **If** generative search is treated as brand or regulatory risk, **then** measurement can be auditable instrumentation.  
+- **If** the goal is campaign optimization, **then** noise floors can reduce overreaction to single-run changes.  
+- In both cases, logs can support interpretation and review.
+
+Concrete anchors from the cited evidence include arXiv:2603.08924v1, arXiv:2508.05452, and arXiv:2402.11894.  
+These identifiers support traceability to specific documents.
+
+## Practical application
+A practical change is reducing reliance on single measurements.  
+Under the same configuration, re-run identical queries repeatedly.  
+Use those runs to form a baseline distribution.  
+Then compare later distributions, not only snapshots.
+
+Dynamic evaluation ideas may also apply.  
+A fixed query set can become stale over time.  
+arXiv:2508.05452 and arXiv:2402.11894 discuss update-oriented evaluation designs.  
+A visibility program can plan for query-set updates.  
+That plan can be logged and reviewed.
+
+Citation quality can also be tracked alongside appearance.  
+Visibility can be treated as appearance times quality probability.  
+Quality probabilities can be estimated with validator judgments.  
+Dawid–Skene-style aggregation is often used for noisy labelers.  
+Selective prediction methods can model coverage–risk trade-offs.  
+These additions can be reported separately from appearance metrics.
+
+**Checklist for Today:**
+- Re-run the same query set repeatedly under one configuration and log each output.  
+- Compare distributions across time windows, rather than comparing single-run values.  
+- Add a separate citation-correctness check, and report it alongside appearance.  
+
+## FAQ
+**Q1. How do you separate drift versus sampling variability?**  
+A1. Re-run the same queries under the same configuration to estimate a baseline distribution.  
+Then re-run after changes and compare the distributions using statistical tests.  
+This can include mean shifts or shape shifts.
+
+**Q2. If citations can be wrong, does visibility still matter?**  
+A2. Appearance alone may not capture what readers experience.  
+Track citation correctness as a separate probability.  
+Combine appearance and correctness in parallel reporting.  
+Use multi-rater judgments or automated verification as inputs.
+
+**Q3. Why can a static query set be a problem over time?**  
+A3. Benchmarks can be mastered or leaked.  
+That can reduce how representative results feel.  
+arXiv:2402.11894 discusses updating benchmarks for timely evaluation.  
+arXiv:2508.05452 discusses dynamic evaluation for long-term tracking.
+
+## Conclusion
+Visibility in generative search can be treated as probabilistic observation.  
+arXiv:2603.08924v1 argues single-value KPIs can blur improvement and deterioration.  
+A next step is repeated sampling with change detection.  
+Another step is tracking citation quality alongside appearance.  
+Together, these can support more cautious interpretation of visibility shifts.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+- [Executable Skills Library for Self-Improving RL Agents](/en/posts/executable-skills-library-self-improving-rl-agents)
+- [FuzzingRL Finds VLM Failures via Reinforcement Fine-Tuning](/en/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [Routing and Gating for Stable Online Continual Learning](/en/posts/routing-gating-stable-online-continual-learning)
+- [Self-Amplifying R&D Loops And Alignment-Faking Risk Signals](/en/posts/self-amplifying-rd-loops-and-alignment-faking-risk-signals)
+---
+
+## References
+
+- [Dataset Creation and Curation · Introduction to Data-Centric AI - dcai.csail.mit.edu](https://dcai.csail.mit.edu/2024/dataset-creation-curation/)
+- [Obtaining Well Calibrated Probabilities Using Bayesian Binning - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC4410090/)
+- [LLMEval-3: A Large-Scale Longitudinal Study on Robust and Fair Evaluation of Large Language Models - arxiv.org](https://arxiv.org/abs/2508.05452)
+- [Automating Dataset Updates Towards Reliable and Timely Evaluation of Large Language Models - arxiv.org](https://arxiv.org/abs/2402.11894)
+- [SelectiveNet: A Deep Neural Network with an Integrated Reject Option - arxiv.org](https://arxiv.org/abs/1901.09192)
+- [Overcoming Common Flaws in the Evaluation of Selective Classification Systems - arxiv.org](https://arxiv.org/abs/2407.01032)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.08924)
