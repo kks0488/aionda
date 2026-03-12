@@ -1,0 +1,161 @@
+---
+title: Rethinking Research Automation Forecasts Beyond Speed And Accuracy Metrics
+slug: rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics
+date: '2026-03-12'
+lastReviewedAt: '2026-03-12'
+locale: en
+description: >-
+  Don’t equate tokens/sec or speedups with research automation; fix success,
+  time budget, retries, and verification to forecast.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: '1049451'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1049451'
+verificationScore: 0.76
+alternateLocale: >-
+  /ko/posts/rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics
+coverImage: >-
+  /images/posts/rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics.png
+---
+
+Numbers like a 2.15× speed improvement can influence research automation forecasts.  
+Numbers like 1.1K tokens/sec and 2.35× throughput can also shape expectations.  
+These numbers often measure system throughput, not research work itself.  
+Some metrics track success under constrained tasks.  
+An example is “80% within 1 hour and 10 minutes.”  
+Claims like “doubling every 4 months” can seem plausible.  
+They can omit verification conditions and task definitions.  
+A better approach starts with benchmark-level definitions.  
+It asks what was automated and by how much.
+
+## TL;DR
+- Forecasts often mix units like exact-match scores and tokens/sec, which can blur what “automation” means.  
+- Benchmarks like GAIA and RE-Bench define units, such as exact-match and 71 eight-hour trials across 7 environments.  
+- Bundle success rules and constraints, then fit growth models conditionally under unchanged evaluation conditions.  
+
+Example: A product team sees faster model outputs and expects smoother research workflows. They pilot a tool-using agent and compare results to human work. They treat the agent as a collaborator and watch for verification gaps. The team revises the workflow until errors become easier to detect.
+
+## TL;DR
+- **What changed / what is the core issue?** Forecasts often assume periodic doubling for “research automation.”  
+  What was measured can be unclear, including success rules and time budgets.  
+- **Why does it matter?** Benchmarks define the measurement unit and correctness rule.  
+  RE-Bench reports 7 environments, 71 eight-hour trials, and 61 expert humans.  
+- **What should readers do?** Bundle success rate, time budget, retry rules, and verification cost.  
+  Fit growth curves only under the same conditions, using If/Then decision rules.  
+
+## Current state
+In research-assistance evaluations, “solved or not” often needs tighter definition.  
+GAIA states it evaluates agents by exact-match correctness.  
+This definition can look simple.  
+It can still become blurred in automation forecasting.  
+Some jump from “faster” or “smarter” to “research is automated.”  
+Benchmarks usually do not imply that leap.
+
+A second axis is the resource constraint.  
+RE-Bench targets an evaluation closer to research automation.  
+It describes 7 open-ended ML research-engineering environments.  
+It reports 71 eight-hour trials.  
+It includes data from 61 human experts.  
+Research work is iterative under a limited time budget.  
+It includes tool use and repeated verification.
+
+Time and throughput metrics appear frequently in systems papers.  
+BASS reports throughput like 1.1K tokens per second.  
+BASS also reports a 2.15× speed-up.  
+Splitwise reports 2.35× more throughput.  
+It states this is under the same cost and power budgets.  
+These figures usually describe generation and inference infrastructure speed.  
+They do not directly measure research automation outcomes.  
+Forecasting needs translation rules from throughput to task procedure changes.
+
+## Analysis
+Exponential-growth assumptions get fragile when units mix.  
+Exact-match correctness, tokens/sec, and eight-hour trial data differ.  
+Forecasts still connect them as if they were comparable.  
+A common chain is “faster, then more accurate, then automated.”  
+That chain can skip several components of research automation.  
+These include task scope and tool use.  
+They include retry policies and verification or reproducibility.  
+They include time and budget constraints.  
+Missing pieces can reduce “automation” to throughput comparisons.
+
+Scaling-law work is also not direct evidence of unbounded exponential improvement.  
+Kaplan et al. (2020) argue loss scales as a power-law.  
+This scaling is with model size, data, and compute.  
+Marginal gains can change as scale increases.  
+Kaplan also notes loss can flatten before reaching zero.  
+Hoffmann et al. (2022) discuss undertraining with fixed-data scaling.  
+They propose a compute-optimal view under a compute budget.  
+This view grows model size and tokens together.  
+A practical framing is allocation under constraints.  
+Constraints include data, compute, and verification cost.
+
+## Practical application
+Decision support improves when the metric is not compressed to one number.  
+Answer-type tasks can use exact-match correctness, as in GAIA.  
+These can be grouped as answer-type automation.  
+RE-Bench-style environments can be treated as process-type automation.  
+RE-Bench includes 7 environments and 71 eight-hour trials.  
+Speed-family metrics need separate handling.  
+Examples include 1.1K tokens/sec and 2.35× throughput.  
+These metrics can mean more attempts under the same policy.  
+They do not automatically imply more automation.  
+Comparisons should track success-rate curves under fixed time budgets.  
+They should report how curves shift, not only throughput changes.
+
+**Checklist for Today:**
+- Document the metric bundle: success definition, time budget, retry rules, and verification stage.  
+- Separate GAIA-style exact-match tasks from RE-Bench-style process tasks with 7 environments and 71 eight-hour trials.  
+- Treat 1.1K tokens/sec, 2.15×, and 2.35× as attempt capacity, then check success under the same budget.  
+
+## FAQ
+**Q1. Why does expressing “research automation” as a single number break down?**  
+A1. Research often does not end with an exact-match outcome.  
+Time budgets, retries, and verification steps affect results.  
+A single number can hide what was automated.  
+It can hide whether verification was included.
+
+**Q2. Do we need to discard assumptions like “doubling every 4 months”?**  
+A2. Not necessarily.  
+Conditions should stay fixed across measurements.  
+These include task, success definition, time budget, and retry rules.  
+It can help to compare exponential fits with saturation fits.  
+Kaplan et al. (2020) discuss flattening before zero loss.
+
+**Q3. How should we use throughput numbers like 2.15× and 2.35×?**  
+A3. They often mean “generate faster” or “process more.”  
+They can be treated as “more attempts with the same policy.”  
+Automation claims also need success improvements.  
+They should be measured under the same time budget.  
+Verification-pass rates can also be tracked.
+
+## Conclusion
+Time-to-research-automation discussions depend on measurement units.  
+Units should come before choosing a growth-rate model.  
+GAIA defines exact-match correctness as a unit.  
+RE-Bench defines a unit with 7 environments and 71 eight-hour trials.  
+Only then can exponential and saturation assumptions be compared.  
+Decision-making can stay conditional, using If/Then statements.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-12](/en/posts/ai-resources-roundup-2026-03-12)
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+- [Executable Skills Library for Self-Improving RL Agents](/en/posts/executable-skills-library-self-improving-rl-agents)
+- [FuzzingRL Finds VLM Failures via Reinforcement Fine-Tuning](/en/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [LLM Orchestrates Superconducting Qubit Control And Measurement Experiments](/en/posts/llm-orchestrates-superconducting-qubit-control-and-measurement-experiments)
+---
+
+## References
+
+- [gaia — Reliability Dashboard - hal.cs.princeton.edu](https://hal.cs.princeton.edu/reliability/benchmark/gaia/)
+- [Splitwise: Efficient Generative LLM Inference Using Phase Splitting - cs.cmu.edu](https://www.cs.cmu.edu/~18742/papers/Patel2024.pdf)
+- [RE-Bench: Evaluating frontier AI R&D capabilities of language model agents against human experts - arxiv.org](https://arxiv.org/abs/2411.15114)
+- [BASS: Batched Attention-optimized Speculative Sampling - arxiv.org](https://arxiv.org/abs/2404.15778)
+- [Scaling Laws for Neural Language Models (Kaplan et al., 2020) [arXiv abstract page] - arxiv.org](https://arxiv.org/abs/2001.08361)
+- [Training Compute-Optimal Large Language Models (Hoffmann et al., 2022) [arXiv abstract page] - arxiv.org](https://arxiv.org/abs/2203.15556)

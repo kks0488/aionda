@@ -1,0 +1,79 @@
+---
+title: '연구 자동화 예측, 지표부터 다시 묻기'
+slug: rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics
+date: '2026-03-12'
+lastReviewedAt: '2026-03-12'
+locale: ko
+description: '처리량·정확도 수치를 연구 자동화로 단정하지 말고, 성공률·시간·검증 조건을 고정해 예측하자.'
+tags:
+  - llm
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: '1049451'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1049451'
+verificationScore: 0.76
+alternateLocale: >-
+  /en/posts/rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics
+coverImage: >-
+  /images/posts/rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics.png
+---
+
+2.15배 속도 향상, 1.1K tokens/sec, 2.35× 처리량 같은 숫자는 “연구 자동화가 곧 지수적으로 늘어난다”는 예측을 쉽게 만든다. 하지만 그 숫자들은 대개 ‘연구’ 자체가 아니라 생성·추론 시스템의 처리 성능이거나, 제한된 과제에서의 성공률이다. 지표가 “80%를 1시간 10분 안에”처럼 요약되면, ‘4개월마다 2배’ 같은 스케일링 가정은 그럴듯해 보이지만 검증 조건이 빠진 주장으로 남는다. 지금 필요한 건 낙관이나 비관이 아니라, **무엇을 얼마나 자동화했다고 말할 수 있는지**를 벤치마크 수준에서 다시 정의하는 일이다.
+
+## 세 줄 요약
+- **무슨 변화/핵심이슈인가?** ‘연구 자동화 도달 시점’을 “주기적 2배” 같은 지수 성장 가정으로 점치려는 접근이 늘지만, 무엇을 측정했는지(성공률·시간 예산·정답 정의)가 불명확한 경우가 많다.  
+- **왜 중요한가?** GAIA(정답 exact-match), RE-Bench(7개 환경·71번의 8시간 시도·61명 전문가 데이터)처럼 벤치마크는 측정 단위를 고정한다. 예측이 그 단위를 무시하면 투자·채용·제품 로드맵이 특정 숫자에 과도하게 맞춰질 수 있다.  
+- **독자는 뭘 하면 되나?** “성공률×시간 예산×재시도 규칙×검증 비용”을 한 묶음으로 고정한다. 같은 조건에서만 성장률을 피팅하고(지수 vs 포화), 예측은 **조건부(If/Then)**로만 의사결정에 반영한다.
+
+## 현황
+연구 보조·자동화 성격의 평가에서 먼저 고정하는 것은 “정답/해결 여부”다. GAIA는 에이전트를 **정답 exact-match 정확도**로 평가한다고 문서에 적는다. 이 정의는 단순해 보이지만, 자동화 예측에서 자주 흐려진다. “더 빨라졌다/더 똑똑해졌다”를 바로 “연구가 자동화된다”로 옮기는 경우가 있다. 하지만 벤치마크는 보통 이런 도약을 전제로 하지 않는다.
+
+두 번째로 고정되는 축은 자원 제약이다. RE-Bench는 “연구 자동화”와 가까운 평가를 목표로 한다. **7개의 오픈엔드 ML 연구공학 환경**을 두고, **61명**의 인간 전문가가 수행한 **71번의 8시간 시도** 데이터를 포함한다고 적는다. 여기서의 핵심은 연구가 한 번의 정답 제출로 끝나지 않는다는 점이다. 제한된 시간 안에서 시행착오·도구 사용·검증을 반복하는 작업으로 구성된다.
+
+성능을 시간/처리량으로 표현하는 쪽은 시스템 논문에서 더 자주 나온다. BASS는 **1.1K tokens per second** 처리량과 **2.15X speed-up** 같은 형태로 속도를 보고한다. Splitwise는 **2.35× more throughput**을 “same cost and power budgets”에서 달성한다고 쓴다. 다만 이런 수치는 ‘연구 자동화’ 자체라기보다, 주로 **생성·추론 인프라의 속도/처리량**을 가리킨다. 이를 연구 자동화 예측에 쓰려면, 어떤 작업 절차가 어떻게 바뀌는지에 대한 번역 규칙이 필요하다.
+
+## 분석
+지수 성장 가정이 문제가 되는 지점은, 측정 단위가 섞일 때다. “정답 exact-match 정확도”, “tokens/sec”, “8시간 시도 데이터”는 서로 다른 성격의 값이다. 그럼에도 예측에서는 이를 한 줄로 이어 붙이곤 한다. 예를 들면 모델이 빨라지고(예: 2.15X), 정확해지고(예: exact-match), 그러니 연구가 자동화된다는 식이다. 하지만 연구 자동화는 최소한 (1) 과제 범위, (2) 도구 사용, (3) 실패 후 재시도 정책, (4) 검증/재현성, (5) 시간·예산 제약을 함께 포함해야 한다. 이 중 일부가 빠지면 “자동화”라는 말은 처리량 비교로 축소된다.
+
+스케일링 법칙 문헌도 ‘무한한 지수 성장’을 직접 지지하는 형태로 읽기 어렵다. Kaplan et al.(2020)은 손실이 모델·데이터·컴퓨트에 대해 **power-law**로 스케일된다고 말한다. 이는 개선이 계속되더라도 증가분이 일정하지 않을 수 있음을 뜻한다. 또한 Kaplan은 손실이 0으로 가기 전에 **flatten out**이 온다고도 적는다. Hoffmann et al.(2022)은 데이터 고정 스케일링이 언더트레이닝을 낳았다고 지적하며, 컴퓨트 예산 하에서 모델과 토큰을 함께 늘리는 **compute-optimal** 관점을 제시한다. 여기서의 실무적 교훈은 “시간에 따라 2배” 같은 단일 가정보다, **제약(데이터/컴퓨트/검증 비용) 아래에서 최적 배분이 바뀐다**는 프레임을 함께 두는 편이 낫다는 점이다.
+
+## 실전 적용
+의사결정 관점에서 ‘연구 자동화 예측’을 다시 세우려면, 지표를 하나로 압축하지 않는 것부터 시작한다. GAIA처럼 **정답 exact-match**가 가능한 과제는 “정답형 자동화”로 묶는다. RE-Bench처럼 **오픈엔드 연구공학 환경**은 “프로세스형 자동화”로 분리한다. 그리고 속도 계열(예: 1.1K tokens/sec, 2.35× throughput)은 ‘자동화’가 아니라 **동일 정책을 더 자주 시도할 수 있는 능력**으로만 취급한다. 자동화 예측은 “성능 향상 → 시간 절감”이 아니라 “시간 예산 내 성공률 곡선이 어떻게 이동했나”로 기록해야 조건 비교가 가능해진다.
+
+예: 팀이 “문헌 조사+실험 스크립트 수정+결과 검증” 루프의 자동화를 목표로 한다면, 먼저 사내 미니 RE-Bench를 만든다. 각 시도는 8시간처럼 고정된 작업 시간 슬롯으로 나눈다. 성공 조건은 “정답 제출”이 아니라 “재현 가능한 결과물 생성”으로 둔다. 그다음 에이전트 정책을 고정한다(도구, 프롬프트, 재시도 제한). 마지막으로 인프라 개선(BASS나 Splitwise류의 처리량 개선)을 적용했을 때 “같은 시간 예산에서 성공률이 오르는지”를 본다. 이때 개선이 속도만의 변화라면, 자동화가 아니라 “실패를 더 빨리 반복”했을 가능성도 함께 고려해야 한다.
+
+오늘 바로 할 일 체크리스트 3개  
+- “연구 자동화” 지표를 **(성공률 정의 + 시간 예산 + 재시도/샘플링 규칙 + 검증 단계)** 4튜플로 문서화한다. 이 조건이 바뀌면 다른 실험으로 취급한다.  
+- GAIA( exact-match )처럼 정답형 과제와 RE-Bench( 7개 환경, 8시간 시도 데이터 )처럼 프로세스형 과제를 분리한다. 예측 모델(지수/포화)은 각각 따로 피팅한다.  
+- 처리량 개선 수치(예: 1.1K tokens/sec, 2.15X, 2.35×)는 “작업 자동화”가 아니라 “시도 횟수 증가”로만 번역한다. 성공률이 따라오지 않으면 자동화 지표에서 제외한다.
+
+## FAQ
+**Q1. ‘연구 자동화’를 한 숫자로 표현하면 왜 자꾸 망가집니까?**  
+A1. 연구는 정답형 과제처럼 exact-match로 끝나지 않는 경우가 많습니다. 시간 예산·재시도·검증(재현성 확인) 같은 절차가 결과에 영향을 줍니다. 한 숫자로 줄이면 무엇을 자동화했는지(정답 생성인지, 과정 수행인지, 검증까지 포함인지)가 사라집니다.
+
+**Q2. ‘4개월마다 2배’ 같은 가정을 완전히 버려야 합니까?**  
+A2. 버릴 필요는 없습니다. 다만 조건을 엄격히 걸어야 합니다. 같은 과제, 같은 성공 정의, 같은 시간 예산, 같은 재시도 규칙에서 관측된 지표에만 지수 모델을 맞춰야 합니다. Kaplan et al.(2020)이 언급한 flatten out 가능성처럼 포화 가능성도 함께 비교해야 합니다.
+
+**Q3. 속도/처리량 논문의 수치(예: 2.15X, 2.35×)는 연구 자동화에 어떻게 써야 합니까?**  
+A3. 그 수치는 보통 “더 빨리 생성합니다/더 많이 처리합니다”를 뜻합니다. 연구 자동화에서는 “동일 정책으로 더 많은 시도를 할 수 있습니다”로만 해석하는 편이 안전합니다. 자동화를 주장하려면 같은 시간 예산에서 성공률이나 산출물의 검증 통과율이 함께 개선되는지도 확인해야 합니다.
+
+## 결론
+연구 자동화의 도달 시점을 논의할 때는 “성장률”보다 “측정 단위”가 먼저다. GAIA의 exact-match, RE-Bench의 7개 환경과 71번의 8시간 시도 같은 고정된 단위 위에서만, 지수 가정과 포화 가정을 나란히 두고 의사결정에 반영하는 편이 안전하다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-12](/ko/posts/ai-resources-roundup-2026-03-12)
+- [AI 자료 모음 (24h) - 2026-03-11](/ko/posts/ai-resources-roundup-2026-03-11)
+- [실행 코드 스킬 라이브러리](/ko/posts/executable-skills-library-self-improving-rl-agents)
+- [VLM 실패를 만드는 퍼징 강화학습](/ko/posts/fuzzingrl-finds-vlm-failures-via-reinforcement-fine-tuning)
+- [LLM-초전도 큐비트 실험 오케스트레이션](/ko/posts/llm-orchestrates-superconducting-qubit-control-and-measurement-experiments)
+---
+
+## 참고 자료
+
+- [gaia — Reliability Dashboard - hal.cs.princeton.edu](https://hal.cs.princeton.edu/reliability/benchmark/gaia/)
+- [Splitwise: Efficient Generative LLM Inference Using Phase Splitting - cs.cmu.edu](https://www.cs.cmu.edu/~18742/papers/Patel2024.pdf)
+- [RE-Bench: Evaluating frontier AI R&D capabilities of language model agents against human experts - arxiv.org](https://arxiv.org/abs/2411.15114)
+- [BASS: Batched Attention-optimized Speculative Sampling - arxiv.org](https://arxiv.org/abs/2404.15778)
+- [Scaling Laws for Neural Language Models (Kaplan et al., 2020) [arXiv abstract page] - arxiv.org](https://arxiv.org/abs/2001.08361)
+- [Training Compute-Optimal Large Language Models (Hoffmann et al., 2022) [arXiv abstract page] - arxiv.org](https://arxiv.org/abs/2203.15556)
