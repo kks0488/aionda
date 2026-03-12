@@ -1,0 +1,77 @@
+---
+title: '산업 LLM 환각, 재현성으로 본다'
+slug: epistemic-stability-industrial-llm-hallucination-control
+date: '2026-03-12'
+lastReviewedAt: '2026-03-12'
+locale: ko
+description: '산업 현장 LLM 환각을 정확도보다 재현성 문제로 보고, 출력 분산을 줄이는 5가지 프롬프트 전략을 비교한다.'
+tags:
+  - llm
+  - explainer
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-26ca53af84274df3
+sourceUrl: 'https://arxiv.org/abs/2603.10047'
+verificationScore: 0.75
+alternateLocale: /en/posts/epistemic-stability-industrial-llm-hallucination-control
+coverImage: /images/posts/epistemic-stability-industrial-llm-hallucination-control.png
+---
+
+엔지니어가 설계 변경안을 LLM에 넣고 같은 프롬프트를 다시 실행했는데, 이번에는 부품 규격이 조금 달라진 답이 나온다. ERP 운영팀이 “정답”처럼 보이는 숫자를 복사해 결재 라인에 올리려다, 재실행할 때마다 값이 달라져 멈칫한다. IoT 텔레메트리 요약은 문장은 그럴듯하지만 원인 추정이 실행마다 바뀐다. 산업 현장에서 환각(hallucination)이 위험한 이유는 “틀린 답”뿐 아니라 “같은 절차로도 결과가 흔들리는 것”에 있다.
+
+## 세 줄 요약
+- 산업 현장에서 LLM 환각을 “정확도”만의 문제가 아니라 “출력 분산(재현성)” 문제로 보고, 이를 줄이기 위한 5가지 프롬프트 전략을 비교하는 흐름을 다룬다.  
+- 같은 입력을 여러 번 실행할 때 결과가 달라지면 설계·ERP·IoT 같은 고위험 업무에서 승인·감사·자동화가 흔들린다. 그래서 ‘에피스테믹 안정성(일관된 절차로 일관된 결과)’이 품질 지표로 논의된다.  
+- 오늘부터는 (1) 동일 입력 반복 실행으로 합의율을 측정하고 (2) 프롬프트를 “트릭”이 아니라 표준 절차로 고정하며 (3) 지식집약 업무는 RAG/툴/검증 단계를 어디에 붙일지 경계를 문서화하라.  
+
+## 현황
+arXiv 논문 “Toward Epistemic Stability: Engineering Consistent Procedures for Industrial LLM Hallucination Reduction”(arXiv:2603.10047)은 산업 환경(초록에 따르면 engineering design, enterprise resource planning, IoT telemetry platforms)에서 LLM 환각이 “지속적인 장애물”이라고 정의한다. 이 논문은 출력이 그럴듯하게 보이더라도 사실 오류나 문맥 불일치가 섞일 수 있다는 전제를 둔다. 또한 이를 “한 번의 정답” 문제가 아니라 “반복 실행에서의 흔들림(variance)” 문제로 다룬다. 초록에는 분산을 낮춰 “repeatable, grounded results”에 가까워지기 위한 프롬프트 엔지니어링 전략 5가지를 제시·비교한다고 적었다.
+
+초록에서 확인되는 5가지 방법은 다음과 같다: (M1) Iterative Similarity Convergence, (M2) Decomposed Model-Agnostic Prompting, (M3) Single-Task Agent Specialization, (M4) Enhanced Data Registry, (M5) Domain Glossary Injection. 다만 web_search_preview로 확인 가능한 범위(초록)만으로는 각 방법의 구체 절차·의사코드·제약 조건이 충분히 드러나지 않는다. 그래서 이 글은 각 이름이 암시하는 운영적 의미(표준화/분해/역할 고정/데이터 레지스트리/용어 주입)를 “절차공학 관점”에서 해석하되, 논문 본문에 있는 세부 설계를 사실처럼 단정하지 않는다.
+
+실험 설계에 대한 단서는 초록에 있다. 이 논문은 5가지 방법을 “LLM-as-Judge framework”로 평가했고, 방법별로 “100 repeated runs per method”를 수행했으며, 조건으로 “same fixed task prompt, stochastic decoding at τ = 0.7”를 명시했다. 여기서 핵심은 ‘1회 성능’이 아니라 ‘100회 반복에서의 분포’를 본다는 점이다. 같은 프롬프트를 고정해도 확률적 디코딩(τ=0.7) 아래에서 출력이 흔들릴 수 있음을 실험 전제에 포함한 셈이다.
+
+## 분석
+산업 적용에서 환각을 “정답률”만으로 관리하면, 위험이 운영 과정에 남을 수 있다. 정답률이 높더라도 실행마다 답이 바뀌면 프로세스가 흔들린다. 승인 워크플로는 “왜 이 값이 나왔는지”를 묻는다. 재실행 시 다른 값이 나오면 설명과 재현이 어려워진다. 그래서 이 논문이 말하는 “에피스테믹 안정성”은 LLM을 ‘언어 모델’만으로 보지 않고 ‘절차를 따르는 작업자’로 취급하자는 주장에 가깝다. 프롬프트 트릭을 모으기보다, 표준화된 절차로 재현성을 관리하자는 방향이다.
+
+다만 초록 기반으로는 한계도 남는다. 첫째, 5가지 전략이 실제로 어떤 메커니즘으로 분산을 줄이는지(어떤 제약이 어떤 종류의 흔들림을 줄이는지)는 확인 범위 밖이다. 둘째, LLM-as-a-judge는 반복 실험을 수행하기에는 편하지만, 판정 기준 자체가 모델의 편향이나 표현 선호에 영향을 받을 수 있다. 셋째, 프롬프트 절차만으로 커버되는 영역과, 검색 기반 생성(RAG)·툴 호출·검증기(critic) 결합이 필요한 영역은 다르다. RAG는 지식집약 태스크에서 provenance(근거/출처)와 업데이트 가능성을 제공한다는 장점이 알려져 있다. 다만 TechCrunch는 “RAG가 환각을 해결하지 못한다”는 문제를 짚었고, RAG 시스템도 근거가 있어도 환각이 남을 수 있다는 연구도 있다. 따라서 “절차를 잘 짜면 끝”이라고 보기보다는, 업무 성격에 맞춰 grounding과 검증을 어디에 걸지 설계해야 한다.
+
+## 실전 적용
+프롬프트 절차공학의 핵심은 “한 번 잘 쓰는 프롬프트”가 아니라 “누가 실행해도 같은 방식으로 실행하는 절차”다. 초록에 나온 5가지 이름을 운영 언어로 바꾸면 이런 그림이 된다: (1) 답을 한 번에 내지 말고 반복 수렴시키는 흐름(M1), (2) 큰 과제를 분해해 단계별 산출물을 고정하는 흐름(M2), (3) 역할/에이전트를 단일 과업으로 제한해 변수를 줄이는 흐름(M3), (4) 사용할 데이터/정의/테이블을 ‘레지스트리’로 고정하는 흐름(M4), (5) 도메인 용어를 주입해 애매한 단어의 해석 분산을 줄이는 흐름(M5). 이는 성능 튜닝이라기보다 공정 설계에 가깝다. 프롬프트를 “문장”이 아니라 “SOP(표준작업절차)”로 버전 관리하고, 입력과 출력뿐 아니라 중간 산출물까지 남기는 쪽으로 설계를 바꿔야 한다.
+
+예: ERP에서 비용 분개 사유를 자동 작성하는 경우, 문장 품질 못지않게 재실행 시 표현과 근거가 크게 바뀌지 않는지가 중요하다. 여기서 (a) 도메인 용어(계정과목/코스트센터/예외 규칙)를 글로서리로 고정하고(M5), (b) “사실→규칙 적용→문장화”처럼 단계를 쪼개고(M2), (c) 규칙과 참조 테이블은 레지스트리로 고정하는 식(M4)으로 절차를 만든다. 반대로 제품 설계처럼 최신 규격/사내 문서가 핵심이면 프롬프트만으로 유지하기 어렵다. 그때는 RAG나 툴로 “참조 문서/DB를 먼저 가져오고”, 그 근거가 실제 답에 반영됐는지 검증 단계를 붙이는 편이 리스크를 줄이는 데 도움이 된다.
+
+오늘 바로 할 일 체크리스트  
+- 동일 입력을 최소 여러 번 반복 실행해, 팀이 쓰는 핵심 프롬프트의 “합의율(같은 결론이 몇 번 나오는지)”을 먼저 기록하라.  
+- 프롬프트를 한 덩어리로 두지 말고 “분해된 단계/중간 산출물/검증 질문”을 포함한 절차 문서로 고정하라.  
+- 지식집약(최신 정보·사내 문서·DB 값) 업무는 프롬프트만 고집하지 말고, RAG/툴 호출/검증을 어디에 삽입할지 경계를 표로 정리하라.  
+
+## FAQ
+**Q1. ‘출력 분산(variance)’을 현장에서 어떻게 재나?**  
+A1. 같은 입력을 여러 번 실행해 결과가 얼마나 일치하는지부터 보시면 됩니다. 반복 실행의 합의율을 정량화하려는 시도로 TARr@N(원문 문자열 기준 합의율)과 TARa@N(파싱된 최종 답 기준 합의율) 같은 지표가 제안된 바 있습니다.
+
+**Q2. 이 논문이 비교한 5가지 프롬프트 전략은 무엇인가?**  
+A2. 초록 기준으로 (M1) Iterative Similarity Convergence, (M2) Decomposed Model-Agnostic Prompting, (M3) Single-Task Agent Specialization, (M4) Enhanced Data Registry, (M5) Domain Glossary Injection입니다.
+
+**Q3. 프롬프트만으로 환각을 줄이면 되나, RAG를 붙여야 하나?**  
+A3. 요약·형식화처럼 외부 근거가 필수는 아닌 작업은 프롬프트 절차 표준화만으로도 리스크를 낮출 수 있습니다. 반면 최신성, 사실 정확성, 출처 제시가 필요한 지식집약 업무는 RAG나 툴로 근거를 가져오고, 그 근거를 제대로 반영했는지 검증까지 결합하는 편이 안전합니다. 다만 RAG를 붙여도 환각이 남을 수 있다는 지적과 연구가 있어, 고위험 업무일수록 “검색만”이 아니라 “검증 절차”까지 함께 설계하는 것이 좋습니다.
+
+## 결론
+산업 현장에서 LLM 환각은 “거짓말 생성”만의 문제가 아니라 “절차가 흔들리는 품질 문제”로 드러난다. 초록이 제시하는 방향은 다음과 같다. 프롬프트를 트릭으로 다루지 말고, 반복 실행과 표준 절차로 에피스테믹 안정성을 관리한다. 그리고 그 범위를 벗어나는 지식집약 영역은 grounding과 검증을 설계에 포함한다.
+
+## 다음으로 읽기
+- [에이전트형 AI의 능동적 AIBOM](/ko/posts/active-provenance-aiboms-for-agentic-ai-reproducibility-and-security)
+- [AI 공저가 바꾸는 글쓰기와 의견](/ko/posts/ai-co-writing-shifts-writing-and-opinions)
+- [AI 자료 모음 (24h) - 2026-03-12](/ko/posts/ai-resources-roundup-2026-03-12)
+- [현금 vs 무제한 AI, ROI로 따져라](/ko/posts/cash-vs-unlimited-ai-access-roi-framework)
+- [Latam 문화맥락 Q/A로 LLM 격차 측정](/ko/posts/measuring-llm-gaps-with-latam-context-qa-benchmarks)
+---
+
+## 참고 자료
+
+- [Why RAG won't solve generative AI's hallucination problem - techcrunch.com](https://techcrunch.com/2024/05/04/why-rag-wont-solve-generative-ais-hallucination-problem/)
+- [Knowledge Retrieval: Trusted, cited answers from your data | OpenAI - openai.com](https://openai.com/solutions/blueprints/knowledge-retrieval/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.10047)
+- [Non-Determinism of "Deterministic" LLM Settings (arXiv:2408.04667) - arxiv.org](https://arxiv.org/abs/2408.04667)
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks - arxiv.org](https://arxiv.org/abs/2005.11401)
+- [The Semantic Illusion: Certified Limits of Embedding-Based Hallucination Detection in RAG Systems - arxiv.org](https://arxiv.org/abs/2512.15068)

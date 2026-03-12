@@ -1,0 +1,148 @@
+---
+title: Epistemic Stability For Industrial LLM Hallucination Control
+slug: epistemic-stability-industrial-llm-hallucination-control
+date: '2026-03-12'
+lastReviewedAt: '2026-03-12'
+locale: en
+description: >-
+  Industrial LLM hallucinations framed as a reproducibility problem, comparing
+  five prompt strategies to reduce output variance across repeated runs.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-26ca53af84274df3
+sourceUrl: 'https://arxiv.org/abs/2603.10047'
+verificationScore: 0.75
+alternateLocale: /ko/posts/epistemic-stability-industrial-llm-hallucination-control
+coverImage: /images/posts/epistemic-stability-industrial-llm-hallucination-control.png
+---
+
+A design change proposal is rerun with the same prompt, and component specifications shift between runs.  
+An ERP team copies numbers into an approval line, then hesitates because reruns change values.  
+An IoT telemetry summary reads plausible, but the inferred root cause changes between runs.  
+In industrial settings, this wobble can complicate approvals, audits, and automation.
+
+## TL;DR
+- This reviews an arXiv abstract on “epistemic stability” and five prompt strategies targeting output dispersion.  
+- Run-to-run variation can weaken reproducibility in design, ERP, and IoT workflows.  
+- Next, measure agreement across reruns, standardize prompts as procedures, and define where retrieval and verification belong.
+
+Example: A team reruns the same workflow and sees different justifications appear. The text sounds reasonable. Stakeholders still ask which version to trust.
+
+## Status
+The arXiv paper is titled “Toward Epistemic Stability: Engineering Consistent Procedures for Industrial LLM Hallucination Reduction.”  
+The identifier shown is arXiv:2603.10047.  
+The abstract lists industrial contexts.  
+These include engineering design, enterprise resource planning, and IoT telemetry platforms.
+
+The abstract describes hallucinations as a persistent obstacle in such environments.  
+It suggests plausible outputs can still contain factual errors or contextual inconsistencies.  
+It frames the problem as run-to-run wobble, not only single-answer accuracy.  
+It also claims five prompt engineering strategies reduce output dispersion.
+
+The five methods named in the abstract are listed as M1 through M5.  
+They are (M1) Iterative Similarity Convergence.  
+They are (M2) Decomposed Model-Agnostic Prompting.  
+They are (M3) Single-Task Agent Specialization.  
+They are (M4) Enhanced Data Registry.  
+They are (M5) Domain Glossary Injection.
+
+Only the abstract is available within the stated verification scope.  
+Concrete procedures, pseudocode, and constraints are not visible there.  
+This article interprets method names as operational hints.  
+It does not treat unseen body details as confirmed facts.
+
+The abstract includes experimental clues.  
+It mentions an “LLM-as-Judge framework.”  
+It reports 100 repeated runs per method.  
+It specifies “stochastic decoding at τ = 0.7.”  
+It also mentions a “same fixed task prompt” condition.  
+The emphasis is on distributions across 100 runs, not single outputs.
+
+## Analysis
+If you manage industrial hallucinations only as accuracy, operational risk can persist.  
+A system can look accurate, yet still behave inconsistently across reruns.  
+Approval workflows often ask why a value appeared.  
+Reruns that change values can complicate explanation and reproduction.
+
+In that framing, “epistemic stability” treats the model like a procedure-following worker.  
+The goal becomes consistent outputs from consistent procedures.  
+This points toward standardizing prompts as procedures.  
+It also shifts attention from isolated prompt tweaks to repeatable workflows.
+
+Limits remain when relying on only the abstract.  
+The first limit is that mechanism details for M1 to M5 are not confirmable.  
+The second limit concerns the “LLM-as-Judge” setup.  
+Judgment criteria can reflect model bias or stylistic preferences.
+
+A third limit is the boundary of prompt procedures.  
+Some tasks may need retrieval, tool calls, or verification steps.  
+RAG is often used for provenance and updateability in knowledge-heavy tasks.  
+TechCrunch has said “RAG does not solve hallucinations.”  
+Some studies also suggest hallucinations can remain under grounding.  
+So, procedure design can include retrieval and verification placement.  
+It can also avoid implying that prompts alone resolve every failure mode.
+
+## Practical application
+Prompt procedure engineering focuses on repeatable execution across operators.  
+It is less about one “good prompt” and more about a stable SOP.  
+Interpreting the abstract’s method names yields a plausible workflow map.  
+This map is an interpretation, not a confirmed implementation.
+
+M1 suggests iterative convergence instead of one-shot answers.  
+M2 suggests decomposing a large task into staged deliverables.  
+M3 suggests reducing variables by constraining roles to single tasks.  
+M4 suggests fixing data, definitions, and tables via a registry.  
+M5 suggests injecting a domain glossary to reduce term ambiguity.
+
+Version control can cover more than final prompt text.  
+It can also track intermediate artifacts and decision points.  
+This can support audits and incident reviews.  
+It can also help teams compare changes across iterations.
+
+**Checklist for Today:**
+- Rerun identical inputs and record agreement across 100 runs when feasible.  
+- Convert key prompts into SOP-style steps with intermediate artifacts and verification questions.  
+- Document where prompts end and where RAG, tool calls, or verification steps begin.  
+
+## FAQ
+**Q1. How do you measure ‘output variance’ in the field?**  
+A1. Rerun the same input multiple times and compare outputs for agreement.  
+Metrics such as TARr@N and TARa@N have been proposed for this purpose.  
+They aim to quantify agreement at the string level and parsed-answer level.
+
+**Q2. What are the five prompt strategies compared in this paper?**  
+A2. The abstract lists five named methods, labeled M1 to M5.  
+They are Iterative Similarity Convergence, Decomposed Model-Agnostic Prompting, Single-Task Agent Specialization, Enhanced Data Registry, and Domain Glossary Injection.
+
+**Q3. Is it enough to reduce hallucinations with prompts alone, or should we add RAG?**  
+A3. Some summarization and formatting tasks can rely on standardized procedures.  
+Knowledge-intensive tasks often benefit from retrieval and explicit verification.  
+Critiques suggest hallucinations may remain even with RAG.  
+So higher-risk workflows can justify stronger verification procedures.
+
+## Conclusion
+Industrial hallucinations can appear as fabrication and as procedure wobble.  
+The abstract’s direction emphasizes repeatability through standardized procedures.  
+It also implies measuring stability using repeated runs, such as 100-run distributions.  
+For knowledge-intensive work, retrieval and verification can complement procedures.
+
+## Further Reading
+- [Active Provenance AIBOMs For Agentic AI Reproducibility And Security](/en/posts/active-provenance-aiboms-for-agentic-ai-reproducibility-and-security)
+- [How AI Co-Writing Shifts Writing And Opinions](/en/posts/ai-co-writing-shifts-writing-and-opinions)
+- [AI Resource Roundup (24h) - 2026-03-12](/en/posts/ai-resources-roundup-2026-03-12)
+- [Cash vs Unlimited AI Access: ROI Decision Framework](/en/posts/cash-vs-unlimited-ai-access-roi-framework)
+- [Measuring LLM Gaps With LatAm Context QA Benchmarks](/en/posts/measuring-llm-gaps-with-latam-context-qa-benchmarks)
+---
+
+## References
+
+- [Why RAG won't solve generative AI's hallucination problem - techcrunch.com](https://techcrunch.com/2024/05/04/why-rag-wont-solve-generative-ais-hallucination-problem/)
+- [Knowledge Retrieval: Trusted, cited answers from your data | OpenAI - openai.com](https://openai.com/solutions/blueprints/knowledge-retrieval/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.10047)
+- [Non-Determinism of "Deterministic" LLM Settings (arXiv:2408.04667) - arxiv.org](https://arxiv.org/abs/2408.04667)
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks - arxiv.org](https://arxiv.org/abs/2005.11401)
+- [The Semantic Illusion: Certified Limits of Embedding-Based Hallucination Detection in RAG Systems - arxiv.org](https://arxiv.org/abs/2512.15068)
