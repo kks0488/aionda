@@ -1,0 +1,174 @@
+---
+title: Active Provenance AIBOMs For Agentic AI Reproducibility And Security
+slug: active-provenance-aiboms-for-agentic-ai-reproducibility-and-security
+date: '2026-03-12'
+lastReviewedAt: '2026-03-12'
+locale: en
+description: >-
+  Why SBOMs miss agentic AI runtime behavior, environment drift, and
+  exploitability context—and how active provenance AIBOMs address it.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-1ec342d999dc4989
+sourceUrl: 'https://arxiv.org/abs/2603.10057'
+verificationScore: 0.73
+alternateLocale: /ko/posts/active-provenance-aiboms-for-agentic-ai-reproducibility-and-security
+coverImage: >-
+  /images/posts/active-provenance-aiboms-for-agentic-ai-reproducibility-and-security.png
+---
+
+At 1 arXiv preprint identifier, **arXiv:2603.10057v1**, the paper frames a reproducibility and security evidence gap.  
+Tools call external services.  
+Prompts change.  
+Execution environments drift.  
+These shifts complicate “same conditions” claims.  
+They also complicate incident explanations.
+
+## TL;DR
+- **What this is:** arXiv:2603.10057v1 discusses extending SBOMs into an agentic AIBOM as active provenance.  
+- **Why it matters:** static dependency lists miss runtime behavior, environment drift, and exploitability context during investigations.  
+- **What to do next:** attach model, data, environment, and configuration metadata to SBOMs, then pilot provenance events.
+
+Example: A team audits an agent that uses tools, policies, and prompts. The audit asks what happened, and under which conditions. The team compares what the agent did with what was recorded. They then decide what evidence to retain.
+
+## TL;DR
+- In agentic AI, **agentic AIBOM (active provenance)** is discussed.  
+  It aims to record **runtime behavior, environment drift, and exploitability context**.  
+  A **static SBOM** can miss these.
+- Reproducibility and vulnerability assessment can go beyond **“what code went in.”**  
+  It can include **“what happened under what conditions.”**  
+  That shift changes evidence needs for audits and incident investigations.
+- A practical starting point is to attach **model/data/execution-environment metadata and configuration** to SBOMs.  
+  For agent workflows, pilot a minimal log design.  
+  Link prompts, decisions, and tool calls as provenance.
+
+## Current state
+SBOM (Software Bill of Materials) is a common mechanism for documenting “what went in.”  
+However, the abstract of **arXiv:2603.10057v1** states limitations.  
+An SBOM is a **static dependency inventory**.  
+It may not capture **runtime behaviour**, **environment drift**, and **exploitability context**.
+
+Agents can call tools and route through external services.  
+Policies and prompts can change.  
+Execution conditions can fluctuate.  
+With only a static list, reproducibility evidence can become insufficient.  
+Vulnerability evaluation evidence can also become insufficient.
+
+Therefore, the paper argues, based on the abstract, for an **agentic AIBOM**.  
+It frames the AIBOM as **active provenance**.  
+The focus is less about naming.  
+It is more about expanding a BOM into **actions and conditions**.
+
+This direction connects to gaps noted in other research.  
+For example, **PROV-AGENT** discusses agent workflows.  
+It says existing provenance systems may not capture agent-centric metadata well.  
+It highlights **prompts, responses, and decisions**.
+
+From a schema perspective, minimum inclusions remain conservative in the search results.  
+They include **model metadata**, **dataset metadata**, **software dependencies**, and **environment context**.  
+They also include **configuration** and **model–data relationships**.  
+However, the search results do not show a consensus standard.  
+That missing standard concerns prompts, policies, and tool-call logs as minimum fields.
+
+## Analysis
+The core value of agentic AIBOM is a single evidence system.  
+It aims to support incident response and reproducibility evaluation together.  
+An agent is more than linked libraries.  
+It can act as a decision system that uses tools and data.
+
+Security questions often extend beyond package versions.  
+Teams may ask which prompt or policy triggered a tool call.  
+They may ask what result occurred in which environment.  
+The abstract’s phrase **exploitability context** points in that direction.  
+Exploitability can differ from a vulnerability’s existence.  
+Runtime conditions can affect exploitability.
+
+This approach can also expand evidence collection.  
+That expansion can create privacy and confidentiality tensions.  
+It can also create compliance scope questions.
+
+The search results mention the **NIST AI RMF Playbook**.  
+It warns that third-party dependencies can increase complexity and opacity.  
+It recommends maintaining documentation.  
+It also recommends documenting data provenance and legal requirements.
+
+However, the search results do not provide concrete scope guidance.  
+They do not specify audit boundaries for agent logs.  
+They also do not specify masking and access-control practices.  
+They do not specify how standards enforce accountability.  
+So, governance details still look like organizational design work.
+
+## Practical application
+Teams may not need to wait for completed standards.  
+They can start with a thin AIBOM attached to existing SBOM systems.  
+First, fix minimum axes in the search results.  
+Those axes include model, data, dependencies, environment, configuration, and traceability.  
+Then, add agent-specific elements as a pilot.  
+Link prompts, decisions, and tool calls as provenance events.
+
+The goal is not storing all logs.  
+The goal is defining a minimum evidence unit.  
+That unit should support incident investigation and reproducibility.
+
+A workflow example can guide the design.  
+An agent could call an external search tool.  
+It could also call an internal repository to write a report.  
+The AIBOM can record key connections.  
+It can link model, data, and code references.  
+It can link execution and deployment environment.  
+It can link configuration settings.  
+It can link prompt or policy changes to tool calls and outcomes.
+
+Sensitive logs raise operational questions.  
+Summarization, masking, and access control can be considered first.  
+This should be treated as organizational policy.  
+The search results do not show a standard mandate.
+
+**Checklist for Today:**
+- Append model, data, environment, and configuration metadata to each SBOM release artifact.  
+- Record tool calls, prompt changes, and major decisions as provenance events, with defined handling rules.  
+- Pick one reproducibility scenario, then derive the minimum evidence set and draft a pilot schema.
+
+## FAQ
+**Q1. Does AIBOM replace SBOM, or is it attached?**  
+A. It reads closer to a complement than a replacement.  
+The search results suggest combining it with existing SBOM inventories.  
+It can document model, data, workflow, and provenance details.
+
+**Q2. Are the “minimum required fields” of AIBOM already defined?**  
+A. The search results alone do not show a single agreed minimum-elements standard.  
+They repeatedly mention core axes like model metadata and dataset metadata.  
+They also mention dependencies, environment, configuration, and traceability.
+
+**Q3. Do we need to include prompt, decision, and tool-call logs in the AIBOM?**  
+A. Research mentions the need, including PROV-AGENT.  
+It highlights prompts, responses, and decisions as missing links.  
+However, the search results do not show standard minimum requirements.  
+A practical scope can follow risk and privacy requirements.
+
+## Conclusion
+Agentic AIBOM is an attempt to expand a configuration table.  
+It aims to become a lineage of actions and conditions.  
+The key observation point includes schema design.  
+It also includes how runtime evidence gets standardized.
+
+Open questions remain on privacy and confidentiality handling.  
+Accountability requirements also remain open.  
+Those details may evolve through organizational governance choices.  
+They may also evolve through future standards work.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-12](/en/posts/ai-resources-roundup-2026-03-12)
+- [Cash vs Unlimited AI Access: ROI Decision Framework](/en/posts/cash-vs-unlimited-ai-access-roi-framework)
+- [Measuring LLM Gaps With LatAm Context QA Benchmarks](/en/posts/measuring-llm-gaps-with-latam-context-qa-benchmarks)
+- [Rethinking Research Automation Forecasts Beyond Speed And Accuracy Metrics](/en/posts/rethinking-research-automation-forecasts-beyond-speed-and-accuracy-metrics)
+- [AI Resource Roundup (24h) - 2026-03-11](/en/posts/ai-resources-roundup-2026-03-11)
+---
+
+## References
+
+- [NIST AI RMF Knowledge Base Playbook - Manage - airc.nist.gov](https://airc.nist.gov/airmf-resources/playbook/manage/)
+- [PROV-AGENT: Unified Provenance for Tracking AI Agent Interactions in Agentic Workflows - arxiv.org](https://arxiv.org/abs/2508.02866)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.10057)
