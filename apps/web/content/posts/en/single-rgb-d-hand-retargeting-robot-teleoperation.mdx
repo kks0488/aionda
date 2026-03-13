@@ -1,0 +1,99 @@
+---
+title: Single RGB-D Hand Retargeting for Robot Teleoperation
+slug: single-rgb-d-hand-retargeting-robot-teleoperation
+date: '2026-03-13'
+lastReviewedAt: '2026-03-13'
+locale: en
+description: >-
+  A low-cost teleoperation approach using a single RGB-D camera for hand
+  tracking, 3D reconstruction, and robot retargeting.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-17b9f05a9adcc77f
+sourceUrl: 'https://arxiv.org/abs/2603.11383'
+verificationScore: 0.76
+alternateLocale: /ko/posts/single-rgb-d-hand-retargeting-robot-teleoperation
+coverImage: /images/posts/single-rgb-d-hand-retargeting-robot-teleoperation.png
+---
+
+In a single-camera setup, hand tracking runs from eyeglass-mounted RGB-D input to robot joint commands.
+
+## TL;DR
+
+- This article reviews a hand-to-robot pipeline using 1 RGB-D camera, 21 landmarks, 3D reconstruction, and inverse kinematics.
+- It matters because lower-cost teleoperation could help data collection, but current evidence does not confirm better latency or stability.
+- Next, measure latency, dropouts, success rate, and IK failures, then compare this method with gloves or motion capture.
+
+Example: A researcher wears lightweight glasses, moves a hand near simple objects, and checks whether the robot follows smoothly enough for safe trial tasks.
+
+The system estimates 21 landmarks per hand. It reconstructs 3D joints from depth values. It transforms those coordinates into the robot reference frame. It converts them into joint commands through inverse kinematics.
+
+The research aims to lower entry barriers for hand-motion teleoperation. It uses lower-cost equipment. It avoids gloves and expensive motion capture. However, lower cost and stable real-world manipulation are separate issues.
+
+## TL;DR
+
+- This article examines an approach that retargets human hand motion to a robot manipulator through 1 egocentric RGB-D camera, hand landmark estimation, 3D reconstruction, coordinate transformation.
+Inverse kinematics.
+- It matters because it may reduce teleoperation cost and equipment complexity. However, current materials do not show better latency, stability, or success rate than glove- or motion-capture-based methods.
+- Before adoption, occlusion, depth noise, degree-of-freedom mismatch, and IK failure rate should be measured separately. Side-by-side experiments on the same tasks should also be designed first.
+
+## Current Status
+
+Based on the quoted source, this research proposes an offline hand-shadowing and retargeting pipeline. The input device is a single egocentric RGB-D camera. It is mounted on 3D-printed glasses. The pipeline detects 21 landmarks per hand using MediaPipe Hands. It deprojects them into 3D using depth sensing. It transforms them into the robot coordinate frame. It then solves inverse kinematics. That is the confirmed scope from the excerpt.
+
+This approach is meaningful because the sensor setup is simple. It may impose less burden than glove-based systems. Those systems are worn directly on the hand. It may also require lighter installation than motion-capture infrastructure. For teams building teleoperation data pipelines, accessibility could help. Materials related to TeleMoMa state that vision-based teleoperation lowers barriers for demonstration data collection.
+
+However, the performance comparison remains incomplete. Based on the investigated materials, this method's real robot latency, stability, and success rate have not been directly confirmed. The comparison group includes quantitative figures. CDF-Glove reported about 200 ms force-feedback latency. It also stated a 4x improvement in task success rate compared with no-feedback teleoperation. KineDex reported less than 50% success rate on 2 tasks. Kinesthetic teaching reported a near-100% success rate. Based on current evidence, it is difficult to conclude that 1 camera is better than gloves.
+
+## Analysis
+
+This research matters because teleoperation bottlenecks are not only algorithmic. Equipment price can slow adoption. Wearing discomfort can also slow adoption. Setup time and maintenance difficulty can do the same. If single-view RGB-D retargeting reaches practical performance, robot manipulation may depend less on specialized hardware. It may become more software-centered for repeated experiments. The approach also matters for policy data collection. A person can move a hand. That motion can become robot joint trajectories. Such a pipeline could support imitation-learning data collection.
+
+The limitations are also clear. First, occlusion remains a concern. The investigated materials reported a case where a MediaPipe-based system failed to return valid coordinates for 4 s. In teleoperation, a 4-second gap can lead to manipulation failure or safety issues. Second, depth noise can destabilize 3D reconstruction. RGB-D zero values can cause errors. Outliers can do the same. Background distance values can also interfere. Third, degree-of-freedom mismatch can distort mapping. The human hand and robot hand may differ. Then the inverse-kinematics solution may become unnatural or biased toward infeasible poses. Tracking noise can worsen this effect. Input jitter can propagate into joint-command jitter. Moving from an offline pipeline to real-time control remains plausible. However, latency, dropout handling, and closed-loop stabilization still need separate engineering work.
+
+## Practical Application
+
+The decision criteria are fairly clear. If the goal is low-cost entry into experimentation, this approach is worth considering. If the goal is stable real-time manipulation, a validation framework should come first. End-to-end performance should take priority over hand-tracking accuracy. Reliable landmark detection and reliable collision-free manipulation are different problems.
+
+The first application target should be data collection and low-risk manipulation. High-difficulty assembly should come later. Start with tasks that have low failure cost. Examples include grasping, alignment, and simple transfer. Fallback policies should be defined early. The system can stop when dropout occurs. It can hold the last valid pose. It can also return to a safe pose. Real-time deployment should follow that stage. MediaPipe Hands is relevant here. The family supports real-time processing, 21 landmarks, and 3D coordinate output. However, this material alone does not establish the latency or stability of this specific online-control pipeline.
+
+**Checklist for Today:**
+- Build one evaluation table for the same tasks, and record success rate, completion time, dropouts, and IK failures.
+- Log occlusion cases first, including poses, approach angles, and any interval where valid coordinates disappear.
+- Simplify retargeting to the robot degrees of freedom, then add filtering and stop conditions for unstable tracking.
+
+## FAQ
+
+**Q. Can this method be used for real-time teleoperation right now?**  
+It may be possible. However, immediate deployment is difficult to support from current evidence. The investigated materials do not confirm real-time latency or closed-loop stability for this specific offline pipeline.
+
+**Q. Is it better than gloves or motion capture?**  
+Current materials do not support that conclusion. The glove-based side includes quantitative evidence. That evidence includes about 200 ms latency and a 4x improvement in success rate. Comparable head-to-head figures for this vision-based method have not been confirmed.
+
+**Q. What is the biggest cause of failure?**  
+Occlusion, depth noise, and degree-of-freedom mismatch appear to be the main issues. Occlusion can remove landmarks. Depth noise can destabilize 3D reconstruction. Structural mismatch can make inverse-kinematics solutions unstable.
+
+## Conclusion
+
+Transferring hand motion to a robot with 1 camera is meaningful for cost and setup simplicity. However, the key question is not only whether it works. The more useful question is how stably it works, on which tasks, and under which comparison criteria. The next step should focus on latency, dropout, success rate, and direct comparison with existing methods on real manipulation tasks.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-13](/en/posts/ai-resources-roundup-2026-03-13)
+- [Evaluating LLM-Based Mandarin-to-English Translation with Automated Metrics](/en/posts/evaluating-llm-mandarin-to-english-translation-automated-metrics)
+- [UAV-MARL Reframes Medical Drone Delivery as Collaborative Decisions](/en/posts/uav-marl-medical-drone-delivery-collaborative-decisions)
+- [Active Provenance AIBOMs For Agentic AI Reproducibility And Security](/en/posts/active-provenance-aiboms-for-agentic-ai-reproducibility-and-security)
+- [Adversarial Attacks on ML NIDS and Ensemble Defenses](/en/posts/adversarial-attacks-ml-nids-ensemble-defenses)
+---
+
+## References
+
+- [Recognition of Grasping Patterns Using Deep Learning for Human–Robot Collaboration - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC10650364/)
+- [CDF-Glove: A Cable-Driven Force Feedback Glove for Dexterous Teleoperation - arxiv.org](https://arxiv.org/abs/2603.05804)
+- [Bunny-VisionPro: Real-Time Bimanual Dexterous Teleoperation for Imitation Learning - arxiv.org](https://arxiv.org/abs/2407.03162)
+- [DOGlove: Dexterous Manipulation with a Low-Cost Open-Source Haptic Force Feedback Glove - arxiv.org](https://arxiv.org/abs/2502.07730)
+- [TeleMoMa: A Modular and Versatile Teleoperation System for Mobile Manipulation - arxiv.org](https://arxiv.org/abs/2403.07869)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.11383)
