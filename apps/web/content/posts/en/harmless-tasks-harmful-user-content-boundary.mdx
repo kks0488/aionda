@@ -1,0 +1,85 @@
+---
+title: When Harmless Tasks Process Harmful User Content
+slug: harmless-tasks-harmful-user-content-boundary
+date: '2026-03-14'
+lastReviewedAt: '2026-03-14'
+locale: en
+description: >-
+  Examines how LLMs should handle harmful user-provided text in harmless tasks
+  like summarization, translation, and classification.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-939840a944aae897
+sourceUrl: 'https://arxiv.org/abs/2603.11914'
+verificationScore: 0.87
+alternateLocale: /ko/posts/harmless-tasks-harmful-user-content-boundary
+coverImage: /images/posts/harmless-tasks-harmful-user-content-boundary.png
+---
+
+1,357 harmful items can appear in an input while the requested task remains harmless. This arXiv paper examines that boundary. When a user asks to summarize, translate, or classify dangerous text they provided, should an LLM judge the task, the content, or both? In real products, requests like “Translate this document” may appear more often than “Tell me how to make a bomb.”
+
+## TL;DR
+- This paper studies harmful content inside harmless tasks using 1,357 items, 10 harmful categories, 9 harmless tasks, and 9 LLMs.
+- It matters because safety failures can arise in summarization, translation, and classification, not only in overtly harmful requests.
+- Review product policy next, and separate task-based rules from content-based rules before updating prompts or moderation.
+
+Example: A trust-and-safety team uploads hateful text and asks for a neutral summary. The model can summarize it without making the message clearer, smoother, or more actionable.
+
+## Current state
+According to the paper excerpt, prior alignment work appears to focus mainly on the task level. The concern is that models may refuse direct harmful requests, yet still mishandle harmful content inside user-provided material. In this study, the task can look harmless while the input content does not.
+
+The setup confirmed through search is specific. The authors built a harmful-knowledge dataset with 1,357 items across 10 harmful categories. They evaluated 9 LLMs on 9 harmless tasks. Those tasks were grouped into 3 categories: extensive, moderate, and limited. This grouping reflected dependence on user-provided content. This review did not confirm the detailed criteria, the names of the 9 tasks, or the full list of the 9 models.
+
+The paper changes the main question. Existing safety discussions often ask, “Is this request harmful?” This paper asks, “If the request looks harmless, can processing the input still re-disseminate harm?” The answer may differ for the same translation request. It may depend on whether the pasted text contains dangerous instructions, hate incitement, or self-harm encouragement.
+
+This issue connects to other evaluation work. The PHTest paper reported a trade-off in an evaluation of 20 LLMs. That trade-off was between false refusal and jailbreak resistance. The safe-completion report says it can keep similar safety on benign and dual-use requests, compared with hard refusal. It also says it can improve helpfulness and dual-use safety. These results suggest that more refusal does not necessarily mean more safety.
+
+## Analysis
+From a decision-making perspective, the message is fairly clear. If a user asks for mechanical transformation of text they provided, the model should separate limited processing from harmful expansion. It should not refuse every case automatically. If the model fills missing parts, rewrites core procedures, or adds clearer execution steps, the behavior may amplify risk. That boundary appears thin. A policy that looks only at the task name can miss it.
+
+The trade-off is also visible. If the refusal boundary is conservative, false positives increase. That can block researchers, journalists, and trust-and-safety teams who need to analyze harmful text. If the boundary is loose, false negatives increase. Harmful source text may be reprocessed into something easier to read and act on. This paper raises the issue clearly. However, this review did not confirm detailed judgment rules or per-task result tables. Product policy should therefore be tested against internal logs and red-team results, not this study alone.
+
+## Practical application
+In practice, policy wording needs revision. “Refuse harmful requests” is too broad. A clearer rule can help. For text directly provided by the user, allow limited processing such as translation, summarization, classification, and format conversion. Do not add new harmful details. Do not infer omitted steps. Do not restructure content in ways that increase executability. Shared wording across prompts, reward models, and moderation rules can improve consistency.
+
+Operational design also needs to shift from task-centered review to input-centered review. First, use a classifier to check whether the input contains harmful descriptions or requests. Next, distinguish simple transformation from semantic compression or rewriting. Finally, route high-risk combinations to human review or added restrictions. Public materials from OpenAI and Anthropic appear to support a similar layered approach. That approach combines automated classifiers, rules, and human review.
+
+**Checklist for Today:**
+- Add one sentence to relevant prompts: user-provided harmful text can be transformed, but it should not be enhanced.
+- Reclassify refusal logs and count false refusals separately from false negatives.
+- For high-risk inputs, document whether the final control is a classifier, a rule, or human review.
+
+## FAQ
+**Q. If the text is user-provided, may it often be processed even if it is harmful?**  
+No. Public materials suggest that limited transformation and analysis may be allowed in some cases. They also suggest prohibiting added, inferred, or elaborated harmful information.
+
+**Q. Is a model that refuses more a safer model?**  
+That cannot be concluded from these materials alone. The cited studies indicate a trade-off between lower false refusal and stronger jailbreak resistance. Safety therefore cannot be judged only by refusal frequency.
+
+**Q. Where should product teams start testing?**  
+Start with tasks that look harmless, such as summarization, translation, and classification. When users provide harmful documents, check whether the model only transforms the source text. Also check whether it makes the content more executable.
+
+## Conclusion
+This paper addresses a more realistic problem than simply refusing harmful requests. Safety evaluation should ask whether the task looks harmless and whether the processing reduces harm or amplifies it.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-14](/en/posts/ai-resources-roundup-2026-03-14)
+- [AI Resource Roundup (24h) - 2026-03-13](/en/posts/ai-resources-roundup-2026-03-13)
+- [ARROW Reframes Memory Efficient Continual Reinforcement Learning](/en/posts/arrow-memory-efficient-continual-reinforcement-learning)
+- [Dynamic Coordination in Multi-Agent LLM and Robotics Systems](/en/posts/dynamic-coordination-multi-agent-llm-robotics-systems)
+- [Evaluating LLM-Based Mandarin-to-English Translation with Automated Metrics](/en/posts/evaluating-llm-mandarin-to-english-translation-automated-metrics)
+---
+
+## References
+
+- [From Hard Refusals to Safe-Completions: Toward Output-Centric Safety Training - cdn.openai.com](https://cdn.openai.com/pdf/be60c07b-6bc2-4f54-bcee-4141e1d6c69a/gpt-5-safe_completions.pdf)
+- [Model Spec (2025/09/12) - model-spec.openai.com](https://model-spec.openai.com/2025-09-12.html)
+- [Transparency & content moderation | OpenAI - openai.com](https://openai.com/transparency-and-content-moderation/)
+- [Rule Based Rewards for Language Model Safety - cdn.openai.com](https://cdn.openai.com/rule-based-rewards-for-language-model-safety.pdf)
+- [Content moderation - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/about-claude/use-case-guides/content-moderation)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.11914)
+- [Automatic Pseudo-Harmful Prompt Generation for Evaluating False Refusals in Large Language Models - arxiv.org](https://arxiv.org/abs/2409.00598)
