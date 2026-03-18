@@ -1,0 +1,94 @@
+---
+title: Data-Local LLM Guidance for Private Neural Search
+slug: data-local-llm-guidance-private-neural-search
+date: '2026-03-18'
+lastReviewedAt: '2026-03-18'
+locale: en
+description: >-
+  How LLMs can guide neural architecture search using only trial summaries while
+  sensitive time-series data stays on-premises.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - privacy
+author: AI온다
+sourceId: arxiv-cs-ai-2e82dda71643a576
+sourceUrl: 'https://arxiv.org/abs/2603.15939'
+verificationScore: 0.88
+alternateLocale: /ko/posts/data-local-llm-guidance-private-neural-search
+coverImage: /images/posts/data-local-llm-guidance-private-neural-search.png
+---
+
+If patient EEG cannot leave a hospital server room, model iteration can slow down quickly. This arXiv paper examines that constraint. It studies a data-local workflow for model development. Sensitive time-series data stays on-premises. The LLM receives only experiment summaries. It then proposes the next neural network candidate. The first question is not raw performance. It is whether privacy constraints can reduce iteration speed less severely without exporting data.
+
+## TL;DR
+
+- This paper studies data-local LLM-guided neural architecture search, where raw time-series data stays local and only experiment summaries leave.
+- It matters because privacy-constrained teams may improve iteration speed without weakening data-boundary controls.
+- Readers should define boundary-safe summaries first, then test a small on-premises pilot against an existing search process.
+
+Example: A hospital team keeps patient signals inside its secure environment. It shares only brief experiment summaries with an external assistant. The assistant suggests the next model to try. Local systems handle training, evaluation, and storage.
+
+## Current status
+
+The paper title is *Data-Local Autonomous LLM-Guided Neural Architecture Search for Multiclass Multimodal Time-Series Classification*. The stated problem setting is fairly clear. Sensitive time-series machine learning can face an iteration bottleneck. Performance depends heavily on preprocessing and architecture choices. Training can also need to stay on-premises under data-local constraints. Patient EEG in hospitals appears as an example.
+
+
+The baseline comparison is conventional NAS. A cited literature review says NAS can require substantial time, memory, and energy. Another LLM-based NAS study reported 2,000 searches in about 18 GPU hours. That study used a single RTX 4090. Another study reported search time of roughly half of SoTA NAS. It also reported maintained or improved performance. These figures should not be treated as direct evidence for this paper. They only suggest some prior evidence for lower search cost.
+
+## Analysis
+
+The main value appears to be operational, not a small accuracy gain. In healthcare, public systems, and industrial settings, data export can be restricted. In those settings, the main bottleneck is often iteration planning. Teams can spend time deciding the next experiment. An LLM may help read logs, track failed combinations, and suggest the next candidate. That could reduce unproductive iteration time. It is also operationally meaningful that raw data stays inside the boundary. Only decision-relevant summaries move outward. In many organizations, data-movement policy is the larger obstacle.
+
+That said, the workflow does not appear regulation-ready from the cited material alone. The findings mention scalability. They do not directly show alignment with HIPAA or FDA review workflows. Audit logs, data lineage, change management, and human review still matter. "Data did not leave" is only one part of that picture. The performance picture is also limited. The current material does not show consistent accuracy gains over existing automated search methods in this task setting. Reproducibility can also vary with prompt, code, seed, and evaluation disclosure. Lower cost and better performance should be treated as separate claims.
+
+## Practical application
+
+The decision criteria are fairly simple. This approach may fit teams that cannot send sensitive data outside. It may also fit teams where architecture selection is the main speed bottleneck. It may be less urgent when export constraints are weak. It may also be less urgent when a validated AutoML or NAS pipeline already exists. A missing documentation framework is another caution sign. Summary-based search is both technical and operational. Teams should decide which metadata can go to the LLM. They should also assess whether those summaries could help reconstruct sensitive information.
+
+For instance, a hospital team developing an EEG classifier could keep full logs local. It could send only minimal summaries outward. Those summaries could include experiment ID, preprocessing type, validation score, and failure reason. The LLM would act only as a next-candidate proposer. Training, evaluation, and storage would remain on-premises. That setup can preserve the data boundary while adding external search guidance.
+
+**Checklist for Today:**
+
+- Write a one-page boundary document that lists which summary fields can leave and which fields should stay local.
+- Standardize the evaluation protocol and experiment log format so comparisons with manual search or NAS are possible.
+- Run one small internal pilot and measure whether summary-based proposals reduce search time or failed trial cycles.
+
+## FAQ
+
+**Q. Since this method does not send sensitive data outside, is it immediately advantageous for regulatory compliance?**
+
+It is difficult to conclude that from the cited material alone. The findings indicate that on-premises execution is only one part. Audit logs, data lineage, change management, and human review also matter. Keeping data local is a starting point.
+
+**Q. Does LLM-guided NAS often deliver better performance than conventional NAS?**
+
+That does not follow from the current material. The cited evidence is stronger for search-cost reduction. Consistent accuracy gains in data-local multimodal time-series classification are not established here.
+
+**Q. If it does not see raw data, what does the LLM actually do?**
+
+It proposes the next architecture or pipeline from experiment-level summaries. It does not train the model itself. Training and evaluation remain local under a fixed protocol.
+
+## Conclusion
+
+The paper centers on development speed under data-local constraints. It asks how teams can recover iteration speed when data cannot move. Data-local LLM-guided NAS is one possible answer. Adoption criteria should stay explicit. Cost reduction, auditability, and performance validation should be evaluated separately.
+
+## Further Reading
+- [Agent Governance Shifts From Rules To Execution Paths](/en/posts/agent-governance-execution-paths)
+- [Why Prediction-Equivalent Models Disagree on Feature Attribution](/en/posts/prediction-equivalent-models-feature-attribution-disagreement)
+- [AI Resource Roundup (24h) - 2026-03-14](/en/posts/ai-resources-roundup-2026-03-14)
+- [Educational AI Depends More on Design Than Models](/en/posts/educational-ai-design-over-model-size)
+- [When Harmless Tasks Process Harmful User Content](/en/posts/harmless-tasks-harmful-user-content-boundary)
+---
+
+## References
+
+- [NIST AI Resource Center - AIRC - airc.nist.gov](https://airc.nist.gov/)
+- [Audit Log - AIRC - airc.nist.gov](https://airc.nist.gov/AI_RMF_Knowledge_Base/Playbook/audit-log)
+- [An Introductory Resource - hhs.gov](https://www.hhs.gov/sites/default/files/ocr/privacy/hipaa/administrative/securityrule/nist80066.pdf)
+- [Transparency for Machine Learning-Enabled Medical Devices: Guiding Principles - fda.gov](https://www.fda.gov/medical-devices/software-medical-device-samd/transparency-machine-learning-enabled-medical-devices-guiding-principles)
+- [FDA Expands Artificial Intelligence Capabilities with Agentic AI Deployment - fda.gov](https://www.fda.gov/news-events/press-announcements/fda-expands-artificial-intelligence-capabilities-agentic-ai-deployment)
+- [Resource-Efficient Iterative LLM-Based NAS with Feedback Memory - arxiv.org](https://arxiv.org/abs/2603.12091)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.15939)
+- [Systematic review on neural architecture search - link.springer.com](https://link.springer.com/article/10.1007/s10462-024-11058-w)
