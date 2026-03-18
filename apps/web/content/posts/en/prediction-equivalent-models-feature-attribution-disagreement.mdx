@@ -1,0 +1,178 @@
+---
+title: Why Prediction-Equivalent Models Disagree on Feature Attribution
+slug: prediction-equivalent-models-feature-attribution-disagreement
+date: '2026-03-18'
+lastReviewedAt: '2026-03-18'
+locale: en
+description: >-
+  Models with identical predictions can still produce different feature
+  attributions, challenging XAI reliability, audits, and governance.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-06e1452d25266860
+sourceUrl: 'https://arxiv.org/abs/2603.15821'
+verificationScore: 0.78
+alternateLocale: /ko/posts/prediction-equivalent-models-feature-attribution-disagreement
+coverImage: >-
+  /images/posts/prediction-equivalent-models-feature-attribution-disagreement.png
+---
+
+In a clinical risk review, two models can assign the same risk level.  
+They can still disagree about why they reached it.  
+That situation exposes a weak point in Explainable AI, or XAI.  
+*Hypothesis Class Determines Explanation: Why Accurate Models Disagree on Feature Attribution*, published on arXiv, argues this point.  
+The abstract says models with the same predictions can show different feature attributions.  
+It reports this pattern across **24 datasets** and multiple model classes.  
+This issue extends beyond academic debate.  
+Organizations using explanations for model selection, audits, or regulatory review should revisit their operating rules.
+
+## TL;DR
+
+- This article examines cases where models share predictions but differ in feature attribution across **24 datasets**.
+- This matters because audits, model selection, and regulatory review can rely on explanations that may vary by model class.
+- Readers should test explanation stability separately, document model class and method, and review high-risk workflows.
+
+Example: A review team compares two equally accurate models for a sensitive decision.  
+Both produce the same outcome for a person.  
+Their explanations emphasize different factors.  
+The team then faces uncertainty about which explanation to document or trust.
+
+## Current state
+
+In Explainable AI practice, many people have assumed prediction similarity implies explanation similarity.  
+The paper abstract challenges that assumption.  
+According to the abstract, researchers observed this mismatch across **24 datasets** and multiple model classes.  
+Models with identical predictive behavior could still produce different feature attributions.
+
+The issue here is not explanation in the broadest sense.  
+It is specifically feature attribution.  
+Feature attribution assigns scores to input features for a prediction.  
+Those scores suggest how much each feature contributed.  
+Organizations use them to ask practical questions.  
+Was the judgment understandable?  
+Did the model rely indirectly on sensitive variables?  
+Can the explanation support an audit report?  
+The abstract suggests prediction-equivalent models may not answer these questions consistently.  
+That weakens the case for treating explanations as firm evidence.
+
+The confirmed findings are more specific in one area.  
+Disagreement appeared stronger across different hypothesis classes than within the same class.  
+The abstract says agreement for cross-class pairs was “substantially reduced.”  
+It also says agreement was “consistently near or below the lottery threshold.”  
+From the available evidence, it remains unclear which individual methods are most affected.  
+That includes methods such as SHAP, Integrated Gradients, or LIME.  
+So the supported conclusion is limited.  
+The issue appears tied to the interaction between model class and explanation.
+
+The concern becomes sharper in high-risk settings.  
+Healthcare is one example.  
+There, explanations can influence trust in real decisions.  
+The cited healthcare imaging accountability framework mentions explanation validation studies.  
+It also mentions confidence intervals for predictions.  
+It sets a minimum **quarterly** audit cycle.  
+Alongside this paper, that suggests a narrow lesson.  
+Providing an explanation alone may not be enough.  
+Teams should also examine stability and reproducibility.
+
+## Analysis
+
+This study shifts attention away from accuracy alone.  
+Organizations often choose a model with similar performance and simpler explanations.  
+They also attach explanations to regulatory response documents.  
+That practice looks less secure if predictions can match while explanations differ.  
+In that case, explanations resemble interpretive outputs shaped by model class.  
+They look less like direct windows into model reasoning.  
+Two models can produce the same prediction.  
+They can still produce different importance maps.
+
+One risk is audit instability.  
+A tree-based model and a linear model may give different attributions for the same case.  
+That can make audit standards harder to apply consistently.  
+Another risk is a governance illusion.  
+Generating one explanation and storing it may not create meaningful explainability.  
+NIST’s TEVV framework is relevant here.  
+TEVV stands for testing, evaluation, verification, and validation.  
+Within that view, explanations can also require validation.
+
+There are still important limits.  
+From the currently confirmed evidence, the most vulnerable attribution technique is not clear.  
+The available results also do not quantify domain-specific risk increases.  
+They also do not confirm exact regulatory language requiring explanation stability.  
+So this paper does not support a sweeping conclusion.  
+It supports a narrower one instead.  
+Explanations should not be used without validation.
+
+## Practical application
+
+A practical rule should change first.  
+Teams should treat explanations as test items, not just deliverables.  
+Model evaluation sheets should include more than accuracy, latency, and cost.  
+They should also include a category for explanation stability.  
+Teams should record attribution changes when model class changes for the same case.  
+They should also record sensitivity to retraining or data sample changes.  
+If explanations appear in regulatory response documents, records should note their source.  
+That source should include the model class and explanation method used.
+
+If a team runs a loan underwriting model, caution is useful.  
+Two finalist models may show similar predictive performance.  
+Their explanatory outputs can still differ.  
+One model may emphasize income stability.  
+Another may emphasize employment history.  
+If a team chooses one arbitrarily, later interpretation conflicts can follow.  
+Those conflicts can appear in complaints or internal audits.  
+Explanations are not just post hoc report elements.  
+They can function as risk signals during model selection.
+
+**Checklist for Today:**
+
+- Compare attributions for the same cases across model classes when explanations appear in audit documentation.
+- Record the explanation method, model class, data version, and validation conditions in internal documentation.
+- Add explanation stability checks to performance validation and use a separate audit cycle for high-risk tasks.
+
+## FAQ
+
+**Q. Does this study say that a specific explanation method is especially bad?**  
+No.  
+Based on the confirmed information, the most inconsistent method is not identified.  
+Within the supported scope, explanatory agreement dropped across different model classes.
+
+**Q. Then is Explainable AI useless in practice?**  
+No.  
+The evidence does not support that conclusion.  
+Explanations can still help in practice.  
+They should be tested and validated like performance metrics.  
+They are better used within defined limits.
+
+**Q. What should be included in evaluation criteria for regulation or internal controls?**  
+Do not look only at whether an explanation was provided.  
+Evaluate stability, reproducibility, and documentation together.  
+NIST’s TEVV framework offers one way to frame that work.  
+Teams should retain enough context for stakeholders to review and question results.
+
+## Conclusion
+
+The problem in XAI is not only missing explanations.  
+It also includes conflicting explanations from models with the same predictions.  
+A more careful question follows from that.  
+Under what conditions does an explanation hold?  
+How consistently does it hold?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-14](/en/posts/ai-resources-roundup-2026-03-14)
+- [Educational AI Depends More on Design Than Models](/en/posts/educational-ai-design-over-model-size)
+- [When Harmless Tasks Process Harmful User Content](/en/posts/harmless-tasks-harmful-user-content-boundary)
+- [AI Resource Roundup (24h) - 2026-03-13](/en/posts/ai-resources-roundup-2026-03-13)
+- [ARROW Reframes Memory Efficient Continual Reinforcement Learning](/en/posts/arrow-memory-efficient-continual-reinforcement-learning)
+---
+
+## References
+
+- [Beyond Post hoc Explanations: A Comprehensive Framework for Accountable AI in Medical Imaging Through Transparency, Interpretability, and Explainability - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC12383817/)
+- [NIST AI Resource Center - AIRC - airc.nist.gov](https://airc.nist.gov/)
+- [AI Research | NIST - nist.gov](https://www.nist.gov/topic-terms/fundamental-ai)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.15821)
+- [The Directed Prediction Change - Efficient and Trustworthy Fidelity Assessment for Local Feature Attribution Methods - arxiv.org](https://arxiv.org/abs/2511.21363)

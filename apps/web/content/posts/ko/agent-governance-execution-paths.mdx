@@ -1,0 +1,80 @@
+---
+title: 에이전트 경로 거버넌스
+slug: agent-governance-execution-paths
+date: '2026-03-18'
+lastReviewedAt: '2026-03-18'
+locale: ko
+description: 에이전트 거버넌스를 정적 규칙이 아닌 실행 경로와 개입 시점 중심으로 재정의하는 흐름을 짚는다.
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-052d28371c72292c
+sourceUrl: 'https://arxiv.org/abs/2603.16586'
+verificationScore: 0.82
+alternateLocale: /en/posts/agent-governance-execution-paths
+coverImage: /images/posts/agent-governance-execution-paths.png
+---
+
+3개의 시간 축 지표가 이 논쟁의 초점을 바꾼다. StepShield는 Early Intervention Rate, Intervention Gap, Tokens Saved를 제안했다. arXiv의 새 논문은 에이전트 거버넌스의 중심 대상을 정적 규칙이 아니라 실제 실행 경로로 옮겨야 한다고 본다. 핵심은 단순 차단이 아니다. 과업 성공률을 높이려는 목표와 법적·데이터 유출·평판 비용 사이의 균형을, 어떤 경로에서 어느 시점에 감수할지 운영 중에 정하는 문제다. 이 관점에 따르면 에이전트 안전팀, 플랫폼팀, 법무팀의 경계도 다시 나눌 필요가 있다.
+
+## 세 줄 요약
+- 핵심 이슈는 에이전트 거버넌스의 단위를 모델이나 프롬프트가 아니라 실행 경로로 다시 정의하는 일이다.
+- 같은 에이전트라도 어떤 도구를 언제 호출했고 어떤 메모리를 읽고 썼는지에 따라 성공률과 법적·데이터 유출 비용이 달라질 수 있다.
+- 독자는 오늘부터 런타임 로그를 남기고, 개입 시점을 측정하고, 고위험 단계에만 인간 승인과 권한 축소를 거는 규칙부터 실험해야 한다.
+
+## 현황
+arXiv에 올라온 *Runtime Governance for AI Agents: Policies on Paths*의 발췌는 문제를 분명히 짚는다. AI 에이전트는 large language models를 써서 계획하고 추론하고 행동한다. 그 결과는 non-deterministic하고 path-dependent하다. 그래서 설계 시점의 통제만으로는 부족하고, 운영 중에 “as high as possible successful task completion rate”와 법적·데이터 유출·평판 비용 사이의 균형을 잡아야 한다는 주장이다. 여기서 핵심 표현은 “execution path is the central object”다.
+
+이 논점을 계량화하려는 움직임도 있다. StepShield는 개입 여부보다 개입 시점을 봐야 한다고 하면서 3개의 시간 축 지표를 제안했다. StepShield는 위험 탐지를 단순히 했는지 여부가 아니라 언제 했는지를 평가하기 위해 Early Intervention Rate, Intervention Gap, Tokens Saved라는 시간 축 지표를 제안했다. 다만 각 지표의 정확한 정의와 계산 방식은 논문 원문 기준으로 확인하는 것이 안전하다. 기존의 “막았는가, 못 막았는가”만으로는 런타임 거버넌스의 품질을 설명하기 어렵다는 문제의식이다.
+
+벤치마크 방향도 블랙박스 평가에서 로그 중심 평가로 옮겨가는 흐름이 있다. *Beyond Black-Box Benchmarking*은 agent runtime logs를 입력으로 받고, 그 결과로 discovered flows and issues를 내놓는다고 설명한다. 이는 점수판 하나로 끝내지 말고, 에이전트가 실제로 어떤 분기와 실패 패턴을 밟았는지 분석 대상으로 삼자는 뜻이다. 다만 조사 결과만 놓고 보면, 실행 경로 기반 거버넌스 전용의 널리 합의된 표준 벤치마크 세트가 이미 자리 잡았다고 보기는 어렵다.
+
+정책과 규제의 언어도 이 흐름과 맞물린다. EU AI Act 설명 자료는 risk management, documentation and traceability, transparency, human oversight, logging of activity를 강조한다. OWASP 계열 가드레일 논의와 겹치는 부분도 있다. 데이터 유출, 민감정보 노출, 과도한 자율성을 오케스트레이션 계층에서 다뤄야 한다는 요구다. 즉 모델 레벨의 안전장치만으로는 부족하고, 도구 호출 권한·메모리 접근·인간 승인·감사 로그 같은 런타임 제어면이 필요해진다.
+
+## 분석
+이 변화가 중요한 이유는 책임 소재를 더 구체적으로 만들기 때문이다. 지금까지 조직은 종종 “안전한 모델을 썼다”거나 “정책 프롬프트를 넣었다”는 식으로 설명했다. 경로 기반 거버넌스는 이 설명 방식을 바꾼다. 실제 질문은 이런 형태가 된다. 어떤 과업에서, 어떤 단계가, 어떤 도구 호출과 메모리 읽기/쓰기 때문에 리스크를 키웠는가. 이 프레임은 제품 운영에 더 가깝다. 모델 선택보다 실행 추적, 권한 분리, 승인 규칙, 로그 분석이 의사결정의 중심으로 올라온다.
+
+그렇다고 이 접근이 만능은 아니다. 조사 결과에서도 성능·지연·비용 영향의 정도를 보여주는 일반화된 정량 수치는 확인되지 않았다. 런타임 정책 집행은 추적, 정책 평가, 저장, 개입 로직을 추가하므로 compute·storage·latency 부담을 낳는다. 여기에 개입 시점의 문제도 있다. 개입을 너무 일찍 걸면 성공률이 떨어질 수 있다. 너무 늦게 걸면 데이터 유출이나 평판 손상이 먼저 발생할 수 있다. 결국 핵심은 “언제, 어디서, 어느 정도로 개입할 것인가”다. 업계는 아직 이 균형점을 표준화하지 못했다.
+
+예: 고객지원 에이전트가 환불 처리 과업을 수행한다고 하자. 단순 금지 규칙은 “개인정보를 외부로 보내지 말라”에서 멈춘다. 경로 기반 거버넌스는 다르게 본다. 계정 조회 단계에서는 내부 CRM 읽기만 허용한다. 결제 수정 단계에서는 인간 승인을 요구한다. 외부 이메일 초안 작성 단계에서는 민감정보 마스킹 검사를 통과해야 다음 단계로 넘어가게 만든다. 같은 과업이라도 단계별 위험이 다르기 때문이다.
+
+## 실전 적용
+개발팀이 지금 바꿔야 할 것은 모델이 아니라 관측성 설계다. 첫째, 에이전트의 각 스텝을 로그로 남겨야 한다. 입력, 도구 호출, 메모리 읽기·쓰기, 승인 여부, 실패 이유를 경로 단위로 연결해야 한다. 둘째, 차단률 대신 개입 시점을 봐야 한다. Early Intervention Rate 같은 지표를 내부 대시보드에 넣으면 “잘 막았다”가 아니라 “늦지 않게 막았나”를 따질 수 있다. 셋째, 위험을 단계별로 분해해야 한다. 검색 단계, 요약 단계, 외부 전송 단계, 권한 행사 단계를 같은 규칙으로 묶으면 운영이 거칠어지고 실패도 늘어난다.
+
+법무와 보안팀도 오케스트레이션 계층에 직접 들어와야 한다. EU AI Act 자료가 강조하는 risk management, traceability, human oversight는 문서 제출용 체크박스가 아니다. 이를 런타임 정책으로 옮겨야 운영 의미가 생긴다. 예를 들면 민감정보가 포함된 메모리 읽기에는 추가 검사를 걸고, 외부 시스템 쓰기 권한은 더 좁게 나누고, 특정 경로에서는 사람 승인 없이는 다음 단계로 가지 못하게 해야 한다. 이건 준수와 제품성을 함께 다루는 설계 문제다.
+
+**오늘 바로 할 일**
+- 모든 에이전트 워크플로에 스텝 로그를 켜고, 도구 호출·메모리 접근·인간 승인 이벤트를 한 경로로 묶어 저장하라.
+- 차단 성공률만 보지 말고 Early Intervention Rate, Intervention Gap, Tokens Saved 같은 시점 지표를 내부 평가표에 추가하라.
+- 외부 전송, 권한 변경, 민감정보 접근 단계에 우선적으로 승인·마스킹·권한 축소 정책을 걸어 과잉 통제를 피하라.
+
+## FAQ
+**Q. 경로 기반 거버넌스는 기존 가드레일과 뭐가 다른가요?**  
+기존 가드레일은 주로 입력이나 출력 한 지점을 검사합니다. 경로 기반 거버넌스는 에이전트가 어떤 순서로 계획하고, 어떤 도구를 호출하고, 어떤 메모리를 읽고 썼는지까지 포함해 실행 전체를 관리합니다. 그래서 “무엇을 말했는가”보다 “어떻게 그 결과에 도달했는가”를 더 중요하게 봅니다.
+
+**Q. 지금 당장 정량 평가를 하려면 무엇부터 봐야 하나요?**  
+과업 성공률부터 봐야 합니다. 다만 거기서 멈추면 안 됩니다. 개입 시점을 보는 Early Intervention Rate, Intervention Gap, Tokens Saved 같은 지표를 함께 봐야 합니다. 또 런타임 로그를 기반으로 어떤 흐름과 문제가 반복되는지 분석해야 합니다.
+
+**Q. 규제 대응에도 실제로 도움이 되나요?**  
+도움이 됩니다. EU AI Act 자료가 언급하는 risk management, documentation and traceability, human oversight, logging of activity 같은 요구는 런타임 정책과 맞습니다. 다만 특정 조직의 법적 의무를 확정하려면 해당 사용 사례와 관할을 따로 검토해야 합니다.
+
+## 결론
+에이전트 거버넌스의 질문은 “이 모델이 안전한가”에서 끝나지 않는다. 더 정확한 질문은 “이 에이전트가 어떤 경로로 움직일 때, 어느 지점에서 개입해야 성공률과 리스크 비용의 균형이 맞는가”다. 앞으로 경쟁력은 더 똑똑한 에이전트만으로 갈리지 않을 수 있다. 얼마나 잘 관측하고, 얼마나 늦지 않게 개입하는지 같은 런타임 설계도 중요한 변수다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-14](/ko/posts/ai-resources-roundup-2026-03-14)
+- [교육 AI, 모델보다 설계](/ko/posts/educational-ai-design-over-model-size)
+- [무해 과업 속 유해 입력 경계](/ko/posts/harmless-tasks-harmful-user-content-boundary)
+- [AI 자료 모음 (24h) - 2026-03-13](/ko/posts/ai-resources-roundup-2026-03-13)
+- [ARROW로 본 지속학습 RL](/ko/posts/arrow-memory-efficient-continual-reinforcement-learning)
+---
+
+## 참고 자료
+
+- [AI Act | Shaping Europe’s digital future - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [Navigating the AI Act - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/faqs/navigating-ai-act)
+- [Enablers, guardrails and engagement for unlocking trustworthy AI: Governing with Artificial Intelligence | OECD - oecd.org](https://www.oecd.org/en/publications/2025/06/governing-with-artificial-intelligence_398fa287/full-report/enablers-guardrails-and-engagement-for-unlocking-trustworthy-ai_2f817983.html)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.16586)
+- [StepShield: When, Not Whether to Intervene on Rogue Agents - arxiv.org](https://arxiv.org/abs/2601.22136)
+- [Beyond Black-Box Benchmarking: Observability, Analytics, and Optimization of Agentic Systems - arxiv.org](https://arxiv.org/abs/2503.06745)

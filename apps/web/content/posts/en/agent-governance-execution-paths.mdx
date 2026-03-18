@@ -1,0 +1,89 @@
+---
+title: Agent Governance Shifts From Rules To Execution Paths
+slug: agent-governance-execution-paths
+date: '2026-03-18'
+lastReviewedAt: '2026-03-18'
+locale: en
+description: >-
+  Why agent governance is moving from static rules to execution paths, runtime
+  logs, and timing-aware intervention.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-052d28371c72292c
+sourceUrl: 'https://arxiv.org/abs/2603.16586'
+verificationScore: 0.82
+alternateLocale: /ko/posts/agent-governance-execution-paths
+coverImage: /images/posts/agent-governance-execution-paths.png
+---
+
+## TL;DR
+- Agent governance is shifting from model-level rules to execution-path controls during runtime.
+- This matters because risk and success can change by step, tool call, memory access, and intervention timing.
+- Next, teams should log runtime paths, track timing metrics, and test step-specific approvals and permissions.
+
+A new arXiv paper frames agent governance around execution paths during runtime. It shifts attention from static rules to operational decisions. The question is when and where to intervene. The trade-off involves task success, legal exposure, data leakage, and reputational damage. This framing also affects safety, platform, and legal teams.
+
+Example: Imagine a support agent handling a refund request. One step reads internal records. Another step drafts an external message. A path-based policy can allow the first action, pause the second, and request review before any sensitive details leave the system.
+
+## Current state
+An excerpt from *Runtime Governance for AI Agents: Policies on Paths* on arXiv states the problem clearly. AI agents use large language models to plan, reason, and act. Outcomes can be non-deterministic and path-dependent. Design-time controls alone appear insufficient in this framing. The paper argues teams should balance successful task completion against legal, data leakage, and reputational costs. Its key expression is that the “execution path is the central object.”
+
+There is also movement to quantify this shift. StepShield proposes three time-axis metrics. They are Early Intervention Rate, Intervention Gap, and Tokens Saved. These metrics focus on whether intervention happened and when it happened. The concern is that “Was it blocked or not?” does not explain runtime governance quality well enough.
+
+Benchmarking also appears to be shifting toward log-centered evaluation. *Beyond Black-Box Benchmarking* takes agent runtime logs as input. It produces discovered flows and issues as output. Evaluation therefore may not end with a single scoreboard. The branches and failure patterns along the path become part of the analysis. However, the findings do not confirm a widely agreed benchmark set for execution-path governance.
+
+Policy language also aligns with this trend. Explanatory materials for the EU AI Act emphasize risk management, documentation and traceability, transparency, human oversight, and logging of activity. There is also overlap with OWASP-related guardrail discussions. The shared concern includes data leakage, sensitive information exposure, and excessive autonomy at the orchestration layer. In this view, model-level safeguards alone seem insufficient. Runtime controls like tool permissions, memory access rules, human approval, and audit logs become more relevant.
+
+## Analysis
+This shift matters because it makes accountability more specific. Many organizations have explained safety with model choice or a policy prompt. Path-based governance changes that explanation. The question becomes more operational. In which task did risk increase? At which step did it increase? Which tool call or memory read or write contributed?
+
+This frame is closer to product operations. Execution tracing moves closer to the center. Separation of privileges matters more. Approval rules and log analysis also become more central.
+
+That does not make path-based governance a complete solution. The available findings do not confirm generalized quantitative figures for performance, latency, or cost impact. Runtime enforcement adds tracing, policy evaluation, storage, and intervention logic. Those additions can increase compute, storage, and latency burdens. Intervention timing is also difficult. If intervention happens too early, success rate may fall. If it happens too late, leakage or reputational harm may happen first. The main question remains when, where, and to what extent intervention should occur. A standard balance point does not yet appear established.
+
+The same task can involve different risks at different steps. A refund workflow illustrates this well. An account lookup step may allow only internal CRM reads. A payment modification step may require human approval. An external email drafting step may need a sensitive-information masking check. The risk profile changes across the path.
+
+## Practical Application
+What development teams should change first is observability design. Every agent step should be logged. Inputs, tool calls, memory reads and writes, approval status, and failure reasons should stay connected at the path level. Teams should also examine intervention timing, not only blocking rate. Metrics such as Early Intervention Rate, Intervention Gap, and Tokens Saved can support that review. Risk should then be decomposed by step. Retrieval, summarization, external transmission, and authority-exercising steps should not all share one coarse rule.
+
+Legal and security teams should also work directly in the orchestration layer. EU AI Act materials emphasize risk management, traceability, human oversight, and activity logging. Those ideas gain operational meaning when translated into runtime policy. Additional checks can apply to memory reads with sensitive information. Write permissions to external systems can be split more narrowly. Some paths can pause for human approval before the next step. This is both a compliance design problem and a product quality design problem.
+
+**Checklist for Today:**
+- Enable step logging across agent workflows, and link tool calls, memory access, and approval events into one path record.
+- Add Early Intervention Rate, Intervention Gap, and Tokens Saved to internal reviews alongside task success rate.
+- Start with approvals, masking, and reduced privileges on external transmission, permission changes, and sensitive-information access steps.
+
+## FAQ
+**Q. How is path-based governance different from existing guardrails?**  
+Existing guardrails often inspect one point, usually input or output. Path-based governance covers the full execution. It includes planning order, tool calls, and memory reads and writes. It asks how the result was reached, not only what was said.
+
+**Q. If we want to start quantitative evaluation right away, what should we look at first?**  
+Start with task success rate. Then add timing metrics. Early Intervention Rate, Intervention Gap, and Tokens Saved are the examples cited here. You can also analyze recurring flows and issues from runtime logs.
+
+**Q. Does this actually help with regulatory response?**  
+It can help. EU AI Act materials mention risk management, documentation and traceability, human oversight, and activity logging. Those themes align with runtime policy approaches. However, a specific organization’s obligations still depend on its use case and jurisdiction.
+
+## Conclusion
+The central governance question extends beyond model safety alone. A more precise question asks where intervention should occur along the path. It also asks when intervention should occur. The aim is to balance task success with risk cost. In this view, competitiveness may depend on more than model capability. Observability and timely intervention may also matter.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-14](/en/posts/ai-resources-roundup-2026-03-14)
+- [Educational AI Depends More on Design Than Models](/en/posts/educational-ai-design-over-model-size)
+- [When Harmless Tasks Process Harmful User Content](/en/posts/harmless-tasks-harmful-user-content-boundary)
+- [AI Resource Roundup (24h) - 2026-03-13](/en/posts/ai-resources-roundup-2026-03-13)
+- [ARROW Reframes Memory Efficient Continual Reinforcement Learning](/en/posts/arrow-memory-efficient-continual-reinforcement-learning)
+---
+
+## References
+
+- [AI Act | Shaping Europe’s digital future - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [Navigating the AI Act - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/faqs/navigating-ai-act)
+- [Enablers, guardrails and engagement for unlocking trustworthy AI: Governing with Artificial Intelligence | OECD - oecd.org](https://www.oecd.org/en/publications/2025/06/governing-with-artificial-intelligence_398fa287/full-report/enablers-guardrails-and-engagement-for-unlocking-trustworthy-ai_2f817983.html)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.16586)
+- [StepShield: When, Not Whether to Intervene on Rogue Agents - arxiv.org](https://arxiv.org/abs/2601.22136)
+- [Beyond Black-Box Benchmarking: Observability, Analytics, and Optimization of Agentic Systems - arxiv.org](https://arxiv.org/abs/2503.06745)
