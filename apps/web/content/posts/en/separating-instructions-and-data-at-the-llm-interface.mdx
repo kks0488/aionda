@@ -1,0 +1,94 @@
+---
+title: Separating Instructions and Data at the LLM Interface
+slug: separating-instructions-and-data-at-the-llm-interface
+date: '2026-03-25'
+lastReviewedAt: '2026-03-25'
+locale: en
+description: >-
+  A look at markup proposals that separate instructions from data in LLM inputs
+  and why structured interfaces matter.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - k-ai-pulse
+author: AI온다
+sourceId: arxiv-cs-ai-053514ee55681d2d
+sourceUrl: 'https://arxiv.org/abs/2603.22519'
+verificationScore: 0.78
+alternateLocale: /ko/posts/separating-instructions-and-data-at-the-llm-interface
+coverImage: /images/posts/separating-instructions-and-data-at-the-llm-interface.png
+---
+
+A single prompt often mixes instructions and document text into one string. This paper, `2603.22519`, examines that boundary problem. The proposal starts from a simple point. LLM input and output are still "a single string." But the information inside that string is more structured. The key point is not performance hype. Its value is in treating prompt engineering as an interface design problem.
+
+## TL;DR
+
+- This paper, `2603.22519`, proposes LLM-native markup to separate instructions from data in one string interface.
+- That separation matters because mixed inputs can blur boundaries, and the review found no direct benchmark advantage yet.
+- Review your current prompt interface first, then compare structured approaches with existing safeguards before adopting new markup.
+
+Example: Imagine a document assistant that mixes policy text, user notes, and retrieved content in one prompt. The model can blur those boundaries. A structured layout can make the intended roles clearer for the model and the surrounding code.
+
+## Current status
+
+The title of this paper is `LLMON: An LLM-native Markup Language to Leverage Structure and Semantics at the LLM Interface`. The provided excerpt confirms the main claim. Text-based LLMs exchange inputs and outputs as strings. Real prompts include instructions like "summarize this." They also include data like the paper body to summarize. These parts are often mixed in one plain-text channel.
+
+This concern is not new. Anthropic documentation says XML tags can reduce errors from prompt misinterpretation. OpenAI documentation points in a similar direction. Structured Outputs and function calling aim to improve conformance to a JSON Schema. The direction is visible. Natural language alone may be insufficient for stable operations. Added structure can make operations easier.
+
+
+## Analysis
+
+This signal matters because it reframes prompts as a layered interface. It does not treat prompts only as sentence-writing. That distinction grows more important in agents, tool calling, document processing, and evaluation pipelines. Web documents, uploaded files, and external API responses are untrusted data. If that text shares the same plane as system instructions, the boundary can become ambiguous. OpenAI's agent safety guide recommends limiting direct control from untrusted data. It also recommends structured extraction of only the needed fields. This is not only a markup preference. It is also a permission-boundary design issue.
+
+The counterargument is also clear. Added structure does not automatically improve reasoning. XML tags do not increase model capacity. A JSON Schema does not solve factual verification. It is also unclear whether the field will converge on one standard. One visible pattern exists. OpenAI-compatible APIs are widely used at the text invocation layer. MCP is presented as an open protocol at the tool-connection layer. It is still early to tell whether this proposal will span both layers or remain a research idea.
+
+## Practical application
+
+Teams should not adopt a new markup language immediately. They should inspect current prompts first. Check whether system instructions, developer instructions, user input, search results, attached documents, and tool returns are mixed into one string. If they are, part of the problem is already visible. The first benefit of a structured interface is not a smarter model. It is clearer specification of what the model should treat as a command.
+
+For example, a contract-summary agent often places the full contract below a summary instruction. A structured approach can separate `instruction`, `document`, `constraints`, and `output_schema`. That separation can clarify boundaries for the model. It can also clarify which fields need validation in post-processing. This may not fully prevent prompt injection. It can still reduce the chance that external document text is treated as internal policy.
+
+**Checklist for Today:**
+
+- Separate instructions, untrusted data, and tool inputs into distinct fields or tags in current prompts.
+- Extract only needed values from external documents, and avoid passing full raw text into tool-call arguments.
+- Compare any new markup against existing safeguards like JSON Schema, structured outputs, and approval steps.
+
+## FAQ
+
+**Q. Should this markup be considered better than JSON or XML?**  
+There is not enough evidence to conclude that. This review did not confirm a direct quantitative benchmark. It did not confirm how much this proposal improves reasoning quality or stability versus JSON, XML, or function-calling schemas.
+
+**Q. Does a structured interface prevent prompt injection?**  
+It can reduce risk. Separating trusted instructions from untrusted data can lower the chance that external text is read as commands. That step alone is not sufficient. It should be combined with approval procedures, guardrails, and isolated execution.
+
+**Q. Is there a chance it will become an industry standard?**  
+There is a possibility, but no confirmed conclusion exists. OpenAI-compatible APIs are widely used. MCP appears as an open standard at the tool-integration layer. It remains unclear whether this markup will become a common cross-vendor standard.
+
+## Conclusion
+
+The paper raises a clear interface problem. A key area of competition may be how systems separate instructions from data. Longer prompts may matter less than clearer boundaries. At this stage, predicting a winning syntax is less useful. Reducing operational risk from unstructured string interfaces is more useful.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-21](/en/posts/ai-resources-roundup-2026-03-21)
+- [AI Resource Roundup (24h) - 2026-03-20](/en/posts/ai-resources-roundup-2026-03-20)
+- [Judicial AI Depends on Human Algorithm Interaction Design](/en/posts/judicial-ai-human-algorithm-interaction-design)
+- [Medical AI Robotics Needs Governance Before Performance Claims](/en/posts/medical-ai-robotics-governance-before-performance)
+- [How Segmentation Signals Drop And Recover In MLLMs](/en/posts/segmentation-drop-recovery-in-mllms)
+---
+
+## References
+
+- [Use XML tags to structure your prompts - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/use-xml-tags)
+- [Introducing Structured Outputs in the API | OpenAI - openai.com](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-updates)
+- [Safety in building agents | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agent-builder-safety)
+- [How to implement tool use - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use)
+- [Model Context Protocol (MCP) - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/mcp)
+- [Connect Claude Code to tools via MCP - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/mcp)
+- [Responses | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/responses/compacted-object)
+- [New tools for building agents | OpenAI - openai.com](https://openai.com/index/new-tools-for-building-agents/)
+- [StructuredRAG: JSON Response Formatting with Large Language Models - arxiv.org](https://arxiv.org/abs/2408.11061)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.22519)
