@@ -1,0 +1,92 @@
+---
+title: Execution Provenance Defines Real Agent Security Boundaries
+slug: execution-provenance-agent-security-boundaries
+date: '2026-03-26'
+lastReviewedAt: '2026-03-26'
+locale: en
+description: >-
+  Agent security depends less on benchmark scores than on tracing execution
+  provenance across generation, handoffs, and permissions.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+  - prompt-injection
+author: AI온다
+sourceId: arxiv-cs-ai-7d2d247b56819134
+sourceUrl: 'https://arxiv.org/abs/2603.22868'
+verificationScore: 0.82
+alternateLocale: /ko/posts/execution-provenance-agent-security-boundaries
+coverImage: /images/posts/execution-provenance-agent-security-boundaries.png
+---
+
+74.55% and 20.8–33.6 percentage points appear in recent agent security results. Operators still face a different practical question. If you cannot trace each tool call and its origin, high defense scores may not map to real permission control.
+
+## TL;DR
+- This article examines execution provenance for LLM agents, including traces for tool calls, handoffs, guardrails, and generated functions.
+- It matters because agent risk often emerges across branching execution paths, not from one isolated tool call.
+- You should review end-to-end traces, separate sub-agent permissions, and deny or escalate actions with unclear origins.
+
+Example: A support agent reads a document, creates a helper, and sends data outward. The risky part is not one tool call. The risky part is losing the path that explains who triggered the action and why.
+
+## Current status
+
+The paper discussed here is *Agent-Sentry: Bounding LLM Agents via Execution Provenance*. The arXiv abstract excerpt states a clear premise. Agent systems can create new functions from natural-language instructions. Their capability sets and execution flows can be hard to enumerate in advance. If that premise holds, static permission matrices may not provide stable boundaries.
+
+Industry toolchains are moving toward execution tracing. The findings note that the OpenAI Agents SDK traces `LLM generations, tool calls, handoffs, guardrails`. The key point is narrower than broad security claims. A record of one tool execution is not enough. Generations, handoffs, and guardrails should be linked in one execution record. That record lets operators ask who did something and why.
+
+Traceability and strong constraint are not the same. Anthropic documentation says different tool permissions can be assigned to each sub-agent. The findings also note a limit. Sub-agent context is not sufficiently exposed to tool-call hooks. That limit can reduce precise attribution tracing. Sub-agent permission separation appears possible. Full provenance enforcement across the hierarchy has not been established here.
+
+
+## Analysis
+
+This approach changes the unit of agent security. The old question focused on one dangerous answer. The newer question traces a path. It asks which instruction led to which tools, code, sub-agents, and external transfers. Execution provenance works like a security receipt. It preserves intermediate steps for audit and blocking. From that view, prompt injection can be seen as contamination of an execution path.
+
+That does not make provenance a complete solution. Trace logs can exist while weak policies still allow bad outcomes. This review also does not establish the control granularity for generated code or dynamic functions. The missing detail matters. It is unclear whether constraints apply at sentence level or execution-unit level. The evidence reviewed here also lacks direct figures for false positives, false negatives, and runtime overhead in comparable agent settings. Operators should distinguish better visibility from better safety.
+
+## Practical Application
+
+For production teams, this topic is closer to an architectural choice than a research update. If an agent calls external tools or hands work to sub-agents, each step should be recorded in the same session unit. If a call appears in that unit without a clear origin, that call can fail closed or go to human approval. Rules like these connect sandboxing, least privilege, and URL transfer controls.
+
+This is why OpenAI discusses controls such as sandboxing and Safe Url. The issue is not one defense in isolation. The execution path should be controlled as a whole.
+
+**Checklist for Today:**
+- Verify that generations, handoffs, and guardrail events are stored with tool-call logs in one session record.
+- Separate tool permissions by sub-agent, and check whether parent permissions pass down automatically.
+- Change unexplained external transfers and high-privilege actions to default deny or human review.
+
+## FAQ
+
+**Q. How is execution provenance different from ordinary logging?**  
+Execution provenance emphasizes relationships between events. It connects a response to an instruction, a tool call, and a handoff. That supports post hoc audit. It can also support blocking rules before completion.
+
+**Q. Can this approach stop prompt injection?**  
+It may reduce risk. This review did not identify one operational metric showing how much provenance constraints alone reduced prompt injection or privilege escalation in production services. Sandboxing, least privilege, URL controls, and monitoring still need to work together.
+
+**Q. Can code generation or sub-agent generation be largely controlled as well?**  
+That cannot be concluded here. The findings confirm tracking for tool calls, handoffs, and guardrail events. They do not confirm the control granularity for code generation. They also do not establish complete hierarchical provenance enforcement across the full runtime.
+
+## Conclusion
+
+The main question in agent security is shifting. It is moving from granted permissions to the path through which permissions were exercised. Execution provenance is one candidate approach in that shift. A cautious operational rule follows from the evidence here. Trust traceable execution more than untraceable automation. Keep untraceable actions outside the authority boundary.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-26](/en/posts/ai-resources-roundup-2026-03-26)
+- [Minibal Reframes Game AI Around Balanced Human Play](/en/posts/minibal-balanced-game-ai-human-play)
+- [Separating Instructions and Data at the LLM Interface](/en/posts/separating-instructions-and-data-at-the-llm-interface)
+- [AI Resource Roundup (24h) - 2026-03-21](/en/posts/ai-resources-roundup-2026-03-21)
+- [AI Resource Roundup (24h) - 2026-03-20](/en/posts/ai-resources-roundup-2026-03-20)
+---
+
+## References
+
+- [Subagents - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/sub-agents)
+- [Continuously hardening ChatGPT Atlas against prompt injection attacks | OpenAI - openai.com](https://openai.com/index/hardening-atlas-against-prompt-injection/)
+- [Safety in building agents | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agent-builder-safety)
+- [Designing AI agents to resist prompt injection | OpenAI - openai.com](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
+- [Understanding prompt injections: a frontier security challenge | OpenAI - openai.com](https://openai.com/index/prompt-injections)
+- [TraceAegis: Securing LLM-Based Agents via Hierarchical and Behavioral Anomaly Detection - arxiv.org](https://arxiv.org/abs/2510.11203)
+- [KnowHow: Automatically Applying High-Level CTI Knowledge for Interpretable and Accurate Provenance Analysis - arxiv.org](https://arxiv.org/abs/2509.05698)
+- [AgentSentry: Mitigating Indirect Prompt Injection in LLM Agents via Temporal Causal Diagnostics and Context Purification - arxiv.org](https://arxiv.org/abs/2602.22724)
+- [AgenTRIM: Tool Risk Mitigation for Agentic AI - arxiv.org](https://arxiv.org/abs/2601.12449)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.22868)

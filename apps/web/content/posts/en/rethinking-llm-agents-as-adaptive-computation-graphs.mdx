@@ -1,0 +1,95 @@
+---
+title: Rethinking LLM Agents as Adaptive Computation Graphs
+slug: rethinking-llm-agents-as-adaptive-computation-graphs
+date: '2026-03-26'
+lastReviewedAt: '2026-03-26'
+locale: en
+description: >-
+  View LLM agents as runtime-adaptive computation graphs to optimize accuracy,
+  cost, latency, debugging, and control.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+  - agent
+  - benchmark
+  - workflow
+author: AI온다
+sourceId: arxiv-cs-ai-7d95ecd73842d18c
+sourceUrl: 'https://arxiv.org/abs/2603.22386'
+verificationScore: 0.82
+alternateLocale: /ko/posts/rethinking-llm-agents-as-adaptive-computation-graphs
+coverImage: /images/posts/rethinking-llm-agents-as-adaptive-computation-graphs.png
+---
+
+
+## TL;DR
+
+- This article reframes LLM agents as agent computation graphs, not fixed chains or static templates.
+- It matters because some reported results show similar accuracy with lower cost or latency, but evidence remains task-specific.
+- Readers should map agent nodes and edges, log each step, and evaluate GAIA, memory, and tool benchmarks separately.
+
+Example: A support agent follows one path for routine requests, switches tools after a failure, records why it changed course, and pauses for review before sending a risky answer.
+
+## Current state
+
+The scope covered by this arXiv abstract is broad. It treats workflows as one object. Those workflows combine LLM calls, retrieval, tool use, code execution, memory updates, and verification. It then frames them as agentic computation graphs, or agent computation graphs.
+
+A key point in the abstract is timing. It organizes prior work by when workflow structure is determined. The optimization problem changes with that choice. One case fixes structure at design time. Another case modifies the graph during execution.
+
+
+Another systems study reported throughput gains: Aragog increased maximum serving throughput by 50.0% to 217.0% and reduced median latency by 32.5% to 78.9% at peak request rates while maintaining accuracy comparable to more expensive configurations. These results are task-specific and suggest that runtime adaptation can improve serving efficiency in some settings, rather than proving dynamic graphs are universally better.
+
+
+## Analysis
+
+The survey’s significance is close to this view: agents can be treated like compilers. Many teams have tried to improve performance by editing prompts and adding tools. A graph perspective changes the questions. Which nodes should use a large model? Which nodes can use a smaller model or a rule-based tool? Which edges should stay inactive until needed? Should recovery paths open only after failure? Optimization becomes execution-plan design, not only sentence editing.
+
+This approach also brings reliability and control issues forward. Related studies describe graph-based execution as more explicit about information flow and decision paths. That can make provenance tracking, auditability, runtime tracing, checkpoints, interrupts, and branching easier to attach. This matters in production settings. Teams can inspect why an agent chose the wrong tool. They can trace which memory update caused a later error. They can see where human intervention was needed. If teams pursue dynamic optimization without observability, the problem can worsen. As graphs grow more complex, failure analysis can become harder.
+
+The limitations are also clear. The reported figures come from individual systems and specific scenarios. There is no basis for claiming consistent gains across accuracy, cost, and latency together. Verification is also hard to treat as one category. The target changes across self-verification, output verification, and external rule checking. The field has progressed in conceptual organization. Its measurement standards are still not unified.
+
+## Practical Application
+
+Practitioners should not treat this topic as another agent framework cycle. First, draw the current system as a graph. Separate nodes into LLM calls, retrieval, tool execution, memory writes, and verification. Define edges with preconditions and failure-recovery paths. Then log cost, latency, success rate, and retry count for each node. That makes optimization targets easier to isolate. Teams can distinguish prompt revision from routing changes or added verification.
+
+
+**Checklist for Today:**
+- Draw the current agent as nodes and edges on one page, including LLM calls, tools, memory, and verification.
+- Add per-node logs for cost, latency, success rate, retries, and failure branches, including human intervention points.
+- Pair one broad benchmark with one memory or tool benchmark, and record step-level results beside the overall score.
+
+## FAQ
+
+**Q. Are dynamic runtime graphs often better than static workflows?**  
+No. Retrieved cases showed cost and latency improvements in some settings. Accuracy was maintained in some comparisons. However, no evidence here shows superiority across all tasks and benchmarks.
+
+**Q. How is an agent computation graph different from simply chaining tools?**  
+The main difference is when structure is finalized. A fixed chain decides sequence in advance. A computation graph can change during execution. That includes branching, recovery, parallelization, inserted verification, and memory updates. The optimization target expands from prompts to execution structure.
+
+
+## Conclusion
+
+The graph perspective addresses a problem above prompt writing. Progress may depend less on longer chains alone. It may depend more on graph design. That includes when to branch, where to stop, what to record, and when to verify.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-26](/en/posts/ai-resources-roundup-2026-03-26)
+- [Minibal Reframes Game AI Around Balanced Human Play](/en/posts/minibal-balanced-game-ai-human-play)
+- [Separating Instructions and Data at the LLM Interface](/en/posts/separating-instructions-and-data-at-the-llm-interface)
+- [AI Resource Roundup (24h) - 2026-03-21](/en/posts/ai-resources-roundup-2026-03-21)
+- [AI Resource Roundup (24h) - 2026-03-20](/en/posts/ai-resources-roundup-2026-03-20)
+---
+
+## References
+
+- [From Serving to Training: Efficient Systems for LLM Agents at Scale - www2.eecs.berkeley.edu](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2025/EECS-2025-203.pdf)
+- [HAL: GAIA Leaderboard - hal.cs.princeton.edu](https://hal.cs.princeton.edu/gaia)
+- [Graph-Based Self-Healing Tool Routing for Cost-Efficient LLM Agents - arxiv.org](https://arxiv.org/abs/2603.01548)
+- [Aragog: Just-in-Time Model Routing for Scalable Serving of Agentic Workflows - arxiv.org](https://arxiv.org/abs/2511.20975)
+- [AMA-Bench: Evaluating Long-Horizon Memory for Agentic Applications - arxiv.org](https://arxiv.org/abs/2602.22769)
+- [Mem2ActBench: A Benchmark for Evaluating Long-Term Memory Utilization in Task-Oriented Autonomous Agents - arxiv.org](https://arxiv.org/abs/2601.19935)
+- [Language Agents as Optimizable Graphs - arxiv.org](https://arxiv.org/abs/2402.16823)
+- [El Agente Gráfico: Structured Execution Graphs for Scientific Agents - arxiv.org](https://arxiv.org/abs/2602.17902)
+- [MASFactory: A Graph-centric Framework for Orchestrating LLM-Based Multi-Agent Systems with Vibe Graphing - arxiv.org](https://arxiv.org/abs/2603.06007)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.22386)

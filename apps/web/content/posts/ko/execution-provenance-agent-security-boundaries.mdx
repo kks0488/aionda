@@ -1,0 +1,88 @@
+---
+title: 에이전트 보안의 핵심은 추적
+slug: execution-provenance-agent-security-boundaries
+date: '2026-03-26'
+lastReviewedAt: '2026-03-26'
+locale: ko
+description: 에이전트 보안은 방어 점수보다 실행 출처 추적이 핵심이다. 생성·핸드오프·권한 경로를 함께 봐야 한다.
+tags:
+  - llm
+  - deep-dive
+  - prompt-injection
+author: AI온다
+sourceId: arxiv-cs-ai-7d2d247b56819134
+sourceUrl: 'https://arxiv.org/abs/2603.22868'
+verificationScore: 0.82
+alternateLocale: /en/posts/execution-provenance-agent-security-boundaries
+coverImage: /images/posts/execution-provenance-agent-security-boundaries.png
+---
+
+74.55%와 20.8~33.6%p. 에이전트 보안 논문이 제시하는 숫자는 계속 나온다. 다만 운영자가 지금 바로 물어야 할 질문은 따로 있다. 에이전트가 어떤 도구를 왜 호출했는지, 그 호출이 어느 지시와 어느 하위 에이전트에서 나왔는지 끝까지 추적하지 못하면, 높은 방어 점수도 실제 권한 통제와는 거리가 생긴다.
+
+## 세 줄 요약
+- 핵심 이슈는 자연어 지시로 새 기능을 만들고 호출하는 LLM 에이전트의 실행 경로를 provenance, 즉 실행 출처와 연쇄 관계로 추적해 허용 동작의 경계를 세우려는 접근이다.
+- 이 접근이 중요한 이유는 에이전트의 위험이 단순한 툴 호출 한 번이 아니라, 미리 모두 열거하기 어려운 기능 집합과 확률적으로 갈라지는 실행 흐름에서 커지기 때문이다.
+- 독자는 툴 호출 로그만 보지 말고 생성, 핸드오프, 가드레일 이벤트, 하위 에이전트 권한 분리를 함께 점검해 “추적 가능하지 않은 실행은 권한도 주지 않는다”는 운영 규칙부터 세워야 한다.
+
+## 현황
+
+이번에 언급되는 논문은 *Agent-Sentry: Bounding LLM Agents via Execution Provenance*다. arXiv 초록 발췌에서 확인되는 핵심은 분명하다. 에이전트 시스템은 자연어 지시를 바탕으로 새 기능을 자율적으로 만들어내고, 전체 기능 집합과 확률적 실행 흐름을 사전에 알기 어렵다. 이 전제가 맞다면 기존의 정적 권한표만으로는 경계 설정이 흔들릴 수 있다.
+
+이미 업계 도구 체인은 실행 추적 쪽으로 움직이고 있다. OpenAI Agents SDK는 에이전트 실행에서 `LLM generations, tool calls, handoffs, guardrails`를 추적한다고 안내한다는 조사 결과가 있다. 여기서 중요한 점은 단순히 “어떤 툴이 실행됐다”는 기록만으로는 부족하다는 것이다. 생성, 핸드오프, 가드레일까지 한 줄기의 실행 기록으로 묶어야 나중에 “누가 왜 이 행동을 했는가”를 따질 수 있다.
+
+다만 추적 가능성과 강한 제약은 같은 말이 아니다. Anthropic 문서는 서브에이전트마다 서로 다른 도구 접근 권한을 둘 수 있다고 설명한다. 반면 조사 결과에는 서브에이전트 맥락이 툴 호출 훅에 충분히 노출되지 않아 정확한 귀속 추적에 한계가 있다는 이슈도 적혀 있다. 즉, 하위 에이전트 단위 권한 분리는 가능해 보이지만, 계층 전체에서 provenance를 완전하게 강제한다고 단정할 근거는 아직 없다.
+
+벤치마크 숫자도 맥락을 나눠 봐야 한다. 별도 연구인 AgentSentry는 간접 프롬프트 인젝션 방어에서 평균 Utility Under Attack 74.55%를 기록했고, 강한 기준선 대비 20.8~33.6%포인트 개선을 보고했다. AgenTRIM도 AgentDojo 벤치마크에서 공격 성공을 줄이면서 과업 성능을 유지했다고 말한다. 다만 이 수치들은 실행 provenance 기반 경계 설정 자체의 실서비스 성과를 뜻하지는 않는다. 조사 결과 기준으로는 provenance 접근을 기존 정책 엔진·샌드박스와 같은 조건에서 직접 비교한 오탐·미탐·오버헤드 수치를 확인할 수 없었다.
+
+## 분석
+
+이 접근이 중요한 이유는 에이전트 보안의 단위를 바꾸기 때문이다. 과거에는 “이 모델이 위험한 답을 했는가”를 봤다. 이제는 “이 시스템이 어떤 지시에서 출발해 어떤 도구, 코드, 하위 에이전트, 외부 전송으로 이어졌는가”를 봐야 한다. 실행 provenance는 일종의 보안용 영수증이다. 최종 행동만 보는 대신 중간 경로를 남겨 감사와 차단에 쓰려는 방식이다. 프롬프트 인젝션도 이 관점에서는 텍스트 공격이라기보다 실행 경로를 오염시키는 공격에 가깝다.
+
+그렇다고 provenance가 만능은 아니다. 첫째, 추적 로그가 있어도 정책이 허술하면 막지 못한다. 둘째, 새로 생성된 코드나 동적으로 만들어진 기능을 어느 단위까지 제한할지, 문장 수준인지 실행 단위인지, 이번 조사 결과만으로는 알기 어렵다. 셋째, 규칙 기반 보안이 놓치는 false negatives 문제가 지적되기는 했지만, provenance 접근이 에이전트 환경에서 오탐과 미탐을 얼마나 줄이는지 직접 수치는 없다. 마지막으로 성능 비용도 비어 있다. 운영자는 “더 잘 보인다”와 “실제로 안전해진다”를 구분해야 한다.
+
+## 실전 적용
+
+실서비스 팀이라면 이 주제를 연구 뉴스가 아니라 아키텍처 의사결정으로 다뤄야 한다. 에이전트가 외부 도구를 호출하거나 하위 에이전트에 일을 넘긴다면 각 실행 단계를 같은 세션 단위로 묶어 남겨야 한다. 그 묶음 안에서 출처를 설명할 수 없는 호출이 나온다면 그 호출은 실패 처리하거나 인간 승인으로 넘겨야 한다. 이런 규칙이 있어야 샌드박스, 최소권한, URL 전송 통제 같은 방어가 서로 연결된다.
+
+예: 영업 지원 에이전트가 메일 초안을 작성하고 CRM을 조회하며 외부 문서를 읽는다고 하자. 여기서 필요한 것은 “CRM 읽기 허용” 한 줄이 아니다. 어떤 사용자 지시가 시작점이었는지, 중간에 어떤 문서가 컨텍스트에 들어왔는지, 하위 에이전트가 생겼는지, 마지막 외부 전송이 대화에서 얻은 민감 정보를 포함하는지까지 이어지는 경로를 봐야 한다. OpenAI가 샌드박싱과 Safe Url 같은 통제를 말하는 이유도 여기에 있다. 단일 방어가 아니라 실행 경로 전체를 함께 통제해야 한다.
+
+오늘 바로 할 일 체크리스트:
+- 툴 호출 로그에 생성, 핸드오프, 가드레일 이벤트가 함께 남는지 확인하라.
+- 서브에이전트별 도구 권한을 분리하고, 상위 에이전트 권한이 자동 상속되는지 점검하라.
+- 출처를 설명할 수 없는 외부 전송과 고권한 액션은 기본 거부로 바꾸고 예외만 허용하라.
+
+## FAQ
+
+**Q. 실행 provenance는 그냥 로깅과 무엇이 다른가요?**  
+실행 provenance는 단순 로그보다 관계를 더 중시합니다. 어떤 응답이 어떤 지시, 어떤 도구 호출, 어떤 핸드오프에서 이어졌는지 연결해 추적하는 방식입니다. 그래서 사후 감사뿐 아니라 사전 차단 규칙에도 쓸 수 있습니다.
+
+**Q. 이 방식이면 프롬프트 인젝션을 막을 수 있나요?**  
+위험을 낮추는 데는 도움이 됩니다. 다만 이번 조사 결과만 보면, 실행 provenance 기반 제약 자체가 실서비스에서 프롬프트 인젝션이나 권한 상승을 어느 정도 줄였는지에 대한 단일 운영 지표는 확인되지 않았습니다. 샌드박싱, 최소권한, URL 통제, 모니터링을 함께 써야 합니다.
+
+**Q. 코드 생성이나 하위 에이전트 생성까지 완전히 통제할 수 있나요?**  
+그렇게 단정할 수는 없습니다. 조사 결과 기준으로 도구 호출, 핸드오프, 가드레일 이벤트 추적은 확인되지만, 코드 생성을 어느 단위까지 제한할 수 있는지와 계층적 provenance 강제가 런타임 전반에서 완전한지는 확인되지 않았습니다.
+
+## 결론
+
+에이전트 보안의 질문은 “무슨 권한을 줄까”에서 “그 권한이 어떤 실행 경로를 통해 행사됐나”로 옮겨가고 있다. 실행 provenance는 그 전환에서 중요한 후보 접근이다. 지금 단계에서 실무적으로 취할 판단은 비교적 분명하다. 추적 가능한 실행만 신뢰하고, 추적되지 않는 자동화는 권한 밖에 두는 것이다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-26](/ko/posts/ai-resources-roundup-2026-03-26)
+- [게임 AI의 균형 플레이](/ko/posts/minibal-balanced-game-ai-human-play)
+- [LLM 지시문·데이터 분리](/ko/posts/separating-instructions-and-data-at-the-llm-interface)
+- [AI 자료 모음 (24h) - 2026-03-21](/ko/posts/ai-resources-roundup-2026-03-21)
+- [AI 자료 모음 (24h) - 2026-03-20](/ko/posts/ai-resources-roundup-2026-03-20)
+---
+
+## 참고 자료
+
+- [Subagents - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/sub-agents)
+- [Continuously hardening ChatGPT Atlas against prompt injection attacks | OpenAI - openai.com](https://openai.com/index/hardening-atlas-against-prompt-injection/)
+- [Safety in building agents | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agent-builder-safety)
+- [Designing AI agents to resist prompt injection | OpenAI - openai.com](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
+- [Understanding prompt injections: a frontier security challenge | OpenAI - openai.com](https://openai.com/index/prompt-injections)
+- [TraceAegis: Securing LLM-Based Agents via Hierarchical and Behavioral Anomaly Detection - arxiv.org](https://arxiv.org/abs/2510.11203)
+- [KnowHow: Automatically Applying High-Level CTI Knowledge for Interpretable and Accurate Provenance Analysis - arxiv.org](https://arxiv.org/abs/2509.05698)
+- [AgentSentry: Mitigating Indirect Prompt Injection in LLM Agents via Temporal Causal Diagnostics and Context Purification - arxiv.org](https://arxiv.org/abs/2602.22724)
+- [AgenTRIM: Tool Risk Mitigation for Agentic AI - arxiv.org](https://arxiv.org/abs/2601.12449)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.22868)

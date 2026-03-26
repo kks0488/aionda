@@ -1,0 +1,91 @@
+---
+title: LLM 에이전트 계산 그래프
+slug: rethinking-llm-agents-as-adaptive-computation-graphs
+date: '2026-03-26'
+lastReviewedAt: '2026-03-26'
+locale: ko
+description: LLM 에이전트를 정적 워크플로가 아닌 실행 중 바뀌는 계산 그래프로 보고 비용·지연·통제를 함께 설계한다.
+tags:
+  - llm
+  - explainer
+  - agent
+  - benchmark
+  - workflow
+author: AI온다
+sourceId: arxiv-cs-ai-7d95ecd73842d18c
+sourceUrl: 'https://arxiv.org/abs/2603.22386'
+verificationScore: 0.82
+alternateLocale: /en/posts/rethinking-llm-agents-as-adaptive-computation-graphs
+coverImage: /images/posts/rethinking-llm-agents-as-adaptive-computation-graphs.png
+---
+
+LLM 에이전트는 한 번의 프롬프트로 끝나지 않는다. 검색, 툴 호출, 코드 실행, 메모리 갱신, 검증을 오간다. 이런 시스템을 아직도 “체인 몇 개를 묶은 워크플로”로만 봐도 되는지 다시 물을 필요가 있다. 이번 설문은 그 관점을 다른 방향으로 정리한다. 핵심은 LLM 시스템을 정적 템플릿이 아니라, 실행 중 구조가 바뀌는 그래프로 보자는 제안이다. 이 관점이 중요한 이유도 분명하다. 정확도만이 아니라 비용, 지연시간, 디버깅, 통제를 함께 다뤄야 하기 때문이다.
+
+## 세 줄 요약
+
+- 이 글의 핵심은 LLM 에이전트 워크플로를 고정된 순서가 아니라, 실행 중 가지가 갈라지고 되돌아가는 “에이전트 계산 그래프”로 이해하는 방법이다.
+- 이 관점이 중요한 이유는 런타임 적응이 일부 사례에서 비용과 지연시간을 낮추면서 정확도를 유지했기 때문이다. 다만 모든 작업에서 정적 방식보다 낫다는 근거는 아직 없다.
+- 독자는 에이전트를 만들 때 “프롬프트 품질”만 보지 말고 그래프의 노드, 엣지, 관측 로그, 중단 지점, 검증 단계를 함께 설계해야 한다. 평가도 GAIA·메모리 벤치·툴 벤치를 나눠서 봐야 한다.
+
+## 현황
+
+이번 arXiv 초록이 다루는 범위는 넓다. LLM 호출, 정보 검색, 툴 사용, 코드 실행, 메모리 업데이트, 검증을 섞어 만든 실행 가능한 워크플로를 하나의 대상으로 본다. 그리고 이를 agentic computation graphs, 즉 에이전트 계산 그래프로 다룬다. 초록에서 확인되는 핵심은 문헌을 “워크플로 구조가 언제 결정되느냐”를 기준으로 정리했다는 점이다. 설계 시점에 구조를 미리 정하는지, 실행 중 그래프를 바꾸는지에 따라 최적화 문제가 달라진다는 뜻이다.
+
+이 프레임은 비유에 그치지 않고 시스템 문제와 직접 연결된다. 검색으로 확인된 사례를 보면, 그래프 기반 자기복구 라우팅은 19개 시나리오에서 ReAct와 같은 정답성을 유지하면서 제어용 LLM 호출을 123회에서 9회로 줄였다. 감소폭은 93%였다. 또 다른 시스템 연구에서는 에이전트 워크플로 서빙에서 최대 처리량이 50.0%에서 217.0%까지 늘고, 피크 요청률에서 중간 지연시간이 32.5%에서 78.9%까지 줄었다고 보고했다. 이 결과가 “동적이면 항상 더 낫다”는 뜻은 아니다. 다만 런타임 적응이 비용과 대기시간에서 이득을 낼 수 있다는 근거로는 읽을 수 있다.
+
+벤치마크 풍경은 아직 나뉘어 있다. 전체 에이전트 능력, 추론, 웹 브라우징, 툴 사용을 함께 보려면 GAIA가 적합하다. 메모리 업데이트를 길게 보려면 AMA-Bench가, 장기 기억을 실제 툴 행동과 연결해 보려면 Mem2ActBench가 보완재가 된다. 검색 결과 기준으로는 툴 호출, 메모리 업데이트, 검증 단계를 한꺼번에 묶어 “그래프 최적화”를 직접 재는 단일 벤치마크는 확인되지 않았다. 이 공백은 실무에서 특히 크다. 무엇이 잘됐는지뿐 아니라 어디서 실패했는지 파악하기 어렵기 때문이다.
+
+## 분석
+
+이 설문의 의미는 “에이전트도 컴파일러처럼 다뤄야 한다”는 쪽에 가깝다. 지금까지 많은 팀은 프롬프트를 고치고 툴을 더 붙이며 성능을 올리려 했다. 그래프 관점으로 넘어가면 질문이 달라진다. 어떤 노드는 큰 모델이 맡아야 하는가. 어떤 노드는 작은 모델이나 규칙 기반 도구로 대체할 수 있는가. 어떤 엣지는 항상 연결할 필요가 없는가. 실패했을 때만 복구 경로를 열어야 하는가. 여기서 최적화는 문장 수정이 아니라 실행 계획 설계가 된다.
+
+동시에 이 접근은 신뢰성과 통제 문제를 더 앞에 놓는다. 관련 연구들은 그래프 기반 실행이 정보 흐름과 의사결정 경로를 더 명시적으로 드러내므로 provenance tracking, auditability, runtime tracing, checkpoints, interrupts, branching 같은 장치를 붙이기 쉽다고 설명한다. 이 점은 실전에서 중요하다. 에이전트가 왜 잘못된 툴을 골랐는지, 어느 메모리 업데이트가 이후 오류를 만들었는지, 어느 분기에서 사람 개입이 필요했는지 추적하기 쉬워지기 때문이다. 반대로 동적 최적화만 밀어붙이고 관측 가능성을 설계하지 않으면 문제는 더 커질 수 있다. 그래프가 복잡해질수록 실패 원인을 찾기 어려워진다.
+
+한계도 분명하다. 지금 확인된 수치는 개별 시스템과 특정 시나리오에서 나온 결과다. 동적 런타임 그래프가 정적 워크플로보다 정확도, 비용, 지연시간을 동시에 늘 앞선다고 말할 근거는 없다. 또 “검증”도 한 단어로 묶기 어렵다. 자기검증인지, 결과 검증인지, 외부 규칙 검사인지에 따라 최적화 대상이 달라진다. 즉, 이 분야는 개념 정리는 빠르게 이뤄졌지만 측정 기준은 아직 통일되지 않았다.
+
+## 실전 적용
+
+실무팀이라면 이 주제를 “에이전트 프레임워크 유행”으로만 보면 안 된다. 먼저 현재 시스템을 그래프로 그려야 한다. 노드는 LLM 호출, 검색, 툴 실행, 메모리 쓰기, 검증으로 나눈다. 엣지는 선행 조건과 실패 복구 경로로 정의한다. 그다음 각 노드마다 비용, 지연시간, 성공률, 재시도 횟수를 따로 남겨야 한다. 그래야 최적화 대상이 프롬프트 수정인지, 라우팅 변경인지, 검증 추가인지 구분할 수 있다.
+
+평가도 나눠서 해야 한다. 전체 성능은 GAIA 같은 종합형 벤치로 보고, 메모리는 AMA-Bench나 Mem2ActBench 류로 따로 본다. 툴 호출 품질도 별도 벤치로 재야 한다. 한 개 숫자로 에이전트 전체를 판단하면, 검색은 좋아졌는데 메모리가 오염됐거나, 검증이 늘어 지연시간이 치솟는 문제를 놓칠 수 있다. 지금 필요한 것은 “더 똑똑한 에이전트”보다 “어디서 비용과 실패가 생기는지 보이는 에이전트”다.
+
+**오늘 바로 할 일**
+- 현재 에이전트 파이프라인을 노드와 엣지로 그려서, LLM 호출·툴 호출·메모리 업데이트·검증 단계를 한 장에 표시하라.
+- 각 노드에 비용, 지연시간, 성공률 로그를 붙이고, 실패 시 다음 분기와 사람 개입 지점을 명시하라.
+- 종합 벤치 1개와 메모리 또는 툴 벤치 1개를 함께 골라, 한 번의 점수가 아니라 단계별 점수를 따로 기록하라.
+
+## FAQ
+
+**Q. 동적 런타임 그래프가 정적 워크플로보다 항상 더 낫나?**  
+아닙니다. 검색으로 확인된 사례에서는 비용과 지연시간 개선이 있었고, 정확도는 유지되거나 정적 베이스라인의 실패가 줄었습니다. 하지만 모든 작업과 벤치마크에서 항상 우월하다는 근거는 확인되지 않았습니다.
+
+**Q. 에이전트 계산 그래프는 그냥 체인 오브 툴보다 뭐가 다른가?**  
+차이는 구조를 언제 확정하느냐에 있습니다. 고정 체인은 순서가 미리 정해져 있지만, 계산 그래프 관점은 실행 중 분기, 복구, 병렬화, 검증 삽입, 메모리 갱신 같은 변화를 포함합니다. 그래서 최적화 대상도 프롬프트가 아니라 전체 실행 구조로 넓어집니다.
+
+**Q. 지금 당장 어떤 벤치마크로 시작하면 되나?**  
+목적에 따라 나누는 편이 낫습니다. 전체 에이전트 능력은 GAIA가 적합하고, 장기 메모리는 AMA-Bench나 Mem2ActBench가 보완적입니다. 검색 결과 기준으로 검증 단계까지 포함한 단일 통합 벤치마크는 확인되지 않았습니다.
+
+## 결론
+
+LLM 에이전트 그래프라는 관점은 “프롬프트를 잘 쓰는 법”보다 한 단계 위의 문제를 다룬다. 앞으로의 경쟁력은 더 긴 체인을 만드는 데만 있지 않다. 어떤 그래프를 언제 펼치고, 어디서 멈추고, 무엇을 기록하며, 어떤 단계에서 검증할지 설계하는 데 달려 있다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-03-26](/ko/posts/ai-resources-roundup-2026-03-26)
+- [게임 AI의 균형 플레이](/ko/posts/minibal-balanced-game-ai-human-play)
+- [LLM 지시문·데이터 분리](/ko/posts/separating-instructions-and-data-at-the-llm-interface)
+- [AI 자료 모음 (24h) - 2026-03-21](/ko/posts/ai-resources-roundup-2026-03-21)
+- [AI 자료 모음 (24h) - 2026-03-20](/ko/posts/ai-resources-roundup-2026-03-20)
+---
+
+## 참고 자료
+
+- [From Serving to Training: Efficient Systems for LLM Agents at Scale - www2.eecs.berkeley.edu](https://www2.eecs.berkeley.edu/Pubs/TechRpts/2025/EECS-2025-203.pdf)
+- [HAL: GAIA Leaderboard - hal.cs.princeton.edu](https://hal.cs.princeton.edu/gaia)
+- [Graph-Based Self-Healing Tool Routing for Cost-Efficient LLM Agents - arxiv.org](https://arxiv.org/abs/2603.01548)
+- [Aragog: Just-in-Time Model Routing for Scalable Serving of Agentic Workflows - arxiv.org](https://arxiv.org/abs/2511.20975)
+- [AMA-Bench: Evaluating Long-Horizon Memory for Agentic Applications - arxiv.org](https://arxiv.org/abs/2602.22769)
+- [Mem2ActBench: A Benchmark for Evaluating Long-Term Memory Utilization in Task-Oriented Autonomous Agents - arxiv.org](https://arxiv.org/abs/2601.19935)
+- [Language Agents as Optimizable Graphs - arxiv.org](https://arxiv.org/abs/2402.16823)
+- [El Agente Gráfico: Structured Execution Graphs for Scientific Agents - arxiv.org](https://arxiv.org/abs/2602.17902)
+- [MASFactory: A Graph-centric Framework for Orchestrating LLM-Based Multi-Agent Systems with Vibe Graphing - arxiv.org](https://arxiv.org/abs/2603.06007)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.22386)
