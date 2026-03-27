@@ -1,0 +1,102 @@
+---
+title: Why Post-Training Collapses Multiple Valid Answers Into One
+slug: post-training-collapses-multiple-valid-answers
+date: '2026-03-27'
+lastReviewedAt: '2026-03-27'
+locale: en
+description: >-
+  Examines how LLM post-training collapses multiple valid answers into one and
+  why distributional evaluation matters.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-2ec7617cb7410408
+sourceUrl: 'https://arxiv.org/abs/2603.24844'
+verificationScore: 0.76
+alternateLocale: /ko/posts/post-training-collapses-multiple-valid-answers
+coverImage: /images/posts/post-training-collapses-multiple-valid-answers.png
+---
+
+In `2603.24844`, a paper posted on arXiv, the focus shifts from one answer to answer distributions. A Language Model can contain several plausible answers. Post-training often compresses that range into one dominant mode. That can fit benchmarks. It can be less suitable for medicine, ambiguity, and other uncertain settings.
+
+## TL;DR
+
+- `2603.24844` examines "RL for distributional reasoning" and treats answer distributions as the optimization target.
+- This matters because single-answer evaluation can hide uncertainty, reduce coverage, and weaken calibration in multi-answer tasks.
+- Readers should review evaluation design, add distribution and calibration metrics, and define abstention rules before deployment.
+
+Example: A clinician asks for possible causes of a symptom cluster. The system returns one polished answer. It hides uncertainty and omits plausible alternatives. The interface looks confident, but the decision context remains ambiguous.
+
+## TL;DR
+
+- The core issue is as follows. A Language Model has a distribution over possible answers. Conventional post-training often narrows that distribution around one answer. `2603.24844` proposes an RL direction that optimizes the distribution itself.
+- This matters because much real work is not a single-correct-answer exam. In multi-answer settings, accuracy alone can miss important information. One overconfident answer can reduce safety and reliability.
+- Readers should examine the evaluation framework. Single-answer accuracy is not enough. Decision rules should test distribution alignment, coverage, calibration, and abstention policies together.
+
+## Current state
+
+What the excerpt confirms is fairly clear. The topic is "RL for distributional reasoning." The source is cited as `arXiv:2603.24844v1`. The excerpt says Language Models implicitly encode a distribution of possible answers. It also says post-training can collapse that distribution into one dominant mode. This may be less visible in benchmark-style evaluation. It may matter more in medical diagnosis and ambiguous questions.
+
+It helps to separate confirmed points from unconfirmed points. Based on the available findings, no direct quantitative figures are confirmed for this paper's gains. That includes diversity, accuracy, and calibration versus RLHF-style post-training. So it would be premature to state exact improvement amounts. Still, related studies offer directional context with concrete identifiers. `2509.06941` reports mathematical reasoning experiments. `2404.00474` describes a separate RL stage for calibration in long-form generation. `2207.05221` says models can sometimes predict whether they know something. It also notes calibration can become unstable on new tasks.
+
+Evaluation is also changing. `2602.07842` points out a problem in multi-answer questions. Different answers can all be correct. That disagreement can lower confidence estimation. For that reason, single-answer accuracy alone is insufficient. The survey summary mentions KL divergence for alignment. It also mentions Coverage-N, precision, and confidence miscalibration. The goal is broader evaluation. It should ask whether the model was correct, broad, and calibrated.
+
+## Analysis
+
+This issue matters because it changes the post-training objective. Post-training has often been optimized for one preferred answer. That answer may satisfy a user, reviewer, or benchmark. This can work for test scores. Real-world questions are often less tidy. They may involve several plausible interpretations. In diagnostic assistance, the system should rank possibilities. In legal review, it should show the range of interpretations. In agent decision-making, it should not hide high uncertainty. If distributional reasoning RL is useful, this is a likely reason. It shifts attention from one best answer to a more honest answer space.
+
+That said, preserving a distribution does not by itself make a system safer. The findings draw that distinction. Distributional RL may help in risk-sensitive settings. It can support richer risk representations, selective abstention, and risk-aversion control. Overconfidence and hallucination still remain concerns. Without uncertainty estimation, calibration, and abstention policies, multiple answers can still mislead users. The AP-reported hospital transcription tool case involves a different kind of system. It still suggests a general lesson for high-risk domains. Outputs can outpace field procedures. The core issue is not only learning a distribution. It is whether that distribution is calibrated and controllable in practice.
+
+## Practical application
+
+The first habit teams should change is evaluation set design. If multi-answer tasks are scored against one reference answer, training pressure can still favor mode collapse. The approaches in the cited material suggest three branches. First, define acceptable answer sets. Second, evaluate distribution alignment and coverage. Third, test confidence scores and abstention conditions together. Without these three parts, it is harder to tell a better answer from a bolder one.
+
+Implementation details also matter from a product perspective. Teams should not rush distributional reasoning RL into medical, legal, or agent workflows. They should first define how uncertainty will appear in the interface. They should also define how users can intervene. Candidate answers can be shown by rank and rationale category. When confidence is low, or dispersion is high, the system can abstain or escalate to human review. The output format matters as much as the model behavior.
+
+**Checklist for Today:**
+- Review the evaluation set and relabel single-reference items as acceptable answer sets where appropriate.
+- Add accuracy, KL divergence, Coverage-N, precision, and confidence miscalibration to offline evaluation.
+- Define one abstention rule for low confidence, high dispersion, or high-risk use cases.
+
+## FAQ
+
+**Q. Can we say this research performs better than existing RLHF?**
+
+Not directly from the available findings. No quantitative figures are confirmed for this paper's gains over RLHF-style methods. That includes diversity, accuracy, and calibration. Related studies suggest possible benefits. `2509.06941` discusses accuracy and diversity collapse. `2404.00474` discusses calibration.
+
+**Q. What should be measured in multi-answer tasks?**
+
+Single-answer accuracy alone is insufficient. The cited material points to several metrics. These include distribution alignment, Coverage-N, precision, and confidence miscalibration. The goal is not only correctness. It is also preserving the space of possible answers.
+
+**Q. Can this be applied immediately to fields such as medicine or law?**
+
+Caution is still appropriate. Distributional reasoning may reveal uncertainty more clearly. That alone does not ensure safety. Calibration, abstention policies, and human review should be included together. Based on the available findings, no direct production evidence is confirmed here for safety or performance gains.
+
+## Conclusion
+
+The central question here is not only whether the model gets one answer right. It is also how honestly the model handles uncertainty. That is the concern raised by `2603.24844`. The next step is not only chasing top-line scores. It is examining how distribution preservation is evaluated and controlled in high-risk settings.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-27](/en/posts/ai-resources-roundup-2026-03-27)
+- [Evaluating Harmful Manipulation in Multi-Turn AI Dialogue](/en/posts/evaluating-harmful-manipulation-in-multi-turn-ai-dialogue)
+- [Memory and Randomness Bottlenecks in Probabilistic Trustworthy AI](/en/posts/memory-randomness-bottlenecks-probabilistic-trustworthy-ai)
+- [RAG Security Risks From Combined Injection And Poisoning](/en/posts/rag-security-risks-combined-injection-poisoning)
+- [Template-Driven ML Development for Ad Model Ecosystems](/en/posts/template-driven-ml-development-ad-model-ecosystems)
+---
+
+## References
+
+- [Validating LLM-as-a-Judge Systems under Rating Indeterminacy - blog.ml.cmu.edu](https://blog.ml.cmu.edu/2025/12/09/validating-llm-as-a-judge-systems-under-rating-indeterminacy/)
+- [Researchers say an AI-powered transcription tool used in hospitals invents things no one ever said | AP News - apnews.com](https://apnews.com/article/ai-artificial-intelligence-health-business-90020cdf5fa16c79ca2e5b6c4c9bbb14)
+- [Outcome-based Exploration for LLM Reasoning - arxiv.org](https://arxiv.org/abs/2509.06941)
+- [Linguistic Calibration of Long-Form Generations - arxiv.org](https://arxiv.org/abs/2404.00474)
+- [Language Models (Mostly) Know What They Know - arxiv.org](https://arxiv.org/abs/2207.05221)
+- [Evaluating and Calibrating LLM Confidence on Questions with Multiple Correct Answers - arxiv.org](https://arxiv.org/abs/2602.07842)
+- [Distributional reinforcement learning with epistemic and aleatoric uncertainty estimation - ScienceDirect - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0020025523008022)
+- [Provable Risk-Sensitive Distributional Reinforcement Learning with General Function Approximation - arxiv.org](https://arxiv.org/abs/2402.18159)
+- [Learning Conformal Abstention Policies for Adaptive Risk Management in Large Language and Vision-Language Models - arxiv.org](https://arxiv.org/abs/2502.06884)
+- [Guiding Reinforcement Learning Using Uncertainty-Aware Large Language Models - arxiv.org](https://arxiv.org/abs/2411.14457)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.24844)
