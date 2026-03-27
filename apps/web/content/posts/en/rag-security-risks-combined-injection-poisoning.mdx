@@ -1,0 +1,99 @@
+---
+title: RAG Security Risks From Combined Injection And Poisoning
+slug: rag-security-risks-combined-injection-poisoning
+date: '2026-03-27'
+lastReviewedAt: '2026-03-27'
+locale: en
+description: >-
+  Examines security risks in RAG when prompt injection and database poisoning
+  combine across retrieval and indexing.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - prompt-injection
+  - rag
+  - security
+author: AI온다
+sourceId: arxiv-cs-ai-01a571bd28903ed4
+sourceUrl: 'https://arxiv.org/abs/2603.25164'
+verificationScore: 0.88
+alternateLocale: /ko/posts/rag-security-risks-combined-injection-poisoning
+coverImage: /images/posts/rag-security-risks-combined-injection-poisoning.png
+---
+
+In knowledge bases with **millions of texts**, adding **5** malicious texts per target question has been reported as enough to change outcomes. The issue becomes more serious when retrieved documents can alter an answer's flow. The arXiv paper `PIDP-Attack: Combining Prompt Injection with Database Poisoning Attacks on Retrieval-Augmented Generation Systems` examines prompt injection and database poisoning together. This framing matters because RAG security may not be explained by model-prompt defenses alone.
+
+## TL;DR
+
+- This covers a composite RAG attack that combines prompt injection with database poisoning across retrieval and generation.
+- It matters because prior work reported a **90% attack success rate** with **5** malicious texts in knowledge bases with **millions of texts**.
+- You should review document-ingestion paths, treat retrieved context as untrusted, and test pre-indexing controls before expanding capabilities.
+
+Example: A support agent reads a poisoned document from a shared knowledge source, follows hidden instructions, and then takes the wrong next step.
+
+## Current Status
+
+RAG retrieves external knowledge and appends it to LLM input before answering. This approach aims to reduce stale information and hallucinations. That same strength can also create an attack path. Once retrieval fills knowledge gaps, attackers can target documents the model will read.
+
+The direct starting point here is the title and abstract excerpt of the arXiv paper `PIDP-Attack`. The excerpt indicates that the paper addresses RAG systems. It also describes RAG as a way to complement LLM limitations. At the same time, it frames the problem as persistent vulnerabilities. Based on the provided findings, the paper's quantitative results cannot be verified here. Specific defense metrics also cannot be verified here. The key point is the problem framing as a composite attack.
+
+Earlier research in a similar area suggests that retrieval-layer attacks can work in realistic settings. `PoisonedRAG` reported a **90% attack success rate**. It did so when **5** malicious texts were injected per target question. The knowledge base contained **millions of texts**. `POISONCRAFT` is also described as working across multiple datasets, retrievers, and LLMs. It is further described as transferring to black-box retrievers. The provided findings say this can happen without user query information or query modification. This suggests index contamination may be more than a theoretical concern. It also suggests only a small number of malicious documents may matter.
+
+The practical assumptions are also fairly concrete. Based on the provided findings, attackers need the ability to inject malicious documents into the knowledge base. The listed paths include public-source editing. They also include internet-based collection contamination. Insider injection into a private knowledge base is another stated path. Before focusing on prompt hardening, teams should ask who can place documents into the index. They should also ask which permissions govern that process.
+
+## Analysis
+
+This issue changes the scope of RAG security responsibility. Many teams have treated prompt injection as a prompt and filtering problem. Composite attacks start earlier in the pipeline. A malicious document can rank highly during retrieval. It can also contain indirect instructions such as “ignore previous instructions.” The model may then read hostile text as useful context. Retrieval quality and security may no longer be separate concerns.
+
+There are trade-offs. Retrieval preprocessing can help reduce risk. Indexing validation can also help. Source trust evaluation may help as well. NVIDIA advises treating retrieved context as untrusted input. NVIDIA also advises reviewing delegation authority and write access for documents and data sources. `TrustRAG` proposes filtering malicious or irrelevant content before retrieval. Based on the provided findings, the size of risk reduction is not confirmed here. Stronger defenses may reduce freshness, coverage, or recall. Restricting sources may improve safety. It may also narrow answer scope. Expanding open-web collection may increase coverage. It may also widen contamination paths.
+
+The impact may be greater in agentic RAG. OpenAI has written that agents can increase the impact because they directly perform actions. NVIDIA also explains that weak access controls plus indirect prompt injection can lead to data exfiltration and remote code execution. The risk depends on system design. Search results may remain reference material only. Or they may influence tool calling and execution.
+
+## Practical Application
+
+What is needed is not only a smarter model design. Teams should also design systems that trust documents less. During retrieval preprocessing, sources can be grouped into trust tiers. During indexing, metadata can be preserved. Authorship can also be preserved. Revision history and approval paths can be preserved as well. During generation, retrieved context should be separated from system instructions. It should be handled as untrusted context.
+
+For organization-specific decisions, simple If/Then rules can help. If external web crawling feeds the index, apply pre-indexing filtering and sampling audits first. If many employees can write to the knowledge base, review write permissions and approval flows before tuning answer quality. If RAG can trigger tools or agents, separate execution rules from retrieval-derived instructions.
+
+**Checklist for Today:**
+- Map public editing, web collection, and internal upload paths into the index, then review write permissions and approvals.
+- Label retrieved context as untrusted in code and logs, and separate it from system and developer instructions.
+- Run a small malicious-document injection test, and measure both top-result exposure and answer contamination.
+
+## FAQ
+
+**Q. Is this attack realistic in enterprise RAG?**
+
+It appears plausible under a clear prerequisite. Based on the provided findings, the attacker needs a way to inject malicious documents into the knowledge base. The listed paths include public-source editing. They also include internet-based collection contamination and insider injection into a private knowledge base.
+
+**Q. Are retrieval preprocessing and source trust evaluation enough?**
+
+It is hard to say they are enough. These controls may reduce risk. The provided findings do not confirm quantitative reduction for composite attacks. A combined approach is likely more prudent. That can include preprocessing, indexing validation, access control, and generation-stage guardrails.
+
+**Q. Is agentic RAG more dangerous?**
+
+It can be a more sensitive setup. OpenAI has stated that agents can increase impact because they directly perform actions. The effect may go beyond wrong answers. It may include tool misuse, data exfiltration, or harmful follow-up actions.
+
+## Conclusion
+
+The central security question in RAG is not only whether the model can be deceived. It is also what the model is made to read. It is also who can insert those documents. When prompt injection and data poisoning are combined, retrieval and generation become parts of one system. That system may be harder to defend in isolation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-27](/en/posts/ai-resources-roundup-2026-03-27)
+- [AI Resource Roundup (24h) - 2026-03-26](/en/posts/ai-resources-roundup-2026-03-26)
+- [Execution Provenance Defines Real Agent Security Boundaries](/en/posts/execution-provenance-agent-security-boundaries)
+- [Rethinking LLM Agents as Adaptive Computation Graphs](/en/posts/rethinking-llm-agents-as-adaptive-computation-graphs)
+- [Minibal Reframes Game AI Around Balanced Human Play](/en/posts/minibal-balanced-game-ai-human-play)
+---
+
+## References
+
+- [Practical LLM Security Advice from the NVIDIA AI Red Team | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/practical-llm-security-advice-from-the-nvidia-ai-red-team/)
+- [Introducing ChatGPT agent: bridging research and action | OpenAI - openai.com](https://openai.com/ms-BN/index/introducing-chatgpt-agent/)
+- [Safety in building agents | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agent-builder-safety)
+- [Operator System Card - cdn.openai.com](https://cdn.openai.com/operator_system_card.pdf)
+- [POISONCRAFT: Practical Poisoning of Retrieval-Augmented Generation for Large Language Models - arxiv.org](https://arxiv.org/abs/2505.06579)
+- [Adversarial Threat Vectors and Risk Mitigation for Retrieval-Augmented Generation Systems - arxiv.org](https://arxiv.org/abs/2506.00281)
+- [TrustRAG: Enhancing Robustness and Trustworthiness in Retrieval-Augmented Generation - arxiv.org](https://arxiv.org/abs/2501.00879)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.25164)
