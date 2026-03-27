@@ -1,0 +1,92 @@
+---
+title: Memory and Randomness Bottlenecks in Probabilistic Trustworthy AI
+slug: memory-randomness-bottlenecks-probabilistic-trustworthy-ai
+date: '2026-03-27'
+lastReviewedAt: '2026-03-27'
+locale: en
+description: >-
+  A unified view of probabilistic trustworthy AI: performance bottlenecks may
+  lie in memory and random data movement, not just compute.
+tags:
+  - agi
+  - hardware
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-16ad3b469eaba9c0
+sourceUrl: 'https://arxiv.org/abs/2603.25692'
+verificationScore: 0.76
+alternateLocale: /ko/posts/memory-randomness-bottlenecks-probabilistic-trustworthy-ai
+coverImage: /images/posts/memory-randomness-bottlenecks-probabilistic-trustworthy-ai.png
+---
+
+A 4.9x energy-efficiency gain can come from reducing random-number movement, not only from changing computation. Recently posted on arXiv, *A Unified Memory Perspective for Probabilistic Trustworthy AI* argues for viewing probabilistic trustworthy AI as a memory-system issue as well as an algorithmic one. The core idea is simple. Memory no longer only moves data. It also needs to supply random numbers across the hierarchy.
+
+## TL;DR
+
+- This article reframes probabilistic trustworthy AI as both a computation problem and a memory-and-randomness delivery problem.
+- You should review where random numbers are generated, how much off-chip movement occurs, and which tensors need protection.
+
+Example: Imagine two systems with similar accuracy. One sends randomness across the chip. The other samples near memory. The second may move less data, but it can complicate verification.
+
+## Current landscape
+
+The concern is not new. Related studies had already pointed in this direction. Research on Bayesian neural network accelerators noted overhead from random-number generation and repeated sampling. One chip study reported an in-word Gaussian random number generator. It also reported 360 fJ/sample, 5.12 GSa/s RNG throughput, and 102 GOp/s neural-network throughput. The main message is broader than the raw figures. Random numbers look less like an auxiliary feature and more like a system resource.
+
+
+In security and privacy, the memory issue appears more directly. ORAM-family studies accept extra accesses and structural overhead to hide memory access patterns. Research on TEE-based tensor protection describes limited secure memory capacity. That limitation makes full-model placement difficult. As a result, protection choices become tied to performance. MPC- and OT-related studies also treat correlated randomness generation and memory bandwidth as possible latency bottlenecks.
+
+This leads to the paper’s main implication. Practical probabilistic systems mix deterministic data access with repeated sampling. In that setting, memory is not only a storage hierarchy for weights and activations. It also becomes a supply layer for both data and random numbers. Those supplies need the right timing and quality.
+
+## Analysis
+
+This perspective matters because it connects several trustworthy AI goals through one systems question. Robustness can require sampling or uncertainty estimation. Privacy can require access-pattern obfuscation or security randomness. Security can require isolation and randomization together. These goals can look separate at the application level. At the system level, they converge on a shared question. What does memory move, and how often?
+
+If GPU or NPU memory hierarchies mainly target weights and activations, this perspective broadens the design target. Random-number supply and coordination can become equally important. That reading follows from the cited literature and excerpt. It remains an interpretation. The full paper would be needed to confirm exact wording and scope.
+
+There are also limits. This perspective does not point to one architectural answer. Random-number quality, placement, and bandwidth needs can vary by workload. Moving random-number generation closer to memory may reduce data movement. It can also increase area, design complexity, and verification work. Privacy and security also should not be judged only by performance. TEEs introduce secure-memory constraints. ORAM adds memory operations to hide accesses. Important-tensor protection may reduce slowdown. It also creates a selection problem about which tensors matter most.
+
+## Practical application
+
+The practical design question can change here. After asking how many FLOPs a model needs, teams can also ask where random numbers are generated. They can ask how those numbers move and how often they are reused. Probabilistic inference, uncertainty estimation, security protocols, and privacy protection should be measured separately. Each can increase bandwidth demand and off-chip movement in different ways.
+
+**Checklist for Today:**
+- Measure off-chip random-number movement and repeated-sample counts separately in any pipeline that includes probabilistic sampling.
+- Record secure-memory usage and extra memory accesses alongside computational overhead when adding privacy or security features.
+- Compare whole-model protection with important-tensor protection, and note the performance difference under the same workload.
+
+## FAQ
+
+**Q. Is the core message of this paper that “memory matters more”?**  
+It points in that direction, based on the excerpt. The bottleneck can shift from arithmetic units to memory in probabilistic trustworthy AI. That shift becomes more visible when repeated sampling and data access happen together.
+
+**Q. Does it propose an architecture largely different from existing GPU/NPU memory hierarchies?**  
+The available excerpt does not support a firm conclusion. It can be read as a contrast with hierarchies focused on model data delivery. In that reading, random-number supply and coordination become key design concerns. The full paper would be needed for a stronger claim.
+
+**Q. What metric should practitioners examine first?**  
+Accuracy or throughput alone may miss the main cost. Practitioners can start with random-number generation location and delivery path. They can also check off-chip movement, secure-memory limits, and repeated-sample counts. The Shift-BNN results, including 4.9x and 1.6x, suggest these factors can matter.
+
+## Conclusion
+
+The cost of probabilistic trustworthy AI does not sit only in equations. Storage, movement, and protection of data and random numbers also shape performance, energy, and security. A useful next step is to inspect memory-system costs directly. That may be more informative than focusing only on model computation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-03-27](/en/posts/ai-resources-roundup-2026-03-27)
+- [Evaluating Harmful Manipulation in Multi-Turn AI Dialogue](/en/posts/evaluating-harmful-manipulation-in-multi-turn-ai-dialogue)
+- [RAG Security Risks From Combined Injection And Poisoning](/en/posts/rag-security-risks-combined-injection-poisoning)
+- [AI Resource Roundup (24h) - 2026-03-26](/en/posts/ai-resources-roundup-2026-03-26)
+- [Execution Provenance Defines Real Agent Security Boundaries](/en/posts/execution-provenance-agent-security-boundaries)
+---
+
+## References
+
+- [A 65 nm Bayesian Neural Network Accelerator with 360 fJ/Sample In-Word GRNG for AI Uncertainty Estimation - arxiv.org](https://arxiv.org/abs/2501.04577)
+- [DR-STRaNGe: End-to-End System Design for DRAM-based True Random Number Generators - arxiv.org](https://arxiv.org/abs/2201.01385)
+- [Shift-BNN: Highly-Efficient Probabilistic Bayesian Neural Network Training via Memory-Friendly Pattern Retrieving - arxiv.org](https://arxiv.org/abs/2110.03553)
+- [Probabilistic photonic computing for AI | Nature Computational Science - nature.com](https://www.nature.com/articles/s43588-025-00800-1)
+- [Palermo: Improving the Performance of Oblivious Memory using Protocol-Hardware Co-Design - arxiv.org](https://arxiv.org/abs/2411.05400)
+- [TensorTEE: Unifying Heterogeneous TEE Granularity for Efficient Secure Collaborative Tensor Computing - arxiv.org](https://arxiv.org/abs/2407.08903)
+- [Silentflow: Leveraging Trusted Execution for Resource-Limited MPC via Hardware-Algorithm Co-design - arxiv.org](https://arxiv.org/abs/2508.13357)
+- [Ironman: Accelerating Oblivious Transfer Extension for Privacy-Preserving AI with Near-Memory Processing - arxiv.org](https://arxiv.org/abs/2507.16391)
+- [TensorShield: Safeguarding On-Device Inference by Shielding Critical DNN Tensors with TEE - arxiv.org](https://arxiv.org/abs/2505.22735)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2603.25692)
