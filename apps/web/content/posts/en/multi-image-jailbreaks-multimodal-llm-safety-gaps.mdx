@@ -1,0 +1,89 @@
+---
+title: Multi-Image Jailbreaks Expose Multimodal LLM Safety Gaps
+slug: multi-image-jailbreaks-multimodal-llm-safety-gaps
+date: '2026-05-20'
+lastReviewedAt: '2026-05-20'
+locale: en
+description: >-
+  Multi-image prompts can bypass single-image filters, exposing structural
+  safety gaps in multimodal LLM defenses.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - multimodal
+author: AI온다
+sourceId: arxiv-cs-ai-216a52c883b9c00f
+sourceUrl: 'https://arxiv.org/abs/2605.18915'
+verificationScore: 0.85
+alternateLocale: /ko/posts/multi-image-jailbreaks-multimodal-llm-safety-gaps
+coverImage: /images/posts/multi-image-jailbreaks-multimodal-llm-safety-gaps.png
+---
+
+81.46% was the average attack success rate reported across four closed multimodal LLMs. Harmful meaning was split across multiple images. Single-image filters can miss that pattern. The model may then recombine the fragments during reasoning. Rules that inspect one image at a time can struggle here.
+
+## TL;DR
+
+- Multi-image input creates a safety gap because harmful meaning can be distributed across separate images.
+- This matters because one study reported 81.46% attack success across four closed MLLMs, and related work appeared in 2024.
+- If your product supports multi-image input, expand testing beyond per-image filters and add generation-stage and output checks.
+
+Example: A user uploads several harmless-looking pictures. Each picture seems safe alone. The model then combines their meaning and responds to a harmful request.
+
+## Current status
+
+At the center of this issue is the DMN paper posted on arXiv. Based on the excerpt, the paper describes a new vulnerability in multi-image input. Earlier jailbreaking research focused largely on single images. That narrower setup limited the attack space. By contrast, the paper says multi-image settings can split harmful requests across inputs. They can also pack in more information. Based on the excerpt alone, that is the confirmed scope.
+
+Related research suggests this may not be a one-off case. MIDAS proposed a method that decomposes harmful meaning into sub-units. It then distributes them across multiple images. The method induces the model to recombine them through cross-image reasoning. This study reported an average attack success rate of 81.46% across four closed MLLMs. There are also findings indicating that a NeurIPS 2024 workshop paper on multi-image queries mentioned “significant safety vulnerabilities.”
+
+What matters is the scope of application. Based only on the available evidence, this issue does not seem limited to one model family. Related surveys connect MLLM vulnerabilities to “shared architectural weaknesses.” Multi-image studies also exposed the issue in “several frontier multimodal LLMs.” Still, it is too early to generalize the same severity to every model with multi-image input.
+
+## Analysis
+
+This shift matters because the unit of defense may not match the unit of attack. Many image safety filters ask whether one image is dangerous. Multi-image jailbreaking changes that question. A better question is what meaning the full image set creates together. Without that step, individually benign inputs can become harmful as a group. In text security terms, this resembles splitting a banned sentence into pieces. The model then assembles the puzzle itself.
+
+That is why defense should not stop at one point. Based on the findings, inference-time constraints appear to be the most direct axis. This is the generation stage. The attack seems to depend less on any single input. It depends more on combination across inputs and later reconstruction. This does not make input preprocessing or output moderation unimportant. Surveys recommend layered defenses across input, encoder or generator, and output stages. By contrast, enabling multi-image features while only strengthening per-image filters may provide limited coverage for the effort spent.
+
+The limitations are also clear. Based on search results alone, there is no quantitative comparison of commercial per-image filters. There is also no measurement here of how much those methods miss multi-image semantic composition. No comprehensive benchmark has been confirmed across all industry models. The appropriate conclusion is not that every system fails. A narrower conclusion fits the evidence better. Passing a single-image standard does not imply safety under a multi-image standard.
+
+## Practical application
+
+From a product team perspective, the first decision is relatively simple. If multi-image upload is not a core source of value, its priority can be recalculated. User convenience increases. The attack surface also increases. If the feature is essential, safety evaluation should shift from one-image testing to image-set testing. The goal is to check whether harmful meaning is reconstructed across combined images.
+
+The security team and the ML team can split responsibilities. The security team can design attack scenarios. The ML team can impose generation-time constraints. These constraints can interrupt or soften responses when cross-image reasoning converges on a harmful objective. Output moderation is also useful. However, blocking only the output may be insufficient. Harmful reconstruction may already have occurred inside the model. That can leave room for evasive phrasing or stepwise hints.
+
+**Checklist for Today:**
+- If your product accepts multi-image input, add test sets with combinations of two or more images.
+- Review inference logs for signs that the model reconstructs harmful objectives after input filters pass.
+- Measure partial leakage, not only final blocking, to catch stepwise hints before refusal.
+
+## FAQ
+
+**Q. Does this attack apply only to a few specific multimodal LLMs?**  
+It is still hard to say definitively. Based on the available findings, the evidence points toward a structural vulnerability in multi-image settings. It does not seem limited to one specific model family. However, no comprehensive validation has been confirmed across all models at the same level.
+
+**Q. Why is per-image filtering alone insufficient?**  
+Per-image filters examine each input independently. An attacker can distribute harmful meaning across multiple images. Each image may appear harmless on its own. The model can then recombine them during reasoning. That is why multi-image scenarios should be evaluated at the level of combinations.
+
+**Q. Where is the best place to put defenses?**  
+Based on current evidence, layered defense appears better than a single control point. Among those layers, inference-time constraints appear to be the most direct axis. Still, input preprocessing and output moderation should be used together. That combination can reduce opportunities for circumvention.
+
+## Conclusion
+
+Multi-image jailbreaking changes the unit of evaluation for multimodal safety. Blocking one image at a time is not enough on its own. Systems should also evaluate the meaning created by multiple images together. More important than the attack name is a simpler question. Does the system keep combined inputs within its safety policy?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-20](/en/posts/ai-resources-roundup-2026-05-20)
+- [Limits of Handwritten Math Grading With Vision LLMs](/en/posts/limits-of-handwritten-math-grading-with-vision-llms)
+- [Neurosymbolic Ternary Claim Verification With Explainable Argumentation Framework](/en/posts/neurosymbolic-ternary-claim-verification-argumentation)
+- [AI Resource Roundup (24h) - 2026-04-04](/en/posts/ai-resources-roundup-2026-04-04)
+- [AI Resource Roundup (24h) - 2026-04-03](/en/posts/ai-resources-roundup-2026-04-03)
+---
+
+## References
+
+- [Paper page - Adversarial Attacks on Multimodal Large Language Models: A Comprehensive Survey - huggingface.co](https://huggingface.co/papers/2603.27918)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.18915)
+- [MIDAS: Multi-Image Dispersion and Semantic Reconstruction for Jailbreaking MLLMs - arxiv.org](https://arxiv.org/abs/2603.00565)
+- [Jailbreaking LLMs & VLMs: Mechanisms, Evaluation, and Unified Defense - arxiv.org](https://arxiv.org/abs/2601.03594)
+- [Jailbreak Attacks and Defenses against Multimodal Generative Models: A Survey - arxiv.org](https://arxiv.org/abs/2411.09259)
