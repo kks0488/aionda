@@ -1,0 +1,104 @@
+---
+title: Multi-Model LLM Scheduling Under Offloading And Preemption Costs
+slug: multi-model-llm-scheduling-offloading-preemption-costs
+date: '2026-05-21'
+lastReviewedAt: '2026-05-21'
+locale: en
+description: >-
+  Examines how offloading and preemption affect multi-model LLM serving under
+  GPU memory limits and model-specific costs.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-734c79643ac986f5
+sourceUrl: 'https://arxiv.org/abs/2605.19593'
+verificationScore: 0.79
+alternateLocale: /ko/posts/multi-model-llm-scheduling-offloading-preemption-costs
+coverImage: /images/posts/multi-model-llm-scheduling-offloading-preemption-costs.png
+---
+
+GPU memory often fills before compute saturates. Then decode throughput can drop sharply for some models. This makes multi-model LLM serving difficult. With 2 or 3 models on one shared system, the question changes. It becomes about GPU residency, eviction, and recovery cost.
+
+## TL;DR
+
+- This article reviews arXiv:2605.19593 on offloading and preemption in multi-model LLM serving under GPU memory limits.
+- Readers should measure per-model residency sensitivity, reload cost after preemption, and transfer bottlenecks before setting scheduling rules.
+
+Example: A support chatbot and an analytics assistant share one accelerator. One keeps responding smoothly. The other slows after eviction. A scheduler that treats both alike can misread the real bottleneck.
+
+The paper arXiv:2605.19593 focuses on this exact issue. Its title is *Towards Multi-Model LLM Schedulers: Empirical Insights into Offloading and Preemption*. The main message is cautious but clear. Under GPU memory constraints, CPU-GPU offloading and preemption can be hard to avoid. Their costs also differ across models. This looks less like fine-tuning a serving engine. It looks more like an operational issue. It can affect product strategy and infrastructure cost.
+
+## TL;DR
+
+- The key issue in this article is multi-model serving. Offloading and preemption can hurt performance nonlinearly and differently by model.
+- This matters because single-model throughput assumptions can harm tail latency, GPU utilization, and service isolation in shared environments.
+- Readers should measure GPU residency sensitivity by model, reload cost after preemption, and transfer bottlenecks separately.
+
+## Current state
+
+The problem setting in the abstract appears realistic. Many deployments serve more than 1 LLM. They run models with different architectures, sizes, and roles on shared hardware. In this setting, allocation, dispatch, and scheduling become separate problems. When GPU memory is insufficient, partial offloading and preemption can become necessary.
+
+The findings highlight 2 observations. First, offloading reduces decode throughput. The degradation curve is nonlinear and model-dependent. Second, smaller models can show a steeper performance cliff as GPU residency decreases. That differs from the intuition that smaller models are easier to evict.
+
+Preemption cost also appears meaningful. The findings say reload overhead is driven more by restoring model state than by moving the KV cache. A scheduler may therefore underestimate the cost of moving a model out briefly. Tail latency can be affected strongly by reload cost.
+
+Other research also points to the offloading bottleneck. arXiv:2601.19910 reports that 99% of latency was spent on transfer for KV offloading requests. The same source says the GPU used 28% of its rated TDP when serving offloaded requests. This supports a limited interpretation. Compute may not be the only issue. Data movement can block progress and leave the GPU underused.
+
+Taken together, these results sharpen the picture. Multi-model scheduling is not only about allocating compute. PCIe bandwidth, CPU-GPU round-trip cost, and KV cache movement all interact. Sequence length also matters. Even on the same GPU, some models appear safer to keep resident. Others may tolerate offloading with less penalty.
+
+## Analysis
+
+From a decision perspective, one question stands out. Should scheduling aim for fairness, or should it protect models with higher eviction cost? Based on the findings, no universal policy has been established. None has been shown to stabilize both latency and throughput across mixed workloads reliably. The direction is still useful. A policy should consider model-specific offloading sensitivity, reload cost after preemption, sequence length, and interconnect bandwidth together. Rules carried over from single-model serving may fit poorly.
+
+Prior work also needs careful framing. FastServe used skip-join MLFQ-based preemption. Sarathi-Serve presented stall-free scheduling. Both reported improvements in balancing latency and throughput. However, the findings here say those gains have not been validated as direct head-to-head advantages in multi-model, shared, heterogeneous, and offloading settings. There is still a gap between a technique that worked in one system and a policy suited for multi-model operations.
+
+Generalization to commercial datacenters also needs caution. Recent studies have started to address heterogeneous GPUs and CPU-GPU coupled architectures. External validity still appears limited. Network topology, storage hierarchy, and operational policy can change outcomes.
+
+## Practical application
+
+Infrastructure teams may need a different mental model. A model should not be treated as one average value. Under the same memory pressure, some models slow sharply. Others degrade more gradually. So the scheduler’s basic unit may need to include the request and the model’s sensitivity profile. Reload cost during preemption and transfer bottlenecks should be tracked alongside it.
+
+A practical implication follows. Average throughput graphs may hide the real problem. Teams may need a model-specific offloading sensitivity table instead. That table can be more useful when 2 or 3 models share one system.
+
+**Checklist for Today:**
+
+- Reduce GPU residency ratio per model and measure decode throughput changes to build separate sensitivity curves.
+- For each preemption event, measure KV transfer time and model state reload time as separate components.
+- Avoid global FIFO or simple priority rules at first, and add exceptions for sequence length and interconnect congestion.
+
+## FAQ
+
+**Q. Has the best scheduling policy for mixed multi-model workloads already been established?**
+
+No single universal policy has been confirmed by these findings. A joint approach looks more plausible. It should consider offloading sensitivity, preemption cost, sequence length, and bandwidth together.
+
+**Q. Does partial offloading degrade the model’s response quality itself?**
+
+The cited findings do not show direct evidence for response-quality loss. They focus on decode performance degradation instead. The key point is that the degradation is nonlinear and model-dependent.
+
+**Q. Can these research results be generalized directly to commercial datacenters?**
+
+Caution is reasonable. The studies address heterogeneous hardware, GPU memory limits, and CPU-GPU offloading. They do not yet cover all datacenter networks, storage systems, or operating policies. Reproduction on your own workload should come first.
+
+## Conclusion
+
+The core question in multi-model LLM scheduling is not only who runs faster. It is also which model pays the smaller penalty when kept on the GPU. A universal answer does not yet appear established. Measuring model-specific sensitivity and preemption cost is a more defensible next step. Then scheduling rules can branch from those results.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-20](/en/posts/ai-resources-roundup-2026-05-20)
+- [COBALT Rethinks Robot Learning Through Smartphone Teleoperation Data](/en/posts/cobalt-robot-learning-smartphone-teleoperation-data)
+- [Limits of Handwritten Math Grading With Vision LLMs](/en/posts/limits-of-handwritten-math-grading-with-vision-llms)
+- [Multi-Image Jailbreaks Expose Multimodal LLM Safety Gaps](/en/posts/multi-image-jailbreaks-multimodal-llm-safety-gaps)
+- [Neurosymbolic Ternary Claim Verification With Explainable Argumentation Framework](/en/posts/neurosymbolic-ternary-claim-verification-argumentation)
+---
+
+## References
+
+- [Characterizing and Optimizing LLM Inference Workloads on CPU-GPU Coupled Architectures - huggingface.co](https://huggingface.co/papers/2504.11750)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.19593)
+- [Understanding Bottlenecks for Efficiently Serving LLM Inference With KV Offloading - arxiv.org](https://arxiv.org/abs/2601.19910)
+- [APEX: Asynchronous Parallel CPU-GPU Execution for Online LLM Inference on Constrained GPUs - arxiv.org](https://arxiv.org/abs/2506.03296)
+- [Demystifying Cost-Efficiency in LLM Serving over Heterogeneous GPUs - arxiv.org](https://arxiv.org/abs/2502.00722)

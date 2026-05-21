@@ -1,0 +1,92 @@
+---
+title: MOCHA Reframes Agent Skills Beyond Prompt Tuning Alone
+slug: mocha-agent-skills-beyond-prompt-tuning
+date: '2026-05-21'
+lastReviewedAt: '2026-05-21'
+locale: en
+description: >-
+  MOCHA treats agent skills as multi-field artifacts and argues they must be
+  optimized with platform constraints in mind.
+tags:
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-73146a7d709db700
+sourceUrl: 'https://arxiv.org/abs/2605.19330'
+verificationScore: 0.81
+alternateLocale: /ko/posts/mocha-agent-skills-beyond-prompt-tuning
+coverImage: /images/posts/mocha-agent-skills-beyond-prompt-tuning.png
+---
+
+On **4 of 6 tasks**, progress stayed at **zero** even after **1000 rollouts**. This suggests the bottleneck may be skill design, not only the model. MOCHA focuses on that possibility. It treats an agent skill as more than a single prompt. It treats the whole skill as the object of optimization. It also considers description-field truncation, progressive disclosure, and competition inside a limited context window.
+
+## TL;DR
+
+- MOCHA treats agent skills as multi-field artifacts, not single prompts, and evaluates them under deployment constraints.
+- This matters because routing, truncation, and context competition can affect performance, risk, and observed failures.
+- Readers should separate skill fields, measure each field, and compare performance, length, and failure patterns.
+
+Example: A support agent handles a refund request poorly because the routing text is vague, the main instruction is compressed, and tool rules are buried.
+
+## Current state
+
+MOCHA starts from a simple premise. An agent's behavior is not set by one large prompt alone. According to the cited excerpt, a skill is a structured natural-language specification. It defines how an agent should reason, retrieve, and respond. It includes the description field used for routing. It also includes the instruction body revealed progressively. It also includes competition with other skills in the same context.
+
+This view changes the optimization target. Traditional prompt tuning often focused on wording that improved answers. This study instead treats a skill as an operational artifact with multiple fields. Some sentences may be visible to the model. Those same sentences may be too long for the router. They can then be truncated. Some rules may remain in the main body. Their effect can still weaken when other skills consume context.
+
+There are also concrete performance figures in the available evidence. Based on the arXiv abstract, MOCHA achieved a 7.5% relative improvement in mean correctness over the strongest baseline. It reported gains of up to **14.9%** on FEVER. It also reported gains of **10.4%** on TheoremQA. Existing optimization methods did not improve the seed skill on **4 of 6 tasks** under the **1000 rollouts** condition. MOCHA reportedly made progress on every task. It also reportedly found **2x** more Pareto-optimal skill variants.
+
+Caution is still appropriate. On cost, the confirmed comparison used the same **1000 rollouts** and the same platform constraints. The investigation did not confirm direct monetary cost figures. It also did not confirm token cost figures. It also did not confirm a percentage reduction in inference time. So it would be premature to conclude that performance improved while costs also fell.
+
+## Analysis
+
+The broader message is a shift in what prompt engineering optimizes. The question is no longer only about sentence phrasing. It also concerns the interface that defines action units. It concerns deployment constraints. It also concerns optimization priorities.
+
+For a product team, skill design is part of operational design. If the routing description is short, it should be retrieval-friendly. If the body may be compressed, core rules should appear first. If context is narrow, overlap across skills should be reduced.
+
+This view also connects with a broader agent framework ecosystem. Other materials in the investigation also treat skills as modules. Some treat them as runtime interfaces. Even so, there is no basis here to conclude that MOCHA is platform-independent. There is also no confirmed evidence here that the same gains were reproduced across multiple frameworks. The direction appears broad. The empirical scope should still be read carefully.
+
+Safety and reliability need similar caution. Skill optimization may help long-horizon task robustness and efficiency. But poor compression can spread errors. Low-quality skills can also spread errors when entangled hierarchically. Aggressive automated optimization can do the same. Within this investigation, no direct quantitative evidence confirmed improved tool-use reliability. No direct quantitative evidence confirmed improved instruction-following compliance either. So skill optimization should be viewed as an operational tool. It should be used alongside verifiable guardrails.
+
+## Practical application
+
+Developers can treat skills as measurable fields instead of one good prompt. At minimum, routing descriptions, core instructions, tool-use rules, and failure fallback text should be separated. They should also be version-controlled. This makes it easier to see where performance changes. It also makes truncation easier to detect.
+
+Example: if you operate a customer-support agent, avoid stopping at a single sentence like "Explain the refund policy kindly." Put short routing keywords in the description field. Place priority rules early in the main body. Put tool-calling rules in a separate field. Test those fields independently. This can help isolate routing misses, body truncation, and tool misuse.
+
+**Checklist for Today:**
+- Split production skills into routing descriptions, instruction bodies, and tool rules before the next evaluation pass.
+- Record performance scores, field length, truncation status, and failure types for the same task.
+- Use small experiments first, then run larger searches such as **1000** rollouts after finding the bottleneck field.
+
+## FAQ
+
+**Q. Is MOCHA just another name for prompt optimization?**  
+Not exactly. Based on the investigation, it treats a skill as a structured artifact with multiple fields. So the optimization target includes more than a single sentence. It also includes routing descriptions, body instructions, and context competition.
+
+**Q. Has performance improvement actually been confirmed?**  
+Some improvement has been reported. Based on the arXiv abstract, average accuracy improved by a relative **7.5%** over the strongest baseline. Gains of up to **14.9%** on FEVER and **10.4%** on TheoremQA were also reported. It also states that progress appeared on tasks where existing methods did not improve under **1000 rollouts**.
+
+**Q. If we use this method, will cost or safety improve as well?**  
+That cannot be concluded from this investigation. It did not confirm direct cost reduction figures. It also did not confirm token-usage reduction figures. It also did not confirm a joint quantitative evaluation of safety, instruction compliance, and tool-use reliability. So cost and failure risk should be measured separately from performance.
+
+## Conclusion
+
+The core idea in MOCHA is straightforward. It treats agent skills as design units under deployment constraints. This suggests the bottleneck may lie in skill structure, not only the model. A useful question follows from that view. It is not only who writes more plausible sentences. It is also who can better decompose, measure, and optimize skills.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-20](/en/posts/ai-resources-roundup-2026-05-20)
+- [COBALT Rethinks Robot Learning Through Smartphone Teleoperation Data](/en/posts/cobalt-robot-learning-smartphone-teleoperation-data)
+- [Limits of Handwritten Math Grading With Vision LLMs](/en/posts/limits-of-handwritten-math-grading-with-vision-llms)
+- [Multi-Image Jailbreaks Expose Multimodal LLM Safety Gaps](/en/posts/multi-image-jailbreaks-multimodal-llm-safety-gaps)
+- [Neurosymbolic Ternary Claim Verification With Explainable Argumentation Framework](/en/posts/neurosymbolic-ternary-claim-verification-argumentation)
+---
+
+## References
+
+- [AgentFlow: In-the-Flow Agentic System Optimization - agentflow.stanford.edu](https://agentflow.stanford.edu/)
+- [SoK: Agentic Skills -- Beyond Tool Use in LLM Agents - huggingface.co](https://huggingface.co/papers/2602.20867)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.19330)
+- [SkillSmith: Compiling Agent Skills into Boundary-Guided Runtime Interfaces - arxiv.org](https://arxiv.org/abs/2605.15215)
+- [Towards Verifiably Safe Tool Use for LLM Agents - arxiv.org](https://arxiv.org/abs/2601.08012)
