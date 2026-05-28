@@ -1,0 +1,162 @@
+---
+title: How Far Can Multimodal AI Be Trusted
+slug: how-far-can-multimodal-ai-be-trusted
+date: '2026-05-28'
+lastReviewedAt: '2026-05-28'
+locale: en
+description: >-
+  Why multimodal AI still struggles with charts and scientific figures, and how
+  to verify image-based conclusions in practice.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: '1217646'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1217646'
+verificationScore: 0.89
+alternateLocale: /ko/posts/how-far-can-multimodal-ai-be-trusted
+coverImage: /images/posts/how-far-can-multimodal-ai-be-trusted.png
+---
+
+A paper review can fail when one graph answer sounds plausible but is wrong.
+
+## TL;DR
+- Multimodal AI can accept images, but precise chart and figure reasoning remains unstable in several documented settings.
+- This matters in research and engineering work, where figure evidence and body text should be checked together.
+- Use a verification workflow next: extract visual evidence, compare it with the text, and review again.
+
+Example: A reviewer asks an AI whether a figure supports a paper's claim. The answer sounds careful and clear. The graph details were misread, so the conclusion drifts from the evidence.
+
+Just because text summarization and code generation became faster does not mean visual accuracy improved equally.  
+That gap appears in official documentation and benchmarks.  
+For research investigation or engineering review, the question should shift.  
+Ask not only whether it can read images.  
+Ask how far its outputs can be trusted.  
+Ask how they should be cross-validated.
+
+## Current status
+Official technical documentation describes image understanding scope with some clarity.  
+Models with vision capabilities can help with many image tasks.  
+They can still struggle with graphs and charts.  
+Color differences and line styles can change meaning.  
+Humans may treat these details as minor.  
+For models, they can become a bottleneck.  
+The difference between solid, dotted, and dashed lines can matter.  
+Small text can also be difficult.  
+Rotated text can be difficult.  
+Non-Latin characters can be difficult.  
+Resizing can also remove useful information.
+
+This is not only cautious wording in documentation.  
+ChartQA includes 9.6K human-written questions and 23.1K generated questions.  
+That benchmark centers complex visual and logical reasoning.  
+ChartBench includes 42 categories, 66.6k charts, and 600k question-answer pairs.  
+It reports limitations in chart understanding across open and closed models.  
+These numbers suggest a separate evaluation problem.  
+A few demo images are not enough to judge it.
+
+The issue becomes clearer in scientific literature verification.  
+MuSciClaims reports many vision-language models near 0.3-0.5 F1.  
+The task is figure-grounded consistency verification.  
+That suggests weaknesses remained.  
+Evidence selection within paper figures was difficult.  
+Combining information across panels was also difficult.  
+OpenAI also notes a similar caution in its description.  
+It reports strong performance in STEM question answering and chart reading.  
+It also says the model can still make basic perceptual errors.
+
+Clock reading shows a similar pattern.  
+Recent studies assess that multimodal large models still struggle with analog clocks.  
+The task looks simple at first glance.  
+It is closer to precise visual reasoning.  
+It requires stable interpretation of angles and positions.  
+It also requires relative hand relationships.  
+Strong text performance does not imply matching visual accuracy.
+
+## Analysis
+The main question is not whether a system can see an image.  
+The bottleneck is whether it can read image and text together.  
+It should also verify that they match.  
+
+In paper review, reading the graph title is not enough.  
+The harder task is checking whether the conclusion is overstated.  
+That requires comparing trends, legends, axes, and conditions with the body text.  
+Engineering documents raise a similar issue.  
+A system may read photos, dashboards, diagrams, and graphs separately.  
+Its practical value drops if it cannot verify a shared story.
+
+Several misconceptions should be corrected.  
+First, image input does not imply reliable diagram interpretation.  
+Official limitations are listed separately.  
+Dedicated benchmarks also exist.  
+That suggests a different difficulty level.  
+
+Second, it is too early to state confidently that this issue will soon disappear.  
+Some metrics show progress.  
+Research still reports weaknesses in figure verification and clock reading.  
+
+Third, higher resolution alone does not resolve the issue.  
+The task combines small-text reading and line-style reading.  
+It also combines spatial interpretation and text cross-validation.
+
+## Practical application
+In practice, changing the procedure may help more than writing longer prompts.  
+Current research suggests a more stable approach.  
+First, identify relevant visual elements in the figure.  
+Then compare them step by step with claims in the body text.  
+Finally, review again with the annotated image and earlier reasoning.  
+In short, pointing to evidence and verifying again is often safer than one-pass conclusions.
+
+Example: When reviewing a paper graph, ask for the legend, axes, error bars, and group names first.  
+Then compare those outputs with the body-text claims.  
+After that, ask whether the wording seems overstated based on the graph alone.  
+The same pattern can help with dashboards and instrument panels.  
+Ask separately about value reading, unit confirmation, warning lights, and time-axis interpretation.
+
+**Checklist for Today:**
+- Ask the model to extract axes, legends, line styles, and key values before any final conclusion.
+- Compare the response with the body text, and mark unsupported conclusions for manual review.
+- For small text or multi-panel figures, provide enlarged crops and ask the questions again.
+
+## FAQ
+**Q. Can multimodal AI not read charts and graphs at all?**  
+Not exactly.  
+It can handle basic image understanding and some chart reading.  
+Error risk rises with color differences, line styles, small text, and complex relationships.
+
+**Q. What is the most dangerous failure in reviewing research papers?**  
+A partial figure reading can still lead to a confident overall conclusion.  
+That risk increases when figure evidence is not checked against body-text claims.
+
+**Q. Is improving the prompt alone enough to raise accuracy?**  
+Prompt improvement can help.  
+By itself, it is usually not enough.  
+Reliability can improve with evidence extraction, stepwise comparison, and a review pass.
+
+## Conclusion
+The harder test for multimodal AI is document work.  
+There, one axis or one legend can change the conclusion.  
+Text and code gains should be treated separately from precise visual reasoning.  
+For now, verification procedure matters more than simple image reading.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-28](/en/posts/ai-resources-roundup-2026-05-28)
+- [From Black-Box Grading to Rubric-Based Explainable Scoring](/en/posts/black-box-grading-to-rubric-based-explainable-scoring)
+- [MOV-Bench Reveals Gaps in Multi-Hop Video Reasoning](/en/posts/mov-bench-multi-hop-video-reasoning-gaps)
+- [Reassessing Offline RL for Code Generation Post-Training](/en/posts/reassessing-offline-rl-for-code-generation-post-training)
+- [Turning Papers Into Benchmarks With Agentic Reproduction Workflows](/en/posts/turning-papers-into-benchmarks-agentic-reproduction-workflows)
+---
+
+## References
+
+- [Images and vision | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/images-vision?api-mode=chat)
+- [ChatGPT Image Inputs FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8400551-image-inputs-for-chatgpt-faq%3F.webm)
+- [MuSciClaims: Multimodal Scientific Claim Verification - huggingface.co](https://huggingface.co/papers/2506.04585)
+- [Thinking with images | OpenAI - openai.com](https://openai.com/index/thinking-with-images/)
+- [SciClaimEval: Cross-modal Claim Verification in Scientific Papers - huggingface.co](https://huggingface.co/papers/2602.07621)
+- [ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning - arxiv.org](https://arxiv.org/abs/2203.10244)
+- [ChartBench: A Benchmark for Complex Visual Reasoning in Charts - arxiv.org](https://arxiv.org/abs/2312.15915)
+- [Lost in Time: Clock and Calendar Understanding Challenges in Multimodal LLMs - arxiv.org](https://arxiv.org/abs/2502.05092)
+- [Have Multimodal Large Language Models (MLLMs) Really Learned to Tell the Time on Analog Clocks? - arxiv.org](https://arxiv.org/abs/2505.10862)

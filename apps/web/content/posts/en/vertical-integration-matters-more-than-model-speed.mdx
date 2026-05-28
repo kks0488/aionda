@@ -1,0 +1,98 @@
+---
+title: Vertical Integration Matters More Than Model Speed
+slug: vertical-integration-matters-more-than-model-speed
+date: '2026-05-28'
+lastReviewedAt: '2026-05-28'
+locale: en
+description: >-
+  AI vertical integration is less about chips than controlling the training
+  stack, latency, throughput, utilization, and recovery.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1217603'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1217603'
+verificationScore: 0.73
+alternateLocale: /ko/posts/vertical-integration-matters-more-than-model-speed
+coverImage: /images/posts/vertical-integration-matters-more-than-model-speed.png
+---
+
+A training job can still take days at **90%** CPU and GPU utilization.
+
+## TL;DR
+
+- AI vertical integration refers to controlling the training stack across compute, networks, and operations.
+- It matters because utilization, latency, throughput, and recovery can affect cost, reliability, and iteration speed.
+- Next, compare latency, throughput, utilization, recovery flow, and worst-case latency before choosing a vendor or platform.
+
+Example: A team sees slow responses during peak usage and unstable training runs after minor network issues. The model quality looks unchanged, but users still feel the service degrade.
+
+A system supporting **800 million** users can face **millions** of queries per second. In that setting, the main problem may be the bottleneck, not the model itself. One slow network segment, one failed node, or one complex tool can hurt training speed and service quality together. That is why AI companies’ vertical integration is closer to stack control than chip ownership.
+
+This is not only a story about leading companies. As latecomers control more infrastructure, they can often improve latency, throughput, utilization, and failure recovery first. However, this research does not support a claim that infrastructure control alone quickly narrows the model gap.
+
+## Current status
+
+In AI infrastructure, vertical integration usually refers to a strategy across three layers. The first is compute resources. The second is the network and distributed training method. The third is operational software for deployment, monitoring, and recovery.
+
+Official documents show that companies describe links across these three layers with some clarity. Google Cloud TPU documentation focuses on dedicated high-speed interconnects and Pod architecture. TPU **v4** documentation also describes the system around Pod-level communication bandwidth and large-scale expansion. The point is not only single-chip speed. Performance also depends on how little communication stalls when many chips train together.
+
+Failure response follows the same pattern. Google provides guidance on checkpointing and Pod failure mitigation. NVIDIA describes cluster provisioning, workload management, infrastructure monitoring, automated health checks, and guided recovery. It does so in Base Command Manager and Mission Control documentation. The deeper the stack integration, the clearer recovery roles and steps can become.
+
+
+These numbers suggest a narrower point. Deeper infrastructure control may change the operational curve before the benchmark score. Even with the same hardware, teams may raise utilization, reduce latency tails, and recover failures faster. Vertical integration is not only a research choice. It also affects product operations.
+
+## Analysis
+
+Why does this matter? In large-scale AI, a strong model may not be enough if training and deployment are unstable. Distributed training is shaped by the slowest connection and the latest node. This helps explain why OpenAI highlighted worst-case latency. If one slow segment makes the whole batch wait, network and scheduling fixes may help more than adding GPUs.
+
+Vertical integration can also affect cost structure. NVIDIA presents a direction that reduces operational complexity through integrated provisioning, workload management, and monitoring. Google states energy efficiency improvements for TPU **v4**. Integration can be an investment for larger models. It can also be a design choice for running larger systems with the same organization. That helps explain why the strategy appeals to latecomers. Even without closing model gaps, they may improve iteration speed and service quality through infrastructure control.
+
+However, this point should be stated carefully. This research alone does not show that latecomers can close gaps with leaders through infrastructure internalization alone. It also does not show that better operations automatically improve model performance. Strong networks and tools do not replace research culture, data quality, algorithms, or talent density.
+
+There is another limitation. Vertical integration increases control, but it can reduce flexibility. If a team becomes tied to one chip, one network, and one operations tool, switching costs can rise. As failure response systems grow stronger, maintenance burden can also grow. Put simply, building your own house may reduce rent, but boiler repairs still become your problem.
+
+## Practical application
+
+For developers and product teams, the immediate question is not, “Should we build our own chips?” The first step is separating the bottleneck across training, serving, and recovery. If latency is the issue, inspect the network and response path. If throughput is the issue, inspect scheduling and the database. If cost is the issue, inspect utilization and idle time. Vertical integration is less a slogan than a decision to bring bottlenecks inward and address them directly.
+
+If a team faces unstable external model API costs, it does not need to jump to its own data center. It can start by measuring workload management, monitoring, checkpointing, and recovery automation. Conversely, teams running repeated large-scale training should treat worst-case latency and utilization measurement as seriously as model tuning.
+
+**Checklist for Today:**
+- Put latency, throughput, utilization, cost-efficiency, and recovery flow into one comparison table.
+- Identify the single slowest segment and the most frequent failure point across training and serving.
+- Add health checks, guided recovery, and checkpointing support to vendor evaluation criteria.
+
+## FAQ
+
+**Q. Is AI vertical integration ultimately a strategy of building chips directly?**  
+Not necessarily. The core idea is control over the training stack rather than the chip itself. What matters more is how compute, networks, operations, recovery, and checkpointing work together.
+
+**Q. Can late-stage AI companies catch up through infrastructure internalization alone?**  
+This research does not support a definitive claim. Official documentation points to operational improvements. Latency, throughput, utilization, and recovery may improve. However, that alone does not show a narrower model performance gap.
+
+**Q. What should practitioners look at first?**  
+They should examine operating metrics alongside model performance tables. Latency, throughput, utilization, cost-efficiency, worst-case latency mitigation, and recovery flow may connect more directly to real competitiveness.
+
+## Conclusion
+
+The main idea in AI vertical integration is bottleneck control, not hardware ownership. For leaders and latecomers alike, the key question is not only cluster size. It is how lower latency, higher utilization, and faster recovery connect to research speed and product quality.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-28](/en/posts/ai-resources-roundup-2026-05-28)
+- [From Black-Box Grading to Rubric-Based Explainable Scoring](/en/posts/black-box-grading-to-rubric-based-explainable-scoring)
+- [MOV-Bench Reveals Gaps in Multi-Hop Video Reasoning](/en/posts/mov-bench-multi-hop-video-reasoning-gaps)
+- [Reassessing Offline RL for Code Generation Post-Training](/en/posts/reassessing-offline-rl-for-code-generation-post-training)
+- [Turning Papers Into Benchmarks With Agentic Reproduction Workflows](/en/posts/turning-papers-into-benchmarks-agentic-reproduction-workflows)
+---
+
+## References
+
+- [NVIDIA Base Command Manager - NVIDIA Docs - docs.nvidia.com](https://docs.nvidia.com/base-command-manager/)
+- [NVIDIA Base Command Manager 11 - NVIDIA Mission Control Manual - docs.nvidia.com](https://docs.nvidia.com/base-command-manager/manuals/11/nvidia-mission-control-manual.pdf)
+- [Supercomputer networking to accelerate large scale AI training | OpenAI - openai.com](https://openai.com/index/mrc-supercomputer-networking/)
+- [Infrastructure for deep learning | OpenAI - openai.com](https://openai.com/blog/infrastructure-for-deep-learning)
+- [Scaling PostgreSQL to power 800 million ChatGPT users | OpenAI - openai.com](https://openai.com/index/scaling-postgresql/)
+- [Speeding up agentic workflows with WebSockets in the Responses API | OpenAI - openai.com](https://openai.com/index/speeding-up-agentic-workflows-with-websockets/)
