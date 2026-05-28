@@ -1,0 +1,91 @@
+---
+title: Turning Papers Into Benchmarks With Agentic Reproduction Workflows
+slug: turning-papers-into-benchmarks-agentic-reproduction-workflows
+date: '2026-05-28'
+lastReviewedAt: '2026-05-28'
+locale: en
+description: >-
+  How under-specified applied ML papers can become executable benchmarks through
+  agentic workflows and slot-based reporting.
+tags:
+  - agi
+  - llm
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: arxiv-cs-ai-172e962090fd5ddb
+sourceUrl: 'https://arxiv.org/abs/2605.28371'
+verificationScore: 0.85
+alternateLocale: /ko/posts/turning-papers-into-benchmarks-agentic-reproduction-workflows
+coverImage: >-
+  /images/posts/turning-papers-into-benchmarks-agentic-reproduction-workflows.png
+---
+
+A 32-item checklist can still leave a paper short of an executable benchmark. This arXiv paper examines that gap through industrial PHM, or prognostics and health management. The focus is equipment failure prediction and health monitoring. The excerpt points to three recurring problems. Industrial data access is restricted. Preprocessing and evaluation details are incomplete. Design choices, such as windowing, remain implicit. The broader issue extends beyond PHM. Many applied ML papers exist without a reference implementation.
+
+## TL;DR
+- This paper examines under-specified applied ML papers and a slot-based workflow for benchmark reproduction.
+- It matters because missing details can distort evaluation, weaken comparisons, and limit research automation.
+- Readers should map each paper into slots, record assumptions, and audit code against that table.
+
+Example: A team tries to reproduce a published model. The paper omits a preprocessing step and leaves one evaluation choice unclear. The team records both assumptions, runs both variants, and keeps the results separate.
+
+## Current state
+
+The paper is titled *From paper to benchmark: agentic, framework-based reproduction of under-specified methods in machine health intelligence*. The excerpt uses PHM as a representative case. Industrial data is often hard to access. Papers sometimes omit preprocessing and evaluation protocols. Design choices can remain implicit. Together, these issues create a reproducibility bottleneck in applied ML.
+
+A key concept in the excerpt is a “slot-binding interface.” It maps equations and protocol descriptions into structured components. These include task definition, dataset adapter, windowing, target, model, and evaluator. The paper also records unresolved assumptions explicitly. This framing treats reproducibility as a process for exposing missing choices. It does not assume a single correct reconstruction.
+
+The excerpt does not confirm direct validation outside PHM. However, the same bottleneck appears in medical ML, clinical NLP, and materials informatics. Medical AI discussions have noted weak methodological standardization. The NeurIPS reproducibility program report mentions 3 components. These are a code submission policy, a community reproducibility challenge, and a reproducibility checklist. REFORMS uses 8 sections and 32 items. The numbers differ, but the pattern looks similar. The issue seems structural, not isolated.
+
+## Analysis
+
+From a decision perspective, the paper raises a practical question. If a paper is not benchmark-ready, what is the minimum reporting unit? The excerpt suggests several candidates. These include data splits, excluded data, preprocessing, hyperparameter ranges, and final values. They also include the number of runs, metrics, variability, computing infrastructure, code, dependencies, and execution commands.
+
+Agentic procedures can automate parts of this work. They can support checklist-based verification. They can inspect repository structure. They can validate the README and execution commands. They can collect some execution metadata. This could turn manual paper interpretation into a more auditable pipeline.
+
+The limits are also clear. If an agent fills in gaps, intent preservation becomes uncertain. The excerpt does not provide a single quantitative score for that problem. It also does not confirm author verification. It does not confirm one-to-one comparison with the original authors’ code. More basic limits remain. A checklist alone may not detect preprocessing errors. It may not fully rule out data leakage. It may not judge evaluation design adequately. Automation can reduce documentation gaps. It should not be treated as a substitute for research judgment.
+
+## Practical application
+
+Teams applying this workflow should treat paper reproduction as a contract problem, not only a coding problem. Convert paper sentences into structured slots. Attach the supporting sentence, the interpretation, and the remaining assumptions to each slot. If the data split is unclear, pause implementation. Then record parallel assumptions and preserve their evaluation results separately. This approach can also help in medical ML and materials AI. In those areas, data lineage and preprocessing sensitivity are high.
+
+Adoption may be manageable because existing checklists already provide structure. Nature’s Machine Learning Checklist V1.1 requires a test dataset, reproduction scripts, and a README. The NeurIPS reproducibility program attached a checklist to its process. REFORMS examines research design through 32 items. Reformatting existing checklists into agent-readable slots may be faster than creating a new standard.
+
+**Checklist for Today:**
+- Create one mapping table per paper for data splits, preprocessing, evaluation, environment, and unresolved assumptions.
+- Check for a README, execution commands, dependency files, and evaluation scripts before using any agent workflow.
+- Record each unstated implementation choice as an explicit assumption and keep it beside the result table.
+
+## FAQ
+
+**Q. Is this paper only about PHM?**  
+Not necessarily. The excerpt links similar issues to medical ML, materials informatics, and clinical NLP. These issues include missing preprocessing and evaluation protocols. They also include weak sharing of execution environments and metadata. However, the excerpt does not confirm cross-domain validation of the same agentic approach.
+
+**Q. How can we verify whether the agent followed the paper’s intent?**  
+A structured mapping table is a practical starting point. Divide the paper into slots such as task definition, dataset adapter, windowing, target, model, and evaluator. Record the supporting sentence and remaining assumptions for each slot. Then compare that table with the implementation. The excerpt also states that unresolved assumptions are recorded explicitly.
+
+**Q. Can automation alone complete benchmark-ready reproduction?**  
+It does not appear so from the excerpt. Checklist validation, code checks, dependency checks, and metadata collection can be automated. However, the excerpt does not establish full automation for preprocessing validity. It also does not establish full automation for leakage detection or evaluation design judgment.
+
+## Conclusion
+
+The paper’s value seems less about PHM competition itself. It is more about turning incomplete papers into auditable implementation procedures. That is where attention may be most useful. The central question is not only whether agents write code faster. It is whether they surface unresolved assumptions better and support more comparable benchmarks.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-28](/en/posts/ai-resources-roundup-2026-05-28)
+- [AI Resource Roundup (24h) - 2026-05-23](/en/posts/ai-resources-roundup-2026-05-23)
+- [Policy Layers for Governing Generalist LLM Agents Safely](/en/posts/policy-layers-governing-generalist-llm-agents)
+- [Structuring Table QA With Navigation And Progressive Inference](/en/posts/structuring-table-qa-with-navigation-and-progressive-inference)
+- [AI Resource Roundup (24h) - 2026-05-22](/en/posts/ai-resources-roundup-2026-05-22)
+---
+
+## References
+
+- [Replicating Machine Learning Experiments in Materials Science - osti.gov](https://www.osti.gov/biblio/1608437)
+- [Benchmark datasets incorporating diverse tasks, sample sizes, material systems, and data heterogeneity for materials informatics - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC8319566/)
+- [REFORMS: Consensus-based Recommendations for Machine-learning-based Science - reforms.cs.princeton.edu](https://reforms.cs.princeton.edu/)
+- [Towards a framework for interoperability and reproducibility of predictive models - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S1532046423002721)
+- [Improving Reproducibility in Machine Learning Research (A Report from the NeurIPS 2019 Reproducibility Program) - arxiv.org](https://arxiv.org/abs/2003.12206)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.28371)
+- [Machine Learning Checklist V 1.1 - nature.com](https://www.nature.com/documents/ML-reporting-summary.pdf)

@@ -1,0 +1,104 @@
+---
+title: MOV-Bench Reveals Gaps in Multi-Hop Video Reasoning
+slug: mov-bench-multi-hop-video-reasoning-gaps
+date: '2026-05-28'
+lastReviewedAt: '2026-05-28'
+locale: en
+description: >-
+  MOV-Bench highlights evaluation gaps in multi-hop audio-visual reasoning and
+  shows consistent gains from agentic search.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+  - benchmark
+  - multimodal
+author: AI온다
+sourceId: arxiv-cs-ai-1e78710f545e6e76
+sourceUrl: 'https://arxiv.org/abs/2605.28192'
+verificationScore: 0.72
+alternateLocale: /ko/posts/mov-bench-multi-hop-video-reasoning-gaps
+coverImage: /images/posts/mov-bench-multi-hop-video-reasoning-gaps.png
+---
+
+In **519 curated questions**, MOV-Bench tests whether models can connect sparse audio-visual clues across a full video timeline.
+
+## TL;DR
+
+- MOV-Bench is a benchmark for multi-hop audio-visual reasoning across temporally dispersed evidence, and it includes **519** curated questions.
+- It matters because static evaluation can miss failures in long-horizon reasoning, especially when clues are sparse and spread across audio and video.
+- Readers should retag current video QA data, compare static-input and active exploration methods, and validate any gains on field data.
+
+Example: A support team reviews a long recording with scattered spoken hints and brief visual cues. A system finds each clue, then links them across the timeline to answer a question.
+
+One question remains. If a model watches a video to the end and still cannot answer, is the problem the model or the benchmark?
+
+This paper focuses on the space in between. It aims to evaluate multi-hop audio-visual reasoning separately. The target task involves finding and connecting clues from audio and video across a full timeline.
+
+The core idea is simple. If evaluations miss an important capability, model limits can look blurred. This paper tries to address that gap with MOV-Bench. Still, it would be a stretch to claim it therefore solves real-world problems better. Based on the confirmed scope, this benchmark is designed to expose harder failure modes. It also reports that a search-based agent improved over static-context input.
+
+## TL;DR
+
+- This article asks whether MOV-Bench reveals difficulty that existing multimodal benchmarks may miss. It focuses on multi-hop reasoning over sparse, temporally dispersed audio-visual evidence.
+- This matters because claims about video understanding can exceed actual ability. Models may still struggle to locate clues over long spans and connect them correctly.
+- Readers should retag video QA sets by temporal dispersion, audio dependence, and multi-hop structure. Then they should compare static-input and active exploration methods on the same data.
+
+## Current state
+
+The paper is titled *Agentic Active Omni-Modal Perception for Multi-Hop Audio-Visual Reasoning*. Based on the public abstract, the study argues that multi-hop audio-visual reasoning remains difficult for Omni-LLMs. The evidence is described as sparse, temporally distributed, and spread across audio and video streams.
+
+To evaluate this problem, the authors propose MOV-Bench. The clearest confirmed number is **519**. MOV-Bench contains **519 curated questions**. These questions require multi-hop reasoning over temporally dispersed audio-visual evidence. Based on the abstract wording, existing benchmarks are often limited by modality coverage, relevant temporal segments, and reasoning steps.
+
+There is also a performance claim. Within the confirmed scope, the paper states that **AOP-Agent** actively searches for audio-visual evidence. It reportedly improves reasoning performance over static-context input. **MOV-Bench** and **OmniVideoBench** are mentioned as experimental settings. That is where the confirmed evidence stops. The available snippets do not show a quantitative table. They do not show exact gains, baseline details, or error-type separation results.
+
+## Analysis
+
+The value of this paper is not only that a harder benchmark may exist. It also suggests a different evaluation target. Teams often choose models using broad benchmark scores. For long-video summarization, video monitoring, or analysis of call center conversations with screen logs, that can be incomplete. Single-frame recognition or short-segment QA may not capture deployment risk well.
+
+A better evaluation may separate two abilities. One is finding clues. The other is connecting clues across time. MOV-Bench appears aimed in that direction.
+
+Overinterpretation should still be avoided. First, based on confirmed materials, it is not yet clear how much better MOV-Bench separates error types quantitatively. Second, no visible direct experiment shows that AOP-Agent gains transfer to robotics or operational long-horizon settings. That point matters for adoption. Benchmark scores do not automatically translate to field performance. For research comparison, MOV-Bench may be useful. For product decisions, separate validation on field data is still needed.
+
+## Practical application
+
+There is a practical lesson for development teams. When evaluating a video multimodal system, one accuracy number is often not enough. Questions should be divided into at least **three** categories. Can the question be solved without audio? Can it be solved without the visual stream? Does it require connecting temporally separated clues more than once? Splitting evaluation along these **three** axes can make failure patterns easier to see.
+
+Agent design also deserves review. Feeding a long input at once is simple. But sparse clues can be missed. An active exploration approach can search for needed segments and gather evidence. The tradeoff is higher cost and latency. If speed per question matters more, a static-input approach may fit better. If evidential grounding and long-horizon reasoning matter more, an exploration stage may help.
+
+**Checklist for Today:**
+- Tag each item in your video QA dataset for audio dependence, visual dependence, and multi-hop structure.
+- Run static-context input and active exploration side by side on the same questions, then compare failure cases.
+- Create a shared error log that records missed clue types and incorrectly linked temporal segments.
+
+## FAQ
+
+**Q. Is MOV-Bench definitely harder than existing benchmarks?**
+
+Within the confirmed scope, it is reasonable to say it was designed that way. The abstract says existing benchmarks are limited by modality count, relevant temporal segments, and reasoning steps. It also says MOV-Bench includes questions that connect temporally dispersed audio-visual evidence. However, a quantitative comparison table could not be confirmed from the available results alone.
+
+**Q. How much better is AOP-Agent?**
+
+Based on the confirmed materials, we can only say it improves performance over static-context input. Exact figures are not present in the available snippets. At an adoption review stage, the direction of improvement may be useful. Reproduction on your own data is still needed.
+
+**Q. Can this result be applied directly to robotics or real-world video products?**
+
+That conclusion would be difficult to support from the confirmed scope alone. There is no direct evidence here that gains on MOV-Bench or from AOP-Agent transfer to robotics deployment performance. If product use is the goal, separate validation should cover field data, long-horizon scenarios, and latency constraints.
+
+## Conclusion
+
+The point of this paper is not only a new scorecard. It is also a different questionnaire. If we want to test whether a model understands a video, the evaluation should track scattered audio-visual clues across the whole timeline. It should not rely on a single moment alone. One open question remains. Will MOV-Bench stay a research benchmark, or will it influence how real video systems are evaluated?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-28](/en/posts/ai-resources-roundup-2026-05-28)
+- [AI Resource Roundup (24h) - 2026-05-23](/en/posts/ai-resources-roundup-2026-05-23)
+- [Policy Layers for Governing Generalist LLM Agents Safely](/en/posts/policy-layers-governing-generalist-llm-agents)
+- [Structuring Table QA With Navigation And Progressive Inference](/en/posts/structuring-table-qa-with-navigation-and-progressive-inference)
+- [AI Resource Roundup (24h) - 2026-05-22](/en/posts/ai-resources-roundup-2026-05-22)
+---
+
+## References
+
+- [RoboVQA: Multimodal Long-Horizon Reasoning for Robotics - huggingface.co](https://huggingface.co/papers/2311.00899)
+- [Understanding Long Videos with Multimodal Language Models - huggingface.co](https://huggingface.co/papers/2403.16998)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.28192)
+- [LVBench: An Extreme Long Video Understanding Benchmark - arxiv.org](https://arxiv.org/abs/2406.08035)
