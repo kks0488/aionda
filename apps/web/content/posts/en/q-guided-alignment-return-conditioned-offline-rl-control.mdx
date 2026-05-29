@@ -1,0 +1,92 @@
+---
+title: Q-Guided Alignment for Return-Conditioned Offline RL Control
+slug: q-guided-alignment-return-conditioned-offline-rl-control
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  Examines limits of RTG-only conditioning and how Q-guided alignment aims to
+  improve controllability and reliability in offline RL.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-8a568a03ef2703d8
+sourceUrl: 'https://arxiv.org/abs/2605.29028'
+verificationScore: 0.61
+alternateLocale: /ko/posts/q-guided-alignment-return-conditioned-offline-rl-control
+coverImage: /images/posts/q-guided-alignment-return-conditioned-offline-rl-control.png
+---
+
+2605.29028 starts this topic. *Return-to-Go Is More Than a Number: Q-Guided Alignment for Return-Conditioned Supervised Learning* appeared on arXiv. It questions treating RTG in offline reinforcement learning as a simple numeric condition. The core question is direct. When a higher RTG is given, does policy performance also rise?
+
+## TL;DR
+
+- This paper studies RTG control in offline RL and proposes Q-ALIGN DT to align RTG with policy behavior.
+- It matters because controllability affects reliability, evaluation quality, and deployment risk in Decision Transformer-style methods.
+- Readers should check RTG-to-return monotonicity and run a small offline comparison with and without Q-guidance.
+
+Example: A team tunes an offline agent with a higher target return. The score does not rise as expected. They then test whether value guidance improves the match between the request and behavior.
+
+## Current status
+
+Existing conditional sequence models use RTG as a control signal. They take a target reward level as input. Then they generate an action sequence toward that target. This framing helped Decision Transformer-style methods gain interest. It treats reinforcement learning more like sequence prediction.
+
+The main issue is straightforward. Feeding RTG into the input does not show that policy performance will match that target. The arXiv abstract says existing CSMs often treat RTG as “simple numerical inputs.” It also says Q-ALIGN DT enforces consistency between output-policy Q-values and input RTG. The title phrase “More Than a Number” points to that concern.
+
+Publicly verifiable information is still centered on the abstract. The abstract reports better controllability and performance across the D4RL benchmark. However, currently verifiable materials do not show task-level D4RL numbers. They also do not show average improvement margins. A full quantitative comparison table has not been confirmed.
+
+Another visible point is dense guidance. Based on the abstract and available findings, the method uses a Q function for denser guidance to the CSM. It also applies added fine-tuning through RTG perturbation. The goal is clear. Higher RTG values should map more consistently to trajectories with higher expected return. That design focuses on response to condition changes, not only average score.
+
+## Analysis
+
+Why does this matter? Offline RL is useful because it can build a policy from data alone. That is relevant in domains where online exploration is expensive. Examples include robotic control, recommendation, and operations optimization. Practitioners often need more than one best score. They need controllability. When the condition changes, the policy should respond predictably. Q-ALIGN DT targets that issue. It treats RTG more like an adjustable control input.
+
+The limits are also visible. This approach depends on the Q function. In offline RL, Q functions can be fragile on out-of-distribution actions or states. The available materials do not confirm whether alignment stays stable with low-quality Q functions. They also do not confirm stability with many OOD states. That is a key risk. If RTG-policy alignment depends heavily on Q quality, controllability gains may be narrower than they appear. Based on current public evidence, generalization beyond D4RL is also unclear.
+
+## Practical application
+
+For now, this paper may be more useful as an evaluation improvement than a product feature. Teams using return-conditioned policies can first test one basic relation. When input RTG rises, does rollout return also rise? If that relation is erratic, the model may not understand the condition. It may only follow training-data correlations.
+
+The usage scenario is fairly concrete. Teams can add a condition-alignment metric beside an existing score table. They can test whether the ordering of trajectory quality and expected return is preserved. That can be checked under low, medium, and high RTG settings. If Q-guidance is available, before-and-after comparison is simple. The main point is consistency of response, not only peak performance.
+
+**Checklist for Today:**
+- If evaluation shows only one average score, record rollout results separately for each RTG range.
+- Collect cases where input RTG and actual return lose monotonic order, then group the failure patterns.
+- If Q-based guidance is available, compare controllability against the existing CSM under the same dataset and conditions.
+
+## FAQ
+
+**Q. How much better does Q-ALIGN DT perform than existing Decision Transformer methods?**
+
+Within the publicly verifiable range, the abstract says it showed better controllability and performance across D4RL. Task-level numbers and average margins have not been confirmed.
+
+**Q. Does this approach work well even when the Q function is inaccurate?**
+
+That point still needs caution. Based on confirmed materials, no direct evidence has been verified for stability with low-quality Q functions or many OOD states.
+
+**Q. Can this be used immediately for real robotics or long-horizon planning problems?**
+
+There may be potential. However, the currently confirmed evidence covers results on the D4RL benchmark. It also includes indirect context from related research. That is not enough to conclude direct validation on physical robots or broad long-horizon planning tasks.
+
+## Conclusion
+
+Feeding RTG as a number and getting matching policy behavior are different problems. Q-ALIGN DT is framed around that gap. Future evaluation of return-conditioned learning should track performance and alignment together.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [AI as a Strategic Assistant for Mathematics Work](/en/posts/ai-strategic-assistant-mathematics-work)
+- [Coding Models Differ in Execution and Planning Styles](/en/posts/coding-models-execution-vs-planning-styles)
+- [Comparing Agentic AI for End-to-End Gravitational Wave Pipelines](/en/posts/comparing-agentic-ai-gravitational-wave-pipelines)
+- [Governing Technical Debt in Agentic AI Systems](/en/posts/governing-technical-debt-in-agentic-ai-systems)
+---
+
+## References
+
+- [Actor-Critic Alignment for Offline-to-Online Reinforcement Learning - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC11232493/)
+- [Free from Bellman Completeness: Trajectory Stitching via Model-based Return-conditioned Supervised Learning - huggingface.co](https://huggingface.co/papers/2310.19308)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29028)
+- [Q-Distribution guided Q-learning for offline reinforcement learning: Uncertainty penalized Q-value via consistency model - arxiv.org](https://arxiv.org/abs/2410.20312)

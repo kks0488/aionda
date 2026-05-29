@@ -1,0 +1,88 @@
+---
+title: 'RTG 제어성, Q로 다시 묻다'
+slug: q-guided-alignment-return-conditioned-offline-rl-control
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: ko
+description: RTG 숫자 조건의 한계를 짚고 Q값 정렬로 오프라인 RL 제어성과 신뢰성을 높이는 접근을 살핀다.
+tags:
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-8a568a03ef2703d8
+sourceUrl: 'https://arxiv.org/abs/2605.29028'
+verificationScore: 0.61
+alternateLocale: /en/posts/q-guided-alignment-return-conditioned-offline-rl-control
+coverImage: /images/posts/q-guided-alignment-return-conditioned-offline-rl-control.png
+---
+
+2605.29028. 이번 주제는 이 숫자에서 출발한다. arXiv에 올라온 *Return-to-Go Is More Than a Number: Q-Guided Alignment for Return-Conditioned Supervised Learning*은 오프라인 강화학습에서 익숙한 RTG(return-to-go)를 숫자 조건으로만 넣는 방식에 문제를 제기한다. 핵심 질문은 단순하다. “더 높은 RTG를 넣었을 때 정책이 실제로 더 높은 성능으로 반응하느냐”다.
+
+조건부 시퀀스 모델이 제어 가능성을 내세우더라도, 입력 목표와 실제 행동이 어긋나면 그 전제는 약해진다. 이 논문은 그 간극을 Q값으로 줄이려 한다. 그래서 이 주제는 결정 트랜스포머 계열의 성능 비교를 넘는다. 오프라인 에이전트를 얼마나 신뢰하고, 얼마나 세밀하게 조정할 수 있느냐의 문제다.
+
+## 세 줄 요약
+
+- 이 글의 핵심 쟁점은 RTG를 숫자 입력으로 쓰는 기존 return-conditioned 학습의 한계와, Q값 일관성으로 입력 RTG와 출력 정책을 정렬하려는 Q-ALIGN DT 접근이다.
+- 이 문제가 중요한 이유는 오프라인 RL과 결정 트랜스포머 계열에서 “원하는 성능을 조건으로 걸면 실제로도 그렇게 움직이는가”가 제어 가능성, 신뢰성, 배포 리스크에 영향을 주기 때문이다.
+- 독자는 자기 파이프라인에서 RTG 조건과 실제 반환값의 단조 관계를 먼저 검증하고, 그다음 Q 가이드를 붙였을 때 제어성이 나아지는지 작은 오프라인 실험으로 확인해야 한다.
+
+## 현황
+
+기존 조건부 시퀀스 모델은 RTG를 제어 신호로 사용한다. 쉽게 말해 “이 정도 보상을 원한다”는 숫자를 넣고, 그 목표에 맞는 행동 시퀀스를 생성하게 만든다. 결정 트랜스포머류가 관심을 받은 이유도 여기에 있다. 강화학습을 값 반복 대신 시퀀스 예측 문제처럼 다룰 수 있기 때문이다.
+
+문제는 RTG가 입력에 들어갔다고 해서 정책의 실제 성능이 그 숫자와 바로 맞아떨어지지는 않는다는 점이다. 이번 arXiv 초록은 기존 CSMs가 RTG를 “simple numerical inputs”로 취급하는 경향이 있다고 짚는다. 그리고 Q-ALIGN DT는 출력 정책의 Q값이 입력 RTG와 일관되도록 강제한다고 설명한다. 논문 제목의 “More Than a Number”도 이 지점을 겨눈다.
+
+현재 공개적으로 확인되는 정보는 초록 중심이다. 초록에 따르면 저자들은 D4RL benchmark 전반에서 더 나은 controllability와 performance를 보였다고 주장한다. 다만 현재 확인 가능한 범위에서는 개별 D4RL 태스크별 수치, 평균 향상폭, 기존 결정 트랜스포머류 대비 개선 크기는 드러나지 않았다. 방향성은 읽히지만 정량 비교표까지 확인된 단계는 아니다.
+
+또 하나의 포인트는 dense guidance다. 초록과 조사 결과에 따르면 이 방법은 Q 함수를 활용해 CSM에 더 촘촘한 가이드를 제공하고, RTG perturbation 기법으로 추가 미세조정을 한다. 저자들의 목표는 분명하다. 더 높은 RTG가 더 높은 기대 반환의 trajectory로 일관되게 매핑되도록 만드는 것이다. 이는 평균 성능이 맞는 정책보다, 조건 변화에 반응하는 정책을 겨냥한 설계로 읽힌다.
+
+## 분석
+
+왜 이게 중요하냐. 오프라인 RL의 실무 가치는 데이터만으로 정책을 만들 수 있다는 데 있다. 로봇 제어, 추천, 운영 최적화처럼 온라인 탐험 비용이 큰 분야에서는 특히 그렇다. 그런데 현업이 원하는 것은 최고 점수 하나가 아니다. “목표를 낮추면 보수적으로, 높이면 공격적으로”처럼 조건을 바꿨을 때 정책이 예측 가능한 방식으로 반응하는 제어성이다. Q-ALIGN DT는 바로 이 지점을 다루려 한다. RTG를 조정 가능한 손잡이처럼 쓰게 하려는 접근이다.
+
+반대로 약점도 분명하다. 이 접근은 Q 함수에 의존한다. 오프라인 RL에서 Q 함수는 분포 바깥 행동이나 상태에서 흔들리기 쉽다. 조사 결과에서도 저품질 Q 함수나 OOD 상태가 많은 데이터셋에서 정렬이 안정적으로 유지되는지 직접 검증한 근거는 확인되지 않았다. 이것은 핵심 리스크다. RTG-정책 정렬이 Q의 품질에 묶인다면, 제어성 개선은 강한 critic을 전제로 한 제한된 결과일 수 있다. 게다가 현재 공개 범위만으로는 D4RL 밖으로 얼마나 일반화되는지도 확정하기 어렵다.
+
+## 실전 적용
+
+이 논문은 지금 당장 제품 기능으로 보기보다 평가 프로토콜의 보완으로 읽는 편이 낫다. 이미 return-conditioned policy나 결정 트랜스포머류를 쓰는 팀이라면 먼저 “입력 RTG를 올렸을 때 실제 rollout return도 함께 올라가는가”를 봐야 한다. 그 관계가 들쭉날쭉하다면, 모델이 조건을 이해했다기보다 훈련 데이터의 상관관계만 따라갔을 가능성이 있다.
+
+활용 시나리오도 비교적 분명하다. 오프라인 에이전트를 운용하는 팀은 기존 점수표 옆에 “조건 정렬성” 지표를 추가할 수 있다. 예를 들어 낮은 RTG, 중간 RTG, 높은 RTG를 넣었을 때 trajectory 품질과 기대 반환의 순서가 유지되는지 본다. Q 가이드를 붙일 수 있다면 그 전후를 비교하면 된다. 여기서 중요한 것은 최고 성능보다 입력 조건에 대한 응답의 일관성이다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 현재 policy 평가에 단일 평균 점수만 있다면 RTG 구간별 rollout 결과를 따로 기록하라.
+- 입력 RTG와 실제 반환값 사이의 단조 관계가 깨지는 사례를 수집하고 실패 패턴을 분류하라.
+- Q 기반 가이드를 실험할 수 있다면 기존 CSM과 같은 데이터셋, 같은 평가 조건에서 제어성만 따로 비교하라.
+
+## FAQ
+
+**Q. Q-ALIGN DT는 기존 결정 트랜스포머보다 성능이 얼마나 더 좋은가요?**
+
+공개적으로 확인된 범위에서는 초록이 D4RL benchmark 전반에서 더 나은 controllability와 performance를 보였다고만 말합니다. 개별 태스크별 수치나 평균 향상폭은 현재 확인되지 않았습니다.
+
+**Q. 이 접근은 Q 함수가 부정확해도 잘 작동하나요?**
+
+그 점은 아직 조심해서 봐야 합니다. 확인된 자료만 기준으로 보면, 저품질 Q 함수나 OOD 상태가 많은 데이터셋에서 안정성이 유지되는지 직접 검증한 근거는 확인되지 않았습니다.
+
+**Q. 실제 로보틱스나 장기 계획 문제에 바로 쓸 수 있나요?**
+
+가능성은 있습니다. 다만 현재 확인된 근거는 D4RL benchmark에서의 결과와 관련 연구의 간접 맥락까지입니다. 이 논문 자체가 실제 물리 로봇이나 넓은 장기 계획 문제에서 직접 검증됐다고 단정하기는 어렵습니다.
+
+## 결론
+
+RTG를 숫자로 넣는 것과 그 숫자에 맞게 정책이 실제로 움직이게 만드는 것은 다른 문제다. Q-ALIGN DT가 던지는 메시지도 여기에 있다. 앞으로 return-conditioned 학습을 볼 때는 성능뿐 아니라 “조건과 결과가 얼마나 정렬되는가”도 함께 봐야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-05-29](/ko/posts/ai-resources-roundup-2026-05-29)
+- [AI, 수학의 전략 보조자](/ko/posts/ai-strategic-assistant-mathematics-work)
+- [코딩 모델, 실행형과 계획형](/ko/posts/coding-models-execution-vs-planning-styles)
+- [중력파 AI 에이전트 비교](/ko/posts/comparing-agentic-ai-gravitational-wave-pipelines)
+- [에이전트 기술부채의 경고](/ko/posts/governing-technical-debt-in-agentic-ai-systems)
+---
+
+## 참고 자료
+
+- [Actor-Critic Alignment for Offline-to-Online Reinforcement Learning - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC11232493/)
+- [Free from Bellman Completeness: Trajectory Stitching via Model-based Return-conditioned Supervised Learning - huggingface.co](https://huggingface.co/papers/2310.19308)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29028)
+- [Q-Distribution guided Q-learning for offline reinforcement learning: Uncertainty penalized Q-value via consistency model - arxiv.org](https://arxiv.org/abs/2410.20312)
