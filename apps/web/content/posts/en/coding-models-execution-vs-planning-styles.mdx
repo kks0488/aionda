@@ -1,0 +1,218 @@
+---
+title: Coding Models Differ in Execution and Planning Styles
+slug: coding-models-execution-vs-planning-styles
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  Coding model differences appear not in prose quality but in planning, tool
+  use, and context handling scope.
+tags:
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: '1219105'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1219105'
+verificationScore: 0.89
+alternateLocale: /ko/posts/coding-models-execution-vs-planning-styles
+coverImage: /images/posts/coding-models-execution-vs-planning-styles.png
+---
+
+A repository bug can trigger very different model behavior under the same prompt and approval rules.
+
+## TL;DR
+
+- This article compares coding models by working style, including planning, tool use, and context scope.
+- The difference affects speed, cost, review effort, and failure patterns in real workflows.
+- You should test models on the same repository, prompt, and approval setup before choosing defaults.
+
+Example: A developer asks for a small fix, but the model explores related files, tests, and docs before editing anything.
+
+## Current landscape
+
+The official documentation provides the basis for this distinction.
+
+In reasoning best practices, OpenAI describes the o-series as models for agentic planning and decision-making.
+
+The same materials describe some GPT-series models as closer to task execution.
+
+The reasoning models documentation also says reasoning models such as GPT-5 are strong in complex problem solving.
+
+It also lists coding, scientific reasoning, and multi-step planning for agentic work.
+
+By contrast, the models documentation introduces GPT-4.1 as part of the non-reasoning family.
+
+This classification goes beyond product wording.
+
+The tool use documentation says a model can inspect a prompt.
+
+It can then choose which configured tool to use.
+
+The Agents SDK documentation is more direct.
+
+It says applications can use added context and tools.
+
+They can also hand off to specialized agents.
+
+They can stream partial results.
+
+They can maintain a full trace.
+
+In this framing, agentic coding is a product structure.
+
+It connects planning, tools, and delegation in code.
+
+There are also concrete differences in context and reported performance.
+
+The GPT-4.1 introduction says it supports up to 1 million tokens of context.
+
+The same page reports 54.6% on SWE-bench Verified.
+
+In the same survey results, Anthropic presents Sonnet 4 with 1M context.
+
+The Claude Code pricing documentation mentions about $100-200 per developer per month.
+
+The Opus 4.7 introduction page reports a 13% improvement over the previous version.
+
+That result comes from a 93-task coding benchmark.
+
+These figures come from different vendors and conditions.
+
+They should not be treated as one official apples-to-apples comparison table.
+
+## Analysis
+
+The main point is practical.
+
+A model can be viewed as a worker with a distinct problem-solving style.
+
+Fast execution-oriented models fit tasks with clear instructions.
+
+They can suit narrow changes.
+
+Examples include editing a test file, reading an error message, or transforming one function.
+
+Planning-oriented models often define scope more broadly.
+
+They may inspect related modules, tests, documentation, and dependencies together.
+
+That can help with repository-level issues or multi-step debugging.
+
+It can also create friction.
+
+A user may want a quick patch.
+
+The model may expand the task into a small refactoring effort.
+
+That mismatch is one source of misunderstanding.
+
+Higher autonomy is not automatically better.
+
+Official documentation describes automatic tool selection, handoff, sandbox-aware orchestration, and human approval.
+
+However, it does not detail every internal trigger for sub-agents or tool orchestration.
+
+That makes exact behavior harder to predict.
+
+A broader reading pattern can reduce missed context.
+
+It can also increase token use.
+
+Longer execution paths can increase the trace items that reviewers need to inspect.
+
+Coding-agent behavior is therefore a performance issue and an operations issue.
+
+## Practical application
+
+In practice, tasks can be split into two baskets.
+
+The first basket is execution-oriented.
+
+It covers clear requirements, a short file scope, and a low cost of failure.
+
+The second basket is planning-oriented.
+
+It covers entangled files, root-cause tracing, and combined work across tests, docs, and tools.
+
+This boundary can shift when a version changes.
+
+A prompt that worked well before may not produce the same workflow later.
+
+A single-function optimization can go first to an execution-oriented model.
+
+An unexplained integration test failure can go to a planning-oriented model.
+
+That model can explore the repository and form hypotheses.
+
+Procedure matters as much as headline metrics.
+
+You should record which files the model read.
+
+You should record which tools it called.
+
+You should record whether it expanded scope without approval.
+
+In this setting, trace and human approval are practical operating features.
+
+**Checklist for Today:**
+- Run the same issue through two models with the same prompt, and record files changed, tools used, latency, and tokens.
+- Classify repository tasks into instruction-following and autonomous troubleshooting, then assign a default model to each group.
+- Add a human approval step when automatic changes can reach deployment or when the model expands its plan.
+
+## FAQ
+
+**Q. Are reasoning models often better for coding?**  
+No. Official documentation describes reasoning models as stronger in planning and decision-making.
+
+Some other GPT-series models are framed as fast execution-oriented.
+
+For narrow tasks with clear instructions, an execution-oriented model may fit better.
+
+**Q. Do the official documents disclose version-by-version differences in agent behavior in detail?**  
+No. The official documentation explains that tool use, handoff, orchestration, and trace are possible.
+
+However, it does not disclose all detailed internal conditions for those behaviors.
+
+**Q. Then what criteria should be used to choose a model?**  
+Choose based on task structure.
+
+If short edits, explicit requirements, and speed matter, review execution-oriented models first.
+
+If multi-step debugging, repository exploration, and tool combination matter, test planning-oriented models first.
+
+## Conclusion
+
+In agentic coding, version differences are not just about sentence quality.
+
+They also affect who plans longer, reads more broadly, delegates more, and uses tools more often.
+
+The practical focus should include more than a single accuracy metric.
+
+It should also include procedure, review load, and cost for solving the same problem.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [Reducing Vocabulary Search in CFG Constrained Decoding](/en/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+- [Streaming Synthetic Data Learning Across Sequential Tasks](/en/posts/streaming-synthetic-data-learning-sequential-tasks)
+- [AI Resource Roundup (24h) - 2026-05-28](/en/posts/ai-resources-roundup-2026-05-28)
+- [From Black-Box Grading to Rubric-Based Explainable Scoring](/en/posts/black-box-grading-to-rubric-based-explainable-scoring)
+---
+
+## References
+
+- [Reasoning best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/reasoning-best-practices)
+- [Reasoning models | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/reasoning?api-mode=responses%5C)
+- [Models | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models)
+- [Using tools | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/tools?api-mode=chat)
+- [Agents SDK | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agents-sdk/)
+- [Introducing GPT-4.1 in the API | OpenAI - openai.com](https://openai.com/index/gpt-4-1/)
+- [Conversation state | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/conversation-state?api-mode=responses)
+- [Compare models | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/compare)
+- [Claude Sonnet 4 now supports 1M tokens of context | Anthropic - anthropic.com](https://www.anthropic.com/news/1m-context?guides=understanding-tradeoffs)
+- [Claude Opus 4.7 | Anthropic - anthropic.com](https://www.anthropic.com/claude/opus?m=1)
+- [Manage costs effectively - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/costs)
+- [Agents SDK - developers.openai.com](https://developers.openai.com/api/docs/guides/agents)
+- [Node reference - developers.openai.com](https://developers.openai.com/api/docs/guides/node-reference)
+- [The next evolution of the Agents SDK - openai.com](https://openai.com/index/the-next-evolution-of-the-agents-sdk/)
+- [Voice agents - developers.openai.com](https://developers.openai.com/api/docs/guides/voice-agents)

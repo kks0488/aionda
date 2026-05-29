@@ -1,0 +1,92 @@
+---
+title: '코딩 모델, 실행형과 계획형'
+slug: coding-models-execution-vs-planning-styles
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: ko
+description: '코딩 모델 차이는 문장력이 아니라 계획 수립, 도구 호출, 문맥 해석 범위에서 드러난다.'
+tags:
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: '1219105'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1219105'
+verificationScore: 0.89
+alternateLocale: /en/posts/coding-models-execution-vs-planning-styles
+coverImage: /images/posts/coding-models-execution-vs-planning-styles.png
+---
+
+코드 에이전트가 지시한 함수 하나만 고치는가, 아니면 저장소 전체를 훑고 계획부터 다시 세우는가. 이 차이는 단순한 출력 문장 품질의 차이보다 범위가 크다. 공식 문서에서도 추론 모델은 agentic planning, multi-step planning, decision-making에 강한 ‘planner’로 설명되고, GPT 계열 일부는 빠른 실행 중심 모델로 구분된다. 개발자 입장에서는 같은 코딩 작업이라도 어떤 모델을 쓰느냐에 따라 비용, 속도, 검토 방식, 실패 패턴이 함께 달라진다.
+
+## 세 줄 요약
+
+- 이 글의 핵심은 코딩 모델의 차이가 답변 문장력보다 작업 방식, 즉 계획 수립·도구 호출·문맥 해석 범위의 차이로 나타난다는 점이다.
+- 이 차이는 개발 워크플로우에 직접 연결된다. 더 자율적인 모델은 복잡한 수정과 장문맥 작업에서 이점이 있을 수 있다. 다만 토큰 사용과 실행 경로가 늘어나면 비용과 통제 난도도 함께 올라간다.
+- 모델을 “더 똑똑한가”로만 보지 말고, 작업을 실행형과 계획형으로 나눠 같은 저장소·같은 프롬프트·같은 승인 규칙으로 비교 테스트해야 한다.
+
+## 현황
+
+공식 문서는 먼저 구분 기준을 제시한다. OpenAI는 reasoning best practices에서 o-series를 agentic planning과 decision-making에 쓰는 모델로, GPT 계열을 task execution 쪽에 더 가까운 모델로 설명한다. reasoning models 문서도 GPT-5 같은 추론 모델이 complex problem solving, coding, scientific reasoning, multi-step planning for agentic work에 강하다고 적는다. 반대로 models 문서에서는 GPT-4.1을 non-reasoning 계열로 소개한다.
+
+이 분류는 마케팅 문구에만 머물지 않는다. 도구 사용 문서에는 모델이 프롬프트를 보고 configured tool을 자동으로 결정할 수 있다고 적혀 있다. Agents SDK 문서는 더 직접적이다. 추가 컨텍스트와 도구를 쓰고, specialized agents로 handoff하고, partial results를 스트리밍하고, full trace를 유지하는 애플리케이션을 만들 수 있다고 명시한다. 즉 “에이전트형 코딩”은 대화창 안의 표현이 아니라, 계획·도구·위임을 코드로 묶는 제품 구조다.
+
+숫자로 보면 문맥과 성능 차이도 있다. GPT-4.1 소개 글은 최대 1 million tokens 컨텍스트를 지원한다고 설명하고, SWE-bench Verified에서 54.6%를 기록했다고 적는다. 같은 조사 결과에는 Anthropic도 Sonnet 4의 1M context를 제시하고, Claude Code 비용 문서에서 개발자당 월 약 $100-200 수준의 평균 비용을 언급한다. Opus 4.7 소개 페이지는 93-task coding benchmark에서 이전 버전 대비 13% 향상을 말한다. 다만 이 수치들은 서로 다른 공급사와 조건의 자료다. 따라서 “동일 계열 내부의 버전 차이”를 한 표로 비교한 공식 자료처럼 읽으면 안 된다.
+
+## 분석
+
+핵심은 모델을 “답을 잘하는 챗봇”이 아니라 “일을 푸는 방식이 다른 작업자”로 봐야 한다는 점이다. 빠른 실행형 모델은 명령이 분명할수록 강하다. 테스트 파일 수정, 에러 메시지 해석, 함수 변환처럼 범위가 좁은 작업에 잘 맞는다. 반면 계획형 모델은 목표 범위를 더 크게 잡는 경향이 있다. 버그 한 줄을 고치기보다 관련 모듈, 테스트, 문서, 의존성을 함께 보려 할 수 있다. 저장소 단위 문제나 다단계 디버깅에서는 장점이 될 수 있다. 하지만 사용자가 원한 것이 “빠른 패치”인데 모델이 “작은 리팩터링 프로젝트”로 범위를 넓히면 충돌이 생긴다.
+
+여기서 오해가 생긴다. 자율성이 높다고 해서 항상 좋은 것은 아니다. 공식 문서는 도구 자동 선택, handoff, sandbox-aware orchestration, human approval 같은 기능을 소개한다. 다만 서브에이전트 호출이나 도구 오케스트레이션이 어떤 내부 기준에서 자동 발동되는지까지는 공개하지 않는다. 따라서 동작의 예측 가능성이 완전하다고 보기는 어렵다. 문서를 더 넓게 읽는 모델은 놓치는 정보가 적을 수 있다. 대신 읽는 토큰도 늘 수 있다. 실행 경로가 길어지면 trace를 검토해야 할 항목도 많아진다. 코딩 에이전트의 성향 차이는 성능 문제이면서 운영 문제이기도 하다.
+
+## 실전 적용
+
+실무에서는 작업을 두 바구니로 나누면 된다. 첫째는 실행형 바구니다. 명확한 요구사항, 짧은 파일 범위, 실패 비용이 낮은 변경이 여기에 들어간다. 둘째는 계획형 바구니다. 여러 파일이 얽히고, 원인 추적이 필요하고, 테스트·문서·도구 호출을 함께 다뤄야 하는 작업이다. 같은 모델 계열 안에서도 버전이 바뀌면 이 경계가 달라질 수 있다. 따라서 “이전 버전에서 잘 되던 프롬프트”가 새 버전에서도 같은 흐름으로 작동한다고 가정하면 안 된다.
+
+예를 들어 단일 함수 최적화는 실행형 모델로 먼저 돌리고, 원인 불명의 통합 테스트 실패는 계획형 모델에 맡겨 저장소 탐색과 가설 수립까지 허용하는 식이다. 이때 중요한 것은 성능 수치보다 절차다. 어떤 모델이 몇 파일을 읽었는지, 어떤 도구를 불렀는지, 승인 없이 범위를 넓혔는지를 기록해야 한다. Agents SDK가 말하는 trace와 human approval은 이런 맥락에서 실무 기능으로 볼 수 있다.
+
+**오늘 바로 할 일 체크리스트**
+- 같은 이슈를 두 모델에 동일 프롬프트로 넣고 수정 파일 수, 도구 호출 여부, 응답 시간, 총 토큰 사용을 나란히 기록한다.
+- 저장소 작업을 “지시 이행형”과 “자율 트러블슈팅형”으로 분류하고 각 작업군에 기본 모델을 따로 지정한다.
+- 자동 수정이 배포 경로로 이어지는 팀이라면 human approval 단계를 넣고, 계획 변경이나 범위 확장 시 승인을 받도록 한다.
+
+## FAQ
+
+**Q. 추론 모델이 코딩에서 항상 더 낫습니까?**  
+그렇지 않습니다. 공식 문서는 추론 모델을 계획과 의사결정에 강한 쪽으로, 다른 GPT 계열 일부를 빠른 실행형으로 설명합니다. 범위가 좁고 지시가 명확한 작업에서는 실행형 모델이 더 잘 맞을 수 있습니다.
+
+**Q. 공식 문서에 버전별 에이전트 동작 차이가 자세히 공개돼 있습니까?**  
+아닙니다. 공식 문서는 도구 사용, handoff, orchestration, trace 같은 기능이 가능하다고 설명합니다. 다만 서브에이전트 호출이나 도구 오케스트레이션이 어떤 내부 조건에서 자동 발동되는지까지 세부 규칙을 모두 공개하지는 않습니다.
+
+**Q. 그럼 무엇을 기준으로 모델을 골라야 합니까?**  
+작업 구조를 기준으로 고르면 됩니다. 짧은 수정, 명시적 요구사항, 빠른 응답이 중요하면 실행형 모델을 우선 검토하고, 다단계 디버깅, 저장소 탐색, 도구 결합이 중요하면 계획형 모델을 우선 시험해 보시면 됩니다.
+
+## 결론
+
+에이전트형 코딩에서 버전 차이는 문장 품질의 미세 조정만으로 설명되기 어렵다. 차이는 누가 더 오래 생각하고, 더 넓게 읽고, 더 많이 위임하고, 더 자주 도구를 쓰는지에서 드러난다. 앞으로 봐야 할 것은 “정답률” 하나가 아니다. 같은 문제를 어떤 절차와 비용 구조로 풀어내는지까지 함께 봐야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-05-29](/ko/posts/ai-resources-roundup-2026-05-29)
+- [CFG 디코딩 병목 줄이기](/ko/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+- [합성 데이터의 스트리밍 전환](/ko/posts/streaming-synthetic-data-learning-sequential-tasks)
+- [AI 자료 모음 (24h) - 2026-05-28](/ko/posts/ai-resources-roundup-2026-05-28)
+- [루브릭형 자동채점의 전환](/ko/posts/black-box-grading-to-rubric-based-explainable-scoring)
+---
+
+## 참고 자료
+
+- [Reasoning best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/reasoning-best-practices)
+- [Reasoning models | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/reasoning?api-mode=responses%5C)
+- [Models | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models)
+- [Using tools | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/tools?api-mode=chat)
+- [Agents SDK | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/agents-sdk/)
+- [Introducing GPT-4.1 in the API | OpenAI - openai.com](https://openai.com/index/gpt-4-1/)
+- [Conversation state | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/conversation-state?api-mode=responses)
+- [Compare models | OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/compare)
+- [Claude Sonnet 4 now supports 1M tokens of context | Anthropic - anthropic.com](https://www.anthropic.com/news/1m-context?guides=understanding-tradeoffs)
+- [Claude Opus 4.7 | Anthropic - anthropic.com](https://www.anthropic.com/claude/opus?m=1)
+- [Manage costs effectively - Anthropic - docs.anthropic.com](https://docs.anthropic.com/en/docs/claude-code/costs)
+- [Agents SDK - developers.openai.com](https://developers.openai.com/api/docs/guides/agents)
+- [Node reference - developers.openai.com](https://developers.openai.com/api/docs/guides/node-reference)
+- [The next evolution of the Agents SDK - openai.com](https://openai.com/index/the-next-evolution-of-the-agents-sdk/)
+- [Voice agents - developers.openai.com](https://developers.openai.com/api/docs/guides/voice-agents)
