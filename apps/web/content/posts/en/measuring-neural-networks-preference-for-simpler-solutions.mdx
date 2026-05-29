@@ -1,0 +1,90 @@
+---
+title: Measuring Neural Networks' Preference for Simpler Solutions
+slug: measuring-neural-networks-preference-for-simpler-solutions
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  A look at a proposed metric that approximates neural simplicity bias with
+  data-dependent polynomials and its limits.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-448b34485c1dffc3
+sourceUrl: 'https://arxiv.org/abs/2605.29823'
+verificationScore: 0.64
+alternateLocale: /ko/posts/measuring-neural-networks-preference-for-simpler-solutions
+coverImage: /images/posts/measuring-neural-networks-preference-for-simpler-solutions.png
+---
+
+In arXiv:2605.29823, the authors try to measure a neural network’s preference for simple solutions.
+
+## TL;DR
+
+- This paper proposes a polynomial surrogate for a model’s predictive function along a data-dependent interpolation path.
+- That could add a testable simplicity metric, but its link to generalization is still unclear.
+- Readers should compare this score with accuracy, OOD performance, and training cost before using it broadly.
+
+Example: A team compares two models with similar validation behavior. One follows simpler patterns on the data path. The team then checks whether that model is steadier under shift and noise.
+
+Why do neural networks keep choosing the “easy answer” first? What changes if that tendency can be measured numerically? The paper arXiv:2605.29823 addresses that question. The quoted excerpt says the authors approximate a neural network’s predictive function with orthogonal polynomials. They do this along a data-dependent interpolation path. That creates a low-dimensional surrogate representation. Simplicity bias is already a familiar idea in generalization. Broadly usable quantitative measures have been less common.
+
+## Current status
+
+The starting point is fairly clear. The abstract excerpt from arXiv:2605.29823 says deep networks often prefer “simple” solutions. It also says this tendency matters for generalization. The same excerpt says there is still no broadly applicable quantitative measure of this simplicity. To address that gap, the authors propose an approximation method. It uses orthogonal polynomials along a data-dependent interpolation path.
+
+The key idea is not to dissect the model internals directly. Instead, it studies the function produced by the model along the input distribution. It does so through a low-dimensional polynomial surrogate. This does not explain the entire network. It can still support comparisons of function complexity where the data lies. Put simply, the approach tries to measure function curvature along the path traced by the data.
+
+Confirmed findings and open gaps should be separated carefully. Based on the reviewed findings, no direct quantitative evidence was identified. That evidence would need to show how strongly this metric correlates with actual generalization performance. Related literature also notes important limits. Simplicity bias may matter, but its effect remains unclear in real-world datasets and practical settings. “A modern look at simplicity bias in image classification tasks,” on ScienceDirect, makes a similar point.
+
+Scalability also remains open. On the transformer side, 2211.12316 discusses random and trained transformers. It says both tend to learn low-sensitivity functions first. That is, they learn simpler structures first. In addition, 2103.10427 says low-rank simplicity bias appears at initialization and after training. Those findings are relevant. They do not show that the representation in 2605.29823 can be computed the same way for large transformers or multimodal models.
+
+## Analysis
+
+This approach matters because it turns simplicity bias into a testable variable. Existing explanations of generalization already use several proxies. These include parameter count, norms, margins, and flat minima. In practice, it has often been unclear which metric deserves more trust. A metric that reflects data-distribution-aware function complexity could add another comparison axis. It could help compare architecture changes within one framework. It could also compare two models with the same accuracy. It could track complexity during early training stages.
+
+The harder issue is that “simpler is better” is not established as a general rule. The reviewed findings include mixed evidence. Some studies suggest simplicity can help generalization. Others suggest overly simple features can weaken robustness. Paper 2302.00457 says networks may rely on a 1-dimensional subspace. That subspace may be easy to separate linearly. More complex features could be more robust. So, current evidence does not support strong claims about training-time optimization of this metric. It is not yet clear that optimizing it would improve performance, reduce overfitting, and strengthen OOD robustness together. Trade-offs should be tested first. Accuracy may rise while robustness falls. Interpretability may improve while computational cost increases.
+
+## Practical application
+
+Researchers and developers should not ask only whether the metric is “correct.” They should test where it helps and where it breaks down. A practical starting point is to add one scalar metric to an existing pipeline. It may be better to log it than optimize it first. Record the simplicity score and validation performance at each checkpoint. Keep dataset, budget, and model size matched across comparisons. That can reduce unstable interpretations.
+
+When two checkpoints on the same task have similar performance, compare their simplicity scores. Then test sensitivity to noise or distribution shift. If accuracy improves late in training while the simplicity score worsens sharply, inspect that phase. It may indicate overfitting. This use is closer to monitoring than to finding a single correct metric. It can help show when a model relies on easy rules. It can also show when the model drifts toward more complex shortcuts.
+
+**Checklist for Today:**
+- Log the simplicity score with validation performance across early, mid, and late training checkpoints.
+- Compare two models with the same accuracy in one table, including simplicity score, shift performance, and inference cost.
+- Use the metric as an observational signal before adding it to the loss on any dataset or task.
+
+## FAQ
+
+**Q. Does this paper present a new standard for explaining neural network generalization?**  
+It is difficult to say that. The quoted excerpt supports a polynomial-based surrogate representation. The reviewed findings do not confirm a strong quantitative correlation with generalization.
+
+**Q. Can it be applied immediately to transformers or multimodal models?**  
+That is not clear from the reviewed evidence. Related studies suggest simplicity bias also appears in transformers. No direct evidence here shows the same computation works for large transformers or multimodal models.
+
+**Q. If this metric is directly optimized during training, does performance improve?**  
+The available evidence does not support a consistent conclusion. Some studies suggest induced simplicity can help generalization. Others suggest overly simple features can hurt robustness.
+
+## Conclusion
+
+Simplicity in neural networks has long been an intuition. ArXiv:2605.29823 tries to quantify that intuition. The more useful question is not whether the idea is interesting. The key question is when the metric is informative and when it misleads. Its value may depend less on standing alone as a score. It may depend more on serving as an auxiliary dashboard. That dashboard could reveal tension between accuracy and robustness.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [Coding Models Differ in Execution and Planning Styles](/en/posts/coding-models-execution-vs-planning-styles)
+- [Reading AI Pricing Through Limits and Infrastructure Costs](/en/posts/reading-ai-pricing-through-limits-and-infrastructure-costs)
+- [Reducing Vocabulary Search in CFG Constrained Decoding](/en/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+- [Streaming Synthetic Data Learning Across Sequential Tasks](/en/posts/streaming-synthetic-data-learning-sequential-tasks)
+---
+
+## References
+
+- [A modern look at simplicity bias in image classification tasks - ScienceDirect - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0893608026000468)
+- [Simplicity Bias in Transformers and their Ability to Learn Sparse Boolean Functions - arxiv.org](https://arxiv.org/abs/2211.12316)
+- [The Low-Rank Simplicity Bias in Deep Networks - arxiv.org](https://arxiv.org/abs/2103.10427)
+- [Linformer: Self-Attention with Linear Complexity - arxiv.org](https://arxiv.org/abs/2006.04768)
+- [Simplicity Bias in 1-Hidden Layer Neural Networks - arxiv.org](https://arxiv.org/abs/2302.00457)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29823)
