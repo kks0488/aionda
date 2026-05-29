@@ -1,0 +1,88 @@
+---
+title: Comparing Agentic AI for End-to-End Gravitational Wave Pipelines
+slug: comparing-agentic-ai-gravitational-wave-pipelines
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  A head-to-head test of Claude Code and Codex running an end-to-end
+  gravitational wave analysis pipeline autonomously.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-7bdf06179ea4c925
+sourceUrl: 'https://arxiv.org/abs/2605.28916'
+verificationScore: 0.82
+alternateLocale: /ko/posts/comparing-agentic-ai-gravitational-wave-pipelines
+coverImage: /images/posts/comparing-agentic-ai-gravitational-wave-pipelines.png
+---
+
+## TL;DR
+
+- This comparison tests Claude Code and Codex on the same infrastructure for end-to-end gravitational-wave analysis without human intervention.
+- It matters because scientific workflows depend on execution success, reproducibility, and visible failure handling, not only final answers.
+- Teams should begin with small pipelines, repeat runs, and validate intermediate artifacts before broader automation.
+
+Example: A research team hands an agent a pipeline, then receives polished output that looks credible. The result later fails review because an intermediate step silently went wrong.
+
+A gravitational-wave pipeline recovers **100 binary signals** using matched filtering. This arXiv abstract asks whether two agentic AI systems can complete that workflow autonomously. The point is not a performance showcase. It places Claude Code and Codex on the same computing infrastructure. It then tests whether they can execute a scientific computing workflow. The focus moves beyond coding assistance. It looks at agents as execution actors under reproducibility and error-recovery demands.
+
+## Current status
+
+The original abstract provides several concrete facts. It studies Claude Code and Codex as “state-of-the-art agentic AI systems.” It assigns them a simple end-to-end pipeline. That pipeline estimates the power spectral density from Einstein Telescope simulated noise. It constructs a geometric template bank. It then recovers **100 binary signals** with matched filtering. The conditions are identical computing infrastructure and no human intervention.
+
+The unit of comparison matters here. This is not a test of chatbot response quality. It evaluates execution of real research code. That includes file paths, dependencies, execution order, intermediate artifacts, and recovery after failure. In other words, it is closer to operating a research pipeline than to writing code only.
+
+Related findings help frame the issue. One study reported one-shot performance around **0.85** with domain context. Without context, it was close to **0**. In molecular dynamics, another report found a full-success rate of only **21%** on Easy tasks for Claude Code and Codex. In astrophysical workflows, one reported failure mode was silent incorrect computation. In high-energy physics pipelines, other results suggested agents can complete a substantial portion of the workflow autonomously.
+
+## Analysis
+
+This study shifts the focus of AI evaluation. Many teams have selected models using code quality, prompt responses, and benchmark scores. In scientific computing workflows, those criteria can be incomplete. More relevant questions are practical. Does execution finish? Does the system stop when it fails? Does it report when it is wrong? Do repeated runs produce the same result? In gravitational-wave analysis, plausible but wrong answers can be costly because signal processing and physical interpretation are tightly coupled.
+
+The decision frame also changes. A team inserting an agent into research code should treat it less like a copilot. It should treat it more like an operations automation tool. That shift changes evaluation criteria. If a team looks only at accuracy, adoption may move quickly. If it also requires reproducibility, debugging, and environment recovery, adoption may move more cautiously. That caution can reduce failure costs.
+
+The limitations are also important. The currently available findings do not confirm whether this gravitational-wave comparison also measured cost and time. It is also hard to extend one domain’s result to data science as a whole. High-energy physics, astrophysics, and molecular dynamics differ in feedback structure. They also differ in the cost of verifying correct answers.
+
+## Practical application
+
+Working teams can take a practical lesson from this. Agents should not be treated like capable junior researchers. They should be treated like automatic executors that may fail silently and may produce plausible errors. Safeguards should reflect that risk. Teams can start with repeated execution, validation of intermediate artifacts, physical consistency checks, and environment reproducibility tests. They can then expand automation gradually.
+
+For pipelines with separable stages, teams should avoid full autonomous handoff at once. PSD estimation, template bank construction, and signal recovery can be validated stage by stage. Each stage should leave an input hash, an output summary, and a validation script. Evaluation should also check whether the agent leaves explicit failure logs. A system that appears to succeed after failing can be risky in research settings.
+
+**Checklist for Today:**
+
+- Run the same task at least twice and compare outputs for reproducibility differences.
+- Add validation rules for intermediate artifacts before focusing on final accuracy alone.
+- Test recovery from dependency, path, or version conflicts in a small sandbox first.
+
+## FAQ
+
+**Q. In what way does this study differ from conventional coding benchmarks?**  
+Conventional coding benchmarks often focus on correct code generation or problem solving. This direction evaluates execution of a real scientific pipeline from start to finish. It includes tool use, failure recovery, and reproducibility.
+
+**Q. In performance comparisons, what is more important than accuracy?**  
+In scientific workflows, execution success rate can matter more. Silent wrong answers also matter. Repeated runs should produce the same result. The system should also handle environment issues on its own. Plausible-looking wrong answers can raise human review costs.
+
+**Q. Can these results be directly applied to other data science pipelines as well?**  
+They should not be generalized immediately. The evaluation frame can apply broadly. The performance results may still vary by domain structure and validation method. Each team should begin with small reproducibility tests in its own workflow.
+
+## Conclusion
+
+This comparison pushes a different question forward. It is not mainly about who is smarter. It is about who can execute to completion, surface errors, and reproduce results across runs. The next focus for agentic AI may be reproducible execution capability, not conversation quality alone.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [Coding Models Differ in Execution and Planning Styles](/en/posts/coding-models-execution-vs-planning-styles)
+- [Governing Technical Debt in Agentic AI Systems](/en/posts/governing-technical-debt-in-agentic-ai-systems)
+- [Measuring Neural Networks' Preference for Simpler Solutions](/en/posts/measuring-neural-networks-preference-for-simpler-solutions)
+- [Reading AI Pricing Through Limits and Infrastructure Costs](/en/posts/reading-ai-pricing-through-limits-and-infrastructure-costs)
+---
+
+## References
+
+- [Paper page - Stargazer: A Scalable Model-Fitting Benchmark Environment for AI Agents under Astrophysical Constraints - huggingface.co](https://huggingface.co/papers/2604.15664)
+- [Plausible but Wrong: A case study on Agentic Failures in Astrophysical Workflows - arxiv.org](https://arxiv.org/abs/2604.25345)
+- [AI Agents Can Already Autonomously Perform Experimental High Energy Physics - arxiv.org](https://arxiv.org/abs/2603.20179)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.28916)
