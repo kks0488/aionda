@@ -1,0 +1,92 @@
+---
+title: Time Structure Limits in Tokenized Time Series LLMs
+slug: time-structure-limits-in-tokenized-time-series-llms
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  This study argues tokenized time series LLMs lose continuity and order, and
+  proposes COM constraints to preserve temporal structure.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-6327a28b054a37ee
+sourceUrl: 'https://arxiv.org/abs/2605.28866'
+verificationScore: 0.73
+alternateLocale: /ko/posts/time-structure-limits-in-tokenized-time-series-llms
+coverImage: /images/posts/time-structure-limits-in-tokenized-time-series-llms.png
+---
+
+A paper indexed as **arXiv:2605.28866v1** focuses on a common failure point in time series LLMs. It argues that reading numbers is not the same as preserving temporal structure. Token-based time series LLMs can lose continuity and order during tokenization. To reduce that loss, the paper proposes continuity and ordinality constraints for token embeddings.
+
+## TL;DR
+
+- This paper, **arXiv:2605.28866v1**, proposes COM constraints for time series token embeddings.
+- It matters because temporal structure can degrade during tokenization, compression, and limited-context processing.
+- Readers should test tokenization, embeddings, and window length together in their own pipelines.
+
+Example: A team reviews a weak forecasting system and finds that small input ordering changes alter the output. The model still reads the values, but it appears to miss the flow of time.
+
+This issue connects to the next stage of time series AI. If LLMs handle structured data beyond text, number splitting alone may be insufficient. Teams using LLMs for time series should inspect the backbone and the representation method together.
+
+## TL;DR
+
+- The core issue is that token-based time series LLMs may not preserve continuity and ordinality well enough.
+- Readers should validate tokenization, embedding, and window length as one design problem.
+
+## Current state
+
+The paper title is *Continuity and Ordinality Matter: Constraining Time Series Tokens for Effective Time Series Analysis with Large Language Models*. The cited version is **arXiv:2605.28866v1**. Based on the released excerpts, the authors say prior token-based TS-LLM work under-addressed continuity and ordinality. They present COM as a continuity- and ordinality-aware strategy.
+
+
+This issue does not appear isolated. The cited discussion says existing tokenizers can split continuous values into discrete tokens. That process can weaken temporal relationships between adjacent values. The same discussion also notes lookback and context window constraints. Those limits can encourage patch- or channel-based compression. In that sense, the paper targets the initial representation step for time series in LLMs.
+
+## Analysis
+
+From a decision-making view, the message is fairly simple. If you convert time series into tokens for a general-purpose LLM, preserving temporal structure may deserve early attention. Replacing the backbone may be a later step. In text, token discontinuity can be acceptable in some cases. In time series, neighboring values and their order often shape meaning. If splitting removes that structure, the model may read values yet miss the temporal flow.
+
+There are trade-offs. First, consistent gains across multiple benchmarks are meaningful. Still, current evidence does not show better overall performance than time-series-specialized models. Second, LLM-based methods still raise computational cost questions. Third, it is not yet confirmed whether structural constraints improve interpretability.
+
+The practical framing can be stated as an **If/Then** test. **If** the goal is to extend general-purpose LLM reasoning to time series, structural constraints may be worth evaluation. **Then** cost, task variation, and comparison with specialized models should be checked in separate benchmarks.
+
+## Practical application
+
+Practical teams can examine three points first. First, inspect how continuous values are split during tokenization. Second, assess whether embeddings preserve distance and order between adjacent time steps. Third, evaluate how much structure is damaged when long series are reduced. These points are connected. Weak tokenization can limit later recovery. Coarse compression can also weaken ordinality.
+
+If performance is lower than expected in forecasting or sensor monitoring, inspect input representation before changing the backbone. Watch for strong result changes after partial order shuffling. Watch for changes after interval distortion. Watch for changes after lookback window adjustments. Those patterns can suggest weak temporal robustness.
+
+**Checklist for Today:**
+- Document how the current tokenization method may lose continuous values and temporal order in each use case.
+- Run the same backbone with order perturbation, segment compression, and window-length changes, then compare sensitivity.
+- Compare specialized time series models and token-based TS-LLMs on accuracy, inference cost, and operational complexity.
+
+## FAQ
+
+**Q. Is this research especially strong on a specific time series task?**  
+Based on confirmed information, that cannot be stated clearly. Available evidence only says COM improved performance across multiple benchmarks. It does not confirm the largest gains among forecasting, anomaly detection, and classification.
+
+**Q. Why is the tokenization method of general-purpose LLMs a problem for time series?**  
+Existing tokenizers can treat numbers as segmented discrete tokens. That can weaken relationships between adjacent values and their order. This loss can reduce time series analysis quality.
+
+**Q. Then should we regard token-based TS-LLMs as better than specialized time series models?**  
+There is not enough evidence for that conclusion. This review only confirms that structural constraints improved token-based TS-LLM performance. It does not confirm stronger overall results than specialized time series models.
+
+## Conclusion
+
+The main point is not a new backbone. It is a prompt to reexamine what is lost when time series become tokens. Teams applying LLMs to time series should change the first question. Before asking which model to use, they should identify where temporal structure is being lost.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [Coding Models Differ in Execution and Planning Styles](/en/posts/coding-models-execution-vs-planning-styles)
+- [Measuring Neural Networks' Preference for Simpler Solutions](/en/posts/measuring-neural-networks-preference-for-simpler-solutions)
+- [Reading AI Pricing Through Limits and Infrastructure Costs](/en/posts/reading-ai-pricing-through-limits-and-infrastructure-costs)
+- [Reducing Vocabulary Search in CFG Constrained Decoding](/en/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+---
+
+## References
+
+- [The first step is the hardest: pitfalls of representing and tokenizing temporal data for large language models - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC11339515/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.28866)
+- [RTS-LLM: Restoring time structure for time series forecasting with LLMs - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0957417425040175)

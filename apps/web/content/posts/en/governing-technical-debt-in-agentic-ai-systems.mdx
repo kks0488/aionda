@@ -1,0 +1,151 @@
+---
+title: Governing Technical Debt in Agentic AI Systems
+slug: governing-technical-debt-in-agentic-ai-systems
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  Why agentic AI failures create governance and operational control risks beyond
+  model accuracy alone.
+tags:
+  - llm
+  - deep-dive
+  - governance
+  - observability
+author: AI온다
+sourceId: arxiv-cs-ai-6261c37833b15c4b
+sourceUrl: 'https://arxiv.org/abs/2605.29129'
+verificationScore: 0.85
+alternateLocale: /ko/posts/governing-technical-debt-in-agentic-ai-systems
+coverImage: /images/posts/governing-technical-debt-in-agentic-ai-systems.png
+---
+
+## TL;DR
+
+- Agentic Technical Debt describes governance debt in prompts, memory, tools, and orchestration, beyond model accuracy alone.
+- This matters because small agent changes can alter authority, auditability, and operational risk without changing the model.
+- Next, treat agent updates as governance changes and add tracing, logs, permission history, and reproducible evaluation.
+
+2605.29129 is an arXiv identifier for a paper on governance in agentic AI systems. Its focus is operational control burden beyond model performance.
+
+Example: a support agent starts using a new business tool. The interface looks similar, but the risk shifts toward permissions, logging, and action review.
+
+## Current state
+
+The starting point is two arXiv papers. One is `Governing Technical Debt in Agentic AI Systems`, identified as 2605.29129.
+
+According to the excerpt, this paper addresses governance issues. These issues are not fully captured by traditional software debt. They are also not fully captured by predictive ML debt.
+
+The paper discusses production use of agentic AI. It argues that multi-step reasoning, tool calls, workflow behavior, memory, and feedback adaptation create new forms of debt.
+
+On measurement, no single KPI appears to have industry-wide consensus yet. According to the research findings, "Modeling Agentic Technical Debt and Stochastic Tax: A Standalone Framework for Measurement, Simulation, and Dashboarding" is arXiv:2605.27320.
+
+That paper treats agentic debt as a design and governance responsibility. It connects this responsibility to tools, context, memory, orchestration, and external workflow integration.
+
+A notable point is its use of “operational data” for estimating cost categories. This suggests a need for dashboards and traceability, not only conceptual framing.
+
+Standards and tooling are also moving. NIST is presenting AI RMF, the AI RMF Playbook, TEVV, and an approach with evaluation probes inside agent workflows.
+
+According to the research findings, these probes place automated evaluation inside the workflow. They also accumulate results as a machine-readable audit trail.
+
+A broader trend is visible in OpenTelemetry. It is advancing semantic conventions for AI agent observability.
+
+The industry does not appear to have one agreed standard yet. Even so, operating agents without observability is becoming harder.
+
+## Analysis
+
+This paper shifts the object of technical debt. Traditional software debt focuses on code and architecture.
+
+Traditional ML debt often focuses on data, labels, drift, and performance degradation. Agentic debt adds another layer.
+
+A one-line prompt edit can change system behavior. A memory policy change can do the same.
+
+A tool schema update can also change behavior. Rewiring the orchestration graph can as well.
+
+The model can stay unchanged while operational risk rises. That changes the decision question.
+
+The question becomes more than answer quality. It also becomes who changed the system, what changed, and whether it is auditable.
+
+There are limitations. First, there is no standard KPI.
+
+As a result, organizations may view the same problem through different metrics. That can make comparisons harder.
+
+Second, observability alone does not create control. Logs can exist without approval systems, permission boundaries, or human oversight.
+
+In that case, audit may become a post hoc record. It may not function as active control.
+
+Third, prompt injection and excessive agency are known risks. Industry-wide operational rules still seem unsettled.
+
+The open question is how to connect those risks to change management. The affected areas include prompts, memory, tools, and workflows.
+
+Because of this gap, responsibility can fragment. Model, platform, security, and compliance teams can each own only part of the issue.
+
+From a decision memo perspective, the key question is scope of automation. How far should the agent be automated?
+
+If tool-call scope is broad, risk rises. If external workflow integration is deep, risk also rises.
+
+In those cases, authority reduction and audit tracing should be designed before performance experiments. That sequence may reduce avoidable control gaps.
+
+If the task scope is narrow, the tradeoff can differ. Read-only tools can lower the urgency of stronger approval systems.
+
+In that case, execution graphs and evaluation probes may be the first additions. They can support testing before heavier controls.
+
+The logic can be expressed in If/Then terms. If the agent has write access to external systems, change approval rigor should increase.
+
+If memory is retained long-term, read and write tracing should come first. Deletion policies should also be defined early.
+
+As orchestration grows more complex, testing should shift. Single-prompt evaluation becomes less sufficient than graph-level reproducible evaluation.
+
+## Practical application
+
+In practice, the first step is a change in framing. The agent should be viewed as an operating system, not only an application.
+
+Prompt files should be under change management. System instructions should be too.
+
+Memory storage rules should also be included. Tool schemas and workflow graphs should be included as well.
+
+A governance change log can help. It can remain separate from feature release documentation.
+
+The user-facing chatbot may look unchanged. Internal permissions and failure modes may still have changed.
+
+**Checklist for Today:**
+- Put prompts, memory policies, tool schemas, and orchestration graphs under the same change history as code.
+- Preserve request lineage by storing execution graphs, memory read and write activity, and tool call results.
+- Start with agents that can write to external systems, then add evaluation probes and human approval points.
+
+## FAQ
+
+**Q. How is Agentic Technical Debt different from existing ML technical debt?**  
+Existing ML technical debt often focuses on data quality, model performance, and drift. Agentic Technical Debt also covers governance issues from prompts, memory, tool calls, orchestration, and external workflow integration.
+
+**Q. Is there a standard KPI that can be used immediately?**  
+Based on the current research findings, no single industry-agreed KPI has been confirmed. A starting point can be dashboards for execution graphs, memory tracing, lineage, debugging, and testing.
+
+**Q. Where should audit begin in concrete terms?**  
+It should begin with change history management. Prompt edits, memory policy changes, tool permission changes, and workflow rewiring should be recorded as governance changes.
+
+Risk tracking can then be added. Roles, human oversight, and reproducible evaluation can also be added.
+
+## Conclusion
+
+In the agent era, technical debt can accumulate outside code as well as within it. The message of 2605.29129 is modest but important.
+
+Better responses are only part of the story. Tracing and controlling changes to prompts, memory, and tool use may matter just as much.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [Coding Models Differ in Execution and Planning Styles](/en/posts/coding-models-execution-vs-planning-styles)
+- [Measuring Neural Networks' Preference for Simpler Solutions](/en/posts/measuring-neural-networks-preference-for-simpler-solutions)
+- [Reading AI Pricing Through Limits and Infrastructure Costs](/en/posts/reading-ai-pricing-through-limits-and-infrastructure-costs)
+- [Reducing Vocabulary Search in CFG Constrained Decoding](/en/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+---
+
+## References
+
+- [AI Risk Management Framework | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework)
+- [AI RMF Playbook - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+- [Building Evaluation Probes into Agentic AI | NIST - nist.gov](https://www.nist.gov/programs-projects/building-evaluation-probes-agentic-ai)
+- [AI test, evaluation, validation and verification (TEVV) | NIST - nist.gov](https://www.nist.gov/ai-test-evaluation-validation-and-verification-tevv)
+- [Guidelines | NIST - nist.gov](https://www.nist.gov/caisi/guidelines)
+- [Modeling Agentic Technical Debt and Stochastic Tax: A Standalone Framework for Measurement, Simulation, and Dashboarding - arxiv.org](https://arxiv.org/abs/2605.27320)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29129)

@@ -1,0 +1,87 @@
+---
+title: 에이전트 기술부채의 경고
+slug: governing-technical-debt-in-agentic-ai-systems
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: ko
+description: 에이전트형 AI의 실패를 정확도가 아닌 거버넌스와 운영 통제 부담의 문제로 짚는다.
+tags:
+  - llm
+  - deep-dive
+  - governance
+  - observability
+author: AI온다
+sourceId: arxiv-cs-ai-6261c37833b15c4b
+sourceUrl: 'https://arxiv.org/abs/2605.29129'
+verificationScore: 0.85
+alternateLocale: /en/posts/governing-technical-debt-in-agentic-ai-systems
+coverImage: /images/posts/governing-technical-debt-in-agentic-ai-systems.png
+---
+
+2605.29129. 숫자만 보면 건조한 arXiv 식별자다. 하지만 이 논문이 다루는 문제는 그렇지 않다. 에이전트가 프롬프트를 읽고, 메모리를 쓰고, 툴을 호출하고, 워크플로를 따라 행동하는 순간, 팀은 모델 성능과는 별개의 운영 통제 부담을 안게 된다. 이 글의 핵심은 간단하다. 에이전트형 AI의 실패는 정확도 문제를 넘어 거버넌스 문제로 이어질 수 있다.
+
+## 세 줄 요약
+
+- 핵심 쟁점은 ‘Agentic Technical Debt’다. 프롬프트, 메모리, 툴 스키마, 오케스트레이션 그래프 같은 에이전트 구성요소에서 누적되는 설계·거버넌스 부채를 따로 봐야 한다는 주장이다.
+- 이 문제가 중요한 이유는 에이전트가 단일 응답 모델이 아니라, 다단계 추론, 툴 호출, 메모리, 피드백 루프를 묶은 운영 시스템이기 때문이다. 성능이 좋아 보여도 통제 가능성, 감사 가능성, 변경 관리가 약하면 리스크가 커진다.
+- 독자는 에이전트 변경을 기능 개선이 아니라 거버넌스 변경으로 다뤄야 한다. 실행 그래프 추적, 메모리 read/write 로그, 툴 권한 변경 이력, 재현 가능한 평가를 먼저 붙여라.
+
+## 현황
+
+이번 주제의 출발점은 arXiv 논문 두 편이다. 하나는 `Governing Technical Debt in Agentic AI Systems`로, 식별자는 2605.29129다. 제공된 발췌에 따르면 이 논문은 에이전트형 AI가 생산 인프라로 검토되는 상황에서, 전통적 소프트웨어 기술부채나 예측형 ML 기술부채만으로는 포착되지 않는 거버넌스 문제를 다룬다. 특히 여러 단계의 추론, 툴 호출, 워크플로 행동, 메모리와 피드백 적응이 새로운 부채를 만든다고 짚는다.
+
+측정 쪽에서는 아직 업계가 합의한 단일 KPI가 확인되지 않는다. 조사 결과에 따르면 `Modeling Agentic Technical Debt and Stochastic Tax: A Standalone Framework for Measurement, Simulation, and Dashboarding`(2605.27320)은 에이전트 부채를 tools, context, memory, orchestration, external workflow integration에서 생기는 설계·거버넌스 책임으로 다룬다. 여기서 눈여겨볼 대목은 비용 범주를 “operational data”에서 추정할 수 있다는 점이다. 지금 당장 필요한 것은 이론 정리만이 아니라, 대시보드와 추적 가능성일 수 있다.
+
+표준과 도구도 움직이기 시작했다. NIST는 AI RMF, AI RMF Playbook, TEVV, 그리고 agentic workflow 안에 evaluation probes를 심는 접근을 내놓고 있다. 조사 결과의 인용대로, 이 probe는 자동 평가를 워크플로 내부에 넣고 결과를 machine-readable audit trail로 쌓는 방향이다. OpenTelemetry도 AI agent observability를 위한 semantic conventions 표준화를 진행 중이라는 흐름이 확인된다. 아직 업계 전체가 단일 표준에 합의한 단계는 아니다. 다만 관측성 없는 에이전트를 그대로 운영하기는 점점 어려워지고 있다.
+
+## 분석
+
+이 논문이 던지는 변화는 기술부채의 대상을 바꾼다는 점에 있다. 기존 소프트웨어 부채는 코드와 아키텍처를 본다. 기존 ML 부채는 데이터, 라벨, 드리프트, 성능 저하를 본다. 에이전트 부채는 그 위에 다른 층을 더한다. 프롬프트 한 줄 수정, 메모리 정책 변경, 툴 스키마 업데이트, 오케스트레이션 그래프 재배선이 모두 시스템 행동을 바꾼다. 같은 모델을 그대로 둬도 운영 리스크는 커질 수 있다. 그래서 의사결정의 기준도 “더 잘 답하나”에서 “누가 바꿨고, 무엇이 달라졌고, 감사가 가능한가”로 옮겨간다.
+
+한계도 있다. 첫째, 표준 KPI가 없다. 그래서 조직마다 같은 문제를 다른 지표로 본다. 둘째, 관측성을 붙인다고 통제가 자동으로 생기지는 않는다. 로그가 남아도 승인 체계, 권한 경계, 인간 감독이 비어 있으면 감사는 사후 기록에 머문다. 셋째, 프롬프트 인젝션과 excessive agency 같은 위험은 이미 알려져 있지만, 이를 프롬프트·메모리·툴·워크플로 변경 관리와 어떻게 연결할지에 대한 업계 공통 운영 규칙은 아직 굳지 않았다. 이 공백 때문에 에이전트 팀은 모델팀, 플랫폼팀, 보안팀, 컴플라이언스팀 사이에서 책임이 흩어지기 쉽다.
+
+결국 Decision Memo 관점의 질문은 이것이다. 에이전트를 어디까지 자율화할 것인가. 툴 호출 범위가 넓고 외부 워크플로 통합이 깊다면, 성능 실험보다 권한 축소와 감사 추적을 먼저 설계해야 한다. 반대로 업무 범위가 좁고 읽기 전용 도구 중심이라면, 강한 승인 체계보다 실행 그래프와 평가 probe를 먼저 붙이는 편이 비용 대비 나을 수 있다. If/Then으로 정리하면 이렇다. 외부 시스템에 쓰기 권한이 있다면 변경 승인 강도를 올려야 한다. 메모리가 장기 보존된다면 read/write 추적과 삭제 정책을 먼저 세워야 한다. 오케스트레이션이 복잡해질수록 테스트는 단일 프롬프트 평가가 아니라 그래프 단위 재현 평가로 바꿔야 한다.
+
+## 실전 적용
+
+실무에서 첫 단계는 에이전트를 단순한 애플리케이션이 아니라 운영 체계로 보는 일이다. 프롬프트 파일, 시스템 지시문, 메모리 저장 규칙, 툴 스키마, 워크플로 그래프를 모두 변경 관리 대상에 넣어라. 기능 릴리스 문서와 별도로 거버넌스 변경 로그를 두는 편이 낫다. 사용자에게는 같은 챗봇처럼 보여도, 내부에서는 권한 경계와 실패 모드가 달라질 수 있기 때문이다.
+
+예: 고객지원 에이전트가 티켓 분류만 하다가 환불 시스템 조회 툴을 새로 붙였다고 하자. 모델은 그대로고 UI도 비슷할 수 있다. 하지만 이 시점부터 위험의 중심은 분류 품질만이 아니다. 권한 오남용, 데이터 노출, 잘못된 조치도 함께 검토해야 한다. 이 변경은 “새 기능”이 아니라 “새 권한”으로 보는 편이 맞다. 그래서 승인자, 로그 보존, 재현 평가, 롤백 조건이 함께 붙어야 한다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 프롬프트, 메모리 정책, 툴 스키마, 오케스트레이션 그래프를 코드와 분리하지 말고 같은 변경 이력 체계에 넣어라.
+- 실행 그래프와 메모리 read/write, 툴 호출 결과를 묶어 한 요청 단위의 lineage를 남겨라.
+- 외부 시스템 쓰기 권한이 있는 에이전트부터 evaluation probe와 인간 승인 지점을 배치해라.
+
+## FAQ
+
+**Q. Agentic Technical Debt는 기존 ML 기술부채와 뭐가 다른가요?**  
+기존 ML 기술부채는 데이터 품질, 모델 성능, 드리프트 같은 문제에 초점을 두는 경우가 많습니다. Agentic Technical Debt는 여기에 더해 프롬프트, 메모리, 툴 호출, 오케스트레이션, 외부 워크플로 통합에서 생기는 운영 통제와 거버넌스 책임을 다룹니다.
+
+**Q. 지금 바로 쓸 수 있는 표준 KPI가 있나요?**  
+현재 조사 결과 기준으로는 업계가 합의한 단일 표준 KPI는 확인되지 않았습니다. 대신 구조화된 실행 그래프, 메모리 read/write 추적, lineage, debugging, testing 같은 관측성 지표를 대시보드로 운영하는 접근이 출발점이 될 수 있습니다.
+
+**Q. 감사는 구체적으로 어디서 시작해야 하나요?**  
+변경 이력 관리에서 시작하면 됩니다. 프롬프트 수정, 메모리 정책 변경, 툴 권한 조정, 워크플로 재배선을 각각 성능 튜닝이 아니라 거버넌스 변경으로 기록해야 합니다. 여기에 위험 정보 추적, 역할과 책임, 인간 감독, 재현 가능한 평가를 붙이면 감사 체계의 뼈대를 만들 수 있습니다.
+
+## 결론
+
+에이전트 시대의 기술부채는 코드 밖에서 더 빨리 쌓일 수 있다. 2605.29129가 던지는 메시지는 분명하다. 에이전트의 핵심 경쟁력은 더 나은 응답만이 아니다. 바뀌는 프롬프트와 메모리, 툴 호출을 얼마나 추적하고 통제하느냐도 함께 중요하다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-05-29](/ko/posts/ai-resources-roundup-2026-05-29)
+- [코딩 모델, 실행형과 계획형](/ko/posts/coding-models-execution-vs-planning-styles)
+- [신경망 단순성 편향의 계량화](/ko/posts/measuring-neural-networks-preference-for-simpler-solutions)
+- [AI 가격표는 제한에서 보인다](/ko/posts/reading-ai-pricing-through-limits-and-infrastructure-costs)
+- [CFG 디코딩 병목 줄이기](/ko/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+---
+
+## 참고 자료
+
+- [AI Risk Management Framework | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework)
+- [AI RMF Playbook - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+- [Building Evaluation Probes into Agentic AI | NIST - nist.gov](https://www.nist.gov/programs-projects/building-evaluation-probes-agentic-ai)
+- [AI test, evaluation, validation and verification (TEVV) | NIST - nist.gov](https://www.nist.gov/ai-test-evaluation-validation-and-verification-tevv)
+- [Guidelines | NIST - nist.gov](https://www.nist.gov/caisi/guidelines)
+- [Modeling Agentic Technical Debt and Stochastic Tax: A Standalone Framework for Measurement, Simulation, and Dashboarding - arxiv.org](https://arxiv.org/abs/2605.27320)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29129)
