@@ -1,0 +1,162 @@
+---
+title: SCDBench Shifts Smart Contract Decompilation Toward Semantic Evaluation
+slug: scdbench-smart-contract-semantic-evaluation
+date: '2026-05-29'
+lastReviewedAt: '2026-05-29'
+locale: en
+description: >-
+  SCDBench argues smart contract decompilation should be judged by semantic
+  equivalence, not just source-like Solidity.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+  - security
+author: AI온다
+sourceId: arxiv-cs-ai-537f612950a6e13b
+sourceUrl: 'https://arxiv.org/abs/2605.29059'
+verificationScore: 0.8
+alternateLocale: /ko/posts/scdbench-smart-contract-semantic-evaluation
+coverImage: /images/posts/scdbench-smart-contract-semantic-evaluation.png
+---
+
+A screen shows Solidity-like code that compiles cleanly.  
+The function names look plausible.  
+The syntax also looks correct.  
+Then a harder question appears.  
+Does this code match the original bytecode's behavior?  
+SCDBench, posted on arXiv, centers that gap.
+
+## TL;DR
+
+- This matters because readable, compilable Solidity can still differ from the original contract's behavior.
+- Review outputs in stages: format completeness, compilability, ABI recovery, and semantic consistency via differential replay.
+
+Example: Imagine a reviewer reading clean Solidity from a decompiler. It looks consistent and easy to explain. A later behavior check shows that the recovered contract handles permissions differently.
+
+## Current Status
+
+The target problem is clear.  
+Smart contract decompilation reconstructs high-level source code from bytecode.  
+The cited text says existing evaluation used narrow datasets.  
+It also cites inconsistent metrics.  
+It further cites limited semantic verification.  
+LLMs appear to make the issue harder.  
+Code can look source-like.  
+It can also compile successfully.  
+Yet it can still differ from the original contract's semantics.
+
+According to the findings, SCDBench evaluates outputs across 4 stages.  
+Those stages are format completeness, compilability, ABI recovery, and semantic consistency via differential replay.  
+That order matters.  
+The earlier stages ask whether the result looks like code.  
+The final stage asks whether it behaves like the same contract.
+
+This framework also connects to broader trends.  
+The general binary domain includes related evidence.  
+Decompile-Bench and Decompile-Bench-Eval point toward binary-source pairs, executability, and semantic evaluation.  
+Within this scope, there is no basis for a broader claim.  
+The available text does not show that SCDBench explicitly extends to general binaries.  
+What can be said is narrower.  
+Semantics-centered evaluation is not limited to smart contracts.
+
+## Analysis
+
+This benchmark matters because evaluation criteria shape product strategy.  
+If evaluation uses exact string matching, models may optimize for familiar-looking code.  
+If evaluation uses surface similarity, the same risk appears.  
+If semantic equivalence is prioritized, priorities shift.  
+The focus moves away from naming and formatting.  
+It moves toward state transitions and call results.
+
+In smart contracts, this distinction has larger consequences.  
+In frontend recovery, small structural differences may cause inconvenience.  
+In contract decompilation, small errors can change outcomes.  
+That includes permission checks.  
+It also includes fund movement.  
+It includes function signature interpretation as well.  
+The findings describe a representative failure mode.  
+LLM outputs can look readable and compilable.  
+They can still be semantically misaligned with the original.
+
+Traditional rule-based and analysis-based tools can be harder to read.  
+Their casts or pointer-like expressions can be difficult to interpret.  
+However, the cited reports say accuracy-critical tasks favored higher functional preservation there.  
+This suggests a tradeoff.  
+LLMs tend to provide readability.  
+Traditional tools tend to provide conservative fidelity.  
+That is where judgment can diverge.
+
+That said, this style of evaluation does not solve every problem.  
+Differential replay is useful because it checks execution results.  
+However, execution-based validation may depend on test coverage.  
+A gap may also remain between ABI recovery and semantic verification.  
+The ABI can be correct while internal state transitions differ.  
+The representation can also differ while observable results stay the same.  
+This benchmark proposes a more rigorous evaluation method.  
+It is not a single-step proof of equivalence.
+
+## Practical Application
+
+If you work on a security, audit, or on-chain analysis team, change the decision rules first.  
+Do not treat LLM-generated Solidity-like code as a final deliverable.  
+Treat it as a hypothesis generator or first-pass interpreter instead.  
+Keep rule-based and analysis-based decompilers as a baseline.  
+That remains useful even when they are harder to read.  
+Readable output and fidelity are not the same score.
+
+If you need to interpret anonymous contract bytecode, be careful with permission analysis.  
+Do not document owner privileges from LLM output alone.  
+Do not document withdrawal paths from LLM output alone.  
+Review ABI recovery results first.  
+Then use semantic verification such as differential replay.  
+Finally, compare the result side by side with a traditional tool.  
+That can reveal whether readability hides semantic loss.
+
+**Checklist for Today:**
+- Separate compilation success, ABI recovery, and semantic equivalence into distinct review items.
+- Treat LLM output as a draft, then revalidate access-control and fund-transfer functions separately.
+- Run traditional and LLM decompilers in parallel, then review the regions where they disagree first.
+
+## FAQ
+
+**Q. Does SCDBench say that LLMs are better than existing decompilers?**  
+A categorical claim is hard to support here.  
+The confirmed point is narrower.  
+SCDBench emphasizes evaluation criteria over a simple performance ranking.  
+It also highlights the risk of plausible but semantically divergent output.
+
+**Q. Why examine ABI recovery separately?**  
+The ABI defines how the contract is called externally.  
+If signatures or input-output interpretation are wrong, later verification may become unstable.  
+That is why separating stages can help.  
+The stages are formal validation, compilation, ABI recovery, and semantic verification.
+
+**Q. Does this approach also apply to general binary decompilation?**  
+It may.  
+The findings include evidence from general-binary benchmarks.  
+Those benchmarks address binary-source pairs and semantic evaluation.  
+However, this material does not show that SCDBench directly extends the same method there.
+
+## Conclusion
+
+The message is straightforward.  
+In decompilation, code-like appearance is only a starting point.  
+The harder question is whether it does the same thing as the original.  
+Useful metrics focus on failures at each stage.  
+Those stages run from formal completeness to semantic equivalence.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [Coding Models Differ in Execution and Planning Styles](/en/posts/coding-models-execution-vs-planning-styles)
+- [Measuring Neural Networks' Preference for Simpler Solutions](/en/posts/measuring-neural-networks-preference-for-simpler-solutions)
+- [Reading AI Pricing Through Limits and Infrastructure Costs](/en/posts/reading-ai-pricing-through-limits-and-infrastructure-costs)
+- [Reducing Vocabulary Search in CFG Constrained Decoding](/en/posts/reducing-vocabulary-search-in-cfg-constrained-decoding)
+---
+
+## References
+
+- [Semantic Fidelity of Decompilers | CMU Software Engineering Institute - sei.cmu.edu](https://www.sei.cmu.edu/library/semantic-fidelity-of-decompilers/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29059)
+- [Decompile-Bench: Million-Scale Binary-Source Function Pairs for Real-World Binary Decompilation - arxiv.org](https://arxiv.org/abs/2505.12668)
