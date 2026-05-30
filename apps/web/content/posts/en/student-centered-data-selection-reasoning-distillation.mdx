@@ -1,0 +1,86 @@
+---
+title: Student-Centered Data Selection for Reasoning Distillation
+slug: student-centered-data-selection-reasoning-distillation
+date: '2026-05-30'
+lastReviewedAt: '2026-05-30'
+locale: en
+description: >-
+  DMC suggests student-model compatibility, not just data quality, may matter
+  more for reasoning distillation.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-c9fda48b9fea069e
+sourceUrl: 'https://arxiv.org/abs/2605.29229'
+verificationScore: 0.76
+alternateLocale: /ko/posts/student-centered-data-selection-reasoning-distillation
+coverImage: /images/posts/student-centered-data-selection-reasoning-distillation.png
+---
+
+## TL;DR
+- DMC reframes reasoning distillation data selection around student-model fit, not just sample quality.
+- This matters because arXiv:2605.29229 reports correlation with performance and gains from DMC-based selection.
+- Review your distillation pipeline for difficulty fit, especially if one dataset serves multiple student models.
+
+Example: A team trains a small reasoning model with polished teacher traces, yet progress stalls. The issue may be fit, not quality. Easier or better-matched examples could help the student learn more efficiently.
+
+In May 2026, arXiv:2605.29229 described a student-centered view of reasoning distillation data. *Tailoring the Curriculum: Student-Centered Reasoning Distillation via Dynamic Data-Model Compatibility* addresses this point directly. The core idea is DMC, or Data-Model Compatibility. It is a suitability metric defined from the student model’s perspective. Based on the abstract and verifiable findings, it considers data quality, relative difficulty, and student capability together.
+
+## Current status
+
+The question is simple. Does very difficult reasoning data help distillation when the student cannot absorb it? Or does it mostly add wasted computation? This paper examines that question directly. Its arXiv identifier is 2605.29229. It was posted in May 2026. According to the verifiable abstract, DMC evaluates how well a dataset fits a student model’s reasoning distillation.
+
+The problem setting matters. Data selection has often focused on accurate teacher outputs or samples that appear high quality. According to the available findings, the paper evaluates DMC along 2 axes. First, DMC showed a strong correlation with reasoning distillation performance. Second, DMC-based data selection improved performance. The abstract also says dynamic selection produced further gains.
+
+The interpretation should remain narrow. The available information does not confirm which student model sizes or architectures were tested. The findings say results were consistent across “multiple student models and tasks.” That does not support claims about all scales or architectures. At this stage, it is more careful to say the method showed promise across multiple settings.
+
+There is also relevant prior context. The findings mention a separate ICML 2024 study. That study reported that traditional quality filtering may fail to improve performance. It may even harm it. That does not establish DMC as superior. It does support caution toward the idea that higher quality alone leads to better small-model training. In that sense, DMC shifts attention from data quality alone toward student fit.
+
+## Analysis
+
+From a decision-making perspective, the paper’s message is fairly clear. If your student model is small, compatibility may matter more than average dataset quality. The same may hold for a model that is weak in a specific domain. If the student is larger, the trade-off may differ. If the training budget is more generous, broad mixed data may be easier to justify. In that case, the extra cost of DMC should be weighed against its benefits.
+
+The trade-offs are also fairly clear. DMC addresses a more realistic problem than a simple quality score. High-quality teacher reasoning can still be too difficult for a student. It can also be too easy to teach efficiently. The curriculum idea is to match difficulty to the student’s level. However, the current evidence has limits. Based on the available findings, no quantitative margin over existing difficulty curricula has been confirmed. There is also no confirmed extension to SFT, domain adaptation, or agent training. The core idea and its broader scope should be evaluated separately.
+
+## Practical application
+
+The practical lesson is straightforward. Dataset selection should not stop at finding “good samples.” Teams should also ask which samples the current student can learn from now. This is especially relevant when one teacher data pool serves multiple student models. Differences in training efficiency may reflect compatibility, not only architecture.
+
+If the same reasoning dataset goes to 2 student models and only 1 improves, compatibility may be part of the explanation. In that case, more data may not be the first answer. Rebalancing difficulty may help more. It can be useful to test a schedule aligned to the student’s current capability. That can be more informative than mixing all difficulty levels at once.
+
+**Checklist for Today:**
+- Split the current distillation dataset into difficulty bands, then compare those bands with student performance.
+- If one data mixture serves multiple students, run an A/B test with separate selection rules.
+- Before collecting more data, reduce overly difficult examples and check whether performance changes.
+
+## FAQ
+
+**Q. Has DMC already been validated across all student model scales and architectures?**  
+It is difficult to say that. The verifiable abstract and findings mention “multiple student models and tasks.” However, the specific scales and architectures have not been confirmed.
+
+**Q. How much better is DMC than existing quality filtering or difficulty curricula?**  
+The currently available information does not provide quantitative improvement figures. However, the abstract says DMC-based selection improved reasoning distillation performance. It also says dynamic selection yielded additional gains.
+
+**Q. Can this idea be applied directly to SFT or domain adaptation as well?**  
+That extension has not been confirmed. The underlying idea may still be informative in other settings. However, effects outside reasoning distillation should be validated separately.
+
+## Conclusion
+
+This paper asks a different question about distillation data. The question is not only what data to collect. It is also which data should go to which student, and when. If the bottleneck is compatibility rather than absolute quality, curriculum design may matter as much as model scale.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-30](/en/posts/ai-resources-roundup-2026-05-30)
+- [Citation Closure in Regulatory QA Systems](/en/posts/citation-closure-regulatory-qa-systems)
+- [DistractionIF Exposes Hidden Instruction Risks In RAG Systems](/en/posts/distractionif-hidden-instruction-risks-rag-systems)
+- [Expert-Guided LLMs for Marine Lead Data Extraction](/en/posts/expert-guided-llms-marine-lead-data-extraction)
+- [Reselling AI Access: Subscriptions, APIs, and Policy Limits](/en/posts/reselling-ai-access-subscriptions-apis-policy-limits)
+---
+
+## References
+
+- [Linear Model Merging Unlocks Simple and Scalable Multimodal Data Mixture Optimization - huggingface.co](https://huggingface.co/papers/2602.04937)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29229)
+- [Domain Adaptation and Multi-Domain Adaptation for Neural Machine Translation: A Survey - arxiv.org](https://arxiv.org/abs/2104.06951)
