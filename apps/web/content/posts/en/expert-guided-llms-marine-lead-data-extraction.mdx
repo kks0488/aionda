@@ -1,0 +1,88 @@
+---
+title: Expert-Guided LLMs for Marine Lead Data Extraction
+slug: expert-guided-llms-marine-lead-data-extraction
+date: '2026-05-30'
+lastReviewedAt: '2026-05-30'
+locale: en
+description: >-
+  How expert-guided LLM agents structure marine lead and isotope data hidden in
+  scientific literature.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-c02da5ef5e2a678a
+sourceUrl: 'https://arxiv.org/abs/2605.29966'
+verificationScore: 0.75
+alternateLocale: /ko/posts/expert-guided-llms-marine-lead-data-extraction
+coverImage: /images/posts/expert-guided-llms-marine-lead-data-extraction.png
+---
+
+
+## TL;DR
+
+- This article covers Compass, an expert-guided LLM agent for extracting marine lead and isotope data from scientific papers.
+- Readers should define a schema, test a small pilot on 10 papers, and review reproducibility before scaling.
+
+Example: A research team wants to turn scattered paper details into a usable dataset. They first define fields, evidence rules, and validation checks. Then they use an LLM to assist extraction, not to decide the structure.
+
+## Current status
+
+The abstract of the arXiv paper *Compass: Navigating Global Marine Lead Data Integration through Expert-Guided LLM Agent* states the problem clearly. Marine lead and its isotopes are useful indicators. They help track ocean circulation and anthropogenic pollution. Field observations are expensive, and data are sparse. Historical records also exist. Yet many remain buried in unstructured academic text. Manual extraction, one paper at a time, does not scale well.
+
+Compass differs from simple document summarization. Based on the reviewed description, the system uses a Knowledge Tree. Marine scientists co-designed that structure. It breaks extraction into verifiable stages. The abstract says this design guides reasoning and supports scientific validity. According to the arXiv abstract, Compass achieved 92% accuracy, confirmed through expert manual verification.
+
+The evidence does not support a precise comparison with a general-purpose LLM. No reviewed source directly quantified the improvement over a model without expert guidance. The abstract says general-purpose LLMs can produce hallucinations. It also says they can produce scientifically invalid outputs. However, the available materials do not show the size of any accuracy gain. That limit should be stated clearly.
+
+There are related examples in a similar direction. The ChatExtract study in *Nature Communications* reported 90.8% precision and 87.7% recall. The setting `temperature = 0.0` was also reported for reproducibility. These numbers should not be compared directly with Compass’s 92%. The datasets differ. Accuracy is also a different metric from precision and recall.
+
+## Analysis
+
+This study points to a practical idea. In scientific data extraction, a narrower workflow may matter more than a larger model. Many teams start with literature search or abstract summarization. The harder step comes after that. Teams need to merge table units, main-text context, and supplementary details. They also need to map them into one schema. Compass appears closer to that workflow. A model-only approach can have limits. Expert-designed stages and validation rules can shape the result.
+
+The limitations also matter. First, the reviewed materials do not clearly show normalization rules for tables, main text, and supplementary materials. They also do not show whether each format used separate validators. Second, 92% accuracy is notable, but the remaining 8% may matter more. In scientific databases, a wrong value can be riskier than a missing value. Third, generalization is possible, but it is not automatic. Other studies discuss extension across scientific literature. They also note dependence on training data or domain-specific design. It would be hasty to assume immediate transfer to another field.
+
+## Practical application
+
+The practical lesson is straightforward. Do not choose the model first. First decide what each row should store. Define the minimum fields. These can include sample location, measured value, unit, analytical conditions, and source sentence. Then assign allowed values and exception rules. The LLM can help populate this schema. It should not replace the schema design.
+
+The same logic appears in the ChatExtract case. That study reported `temperature = 0.0` for reproducibility. In this kind of work, repeatability often matters more than creativity.
+
+**Checklist for Today:**
+- Define the extraction fields in a one-page schema, including allowed units and missing-value rules.
+- Review 10 papers side by side against model outputs, and label omission, hallucination, unit, and context errors.
+- Add validation steps before prompt changes, including source-sentence attachment, range checks, and unit standardization.
+
+## FAQ
+
+**Q. How much more accurate is this study than a general-purpose LLM?**
+
+Based on the reviewed materials, Compass reached 92% accuracy against expert manual validation. The size of any improvement over a general-purpose LLM was not confirmed.
+
+**Q. Can this approach be used in scientific fields other than marine data?**
+
+There is potential for transfer. Other studies suggest similar agents can extend to areas like materials science. Still, domain knowledge, schema design, and validation procedures remain important. So direct transfer should be tested carefully.
+
+**Q. Why not just use a better model?**
+
+Scientific extraction is not only about plausible text generation. It is about transferring values accurately and preserving evidence. The abstract says general-purpose LLMs can hallucinate. It also says they can produce scientifically invalid outputs without domain knowledge. That is why workflow design matters alongside model performance.
+
+## Conclusion
+
+This marine lead case suggests a clear lesson. Scientific information extraction depends on knowledge structure and verifiable pipelines. A single model score is not the whole story. The more useful questions are narrower. Which errors decreased? How were they reduced? Can the same rules be reproduced in other domains?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-05-30](/en/posts/ai-resources-roundup-2026-05-30)
+- [Citation Closure in Regulatory QA Systems](/en/posts/citation-closure-regulatory-qa-systems)
+- [Reselling AI Access: Subscriptions, APIs, and Policy Limits](/en/posts/reselling-ai-access-subscriptions-apis-policy-limits)
+- [AI Resource Roundup (24h) - 2026-05-29](/en/posts/ai-resources-roundup-2026-05-29)
+- [AI as a Strategic Assistant for Mathematics Work](/en/posts/ai-strategic-assistant-mathematics-work)
+---
+
+## References
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.29966)
+- [Extracting accurate materials data from research papers with conversational language models and prompt engineering - nature.com](https://www.nature.com/articles/s41467-024-45914-8)
+- [LLM-based AI agents for automated extraction of material properties and structural features - sciencedirect.com](https://www.sciencedirect.com/science/article/abs/pii/S0927025626000406)
+- [To prompt or not to prompt: Navigating the use of Large Language Models for integrating and modeling heterogeneous data - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0169023X24000375)
