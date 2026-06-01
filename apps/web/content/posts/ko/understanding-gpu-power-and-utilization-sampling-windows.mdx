@@ -1,17 +1,20 @@
 ---
-title: "GPU 전력/사용률, 구간 평균의 함정"
-slug: "understanding-gpu-power-and-utilization-sampling-windows"
-date: "2026-03-05"
-lastReviewedAt: "2026-03-05"
-locale: "ko"
-description: "NVML/DCGM/nvidia-smi는 구간 평균·비율이다. 1Hz 로깅에서 LLM 추론 전력 변동을 해석한다."
-tags: ["hardware", "llm", "explainer"]
-author: "AI온다"
-sourceId: "1021219"
-sourceUrl: "https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1021219"
+title: 'GPU 전력/사용률, 구간 평균의 함정'
+slug: understanding-gpu-power-and-utilization-sampling-windows
+date: '2026-03-05'
+lastReviewedAt: '2026-03-05'
+locale: ko
+description: NVML/DCGM/nvidia-smi는 구간 평균·비율이다. 1Hz 로깅에서 LLM 추론 전력 변동을 해석한다.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: '1021219'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1021219'
 verificationScore: 0.77
 alternateLocale: /en/posts/understanding-gpu-power-and-utilization-sampling-windows
-coverImage: "/images/posts/understanding-gpu-power-and-utilization-sampling-windows.png"
+coverImage: /images/posts/understanding-gpu-power-and-utilization-sampling-windows.png
 ---
 
 DCGM은 GPU 메트릭을 **기본 1Hz(1000ms)**로 샘플링한다. NVML의 `nvmlDeviceGetPowerUsage`는 **Ampere(단, GA100 제외) 이후 GPU에서 1초 평균 전력**을 돌려준다. `nvidia-smi`가 보여주는 GPU/메모리 Util도 “**지난 샘플 기간 동안**” 커널 실행/메모리 R/W가 있었던 시간 비율이다(제품별로 **1초~1/6초**). 이 세 가지를 이해하면, “로컬 LLM 추론 중 GPU 전력/사용률이 왜 입력 형태에 따라 다르게 보이느냐”는 질문을 더 차분히 정리할 수 있다. 우리가 보는 그래프는 ‘순간’이 아니라, **직전 구간을 평균낸 결과**이기 때문이다.
