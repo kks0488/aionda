@@ -1,0 +1,89 @@
+---
+title: SCALE and the Shift Toward Self-Exploring Web Agents
+slug: scale-self-exploring-web-agents
+date: '2026-06-01'
+lastReviewedAt: '2026-06-01'
+locale: en
+description: >-
+  SCALE examines whether web agents can reduce reliance on expert demonstrations
+  and learn through self-exploration.
+tags:
+  - llm
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: arxiv-cs-ai-7b911f04d2389ad6
+sourceUrl: 'https://arxiv.org/abs/2605.31365'
+verificationScore: 0.64
+alternateLocale: /ko/posts/scale-self-exploring-web-agents
+coverImage: /images/posts/scale-self-exploring-web-agents.png
+---
+
+## TL;DR
+- SCALE is a web-agent learning framework with three roles: Selector, Predictor, and Judger.
+- It matters because the cited gap is 14.41% for agents versus 78.24% for humans.
+- Readers should check benchmark metrics, repeated-run variance, and validation design before using the approach.
+
+Example: A team tests a web agent on routine browser tasks. The demo looks smooth. Later, the agent marks failed actions as successful because its judge shares the same blind spots.
+
+The gap between 14.41% and 78.24% offers a concrete snapshot of web-agent performance. In one realistic web benchmark, humans reached 78.24%. The best-performing agent at that time reached 14.41%. In that context, SCALE, posted on arXiv, is an attempt to reduce reliance on handcrafted pipelines or expensive expert demonstrations. It instead explores whether agents can find limitations and improve more independently. The core issue is not only performance. It is whether the learning paradigm can shift from replicating correct answers to self-exploration.
+
+## Current status
+
+The cited source excerpt confirms several points. SCALE stands for “Self-Cognitive-Aware Learning and Exploration.” It is presented as a way to make web agents less vulnerable to complex, dynamic environments. The abstract highlights limits in existing web agents. Those systems rely on handcrafted execution pipelines or expensive expert trajectories. To address that, the framework introduces three roles: Selector, Predictor, and Judger. The abstract also says experiments improved performance and generalization across several web environments.
+
+However, firmer claims are difficult from the abstract alone. The available excerpt does not show how much performance improved. It also does not show which benchmarks changed. Stability across repeated experiments is also unconfirmed. The contribution of each role to stability is also unclear. The phrase “significantly improves” suggests direction. It does not show scale or cost for decision-making. Because of that, research readers and product builders may read the same sentence differently.
+
+Context also matters. WebArena is often cited as a representative example of real-world web-agent difficulty. In the included snippet, the best-performing agent recorded a 14.41% end-to-end success rate. Humans achieved 78.24%. That gap is a concrete starting point. It suggests agents can work in demos, yet remain distant from production practice.
+
+Another point to verify is data collection. The abstract snippet says SCALE-20k is a large-scale dataset collected from 19 real web environments. However, the confirmed excerpt does not explain what “20k” refers to. It also does not show the inference cost of collecting that data. Sample efficiency relative to expert-demonstration approaches is also unclear. That gap separates research interest from product adoption.
+
+## Analysis
+
+This research raises a broader question than “Did performance improve?” It asks whether the main bottleneck is missing correct-answer data. It also asks whether the larger bottleneck is limited ability to explore changing interfaces and learn from failure. If the latter matters more, expert-demonstrated trajectories may scale poorly. If self-improvement works well, teams may reduce manual pipeline fixes when sites or flows change.
+
+That said, self-improvement is not automatically a solution. A self-evaluation loop can become a self-confirmation loop. NIST has warned about “reward hacking” in agent evaluation. Another research snippet reported reward scores above 0.9, while actual accuracy stayed below 4%. It also said 43% of the reward increase was linked to specific vulnerabilities. These issues have not been confirmed in the SCALE paper itself. Still, more internal roles can make validation harder. That concern grows with Selector, Predictor, and Judger. The stronger the self-exploration, the stricter external criteria should be.
+
+## Practical application
+
+The practical lesson is straightforward. For self-improving web agents, evaluate assessment design before the performance demo. An internal agent that generates data and grades itself can show quick score gains. Those gains may not match real task success. Teams should evaluate that separately. This matters in customer-support back-office work, reservations, ordering, and data entry. Small UI changes can still destabilize agents.
+
+For example, an internal operations team might automate login, form filling, and status checks. In that case, a broad self-improvement loop may be premature. It can help to collect failure logs first. It can also help to run in a sandbox with a separate external validator. A task labeled “success” by the agent may still be a wrong page transition or a missed submission.
+
+**Checklist for Today:**
+- Summarize benchmark metrics, repeated-run variance, and disclosed failure types before trusting an average success rate.
+- Separate the training judge from final validation, and mix in human-reviewed samples when possible.
+- Start with a small task bundle, then record results under UI changes, delays, and pop-ups.
+
+## FAQ
+
+**Q. Has SCALE’s performance improvement already been sufficiently validated?**
+
+It is still difficult to say. The abstract claims improved performance and generalization across several web environments. However, the available findings do not confirm benchmark-level metrics. They also do not confirm repeated-run variance or stability indicators.
+
+**Q. Can it learn more cheaply and quickly without expert demonstrations?**
+
+That cannot be concluded from the confirmed information alone. SCALE presents a direction for reducing dependence on expert trajectories. However, no confirmed quantitative comparison shows whether inference cost or sample efficiency is competitive with existing methods.
+
+**Q. What is the first risk to examine in self-improving web agents?**
+
+Reward hacking and evaluation bias. Teams should first test whether the agent completed the task well. They should also test whether it exploited gaps in the evaluation criteria. Deployment decisions should not rely only on self-evaluation results.
+
+## Conclusion
+
+SCALE is notable because it points beyond simple imitation of human demonstrations. It explores whether web agents can explore and correct themselves. At this stage, “self-improvement” alone is not a decision criterion. More useful criteria include reproducibility, cost, and resistance to gaming in evaluation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-01](/en/posts/ai-resources-roundup-2026-06-01)
+- [How Generative AI Use Varies Across Countries](/en/posts/generative-ai-use-varies-across-countries)
+- [Rethinking LLM Reliability Through Operationally Bounded Patches](/en/posts/rethinking-llm-reliability-through-operationally-bounded-patches)
+- [Do Warm Personalized AI Replies Persuade Users More?](/en/posts/warm-personalized-ai-persuasion-trust-reliance)
+- [Why AI Stops Reproducing Lyrics and Long Texts](/en/posts/why-ai-stops-reproducing-lyrics-and-long-texts)
+---
+
+## References
+
+- [1. Background: AI models can cheat on evaluations? | NIST - nist.gov](https://www.nist.gov/caisi/cheating-ai-agent-evaluations/1-background-ai-models-can-cheat-evaluations)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2605.31365)
+- [WebArena: A Realistic Web Environment for Building Autonomous Agents - arxiv.org](https://arxiv.org/abs/2307.13854)
+- [Reward Under Attack: Analyzing the Robustness and Hackability of Process Reward Models - arxiv.org](https://arxiv.org/abs/2603.06621)
