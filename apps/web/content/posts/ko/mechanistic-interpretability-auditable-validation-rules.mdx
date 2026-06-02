@@ -1,0 +1,87 @@
+---
+title: 해석보다 중요한 검증 규칙
+slug: mechanistic-interpretability-auditable-validation-rules
+date: '2026-06-02'
+lastReviewedAt: '2026-06-02'
+locale: ko
+description: 기계적 해석가능성의 핵심 쟁점이 해석 자체보다 감사·재현 가능한 검증 규칙에 있음을 짚는다.
+tags:
+  - agi
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-668671388e412542
+sourceUrl: 'https://arxiv.org/abs/2606.00033'
+verificationScore: 0.87
+alternateLocale: /en/posts/mechanistic-interpretability-auditable-validation-rules
+coverImage: /images/posts/mechanistic-interpretability-auditable-validation-rules.png
+---
+
+10편 논문 중 전용 ‘식별 가정’ 섹션이 하나도 없었다는 지적은, 기계적 해석가능성 연구가 아직 “읽을 만한 설명”과 “감사 가능한 증거” 사이의 간극을 충분히 메우지 못했다는 뜻이다. 같은 현상을 두고 서로 충돌하는 결론이 나오면, 의료 AI나 자율 시스템 같은 안전 중요 영역은 그 결과를 인증 문서에 넣기 어렵다. arXiv에 올라온 한 문제 제기도 이 지점을 겨냥한다. 기계적 해석가능성을 더 잘하는 방법보다, 다른 사람이 다시 검증할 수 있게 만드는 공통 규칙이 필요하다는 주장이다.
+
+## 세 줄 요약
+
+- 기계적 해석가능성은 AI 내부를 들여다보는 연구다. 지금의 쟁점은 해석 자체보다, 그 해석을 어떻게 감사하고 재현할지에 있다.
+- 이 문제는 안전 중요 AI에서 더 크게 드러난다. NIST는 검증을 객관적 증거에 근거한 요구사항 확인으로 정의하고, FDA와 EU 규제 프레임도 기술문서·위험관리·검증 가능한 설명을 요구한다.
+- 독자는 해석 결과를 발표할 때 “인과 주장 여부, 식별 전략, 가정, 가정이 깨질 때 결론 변화”를 먼저 적어야 한다. 여기에 고정된 테스트 조건과 독립 재현 절차도 붙여야 한다.
+
+## 현황
+
+기계적 해석가능성, 흔히 MI라고 부르는 분야는 신경망 내부 회로, 특징, 뉴런 역할을 파고드는 연구다. 문제는 연구가 쌓이는 속도와 별개로, 실험을 감사하는 공통 포맷이 아직 뚜렷하지 않다는 점이다. 이번 문제 제기 글의 발췌에 따르면, 이 공백 때문에 의료 AI와 자율 시스템 같은 안전 중요 응용에서 이해관계자들이 결과의 타당성을 인증하기 어렵다. “설명이 있다”와 “설명이 검증됐다”는 다른 주장이다.
+
+관련 논의는 이미 다른 문헌에서도 이어진다. arXiv의 한 포지션 페이퍼는 인과적 주장을 할 때 최소한의 공개 규범이 필요하다고 제안한다. 핵심은 단순하다. 그 주장이 인과 주장인지 밝히고, 어떤 식별 전략을 썼는지 적고, 필요한 가정을 열거하고, 그중 적어도 하나를 흔들어 보며, 가정이 무너지면 결론이 어떻게 달라지는지 설명하라는 것이다. 같은 문헌은 10편 논문을 목적 표본 감사한 결과, 전용 식별 가정 섹션이 없었다고 짚는다.
+
+감사 가능성을 높이는 재료도 조금씩 보인다. 조사 결과에 따르면 비교 가능성과 재현성을 위해 표준화된 데이터셋, 고정된 개입 입력, 원칙 있는 지표 정의, 일관된 재현성 루브릭이 필요하다. 다만 이것이 이미 업계 표준 체크리스트로 굳어졌다고 볼 근거는 없다. 현재 확인되는 것은 “무엇이 빠져 있는가”와 “최소한 무엇을 공개해야 하는가”에 대한 문제의식에 가깝다.
+
+
+## 분석
+
+이 이슈가 중요한 이유는 MI의 성공 조건이 바뀌고 있기 때문이다. 연구 커뮤니티 안에서는 “흥미로운 내부 메커니즘 발견”만으로도 논문이 될 수 있다. 하지만 병원, 제조 현장, 차량, 공공 시스템으로 가면 질문이 달라진다. 누가 같은 실험을 다시 돌려도 비슷한 결론이 나오나. 다른 설명과 비교해도 이 해석이 더 설득력 있나. 개입을 조금만 바꿔도 결론이 무너지지 않나. 이런 질문에 답하지 못하면 MI는 통찰 도구로는 남아도, 인증 가능한 증거로는 채택되기 어렵다.
+
+오해도 있다. 모델 내부를 자세히 설명하면 곧바로 안전성이 올라간다고 생각하기 쉽다. 실제 규제와 검증 관점은 그렇게 움직이지 않는다. 해석가능성은 성능 측정, 불확실성, 운영 맥락, 위험관리, 문서화와 함께 묶여야 한다. 게다가 상충된 해석 결과를 판정하는 단일 합의 규칙도 아직 확인되지 않았다. 그래서 “설명을 만들었다”보다 “설명을 어떤 프로토콜로 반박하고, 그 뒤에도 유지됐는가”가 더 중요해진다.
+
+## 실전 적용
+
+연구자와 제품팀이 지금 당장 바꿀 수 있는 것은 보고서의 순서다. 해석 결과를 먼저 내세우지 말고, 주장 타입부터 고정해야 한다. 이 결과가 단순 상관 설명인지, 개입을 통한 인과 설명인지 적는다. 다음으로 식별 전략과 가정을 쓴다. 마지막으로 독립 팀이 같은 조건에서 재현할 수 있게 데이터, 개입 입력, 지표 정의, 실패 조건을 문서화한다. 논문 부록으로 밀어 넣을 내용이 아니라, 감사 문서 본문에 올려야 한다.
+
+예: 의료 분류 모델에서 특정 내부 특징이 병변 판단을 이끈다고 주장한다면, “특징을 제거했더니 성능이 떨어졌다”만 적어서는 부족하다. 어떤 입력 개입을 했는지, 대안 설명은 무엇인지, 같은 조건에서 외부 팀이 재현 가능한지, 데이터 분포가 바뀌면 결과가 유지되는지까지 써야 한다. 자율 시스템도 비슷하다. 내부 회로가 특정 행동을 유발한다고 말하려면 시뮬레이션과 운영 조건에 가까운 검증을 분리해 제시해야 한다.
+
+**오늘 바로 할 일**
+
+- 해석 결과 문서 첫 페이지에 “인과 주장 여부, 식별 전략, 핵심 가정” 3항목을 명시하라.
+- 실험 재현 패키지에 고정된 개입 입력, 지표 정의, 실패 사례를 포함하라.
+- 개발팀과 분리된 검토자가 같은 문서만 보고 재현 가능한지 점검하라.
+
+## FAQ
+
+**Q. 기계적 해석가능성은 설명가능 AI와 같은 말인가요?**  
+아닙니다. 기계적 해석가능성은 모델 내부의 회로나 특징, 뉴런 역할 같은 메커니즘을 파고드는 접근을 가리키는 경우가 많습니다. 설명가능 AI보다 더 내부 구조에 가깝지만, 두 영역의 경계가 문헌마다 완전히 같지는 않습니다.
+
+**Q. 해석가능성 결과만 좋으면 규제나 인증에 바로 쓸 수 있나요?**  
+그렇지 않습니다. 조사 결과상 NIST, FDA, EU 규제 문맥은 해석가능성을 단독 증거로 보기보다 검증 가능한 위험관리, 성능 평가, 기술문서와 함께 요구합니다. 해석은 중요한 입력이지만, 인증 전체를 대신하지는 않습니다.
+
+**Q. 지금 MI 감사의 공식 표준 체크리스트가 있나요?**  
+현재 조사 결과만 보면 MI 전용의 공식 인증 표준 또는 단일 체크리스트는 확인되지 않았습니다. 대신 인과 주장 공개 규범, 표준화된 평가 조건, 독립 검증 절차 같은 최소 요소들이 먼저 정리되는 단계에 가깝습니다.
+
+## 결론
+
+기계적 해석가능성의 다음 과제는 더 눈에 띄는 내부 시각화가 아니라, 누가 봐도 같은 기준으로 따질 수 있는 감사 가능성이다. 앞으로의 핵심 질문은 하나다. MI가 연구 통찰에 머물지, 아니면 문서화된 검증 체계 안으로 들어가 안전 중요 AI의 증거 자산이 될지다.
+
+## 다음으로 읽기
+- [계산수학 AI의 핵심은 루프](/ko/posts/research-loops-ai-computational-mathematics)
+- [TriLens 환각 조기탐지](/ko/posts/trilens-hallucination-signals-llm-layers)
+- [AI 자료 모음 (24h) - 2026-06-01](/ko/posts/ai-resources-roundup-2026-06-01)
+- [CHECKMATE와 알고리즘 진화](/ko/posts/checkmate-evolves-optimization-algorithms-from-problem-specifications)
+- [코드골프 벤치의 함정](/ko/posts/codegolf-bench-concise-code-beyond-correctness)
+---
+
+## 참고 자료
+
+- [AI RMF Core - AIRC - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [AI Risks and Trustworthiness - AIRC - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/3-sec-characteristics/)
+- [Transparency for Machine Learning-Enabled Medical Devices: Guiding Principles | FDA - fda.gov](https://www.fda.gov/medical-devices/software-medical-device-samd/transparency-machine-learning-enabled-medical-devices-guiding-principles)
+- [AI Test, Evaluation, Validation and Verification (TEVV) | NIST - nist.gov](https://www.nist.gov/topic-terms/ai-measurement-and-evaluation)
+- [Regulation (EU) 2024/1689 - EUR-Lex - eur-lex.europa.eu](https://eur-lex.europa.eu/legal-content/EN/TXT/?qid=1749129372613&uri=CELEX%3A32024R1689)
+- [Position: Mechanistic Interpretability Must Disclose Identification Assumptions for Causal Claims - arxiv.org](https://arxiv.org/abs/2605.08012)
+- [Mechanistic Interpretability for AI Safety -- A Review - arxiv.org](https://arxiv.org/abs/2404.14082)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.00033)
