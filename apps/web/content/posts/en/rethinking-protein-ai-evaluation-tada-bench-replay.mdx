@@ -1,0 +1,104 @@
+---
+title: Rethinking Protein AI Evaluation With TadA-Bench Replay
+slug: rethinking-protein-ai-evaluation-tada-bench-replay
+date: '2026-06-03'
+lastReviewedAt: '2026-06-03'
+locale: en
+description: >-
+  TadA-Bench shifts protein AI evaluation from static prediction scores to
+  experiment selection and chronology-preserving replay.
+tags:
+  - agi
+  - llm
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: arxiv-cs-ai-0159c6dea653df5a
+sourceUrl: 'https://arxiv.org/abs/2606.02624'
+verificationScore: 0.74
+alternateLocale: /ko/posts/rethinking-protein-ai-evaluation-tada-bench-replay
+coverImage: /images/posts/rethinking-protein-ai-evaluation-tada-bench-replay.png
+---
+
+In a replay built from 31 rounds of TadA directed evolution, one million variants can change how teams evaluate protein AI.
+
+## TL;DR
+
+- TadA-Bench reframes evaluation toward next-experiment selection, using 31 rounds and replay data at the scale of one million variants.
+- This matters because limited experimental budgets depend on ranking quality, not only offline fit to historical measurements.
+- Readers should review current scorecards, add selection metrics, and test chronology-preserving replay with past experimental logs.
+
+Example: A research team has a shortlist of candidate variants and limited lab capacity. A model with modest average fit can still help if it surfaces stronger options earlier.
+
+## Current state
+
+The source excerpt gives several concrete facts. TadA-Bench targets agentic protein engineering. It focuses on scientific AI that prioritizes experiments.
+
+The benchmark uses data at the scale of one million variants. Its experimental setting spans 31 rounds of TadA directed evolution. The design preserves chronology across the campaign.
+
+This change may look narrow, but it shifts the evaluation goal. Many protein model evaluations emphasize prediction on fixed data. This benchmark asks a different question. Which experiment should be tested first in the next round?
+
+The replay task in the excerpt follows that logic. It replays wet-lab records. It also avoids exposing future information in advance.
+
+Based on the available findings, the core task is ranking variants and selecting candidates. It is less about average prediction accuracy alone. A Nature review points in a similar direction. It describes learning from characterized variants to choose sequences with strong improvement potential.
+
+In practical research settings, early selection can matter more than retrospective explanation. That is the user-visible implication of this benchmark design.
+
+## Analysis
+
+This benchmark matters because it changes the unit of evaluation for scientific AI. Offline fitting resembles a practice score. Directed evolution is closer to choosing the next experiment under budget limits.
+
+That is why selection metrics can align better with lab decisions. Examples include top-k retrieval, hit enrichment, and regret. A model can look reasonable on average. Yet small ranking errors near the top can still reduce campaign performance.
+
+A chronology-preserving benchmark does not settle every issue. One open question is transfer. A framework that works for one protein family may not transfer directly to other targets.
+
+Replay benchmarks are also cheaper and safer than new wet-lab experiments. Still, they may not capture every bottleneck. Examples include synthesis difficulty, measurement noise, and team operations.
+
+The search findings also leave one point unresolved. They did not confirm which metric names the original TadA-Bench paper uses. That limitation should shape interpretation. The stronger question is whether a team evaluates experimental selection directly.
+
+The source excerpt supports several concrete details. They include 31 rounds, one million variants, and chronology-preserving replay. Those details help anchor the evaluation shift in observable design choices.
+
+## Practical application
+
+Research teams and platform teams can start with the current leaderboard. If it emphasizes RMSE or correlation coefficient alone, its link to decisions may be weak. A separate validation set that preserves temporal order can help.
+
+Use past rounds to recommend candidates for the next round. Then evaluate how quickly top recommendations recover hits. This approach keeps the decision setting closer to actual lab use.
+
+If a team can synthesize only a subset of 100 candidates, ranking quality at the top can dominate utility. In that setting, selecting the top 10 well may matter more than improving average predictions. The key question is not only score quality. It is recovery speed under limited slots.
+
+**Checklist for Today:**
+
+- Document offline prediction metrics and selection metrics separately, then align them with actual wet-lab decisions.
+- Rebuild past logs in chronological order and create a replay set that hides future-round information.
+- Compare models with top-candidate retrieval and budgeted selection performance alongside average-performance tables.
+
+## FAQ
+
+**Q. What is the core differentiator of TadA-Bench?**
+
+It emphasizes next-candidate selection over static prediction evaluation. The excerpt describes chronology-preserving replay across 31 rounds of TadA directed evolution. It also uses data at the scale of one million variants.
+
+**Q. If prediction accuracy is high, does that mean experimental selection will also be good?**
+
+Not necessarily. In real experiments, the top-ranked candidates can matter most. That is why teams should evaluate top-k retrieval, hit enrichment, and regret separately.
+
+**Q. If this benchmark cannot be adopted immediately, what should be done first?**
+
+Start with a smaller replay evaluation from internal records. Train on past rounds only. Then measure next-round recommendation performance more directly.
+
+## Conclusion
+
+The central point is not only data scale. It is the shift in evaluation perspective. Protein AI evaluation may move from better prediction toward better next-step choice under limited experimental slots.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-03](/en/posts/ai-resources-roundup-2026-06-03)
+- [How Ambient AI Shapes Stigmatizing Clinical Language](/en/posts/ambient-ai-stigmatizing-clinical-language)
+- [Why Mechanistic Interpretability Needs Auditable Validation Rules](/en/posts/mechanistic-interpretability-auditable-validation-rules)
+- [Research Loops Redefine AI for Computational Mathematics](/en/posts/research-loops-ai-computational-mathematics)
+- [TriLens Tracks Hallucination Signals Across LLM Internal Layers](/en/posts/trilens-hallucination-signals-llm-layers)
+---
+
+## References
+
+- [Machine-learning-guided directed evolution for protein engineering - nature.com](https://www.nature.com/articles/s41592-019-0496-6)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.02624)
