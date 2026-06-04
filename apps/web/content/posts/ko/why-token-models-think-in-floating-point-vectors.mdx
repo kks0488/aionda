@@ -1,0 +1,84 @@
+---
+title: 토큰 너머의 벡터 추론
+slug: why-token-models-think-in-floating-point-vectors
+date: '2026-06-04'
+lastReviewedAt: '2026-06-04'
+locale: ko
+description: 토큰 입력을 벡터로 바꾸는 AI의 내부 계산과 연속 표현의 추론 한계를 점검한다.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: '1232149'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1232149'
+verificationScore: 0.83
+alternateLocale: /en/posts/why-token-models-think-in-floating-point-vectors
+coverImage: /images/posts/why-token-models-think-in-floating-point-vectors.png
+---
+
+토큰은 딱 끊어져 나오는데, 왜 모델의 머릿속은 부동소수점 벡터로 가득 차 있을까? 이 질문은 철학이 아니라 제품과 연구의 의사결정 문제다. OpenAI 문서는 임베딩을 “vector representation”과 “floating point numbers의 list”로 설명한다. Transformer 계열의 고전 문헌은 입력·출력 토큰을 차원 `dmodel`의 벡터로 바꾼다고 적는다. 입력과 출력이 이산적이어도 내부 계산이 연속적이라면, 점검할 것은 한 가지다. 연속 표현만으로 충분한 과제가 어디까지인지, 그리고 어디서부터 별도 추론 구조가 필요한지다.
+
+## 세 줄 요약
+- 핵심 쟁점은 이것이다. AI는 토큰 같은 이산 입력을 내부에서 임베딩이라는 연속 벡터로 바꿔 계산한다. 이 방식이 기호적·이산적 추론 과제에서도 충분한지는 따로 따져봐야 한다.
+- 이 문제는 성능 한계와 연결된다. 검색된 자료에 따르면 연속 표현 중심의 트랜스포머는 산술·논리·알고리즘 과제에서 제약을 보일 수 있다. 반대로 구조화된 추론을 붙인 방식은 planning에서 97.4% accuracy와 4x size generalization 같은 결과를 보고했다.
+- 독자는 추상 논쟁으로 끝내지 말고 자신의 과제를 분류해야 한다. 의미 유사도 중심 문제인지, 도달 가능성·만족 가능성·계획 가능성 같은 이산 검증 문제인지 나눈 뒤, 같은 입력으로 두 방식을 벤치마크하라.
+
+## 현황
+
+공식 문서 수준에서 확인되는 사실은 분명하다. OpenAI 문서는 임베딩을 데이터의 내용을 보존하려는 벡터 표현이라고 설명한다. 별도 가이드에서는 이를 부동소수점 숫자 목록이라고 적는다. Transformer의 대표 논문도 입력 토큰과 출력 토큰을 learned embeddings로 벡터화한다고 명시한다. 즉, 적어도 공개 설명 기준으로 현대 AI의 기본 동작은 “이산 입력 → 연속 벡터 → 계산 → 이산 출력”의 구조를 가진다.
+
+이 구조에는 장점이 있다. 연속 공간에서는 비슷한 의미의 표현을 가깝게 놓을 수 있다. 또 미분 가능한 최적화로 대규모 학습을 진행할 수 있다. 그래서 검색, 분류, 생성, 유사도 계산 같은 문제에서 임베딩은 공용 인프라처럼 쓰인다. 다만 이 설명만으로 “내부에 이산 구조가 전혀 없다”거나 “추론도 전부 연속 벡터만으로 끝난다”고 단정할 수는 없다. 조사 결과가 각 모델의 추가 메커니즘까지 모두 확인한 것은 아니기 때문이다.
+
+비교 실험 쪽으로 가면 기준이 더 분명해진다. 검색된 논문과 리뷰들은 지식그래프 추론, 질문응답, 조합적 시각 추론, 제약 추론 같은 벤치마크에서 연속 표현 기반 접근과 기호적·이산적 추론을 비교한다. 지표도 accuracy, precision, recall, F1, Hits@N, logical form accuracy, task success rate처럼 익숙한 형태다. 한 예로 제약 추론을 다룬 연구는 graph reachability, Boolean satisfiability, planning feasibility에서 평가했다. planning에서는 97.4% accuracy와 4x size generalization을 제시했다. 이 숫자가 곧바로 모든 과제의 우열을 뜻하지는 않는다. 다만 무엇을 비교해야 하는지는 분명히 알려준다.
+
+## 분석
+
+의사결정 포인트는 생각보다 실무적이다. 문제가 의미 압축, 패턴 일반화, 근사적 예측에 가깝다면 연속 표현은 비용 대비 유리한 선택지일 수 있다. 임베딩은 노이즈에 견디기 쉽고, 서로 다른 표현 사이의 유사성을 한 공간에서 다룰 수 있다. 반대로 문제가 “정답이 맞느냐 틀리냐”보다 “규칙을 끝까지 보존했느냐”에 가깝다면 판단 기준이 달라진다. 경로가 존재하는지, 논리식이 만족 가능한지, 계획이 실행 가능한지 같은 문제는 그럴듯한 근사보다 이산 검증이 더 중요하다.
+
+여기서 흔한 오해가 하나 나온다. 연속 표현의 한계를 곧바로 LLM의 한계로 넓혀 말하는 것이다. 조사 결과가 말하는 범위는 더 좁다. 트랜스포머는 고정된 계산 깊이, 조합적 목표의 근사 어려움, 토큰 간 정보 전달 병목 때문에 산술·논리·알고리즘 과제에서 약점을 보일 수 있다. 이를 보완하는 방법으로 chain-of-thought나 symbolic engine 같은 구조가 제시된다. 다시 말해 선택지는 “연속 vs 이산”의 전면전이 아니다. 더 정확한 프레임은 “연속 표현 위에 언제, 얼마나, 어떤 구조를 덧댈 것인가”다. chain-of-thought는 중간 단계를 외부화해 계산 경로를 늘린다. 기호 엔진은 규칙 검사 자체를 별도 모듈로 분리한다. 둘은 경쟁 관계라기보다 함께 쓸 수 있는 수단에 가깝다.
+
+## 실전 적용
+
+제품 팀과 연구 팀은 먼저 과제를 두 갈래로 나눠야 한다. 첫째는 의미 기반 문제다. 검색, 분류, 군집화, 추천, 자유 생성처럼 “비슷함”과 “맥락”이 중요한 영역이다. 둘째는 검증 기반 문제다. 수식 변형, 규칙 준수, 일정 충돌 검사, 접근 권한 판정, 계획 가능성 판단처럼 “맞는 절차”가 중요한 영역이다. 전자에서는 임베딩 중심 파이프라인이 효율적일 수 있다. 후자에서는 생성 모델이 초안을 만들고, 별도 검증기나 기호 엔진이 통과 여부를 판정하는 구조가 더 적합할 수 있다.
+
+예: 고객지원 챗봇이 환불 규정을 설명하는 일은 연속 표현만으로도 꽤 잘 처리될 수 있다. 하지만 세금 계산, 계약 조항 충돌 검사, 일정 제약이 얽힌 작업 배정은 답변 문장이 자연스러운지보다 규칙을 하나도 놓치지 않는지가 더 중요하다. 이런 과제에선 “모델이 직접 답한다”보다 “모델이 후보를 만들고 외부 규칙 시스템이 확인한다”가 실전형 설계다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 현재 서비스의 핵심 과제를 의미 유사도 문제와 이산 검증 문제로 나눠 적어라.
+- 같은 입력셋으로 순수 LLM 방식과 외부 검증기 결합 방식을 각각 돌려 accuracy 또는 task success rate를 비교하라.
+- 모델 출력에 chain-of-thought 같은 중간 단계를 남길지, 아예 symbolic engine으로 판정할지 실패 유형별로 결정하라.
+
+## FAQ
+
+**Q. 연속 표현을 쓰면 기호적 추론은 못 하나요?**  
+그렇지 않습니다. 연속 표현 기반 모델도 기호적 추론 과제에서 일정 수준의 성능을 낼 수 있습니다. 다만 조사 결과에 따르면 산술·논리·알고리즘 문제에서는 한계가 보고되었습니다. 구조화된 보완 장치가 성능을 끌어올린 사례도 있습니다.
+
+**Q. chain-of-thought는 기호 엔진의 대체재인가요?**  
+완전한 대체재로 보기는 어렵습니다. chain-of-thought는 중간 추론 단계를 외부화해 모델의 계산 표현력을 넓히는 접근입니다. 기호 엔진은 규칙과 제약을 명시적으로 다루는 접근입니다. 과제에 따라 둘을 함께 쓰는 편이 더 실용적일 수 있습니다.
+
+**Q. 우리 팀은 무엇을 기준으로 아키텍처를 고르면 되나요?**  
+정답의 성격을 먼저 보시면 됩니다. 의미 보존과 자연스러운 생성이 중요하면 연속 표현 중심 구성이 맞을 가능성이 큽니다. 반대로 경로 존재, 만족 가능성, 계획 가능성처럼 규칙 위반이 치명적인 문제라면 외부 검증기나 기호적 모듈을 붙여 평가하는 편이 안전합니다.
+
+## 결론
+
+연속표현과 이산추론의 논쟁은 철학 토론이 아니라 시스템 설계 문제다. 토큰을 벡터로 바꾸는 순간 얻는 일반화의 이점은 크다. 하지만 규칙을 틀리면 안 되는 과제에서는 그 이점만으로 부족할 수 있다. 다음에 볼 것은 더 큰 모델인지 여부만이 아니다. 어떤 문제에서 연속 표현만으로 충분했고, 어떤 문제에서 구조화된 추론이 실제로 나은 결과를 냈는지 살펴봐야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-06-04](/ko/posts/ai-resources-roundup-2026-06-04)
+- [에이전트 개입 타이밍의 문제](/ko/posts/intervention-timing-long-running-agents)
+- [SAR 증분학습 광학 유도](/ko/posts/optical-guided-neural-collapse-sar-incremental-learning)
+- [자율주행 탐지 불확실성 점검](/ko/posts/post-hoc-uncertainty-autonomous-driving-object-detection)
+- [RL 안전, 배치 전 검증으로](/ko/posts/pre-deployment-verification-rl-safety-transition-perturbations)
+---
+
+## 참고 자료
+
+- [Key concepts | OpenAI API - platform.openai.com](https://platform.openai.com/docs/concepts)
+- [Vector embeddings | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/embeddings)
+- [Attention Is All You Need - huggingface.co](https://huggingface.co/api/resolve-cache/spaces/SeaLLMs/SeaLLM-Chat/aa625193620264318b4940d191edf35e91523bcb/assets%2Fattention_all_you_need.pdf?download=true&etag=%2248952fd904c5a161c7d3cb840bb2ac7927284fc0%22)
+- [A Benchmark for Compositional Visual Reasoning - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC10396074/)
+- [Chain of Thought Empowers Transformers to Solve Inherently Serial Problems - huggingface.co](https://huggingface.co/papers/2402.12875)
+- [Differentiable Symbolic Planning: A Neural Architecture for Constraint Reasoning with Learned Feasibility - arxiv.org](https://arxiv.org/abs/2604.02350)
+- [Neural, Symbolic and Neural-Symbolic Reasoning on Knowledge Graphs - arxiv.org](https://arxiv.org/abs/2010.05446)
+- [A Symbolic Framework for Evaluating Mathematical Reasoning and Generalisation with Transformers - arxiv.org](https://arxiv.org/abs/2305.12563)

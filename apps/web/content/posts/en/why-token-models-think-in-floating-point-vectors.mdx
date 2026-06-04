@@ -1,0 +1,102 @@
+---
+title: Why Token Models Think in Floating-Point Vectors
+slug: why-token-models-think-in-floating-point-vectors
+date: '2026-06-04'
+lastReviewedAt: '2026-06-04'
+locale: en
+description: >-
+  Examines how AI maps discrete tokens into vectors and where continuous
+  representations may fall short in reasoning.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '1232149'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1232149'
+verificationScore: 0.83
+alternateLocale: /ko/posts/why-token-models-think-in-floating-point-vectors
+coverImage: /images/posts/why-token-models-think-in-floating-point-vectors.png
+---
+
+In a model pipeline, discrete tokens become floating-point vectors before computation. This is a product and research decision problem.
+
+## TL;DR
+- Tokens are discrete, but models compute with continuous vectors such as embeddings and `dmodel` token representations.
+- This matters because some benchmarks report limits on arithmetic, logic, and planning, including 97.4% accuracy and 4x size generalization.
+- You should split tasks by semantics versus verification, then compare a pure LLM setup with a verifier-backed setup.
+
+Example: A team builds a support assistant that writes fluent answers, but it also handles rule-heavy decisions. The writing may look correct, while a hidden constraint violation still slips through. That gap shapes the architecture choice.
+
+## Current state
+
+The facts confirmed in public documentation are limited but useful. OpenAI documentation describes embeddings as vector representations for preserving data content. A separate guide describes them as a list of floating-point numbers. The Transformer literature states that input and output tokens become vectors of dimension `dmodel`.
+
+Based on those descriptions, a common structure appears. It is “discrete input → continuous vector → computation → discrete output.”
+
+This structure has clear advantages. Similar meanings can appear close together in continuous space. Differentiable optimization also supports large-scale training. Because of that, embeddings are widely used for search, classification, generation, and similarity tasks.
+
+Still, this description does not justify stronger claims. It does not show that no discrete structure exists internally. It also does not show that all reasoning occurs only through continuous vectors. The cited findings do not verify every added mechanism in each model.
+
+Comparative experiments make the evaluation target clearer. The retrieved materials compare continuous methods with symbolic or discrete reasoning. They cover knowledge graph reasoning, question answering, compositional visual reasoning, and constraint reasoning. Reported metrics include accuracy, precision, recall, F1, Hits@N, logical form accuracy, and task success rate.
+
+One study on constraint reasoning evaluated graph reachability, Boolean satisfiability, and planning feasibility. In planning, it reported 97.4% accuracy and 4x size generalization. Those results do not settle every task. They do show what teams can compare directly.
+
+## Analysis
+
+The decision point is practical. If a task depends on semantic compression, pattern generalization, and approximate prediction, continuous representations may be efficient. Embeddings can handle noise and similarity across different expressions in one space.
+
+The standard changes for verification-heavy tasks. Some problems depend less on plausibility. They depend more on whether rules stayed intact through each step. Path existence, satisfiability, and plan execution fit that pattern. For those cases, discrete verification can matter more than a natural-sounding answer.
+
+A common mistake is broader than the evidence supports. Findings about limits of continuous representations do not define all limits of LLMs. The reported scope is narrower. Transformers may show weaknesses on arithmetic, logic, and algorithmic tasks. The cited reasons include fixed computational depth, difficulty with compositional objectives, and token-level information bottlenecks.
+
+Researchers propose several compensating structures. Chain-of-thought can expose intermediate steps and extend the computation path. Symbolic engines can separate rule checking into another module. This is not only “continuous versus discrete.” A better question is when and how much structure should be added on top of continuous representations.
+
+## Practical application
+
+Teams should split tasks into two groups first. The first group is semantic-centered work. It includes search, classification, clustering, recommendation, and free-form generation. The second group is verification-centered work. It includes algebraic transformation, rule compliance, schedule conflict detection, access control decisions, and plannability assessment.
+
+In the first group, an embedding-centered pipeline may be efficient. In the second group, a draft-plus-verifier design may be more suitable. In that design, a generative model proposes an answer. A separate verifier or symbolic engine then checks it.
+
+A customer support chatbot for refund explanations may work well with continuous representations alone. Tax calculation is different. Contract conflict checking is also different. Scheduling with constraints is different as well. In those cases, fluent wording matters less than rule preservation. A candidate answer plus external verification may be more practical.
+
+**Checklist for Today:**
+- Divide current service tasks into semantic similarity work and discrete verification work.
+- Run the same input set through a pure LLM setup and a verifier-backed setup.
+- Compare failures, then choose chain-of-thought, symbolic checking, or both.
+
+## FAQ
+
+**Q. If we use continuous representations, does that mean symbolic reasoning is hard?**  
+No. Continuous models can reach some level of symbolic task performance. However, the cited findings report limits on arithmetic, logic, and algorithmic tasks. Some structured additions also improved results.
+
+**Q. Is chain-of-thought a substitute for a symbolic engine?**  
+It may not be a complete substitute. Chain-of-thought exposes intermediate reasoning steps. A symbolic engine handles rules and constraints explicitly. Depending on the task, both can be useful together.
+
+**Q. What criterion should our team use to choose an architecture?**  
+Start with the shape of correctness. If meaning preservation and natural output matter most, a continuous-centered setup may fit. If rule violations carry high risk, add an external verifier or symbolic module. Then evaluate that combined structure.
+
+## Conclusion
+
+The question is less philosophical than operational. Converting tokens into vectors supports generalization and scalable training. That may be enough for many tasks. It may be insufficient for tasks where rule preservation is critical.
+
+The next question is not only model size. The better question is where continuous representations were enough. The next step is to test where structured reasoning added measurable value.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-04](/en/posts/ai-resources-roundup-2026-06-04)
+- [Why Intervention Timing Matters for Long-Running Agents](/en/posts/intervention-timing-long-running-agents)
+- [Optical-Guided Neural Collapse for SAR Incremental Learning](/en/posts/optical-guided-neural-collapse-sar-incremental-learning)
+- [Post Hoc Uncertainty for Autonomous Driving Object Detection](/en/posts/post-hoc-uncertainty-autonomous-driving-object-detection)
+- [Pre-Deployment Verification for RL Safety Under Transition Perturbations](/en/posts/pre-deployment-verification-rl-safety-transition-perturbations)
+---
+
+## References
+
+- [Key concepts | OpenAI API - platform.openai.com](https://platform.openai.com/docs/concepts)
+- [Vector embeddings | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/embeddings)
+- [Attention Is All You Need - huggingface.co](https://huggingface.co/api/resolve-cache/spaces/SeaLLMs/SeaLLM-Chat/aa625193620264318b4940d191edf35e91523bcb/assets%2Fattention_all_you_need.pdf?download=true&etag=%2248952fd904c5a161c7d3cb840bb2ac7927284fc0%22)
+- [A Benchmark for Compositional Visual Reasoning - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC10396074/)
+- [Chain of Thought Empowers Transformers to Solve Inherently Serial Problems - huggingface.co](https://huggingface.co/papers/2402.12875)
+- [Differentiable Symbolic Planning: A Neural Architecture for Constraint Reasoning with Learned Feasibility - arxiv.org](https://arxiv.org/abs/2604.02350)
+- [Neural, Symbolic and Neural-Symbolic Reasoning on Knowledge Graphs - arxiv.org](https://arxiv.org/abs/2010.05446)
+- [A Symbolic Framework for Evaluating Mathematical Reasoning and Generalisation with Transformers - arxiv.org](https://arxiv.org/abs/2305.12563)
