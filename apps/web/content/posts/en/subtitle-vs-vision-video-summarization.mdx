@@ -1,0 +1,93 @@
+---
+title: Choosing Between Subtitle and Vision Video Summarization
+slug: subtitle-vs-vision-video-summarization
+date: '2026-06-12'
+lastReviewedAt: '2026-06-12'
+locale: en
+description: >-
+  A practical guide to choosing subtitle-only or multimodal frame analysis for
+  video summary apps, with tradeoffs in quality, cost, latency, and evaluation.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+  - multimodal
+author: AI온다
+sourceId: '1248714'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1248714'
+verificationScore: 0.84
+alternateLocale: /ko/posts/subtitle-vs-vision-video-summarization
+coverImage: /images/posts/subtitle-vs-vision-video-summarization.png
+---
+
+In a video demo, the key step can appear on screen and not in the subtitles. This is a product definition question, not only a feature choice. A text-based summarizer can be built quickly. Its limits appear when important information is visual. Vision input can widen coverage. It also increases input complexity, processing cost, and evaluation complexity.
+
+## TL;DR
+
+- This decision is whether to keep subtitle-only summarization or add multimodal frame sampling.
+- It matters because quality, latency, cost, and evaluation all change with vision input.
+- Start with a subtitle baseline, then test frame analysis on video types with important visual content.
+
+Example: Imagine a tutorial where the speaker says little, but the important change appears in the interface. A subtitle-only summary can miss the main point. A selective visual pass can catch that missing context.
+
+## Current State
+
+According to official documentation, generative vision model families share common patterns and important differences. They place text and images in the same request. Their input keys and formats differ.
+
+OpenAI Responses places `input_text` and `input_image` in the `content` array under `input`. It accepts a URL, a base64 data URL, and a `file_id`. The guide lists PNG, JPEG, WEBP, and non-animated GIF. The total payload per request is up to **512 MB**. Individual image inputs are up to **1500** per request.
+
+Other ecosystems move in a similar direction but differ in design. Gemini places text and binary parts in `contents.parts`. Anthropic places `type: "image"` and `source` in `messages.content`. By contrast, image analysis APIs such as Azure AI Vision do not keep conversational context. They accept one image or URL. They return fixed JSON fields such as objects, tags, and categories. This distinction matters. The architecture changes based on the goal. One path supports conversational reasoning. The other path assembles image analysis results.
+
+The evaluation axes also differ from text summarization. Cost should be examined through per-request processing time, RPS, and GPU, CPU, and memory usage. Latency should be split into end-to-end latency and step-level latency. Accuracy should not stop at ROUGE and BERTScore. Video summarization research uses F1 and rank-based evaluation. Without reference answers, fact-based methods such as QuestEval can help. The **Coverage, Factuality, Chronology** axes from QEVA should also be considered.
+
+## Analysis
+
+The decision is often straightforward. If speech carries the core information, subtitles should come first. Interviews, lectures, and podcast-style content are close to this case. The pipeline is shorter. It goes from speech extraction to subtitle cleaning to long-form summarization. Evaluation is also easier to start with using ROUGE or BERTScore.
+
+If the screen carries the core information, subtitles alone can miss important content. Slide numbers, code edits, UI changes, chart transitions, and gameplay context may be absent. They may also be represented inaccurately. In such cases, frame-sampling multimodality can become necessary.
+
+The main issue is cost and design difficulty. Adding frames increases input volume. It also creates a frame selection problem. You should choose between scene transitions, fixed intervals, or subtitle alignment. Generative vision models can produce descriptive responses. Their output structure may vary. Image analysis APIs provide structured JSON. Their contextual reasoning may be limited. So, vision input should not be assumed to improve accuracy on its own. Results vary by video type and evaluation method. Research such as TVSum and SumMe uses F1 and rank-based evaluation. In a product, the first question is user intent. Do users want fewer missed scenes, or faster summaries? Those goals often conflict.
+
+## Practical Application
+
+A realistic design is two-stage. Stage 1 is stabilizing subtitle-based summarization. Clean automatic subtitles. Identify speaker changes and section boundaries. Connect summary output to timestamps. Stage 2 is selective multimodality, not broad adoption. Add frame capture only to videos with frequent slide changes, UI demos, and product reviews. This approach can reduce subtitle-only blind spots. It can also keep cost and latency more controlled.
+
+Implementation can also be hybrid. First, create a rough summary from subtitles. Then, add sampled frames for a second-pass summary. Use instructions such as, “augment only the key on-screen changes in this segment.” Another option is extracting scene tags with an image analysis API first. Then pass those results to a Language Model for final prose. The former helps with contextual understanding. The latter is easier to manage for response schema. The product team should decide one thing first. Do users want a readable summary, or a summary that misses less? Those objectives often conflict.
+
+**Checklist for Today:**
+- Build a subtitle-based baseline, and record end-to-end latency separately from step-level latency.
+- Collect a separate video set with slide, demo, or gameplay content, and test a frame-sampling group.
+- Evaluate with more than ROUGE or BERTScore, and include Coverage, Factuality, Chronology, or multimodal QA.
+
+## FAQ
+
+**Q. Is it better to go multimodal from the beginning?**  
+Not necessarily. Some video categories work well with subtitles alone. It is safer to build a subtitle baseline first. Then add vision input where on-screen omissions appear repeatedly.
+
+**Q. Which should we choose: a generative vision model or an image analysis API?**  
+It depends on the goal. A conversational generative model may fit better for natural summaries with context. An image analysis API is easier to handle for stable structured outputs.
+
+**Q. How should performance be evaluated?**  
+Text summarization metrics alone are insufficient. You can start with ROUGE or BERTScore. For video summarization, it is also useful to include F1 and rank-based evaluation. Reference-free axes such as Coverage, Factuality, and Chronology can also help.
+
+## Conclusion
+
+The next step in video summarization is not longer summaries. It is reading more of the important signals in the video. Subtitles are an appropriate starting point. Frame understanding is better introduced selectively. A product’s edge depends less on model names. It depends more on which omissions were reduced, for which video types, and at what cost.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-12](/en/posts/ai-resources-roundup-2026-06-12)
+- [Conditional Debate Routing for Efficient Multi-Agent LLM Reasoning](/en/posts/conditional-debate-routing-multi-agent-llm-reasoning)
+- [Runtime Governance for Production AI Agent Security](/en/posts/runtime-governance-production-ai-agent-security)
+- [StatefulDiscovery and Evidence-Calibrated Claims in Scientific Agents](/en/posts/statefuldiscovery-evidence-calibrated-claims-scientific-agents)
+- [AI Resource Roundup (24h) - 2026-06-09](/en/posts/ai-resources-roundup-2026-06-09)
+---
+
+## References
+
+- [Responses | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/responses?api-mode=chat)
+- [Images and vision | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/images-vision)
+- [QEVA: A Reference-Free Evaluation Metric for Narrative Video Summarization with Multimodal Question Answering - huggingface.co](https://huggingface.co/papers/2604.24052)
+- [Classification and comparison of on-line video summarisation methods - link.springer.com](https://link.springer.com/article/10.1007/s00138-019-01007-x)
+- [Multimodal Frame-Scoring Transformer for Video Summarization - arxiv.org](https://arxiv.org/abs/2207.01814)
+- [QuestEval: Summarization Asks for Fact-based Evaluation - arxiv.org](https://arxiv.org/abs/2103.12693)
