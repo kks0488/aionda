@@ -1,0 +1,85 @@
+---
+title: StatefulDiscovery and Evidence-Calibrated Claims in Scientific Agents
+slug: statefuldiscovery-evidence-calibrated-claims-scientific-agents
+date: '2026-06-12'
+lastReviewedAt: '2026-06-12'
+locale: en
+description: >-
+  StatefulDiscovery reframes scientific agent evaluation around
+  evidence-calibrated claims, not just plausible answers.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-b2de7201d32e8451
+sourceUrl: 'https://arxiv.org/abs/2606.11851'
+verificationScore: 0.7
+alternateLocale: /ko/posts/statefuldiscovery-evidence-calibrated-claims-scientific-agents
+coverImage: >-
+  /images/posts/statefuldiscovery-evidence-calibrated-claims-scientific-agents.png
+---
+
+In **40 real-data tasks**, the key issue was not only answer plausibility. It was claim strength relative to evidence. We already know scientific discovery agents can make calculation errors. In open-ended exploration, claims can also outrun evidence. That can happen early. StatefulDiscovery, posted on arXiv, focuses on that problem. It proposes an agent that stays within the evidence.
+
+## TL;DR
+
+- This matters because overclaiming can create both reliability problems and safety problems in research automation.
+- Readers should evaluate agents beyond accuracy, including claim-evidence linkage, withholding behavior, and supported high-value claims.
+
+Example: A research team reviews an agent report after an exploratory study. The report sounds confident, but the evidence trail is incomplete. The team pauses publication and checks which statements are supported, which remain tentative, and which should be withheld.
+
+## Current status
+
+According to the excerpted source, this paper treats open-ended scientific discovery as more than analysis. It does not focus only on predefined questions. The agent should decide what to investigate across multiple rounds of exploration. At the same time, it should regulate claim strength. Claims should not exceed current evidence. The authors call this the **evidence-calibration problem**. The main idea is to manage exploration trajectory and claim status together.
+
+The verifiable evaluation includes **40 real-data discovery tasks**. Within the confirmed evidence, StatefulDiscovery produced more claims rated **“well-supported and high-value”** than several baselines. However, no confirmed figure shows by how many percent it reduced hallucination or overclaiming. That gap matters. “More good claims” and “less overclaiming” are different metrics.
+
+The motivation did not emerge in isolation. Related work already tracks claim states in scientific workflows. **Micropublications** represent claims, evidence, and arguments as shared metadata. **AutoVerifier** breaks technical claims into a **claim triple**. That means subject, predicate, and object. It then sends them into a verification pipeline. StatefulDiscovery brings the idea of treating claims like a state machine into the discovery-agent setting.
+
+## Analysis
+
+This approach matters because it describes research-agent failure modes more realistically. Many evaluations focus on analysis quality, tool-call success, and final answers. Scientific discovery is different. The correct answer is not waiting in a search box. In each round, the agent should judge whether a pattern is accidental. It should judge whether more investigation is worthwhile. It should also judge whether a statement should remain a hypothesis. In that setting, a strong agent may say less. It should reduce claim strength when evidence is thin. Human researchers often add limitations to abstracts. Agents should learn similar restraint.
+
+There are trade-offs. If the goal is rapid hypothesis generation, stronger calibration may increase conservatism. That may reduce exploration breadth. It may also miss weak early signals. In high-risk decision settings, understated claims may be preferable to bold exploration. In that case, claim tracking looks more like a safety mechanism. Open questions remain. In the available evidence, cross-domain generalization across biology and materials science is not organized into one standard metric. Also, the internal state-transition rules are not specified concretely here. API-level integration with external tool chains is also not specified concretely here.
+
+## Practical application
+
+The main lesson for research teams and product teams is straightforward. Do not ask the agent to “draw a conclusion.” Ask it to “draw only the conclusion permitted by current evidence.” A practical step is to place a **claim ledger** before the final answer. For each claim, record the supporting data. Record the tool executions. Record the analysis steps. Then separate statuses such as hypothesis, partially supported, and strongly supported. Teams can vary these labels. The important habit is linking each sentence to evidence.
+
+**Checklist for Today:**
+- Add a review item next to “correctness/outcome” for whether claim strength appears excessive.
+- Before the final report, create an intermediate format that links each sentence to a unit of evidence.
+- In experiment logs, track correct answers and answers that should have been withheld as separate cases.
+
+## FAQ
+
+**Q. Did this paper numerically prove a reduction in hallucination?**  
+Within the confirmed evidence, a direct reduction-rate figure is not visible. What can be verified is this. In **40 real-data tasks**, it produced more **“well-supported and high-value”** claims than multiple baselines.
+
+**Q. Does claim-state tracking fit well with existing scientific workflows?**  
+Partially. There have already been attempts to structure claims, evidence, and arguments. Examples include **Micropublications**. There are also approaches like **AutoVerifier**. It divides claims into structured units for verification. However, the specific integration method of StatefulDiscovery is hard to confirm in detail from the available search results alone.
+
+**Q. Does this approach work immediately across all scientific domains?**  
+It is hard to say conclusively. There are benchmarks and reviews about cross-domain evaluation needs. Within the materials available here, no result organizes transfer performance between biology and materials science into one common metric.
+
+## Conclusion
+
+StatefulDiscovery asks a simple question. Is it acceptable to say this now? The next advantage for discovery agents may not depend only on larger models or longer tool chains. Calibrating language strength to evidence could become an important evaluation metric.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-12](/en/posts/ai-resources-roundup-2026-06-12)
+- [AI Resource Roundup (24h) - 2026-06-09](/en/posts/ai-resources-roundup-2026-06-09)
+- [AI Resource Roundup (24h) - 2026-06-08](/en/posts/ai-resources-roundup-2026-06-08)
+- [AI Resource Roundup (24h) - 2026-06-07](/en/posts/ai-resources-roundup-2026-06-07)
+- [AI Resource Roundup (24h) - 2026-06-06](/en/posts/ai-resources-roundup-2026-06-06)
+---
+
+## References
+
+- [Evaluating Large Language Models in Scientific Discovery - cs.cornell.edu](https://www.cs.cornell.edu/gomes/pdf/2025_song_arxiv_sde.pdf)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.11851)
+- [Micropublications: a semantic model for claims, evidence, arguments and annotations in biomedical communications - link.springer.com](https://link.springer.com/article/10.1186/2041-1480-5-28)
+- [AutoVerifier: An Agentic Automated Verification Framework Using Large Language Models - arxiv.org](https://arxiv.org/abs/2604.02617)
+- [Automated Scientific Discovery: From Equation Discovery to Autonomous Discovery Systems - link.springer.com](https://link.springer.com/article/10.1007/s10994-025-06955-2)
+- [Cross-domain benchmarks reveal when coordinated AI agents improve scientific inference from partial evidence - arxiv.org](https://arxiv.org/abs/2605.22300)
