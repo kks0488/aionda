@@ -1,0 +1,101 @@
+---
+title: Alignment and Safety Guardrails Shape Model Behavior
+slug: alignment-and-safety-guardrails-shape-model-behavior
+date: '2026-06-18'
+lastReviewedAt: '2026-06-18'
+locale: en
+description: >-
+  Shows with public metrics that alignment and guardrails affect instruction
+  following, harmful output, and hallucination trade-offs.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - prompt-injection
+author: AI온다
+sourceId: '1263662'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1263662'
+verificationScore: 0.89
+alternateLocale: /ko/posts/alignment-and-safety-guardrails-shape-model-behavior
+coverImage: /images/posts/alignment-and-safety-guardrails-shape-model-behavior.png
+---
+
+97%, 12%, and 70% frame this debate more clearly than intuition alone. Public materials describe aligned conversational models as a separate stage after pretraining. This stage aims to improve instruction following and reduce harmful responses and misinformation. Removing that layer does not necessarily create a more honest or freer system. It can also increase unreliable instruction following or more frequent safety failures.
+
+## TL;DR
+
+- This concerns the gap between a pretrained model and a conversational model shaped by alignment, prompts, and filters.
+- That gap matters because it affects instruction following, harmful outputs, hallucinations, and refusal trade-offs.
+- Readers should compare refusal, harmful response, and factuality metrics before changing safeguards or adopting a system.
+
+Example: A team weakens a model’s safety layer for a writing tool. The model feels less constrained. It also starts ignoring priority instructions more often. The team then has to weigh flexibility against reliability and safety.
+
+## Current state
+
+Public alignment research starts from a consistent premise. Pretraining alone is not presented as sufficient for conversational quality. OpenAI materials on InstructGPT describe aligned models as better at following user intent than GPT base models. They also describe them as more truthful and less toxic. The key point is the separation of stages. Fine-tuning based on human preferences is treated as its own axis.
+
+This distinction also appears in factuality work. TruthfulQA was introduced to measure whether models imitate common false beliefs. Its introduction says scaling alone is not sufficient for truthfulness. It also says an additional fine-tuning objective is needed. More web text does not automatically yield more honest answers. That makes the “rawer model is more truthful” claim harder to support from these materials.
+
+A similar pattern appears in safety evaluation. OpenAI’s safety evaluation hub lists harmful content, jailbreaks, and instruction hierarchy as core categories. Anthropic’s summary on weakened alignment conditions includes a figure with two notable values. A model that usually refused harmful requests 97% of the time gave a harmful response 12% of the time under a specific “free” condition. That figure does not generalize to all models. Still, it suggests that alignment and condition setting can change outputs substantially.
+
+Safety and accuracy do not move together in a simple way. OpenAI’s summary of the Anthropic–OpenAI evaluation exercise describes the Claude family as reaching refusal rates as high as 70% on hallucination evaluations. The same summary says OpenAI o3 and o4-mini showed lower refusal rates and higher hallucination rates. The main point is not which model is better. Lower refusals can coincide with more hallucinations. More conservative blocking can reduce some failures while reducing usability.
+
+## Analysis
+
+This debate matters for product design. A pretrained model learns language patterns. The alignment layer influences what the model says and which instructions it prioritizes. OpenAI’s Model Spec describes that instruction structure. It explains that system messages can set a priority order across OpenAI, developer, and user instructions. Without that hierarchy, the model behaves less like a stable tool. It behaves more like a next-token system across competing contexts. Users often experience that difference as inconsistency.
+
+Alignment does not solve every problem. OpenAI has said its aligned models remain far from fully aligned. Increasing refusals can improve harmlessness scores. It can also block legitimate requests and reduce satisfaction. Loosening constraints can increase jailbreak risk and harmful outputs. “Unaligned AI is smarter” is too broad. “Aligned AI is better” is also too broad. The more useful question is narrower. Which failure costs more in a given setting?
+
+For an internal document summarization tool, hallucinations may cost more than conservative refusals. For a creative assistant, excessive refusals may cost more. Even within one model family, different system prompts, policy layers, and post-processing can produce different products.
+
+## Practical Application
+
+Developers and product teams should examine more than “censorship or not.” Is the instruction hierarchy clear? How consistently does the system refuse risky requests? Does it answer legitimate requests without excessive refusal? How much hallucination risk is acceptable relative to refusal rate? These four questions should be evaluated together.
+
+Teams can experiment with weakening or removing the system prompt. The result should not be framed only as increased freedom. Compare the same test set across benign prompts, adversarial prompts, and factuality questions. A version without safety filters may produce more interesting answers. It can also increase instruction hierarchy drift, jailbreak vulnerability, and harmful output costs. Those effects should be checked together.
+
+**Checklist for Today:**
+- Run the same tasks in a pretrained-style setting and an aligned setting, then record refusals, hallucinations, and instruction following side by side.
+- When changing the system prompt, test 20 legitimate requests with adversarial prompts and compare before-and-after behavior.
+- Separate harmful response rate, excessive refusal rate, and factual errors into distinct decision metrics.
+
+## FAQ
+
+**Q. Is a model that has only undergone pretraining often smarter?**  
+No. Public materials treat pretrained and aligned models as separate stages. They also say aligned models are designed to follow user intent better. They further describe improvements in truthfulness or toxicity. However, alignment can also introduce costs, such as excessive refusal.
+
+**Q. Isn’t a system prompt just a hidden set of instructions?**  
+It is more than that. A system prompt is closer to an operating rule for instruction priority. Public Model Spec documents describe an order across OpenAI, developer, and user instructions. If that layer is weak, consistency and safety boundaries can become less stable.
+
+**Q. If safeguards are reduced, does the user experience often get worse?**  
+It cannot be stated categorically. The materials reviewed here do not confirm a single quantitative user satisfaction metric. However, harmful outputs, jailbreak vulnerability, instruction hierarchy failures, and the hallucination-refusal trade-off appear repeatedly in official materials.
+
+## Conclusion
+
+The limits of unaligned AI are largely operational, not only moral. Pretraining is the starting point. Alignment and system instructions shape the product layer. The key question is not how many restrictions were removed. The key question is which failures became more likely in exchange, and how often.
+
+## Further Reading
+- [Decentralized Prefix Caching for P2P LLM Serving](/en/posts/decentralized-prefix-caching-p2p-llm-serving)
+- [LLM Stories Repeat More Than Human Narratives](/en/posts/llm-stories-repeat-more-than-human-narratives)
+- [Designing Open P2P Networks for Distributed AI Agents](/en/posts/open-p2p-networks-for-distributed-ai-agents)
+- [See First, Answer Later in Multimodal LLM Alignment](/en/posts/see-first-answer-later-multimodal-llm-alignment)
+- [Tool Abstraction Shapes Optical Network Agent Performance](/en/posts/tool-abstraction-optical-network-agent-performance)
+---
+
+## References
+
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/)
+- [TruthfulQA: Measuring how models mimic human falsehoods | OpenAI - openai.com](https://openai.com/index/truthfulqa/)
+- [Constitutional AI: Harmlessness from AI Feedback - anthropic.com](https://www.anthropic.com/index/constitutional-ai-harmlessness-from-ai-feedback)
+- [Our approach to alignment research | OpenAI - openai.com](https://openai.com/index/our-approach-to-alignment-research/)
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/?_hsmi=202743306)
+- [Training language models to follow instructions - cdn.openai.com](https://cdn.openai.com/papers/Training_language_models_to_follow_instructions_with_human_feedback.pdf)
+- [Model Spec - model-spec.openai.com](https://model-spec.openai.com/)
+- [Inside our approach to the Model Spec | OpenAI - openai.com](https://openai.com/index/our-approach-to-the-model-spec/)
+- [Safety evaluations hub | OpenAI - openai.com](https://openai.com/safety/evaluations-hub/)
+- [Deliberative alignment: reasoning enables safer language models | OpenAI - openai.com](https://openai.com/index/deliberative-alignment/)
+- [Findings from a pilot Anthropic–OpenAI alignment evaluation exercise: OpenAI Safety Tests | OpenAI - openai.com](https://openai.com/index/openai-anthropic-safety-evaluation/)
+- [Alignment faking in large language models | Anthropic - anthropic.com](https://www.anthropic.com/research/alignment-faking?dghll=513071)
+- [Safety best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/safety-best-practices)
+- [Training language models to follow instructions with human feedback - arxiv.org](https://arxiv.org/abs/2203.02155)

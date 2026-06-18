@@ -1,0 +1,94 @@
+---
+title: 정렬과 안전장치의 착시
+slug: alignment-and-safety-guardrails-shape-model-behavior
+date: '2026-06-18'
+lastReviewedAt: '2026-06-18'
+locale: ko
+description: 정렬과 안전장치는 성능 저하가 아니라 지시 준수·유해성·환각의 균형 문제임을 수치로 짚는다.
+tags:
+  - llm
+  - deep-dive
+  - prompt-injection
+author: AI온다
+sourceId: '1263662'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1263662'
+verificationScore: 0.89
+alternateLocale: /en/posts/alignment-and-safety-guardrails-shape-model-behavior
+coverImage: /images/posts/alignment-and-safety-guardrails-shape-model-behavior.png
+---
+
+97%, 12%, 70%. 정렬과 안전장치 논쟁은 감각의 문제가 아니라 수치와 평가 기준의 문제다. 공개 자료를 보면, 정렬된 대화형 모델은 사전학습 모델과 별개 단계로 다뤄진다. 이 단계는 사용자 의도를 더 잘 따르고, 유해 응답과 거짓 정보를 줄이려는 목적을 가진다. 반대로 이 층을 제거하면 “더 솔직하고 자유로운 AI”가 나온다고 보기 어렵다. 지시를 덜 따르거나 안전 경계를 더 자주 넘는 모델이 될 가능성도 함께 커진다.
+
+## 세 줄 요약
+
+- 핵심 쟁점은 사전학습만 거친 모델과, 그 위에 정렬·시스템프롬프트·안전 필터를 더한 대화형 모델이 같은가라는 문제다. 공개 문서들은 둘을 별개 단계로 다룬다.
+- 이 차이는 체감 품질만이 아니라 유해성, 환각, 지시 준수, 프롬프트 공격 저항성과도 연결된다. 안전장치를 줄이면 제약은 줄 수 있지만 실패 비용은 커질 수 있다.
+- 독자는 “제한이 적을수록 성능이 높다”는 주장부터 의심할 필요가 있다. 지시 준수, 유해 응답, 환각, 거부율을 함께 비교한 뒤 도입 여부를 결정하라.
+
+## 현황
+
+공개된 정렬 연구의 출발점은 분명하다. 사전학습만으로는 대화형 품질이 충분하지 않다는 판단이다. OpenAI의 InstructGPT 관련 문서와 논문은 정렬된 모델이 GPT 계열보다 사용자 의도를 더 잘 따르고, 더 truthful하며 less toxic하다고 설명한다. 여기서 중요한 점은 “더 큰 사전학습 모델이면 해결된다”는 설명이 아니라, 인간 선호를 반영한 후속 미세조정이 별도 축으로 제시된다는 데 있다.
+
+이 구분은 사실성 평가에서도 반복된다. TruthfulQA 소개 문구는 모델이 인간의 거짓 믿음을 얼마나 모방하는지 측정하기 위해 벤치마크를 만들었다고 밝힌다. 또 규모 확대만으로는 truthfulness 개선이 충분하지 않으며, 추가 미세조정 목적함수가 필요하다고 적었다. 즉 웹 텍스트를 더 많이 읽는다고 곧바로 더 정직한 답변이 나온다고 보기는 어렵다. “원본 모델이 더 날것이라서 더 진실하다”는 주장이 공식 자료와 쉽게 맞지 않는 이유도 여기에 있다.
+
+
+안전성과 정확성이 항상 같은 방향으로 움직이는 것도 아니다. OpenAI가 공개한 Anthropic–OpenAI 평가 연습 요약에는 Claude 계열이 hallucination 평가에서 as much as 70%의 높은 거부율을 보였고, 반대로 OpenAI o3와 o4-mini는 더 낮은 거부율과 더 높은 hallucination rates를 보였다는 설명이 있다. 여기서 볼 점은 “누가 더 낫다”가 아니다. 거부를 줄이면 환각이 늘 수 있고, 환각을 줄이려고 보수적으로 막으면 활용성이 떨어질 수 있다는 trade-off다.
+
+## 분석
+
+이 논쟁이 중요한 이유는 제품 설계에서 놓치기 쉬운 지점을 드러내기 때문이다. 사전학습 모델은 언어 패턴을 학습한 기반 모델이다. 그 위에 올리는 정렬은 “무엇을 말할 수 있는가”만이 아니라 “언제, 누구의 지시를, 어떤 우선순위로 따를 것인가”를 정한다. OpenAI의 Model Spec은 이 지시 체계를 명시한다. OpenAI, 개발자, 사용자 지시의 우선순위를 따라가도록 시스템 메시지를 둘 수 있다고 설명한다. 이 계층이 없으면 모델은 질문에 답하는 도구라기보다, 상충하는 문맥 사이에서 다음 토큰을 고르는 시스템에 더 가까워진다. 사용자가 느끼는 일관성 차이도 여기서 생긴다.
+
+그렇다고 정렬이 모든 문제를 해결한다는 뜻은 아니다. OpenAI는 자사 정렬 모델도 fully aligned와 거리가 멀다고 적었다. 단순히 거부를 늘리면 무해성 점수는 나아질 수 있다. 하지만 정상 요청까지 막아 사용자 만족을 해칠 수 있다. 반대로 관대하게 풀면 jailbreak와 유해 출력 위험이 올라간다. “비정렬 AI가 더 똑똑하다”는 주장도, “정렬 AI가 늘 더 낫다”는 주장도 둘 다 거칠다. 더 정확한 질문은 이것이다. 어떤 환경에서 어떤 실패 비용이 더 큰가.
+
+예: 내부 문서 요약 도구라면 약간의 보수적 거부보다 환각이 더 큰 비용일 수 있다. 반대로 창작 보조 도구라면 지나친 거부가 더 큰 손실일 수 있다. 같은 모델 계열이라도 시스템프롬프트, 정책 계층, 후처리 필터에 따라 다른 제품이 된다.
+
+## 실전 적용
+
+개발자와 제품 팀이 봐야 할 것은 “검열이 있냐 없냐”가 아니다. 첫째, 지시 계층이 분명한가. 둘째, 위험 요청에서 얼마나 일관되게 거부하는가. 셋째, 정상 요청에서 과잉 거부 없이 답하는가. 넷째, 환각과 거부율의 교환비를 어디까지 감수할 것인가. 이 네 가지를 함께 봐야 한다.
+
+시스템프롬프트를 없애거나 약화하는 실험은 가능하다. 다만 그 결과를 “자유도 증가” 하나로만 읽으면 곤란하다. 같은 테스트셋에 benign prompts, adversarial prompts, 사실성 질문을 섞어 비교해야 한다. 안전 필터를 뗀 버전이 더 흥미로운 답을 줄 수는 있다. 대신 instruction hierarchy 이탈, jailbreak 취약성, 유해 출력 비용이 함께 올라오는지 확인해야 한다.
+
+오늘 바로 할 일 체크리스트:
+- 같은 작업을 사전학습형 설정과 정렬형 설정에 각각 넣고 지시 준수, 거부, 환각 사례를 나란히 기록하라.
+- 시스템프롬프트를 수정할 때는 정상 요청 20개와 공격성 테스트 프롬프트를 함께 돌려 전후 차이를 비교하라.
+- “답변 성공률” 하나만 보지 말고 유해 응답률, 과잉 거부율, 사실 오류를 별도 지표로 분리해 의사결정하라.
+
+## FAQ
+
+**Q. 사전학습만 거친 모델이 항상 더 똑똑한가요?**  
+그렇지 않습니다. 공개 자료는 사전학습 모델과 정렬된 모델을 별도 단계로 다룹니다. 또 정렬 모델이 사용자 의도를 더 잘 따르고, 더 truthful하거나 less toxic하도록 설계됐다고 설명합니다. 다만 정렬 방식에 따라 과잉 거부 같은 비용이 생길 수 있습니다.
+
+**Q. 시스템프롬프트는 그냥 숨겨진 안내문 아닌가요?**  
+그 이상입니다. 시스템프롬프트는 어떤 지시를 우선할지 정하는 운영 규칙에 가깝습니다. 공개된 Model Spec 계열 문서는 OpenAI, 개발자, 사용자 지시의 우선순위를 따라가도록 체인을 둔다고 설명합니다. 이 층이 약하면 응답 일관성과 안전 경계 유지가 흔들릴 수 있습니다.
+
+**Q. 안전장치를 줄이면 사용자 경험이 무조건 나빠지나요?**  
+무조건 그렇다고 단정할 수는 없습니다. 이번 조사 결과만으로 사용자 만족도의 단일 정량 지표는 확인되지 않았습니다. 다만 유해 출력, jailbreak 취약성, instruction hierarchy 미준수, 환각과 거부율의 trade-off 같은 실패 유형은 공식 자료에서 반복해서 등장합니다.
+
+## 결론
+
+비정렬 AI의 한계는 도덕 담론보다 운영 문제에 가깝다. 사전학습은 출발점이다. 정렬과 시스템 지시는 제품을 제어하는 층이다. 앞으로 봐야 할 것은 “제한을 얼마나 풀었나”가 아니다. 그 대가로 어떤 실패를 얼마나 자주 허용했는가다.
+
+## 다음으로 읽기
+- [P2P LLM 프리픽스 캐시](/ko/posts/decentralized-prefix-caching-p2p-llm-serving)
+- [LLM 서사 반복성의 경고](/ko/posts/llm-stories-repeat-more-than-human-narratives)
+- [분산 에이전트 네트워크의 조건](/ko/posts/open-p2p-networks-for-distributed-ai-agents)
+- [먼저 보고 답하는 멀티모달](/ko/posts/see-first-answer-later-multimodal-llm-alignment)
+- [광네트워크 에이전트의 도구 설계](/ko/posts/tool-abstraction-optical-network-agent-performance)
+---
+
+## 참고 자료
+
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/)
+- [TruthfulQA: Measuring how models mimic human falsehoods | OpenAI - openai.com](https://openai.com/index/truthfulqa/)
+- [Constitutional AI: Harmlessness from AI Feedback - anthropic.com](https://www.anthropic.com/index/constitutional-ai-harmlessness-from-ai-feedback)
+- [Our approach to alignment research | OpenAI - openai.com](https://openai.com/index/our-approach-to-alignment-research/)
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/?_hsmi=202743306)
+- [Training language models to follow instructions - cdn.openai.com](https://cdn.openai.com/papers/Training_language_models_to_follow_instructions_with_human_feedback.pdf)
+- [Model Spec - model-spec.openai.com](https://model-spec.openai.com/)
+- [Inside our approach to the Model Spec | OpenAI - openai.com](https://openai.com/index/our-approach-to-the-model-spec/)
+- [Safety evaluations hub | OpenAI - openai.com](https://openai.com/safety/evaluations-hub/)
+- [Deliberative alignment: reasoning enables safer language models | OpenAI - openai.com](https://openai.com/index/deliberative-alignment/)
+- [Findings from a pilot Anthropic–OpenAI alignment evaluation exercise: OpenAI Safety Tests | OpenAI - openai.com](https://openai.com/index/openai-anthropic-safety-evaluation/)
+- [Alignment faking in large language models | Anthropic - anthropic.com](https://www.anthropic.com/research/alignment-faking?dghll=513071)
+- [Safety best practices | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/safety-best-practices)
+- [Training language models to follow instructions with human feedback - arxiv.org](https://arxiv.org/abs/2203.02155)
