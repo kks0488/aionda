@@ -1,0 +1,87 @@
+---
+title: LLM의 RTL 실패 유형 분석
+slug: llm-failure-modes-rtl-generation
+date: '2026-06-19'
+lastReviewedAt: '2026-06-19'
+locale: ko
+description: RTL 생성에서 LLM 실패를 구문·의미·기능 오류로 나눠 보고 검증 루프의 필요성을 짚는다.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-1547b00dd3f833af
+sourceUrl: 'https://arxiv.org/abs/2606.19347'
+verificationScore: 0.86
+alternateLocale: /en/posts/llm-failure-modes-rtl-generation
+coverImage: /images/posts/llm-failure-modes-rtl-generation.png
+---
+
+71.7%와 27.4%. RTL 코드 생성 성능 개선을 언급할 때 자주 인용되는 수치다. 다만 이 숫자가 곧바로 “LLM이 하드웨어를 이해했다”는 뜻은 아니다. 시뮬레이션 피드백과 수정 루프를 붙였을 때 성능이 얼마나 회복되는지를 보여주는 수치에 가깝다. 이번 arXiv 논문 발췌가 겨냥하는 핵심도 같다. LLM이 순차 프로그래밍의 습관을 병렬·시간 논리의 세계로 옮길 때, 어디서 어떤 종류의 실패가 나는지를 묻는다.
+
+## 세 줄 요약
+
+- 이 글의 핵심 쟁점은 LLM의 RTL 코딩 실패를 단순 정답률이 아니라 구문, 의미, 해결 가능 기능 오류, 해결 불가 기능 오류로 나눠 봐야 한다는 점이다.
+- 이 구분이 중요한 이유는 RTL에서는 “코드처럼 보여도 회로로는 틀린” 경우가 많고, 실제 병목이 데이터셋 편향보다 올바른 논리 해결 실패에 더 가깝다는 해석이 가능하기 때문이다.
+- 독자는 RTL 생성 실험을 할 때 패스율만 보지 말고 시뮬레이션·툴 로그·실패 유형을 함께 기록해야 한다. 그래야 어떤 오류가 프롬프트 개선으로 고쳐지고, 어떤 오류가 검증 루프 없이는 고쳐지기 어려운지 분리할 수 있다.
+
+## 현황
+
+하드웨어 설계용 RTL, 특히 Verilog 생성은 일반 소프트웨어 코드 생성과 닮아 보이지만 평가 방식부터 다르다. VerilogEval은 생성된 Verilog 설계를 골든 솔루션과 같은 테스트벤치에서 시뮬레이션한 뒤, 시간에 따른 출력이 일치하는지 비교해 기능적 정확성을 자동 평가한다. 기준은 “문법이 맞는 코드”보다 “시간에 따라 올바르게 동작하는 회로”에 가깝다. 이 차이가 LLM의 약점을 더 분명하게 드러낸다.
+
+조사 결과를 보면, VerilogEval 계열에서 언급된 경험적 성능 상한은 데이터셋 편향보다 추론 한계와 더 가깝게 해석된다. 근거로 인용되는 문구는 다음과 같다. ICL을 더하고 사양-대-RTL 설정을 바꿔도 “runtime errors remain as the LLM is unable to solve the dataset problems with correct logic”라고 적었다. 핵심은 포맷 적응보다 논리 해결 실패에 있다.
+
+동시에 보완 방향도 드러난다. VeriCoder는 시뮬레이션 결과를 바탕으로 RTL을 반복 수정해 VerilogEval과 RTLLM에서 각각 최대 71.7%, 27.4%의 상대 향상을 보고했다. EDA-aware RTL Generation은 EDA 툴 에러 로그를 활용한 자동 수정으로 기존 대비 약 3.4배 향상을 보고했다. 이 수치가 말하는 바는 비교적 분명하다. 사전학습만으로는 충분하지 않을 수 있고, 검증 루프와 툴-인더루프가 성능 개선에 기여한다.
+
+이번 논문 발췌는 여기에 분류 체계를 더한다. 초록에 따르면 저자들은 문제 해결 가능성에 기반한 taxonomy를 제안하고, 실패를 syntactic, semantic, solvable functional, unsolvable functional 네 범주로 나눈다. 이는 정답률 하나로 묶이던 실패를 “고칠 수 있는 실패”와 “현재 방식으로는 풀기 어려운 실패”로 구분하려는 시도다. 하드웨어 자동화에서는 이 구분이 제품 전략과 평가 기준에 영향을 준다.
+
+## 분석
+
+이 논문의 가치는 RTL 코딩을 “프로그래밍의 하위 문제”로만 보지 않게 만든다는 데 있다. 소프트웨어 코드 생성에서는 함수 호출, API 사용, 테스트 통과가 중심이지만, RTL은 병렬성, 상태 전이, 클록, 타이밍 같은 시간 논리를 다룬다. LLM이 자연어 명세를 그럴듯한 코드 문자열로 바꾸는 능력과, 그 문자열이 실제 회로 동작으로 이어지게 하는 능력은 다르다. VerilogEval의 자동 시뮬레이션 평가와, 개선판에서 드러난 correct logic 해결 실패는 이 간극을 직접 드러낸다.
+
+의사결정 관점에서도 조건은 비교적 분명하다. 목표가 “초안 작성 가속”이라면 구문·의미 오류를 줄이는 프롬프트 엔지니어링과 예시 기반 입력만으로도 일정한 개선을 기대할 수 있다. 반대로 목표가 “기능적으로 맞는 RTL 자동 생성”이라면 시뮬레이션 피드백, 툴 로그, 반복 수정 루프 없이 얻을 수 있는 성능에는 상한이 있을 가능성이 크다. 그 상한의 정확한 원인을 하나로 단정할 근거는 여기 없다. 다만 조사 결과 기준으로는 데이터셋 편향보다 추론 한계 쪽 설명이 더 직접적이다.
+
+한계도 있다. 첫째, 이번 taxonomy가 에이전트형 하드웨어 설계 자동화 전체에 그대로 적용된다고 말할 근거는 아직 부족하다. 조사 결과는 LTL 생성 같은 다른 형식 언어 작업에서도 구문·의미·일관성 문제가 반복된다고 짚지만, 같은 4단계 체계가 표준처럼 통한다고 보기는 이르다. 둘째, 개선 기법들의 수치 비교는 벤치마크, 모델, 평가 설정이 다르다. 71.7%, 27.4%, 약 3.4배라는 숫자는 “루프가 중요하다”는 방향성은 뒷받침하지만, 어떤 방법이 더 낫다고 단정할 근거까지 주지는 않는다.
+
+## 실전 적용
+
+현업 팀이 이 논문에서 바로 가져가야 할 것은 모델 교체보다 평가 설계다. RTL 생성 결과를 pass/fail 하나로만 기록하면, 문법 문제인지, 사양 해석 문제인지, 아니면 현재 모델이 논리적으로 풀지 못하는 문제인지 알 수 없다. 그런 상태에서는 프롬프트를 바꿔도 왜 좋아졌는지 설명하기 어렵다. 하드웨어 설계 자동화에서는 “생성”보다 “진단”을 먼저 설계할 필요가 있다.
+
+예를 들어 자연어로 FSM을 설명하고 Verilog를 생성하는 내부 도구를 운영한다고 하자. 첫 주에는 컴파일 성공률만 볼 것이 아니라, 시뮬레이션 mismatch, 런타임 오류, 툴 로그 기반 수정 가능 여부를 분리해 저장해야 한다. 그래야 구문 오류를 줄이는 UI 개선과, 기능 오류를 줄이는 시뮬레이터 연동을 서로 다른 투자 항목으로 계산할 수 있다. 이 분리가 없으면 팀은 계속 모델 탓만 하거나, 반대로 벤치마크 탓만 하게 된다.
+
+오늘 바로 할 일 체크리스트  
+- RTL 생성 평가표에 문법 성공, 의미 일치, 기능 실패, 수정 가능 여부를 따로 기록하라.  
+- 시뮬레이션 결과와 EDA 툴 로그를 다음 프롬프트 입력으로 다시 넣는 최소 반복 루프를 붙여라.  
+- 파일 하나의 정답률 대신 문제 유형별 실패 분포를 보고 다음 분기 개선 목표를 정하라.  
+
+## FAQ
+
+**Q. 이 논문은 LLM이 RTL 코딩을 못 한다고 결론내리나요?**  
+그렇게 읽는 것은 과합니다. 발췌 기준으로 이 논문은 실패 지점을 더 정밀하게 분류하는 데 초점이 있습니다. 즉, 못 한다기보다 어디까지는 고칠 수 있고 어디서 병목이 생기는지 나누려는 접근입니다.
+
+**Q. 성능 상한의 원인은 데이터셋보다 추론 한계라고 봐도 되나요?**  
+검색 결과만 기준으로 보면 그 해석이 더 가깝습니다. 개선판 분석은 올바른 논리를 해결하지 못해 runtime errors가 남는다고 적고 있습니다. 다만 검증 루프 부재나 데이터셋 편향이 전혀 무관하다고 단정할 근거까지 제시된 것은 아닙니다.
+
+**Q. 그럼 RTL 코딩에서는 사전학습보다 툴 연동이 더 중요합니까?**  
+툴 연동과 검증 루프의 중요성은 확인됩니다. VerilogEval의 자동 시뮬레이션 평가, VeriCoder의 반복 수정, EDA-aware 접근의 툴 로그 활용이 모두 같은 방향을 가리킵니다. 다만 사전학습과 툴 연동의 중요도를 같은 조건에서 정량 비교한 수치는 조사 결과에서 확인되지 않았습니다.
+
+## 결론
+
+RTL 코딩에서 LLM의 핵심 문제는 “코드를 쓰느냐”보다 “시간 논리를 푸느냐”에 있다. 그래서 다음 경쟁력은 더 큰 모델 자체보다, 실패를 구문·의미·해결 가능성으로 나눠 보고 시뮬레이션과 툴 피드백을 붙이는 평가·수정 시스템에서 갈릴 가능성이 크다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-06-19](/ko/posts/ai-resources-roundup-2026-06-19)
+- [정렬과 안전장치의 착시](/ko/posts/alignment-and-safety-guardrails-shape-model-behavior)
+- [P2P LLM 프리픽스 캐시](/ko/posts/decentralized-prefix-caching-p2p-llm-serving)
+- [LLM 서사 반복성의 경고](/ko/posts/llm-stories-repeat-more-than-human-narratives)
+- [분산 에이전트 네트워크의 조건](/ko/posts/open-p2p-networks-for-distributed-ai-agents)
+---
+
+## 참고 자료
+
+- [Revisiting VerilogEval: A Year of Improvements in Large-Language Models for Hardware Code Generation - csl.cornell.edu](https://www.csl.cornell.edu/~cbatten/pdfs/pinckney-revisiting-verilogeval-todaes2025.pdf)
+- [VerilogEval: Evaluating Large Language Models for Verilog Code Generation - arxiv.org](https://arxiv.org/abs/2309.07544)
+- [VeriCoder: Enhancing LLM-Based RTL Code Generation through Functional Correctness Validation - arxiv.org](https://arxiv.org/abs/2504.15659)
+- [EDA-Aware RTL Generation with Large Language Models - arxiv.org](https://arxiv.org/abs/2412.04485)
+- [LTLGuard: Formalizing LTL Specifications with Compact Language Models and Lightweight Symbolic Reasoning - arxiv.org](https://arxiv.org/abs/2603.05728)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.19347)

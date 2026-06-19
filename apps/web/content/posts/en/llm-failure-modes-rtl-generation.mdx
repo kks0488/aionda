@@ -1,0 +1,97 @@
+---
+title: Understanding LLM Failure Modes in RTL Generation
+slug: llm-failure-modes-rtl-generation
+date: '2026-06-19'
+lastReviewedAt: '2026-06-19'
+locale: en
+description: >-
+  Examines LLM failure modes in RTL generation and why simulation feedback loops
+  matter beyond pass rates.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-1547b00dd3f833af
+sourceUrl: 'https://arxiv.org/abs/2606.19347'
+verificationScore: 0.86
+alternateLocale: /ko/posts/llm-failure-modes-rtl-generation
+coverImage: /images/posts/llm-failure-modes-rtl-generation.png
+---
+
+71.7% and 27.4% are often cited in discussions of RTL code generation gains. These figures do not directly show that LLMs understand hardware. They more likely show gains from simulation feedback and revision loops. This arXiv excerpt asks where failures occur. It also asks how sequential coding habits break in parallel and temporal logic.
+
+## TL;DR
+
+- This article classifies RTL generation failures into syntactic, semantic, solvable functional, and unsolvable functional errors.
+- The split matters because simulation-correct circuits differ from merely plausible code.
+- Readers should log pass rates, simulation results, tool logs, and failure types before changing prompts or models.
+
+Example: A team tests a text-to-Verilog assistant for control logic. The code compiles and looks plausible. The waveform still disagrees with the intended behavior. The team then learns that a clean syntax result can hide a harder logic failure.
+
+## TL;DR
+
+- The central issue in this article is RTL failures by LLMs. They should be split beyond aggregate accuracy.
+- The categories are syntactic, semantic, solvable functional, and unsolvable functional errors.
+- This matters because RTL can look valid as code but still fail as a circuit. Readers should record pass rates, simulation results, tool logs, and failure types together.
+
+## Current State
+
+RTL for hardware design, especially Verilog generation, can look similar to software code generation. The evaluation method differs. VerilogEval evaluates generated Verilog against transient simulation outputs from a golden solution. The standard is closer to correct behavior over time. It is less about syntax alone. This difference exposes LLM weaknesses more clearly.
+
+The findings suggest an empirical ceiling in the VerilogEval line of work. That ceiling is interpreted as being closer to an inference limitation than dataset bias. The cited statement says runtime errors remain after adding ICL and changing the spec-to-RTL setup. The reason given is failure to solve problems with correct logic. The key issue is logical problem solving, not format adaptation.
+
+
+This paper excerpt adds a classification framework. According to the abstract, the authors propose a taxonomy based on problem solvability. They divide failures into four categories. The categories are syntactic, semantic, solvable functional, and unsolvable functional. This framework separates fixable failures from harder failures. That distinction can affect product strategy and evaluation criteria.
+
+## Analysis
+
+This paper helps prevent RTL coding from being treated as only a programming subproblem. Software code generation often focuses on APIs, function calls, and tests. RTL involves parallelism, state transitions, clocks, and timing. An LLM can produce plausible code strings. That is different from producing correct circuit behavior. VerilogEval uses simulation-based evaluation. Improved variants still show failures in deriving correct logic. That gap is the main issue.
+
+For decisions, the conditions are fairly clear. If the goal is faster draft generation, prompt engineering can help. Example-based inputs can also reduce syntactic and semantic errors. If the goal is functionally correct RTL generation, a ceiling may remain without feedback loops. The relevant loops include simulation feedback, tool logs, and iterative revision. The findings do not isolate a single cause for that ceiling. Still, the inference-limitation explanation is more direct than a dataset-bias explanation in this evidence.
+
+There are limitations. First, the taxonomy may not transfer unchanged across agentic hardware design automation. The findings note recurring issues in other formal-language tasks, including LTL generation. That is not enough to treat the same four-stage framework as standard. Second, the numeric comparisons come from different benchmarks, models, and settings. The figures 71.7%, 27.4%, and about 3.4x support the direction of loops. They do not show one method is categorically better than another.
+
+## Practical Application
+
+Industry teams can take evaluation design from this paper first. A single pass or fail result hides the source of failure. The issue could be syntax, specification interpretation, or logical solvability. If prompts change later, the reason for improvement becomes hard to explain. In hardware design automation, diagnosis should come before generation.
+
+If an internal tool converts natural-language FSM descriptions into Verilog, logging should go beyond compile success. Teams should separately store simulation mismatches and runtime errors. They should also record whether tool logs suggest a fix path. This separation helps estimate UI and simulator investments more clearly. Without it, teams may over-blame the model or the benchmark.
+
+**Checklist for Today:**
+- Record syntax success, semantic match, functional failure, and fixability as separate fields in the RTL evaluation sheet.
+- Add a minimal iterative loop that feeds simulation results and EDA tool logs into the next prompt.
+- Review failure distribution by problem type, not only single-file accuracy, before setting the next improvement target.
+
+## FAQ
+
+**Q. Does this paper conclude that LLMs cannot do RTL coding?**  
+That reading seems too strong. Based on the excerpt, the paper focuses on classifying failure points more precisely. The goal is to separate fixable issues from bottlenecks.
+
+**Q. Is it reasonable to view the performance ceiling as inference limitations rather than dataset issues?**  
+Based only on these findings, that interpretation seems closer. The improved-version analysis says runtime errors remain because correct logic is not derived. That does not show dataset bias or missing verification loops are irrelevant.
+
+**Q. Then in RTL coding, is tool integration more important than pretraining?**  
+The evidence supports the value of tool integration and verification loops. VerilogEval uses simulation-based evaluation. VeriCoder uses iterative revision. The EDA-aware approach uses tool logs. These findings do not compare pretraining and tool integration under matched conditions.
+
+## Conclusion
+
+In RTL coding, the core issue is less about writing code strings. It is more about solving temporal logic correctly. The next advantage may come less from model size alone. It may come more from evaluation and revision systems. Those systems separate syntax, semantics, and solvability. They also attach simulation and tool feedback.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-19](/en/posts/ai-resources-roundup-2026-06-19)
+- [Alignment and Safety Guardrails Shape Model Behavior](/en/posts/alignment-and-safety-guardrails-shape-model-behavior)
+- [Decentralized Prefix Caching for P2P LLM Serving](/en/posts/decentralized-prefix-caching-p2p-llm-serving)
+- [LLM Stories Repeat More Than Human Narratives](/en/posts/llm-stories-repeat-more-than-human-narratives)
+- [Designing Open P2P Networks for Distributed AI Agents](/en/posts/open-p2p-networks-for-distributed-ai-agents)
+---
+
+## References
+
+- [Revisiting VerilogEval: A Year of Improvements in Large-Language Models for Hardware Code Generation - csl.cornell.edu](https://www.csl.cornell.edu/~cbatten/pdfs/pinckney-revisiting-verilogeval-todaes2025.pdf)
+- [VerilogEval: Evaluating Large Language Models for Verilog Code Generation - arxiv.org](https://arxiv.org/abs/2309.07544)
+- [VeriCoder: Enhancing LLM-Based RTL Code Generation through Functional Correctness Validation - arxiv.org](https://arxiv.org/abs/2504.15659)
+- [EDA-Aware RTL Generation with Large Language Models - arxiv.org](https://arxiv.org/abs/2412.04485)
+- [LTLGuard: Formalizing LTL Specifications with Compact Language Models and Lightweight Symbolic Reasoning - arxiv.org](https://arxiv.org/abs/2603.05728)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.19347)
