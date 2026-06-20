@@ -1,0 +1,85 @@
+---
+title: Query Placement Matters in Diffusion LLM In-Context Learning
+slug: query-placement-diffusion-llm-icl
+date: '2026-06-20'
+lastReviewedAt: '2026-06-20'
+locale: en
+description: >-
+  Why query placement may affect diffusion LLM in-context learning, and what
+  prior position-bias results imply.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-86efcc23426c9b95
+sourceUrl: 'https://arxiv.org/abs/2606.19349'
+verificationScore: 0.71
+alternateLocale: /ko/posts/query-placement-diffusion-llm-icl
+coverImage: /images/posts/query-placement-diffusion-llm-icl.png
+---
+
+Accuracy rose by **+6 points** in one position-bias result. Long-context correction reached **up to 15 percentage points**. The summary also cites paper **2606.19349**. These figures suggest a simple point. Prompt performance can depend on both content and placement. This topic concerns in-context learning, or ICL, in diffusion LLMs. It raises a practical question. Can prompt habits from autoregressive LLMs transfer without changes?
+
+## TL;DR
+
+- This article examines whether query placement in ICL for diffusion LLMs affects performance and interpretation.
+- This matters because prompt layout may hide a performance variable, with reported changes of **+6 points** and **up to 15 percentage points**.
+- Readers should run an A/B test that changes only query position for the same task and examples.
+
+Example: A team keeps the same prompt wording, examples, and task. It moves the query to different places. The outputs shift enough to change which template the team trusts.
+
+## Current state
+
+The starting point here is **2606.19349**, listed as an arXiv abstract. According to the excerpt, the paper says dLLM ICL remains underexplored. It also says dLLMs are not limited by unidirectional causal masking. The excerpt attributes that difference to bidirectional attention. It also says current practice often keeps the AR-style trailing-query template. Up to this point, these claims come from the excerpt.
+
+This pattern is not entirely new. On the autoregressive side, researchers have already tested ICL sensitivity to demonstration position. The cited materials describe two metrics. They are **Accuracy-Change** and **Prediction-Change**. They also describe an evaluation pipeline. It covers classification, question answering, summarization, and reasoning. That suggests prompt position is already treated as a measurable factor in AR settings.
+
+Practical usage also shows signals. The quoted findings say that changing the positions of demonstrations, the system prompt, and the user message can alter accuracy and predictions. One reported result showed gains of **up to +6 points** when demonstrations appeared at the start. Another reported result showed improvements of **up to 15 percentage points** after correcting middle-position bias in long-context settings. These numbers do not come from dLLM-specific results. They come from broader position-bias research. Based on this investigation, the cost of trailing-query placement for dLLMs is still unclear.
+
+## Analysis
+
+This issue matters because it tests a common prompt-engineering assumption. Many teams use a default template. Examples come first. The query goes at the end. That pattern may fit autoregressive generation. If dLLMs use bidirectional attention, the end position may be less obviously preferred. The same task and information could yield different results from placement alone. If so, another variable exists outside standard model comparison tables.
+
+There is also reason for caution. This investigation did not confirm a shared evaluation framework for AR LLM and dLLM ICL on the same axis. No clear community standard appears in the cited material. It does not yet provide a single comparison table. Search results also suggested that dLLMs may show position bias more weakly than ARLMs. However, this investigation did not directly verify the stronger claim. It did not confirm, in explicit empirical terms, that bidirectional attention makes trailing-query placement suboptimal. A careful reading is more limited. In dLLMs, query position looks like an important candidate variable. Copying AR-style conventions without testing can carry risk. The size and conditions of that risk still need task-level validation.
+
+## Practical application
+
+This issue should not stay theoretical. It matters in code-bound environments. Examples include prompt chains, tool calling, RAG post-processing, and automated evaluation. If query-position bias exists, a team could misread a template-order change as a model change. The reverse can also happen. A new model could seem weaker because an AR-era template remained unchanged.
+
+For classification or extraction, do not test only the trailing-query version. Try versions with the query at the start, in the middle, or in a separate section. For summarization or RAG, change the relative positions of document chunks and the question. Check answer quality and prediction consistency. If possible, track more than Accuracy alone. This is why AR research separated **Accuracy-Change** from **Prediction-Change**.
+
+**Checklist for Today:**
+- Select one production prompt and compare templates that change only query position on the same input set.
+- Record the main task metric and output variation to inspect position effects on stability.
+- Add a template-position assumption check to model evaluations so inherited AR layouts get reviewed.
+
+## FAQ
+
+**Q. Where is the best place to put the query in a diffusion LLM?**  
+No single best position has been established yet. The quoted source says dLLMs have greater placement flexibility through bidirectional attention. This investigation does not identify one position that works across tasks.
+
+**Q. Then should we discard the prompt templates we used for autoregressive LLMs?**  
+They do not need to be discarded. Treating them as defaults without testing can be risky. Related position-bias research reported changes in both accuracy and predictions after placement changes. Existing templates work better as baselines for comparison.
+
+**Q. Which metrics should we look at right now?**  
+Start with the task’s main metric and output stability. The AR research cited here proposed **Accuracy-Change** and **Prediction-Change**. In practice, both correctness shifts and output-behavior shifts can be useful.
+
+## Conclusion
+
+The next prompt-engineering question is not only which examples to include. It is also where to place those examples and the query. dLLMs make that question harder to ignore. The useful next step is simple. Treat position as a variable and measure it directly.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-20](/en/posts/ai-resources-roundup-2026-06-20)
+- [Auditing LLM Judges Without Trusted Gold Labels](/en/posts/auditing-llm-judges-without-trusted-gold-labels)
+- [Interpreting Style-Caption TTS With Cross-Attention Attribution](/en/posts/interpreting-style-caption-tts-cross-attention-attribution)
+- [MakeupMirror Shifts AR Makeup Toward Trust And Identity](/en/posts/makeupmirror-ar-makeup-trust-identity)
+- [Modeling Long-Term Object Dynamics for Home Robots](/en/posts/modeling-long-term-object-dynamics-home-robots)
+---
+
+## References
+
+- [Where to show Demos in Your Prompt: A Positional Bias of In-Context Learning - huggingface.co](https://huggingface.co/papers/2507.22887)
+- [Where to show Demos in Your Prompt: A Positional Bias of In-Context Learning - arxiv.org](https://arxiv.org/abs/2507.22887)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.19349)
