@@ -1,0 +1,91 @@
+---
+title: How Linear Transformer FFN Blocks Really Are
+slug: how-linear-transformer-ffn-blocks-are
+date: '2026-06-20'
+lastReviewedAt: '2026-06-20'
+locale: en
+description: >-
+  Examines per-block linear recoverability of transformer FFNs and what R^2_lin
+  may imply for compression and interpretability.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-b7567dc34dc91474
+sourceUrl: 'https://arxiv.org/abs/2606.19379'
+verificationScore: 0.63
+alternateLocale: /ko/posts/how-linear-transformer-ffn-blocks-are
+coverImage: /images/posts/how-linear-transformer-ffn-blocks-are.png
+---
+
+A paper with arXiv ID **2606.19379** asks a practical question about Transformer FFN blocks. It asks how nonlinear each block is in actual use. This matters for interpretability, compression, low-rank approximation, and inference optimization.
+
+## TL;DR
+
+- This paper studies whether each Transformer FFN block is linearly recoverable, using **R^2_lin**.
+- That question could help compression and analysis, but current evidence still looks limited and context-dependent.
+- Readers should test block-level linearity with ablations and layer-wise measurements before changing deployment choices.
+
+Example: imagine a team comparing several FFN blocks in one model. They test linear replacements, review task behavior, and keep only changes that remain stable.
+
+The title is also direct: *How Linear Is a Transformer Feed-Forward Block? Per-Block Linear Recoverability Is Learned, Not Architectural.* In the quoted excerpt, the authors treat each FFN as a position-wise input-output function. They decompose it into an exact least-squares linear approximation and a residual. They define **R^2_lin** as the fraction of held-out variance explained by that closed-form linear map.
+
+## Current status
+
+Transformer FFNs often receive less attention than attention layers. Still, they account for a large share of computation and representation. Prior studies have described FFNs as memory, concept promoters, or pattern repositories. For example, paper **2012.14913** says FFN patterns can be human-readable. It also says lower layers capture shallower patterns. Upper layers capture more semantic patterns.
+
+The excerpt raises a narrower question. It asks how nonlinear the block is during actual operation. Three points appear in the quoted range. First, each FFN is treated as a position-wise input-output map. Second, it is decomposed into an exact least-squares linear approximation and a residual. Third, **R^2_lin** is the fraction of held-out variance explained. The paper also describes this as an optimizer-free measure. That suggests an analysis method without additional training.
+
+A boundary is still important. The available excerpt does not confirm which layers are more linear. It does not confirm how linearity changes with model scale. It does not confirm how linearity changes across training stages. From arXiv ID **2606.19379** and the quoted sentences alone, block-wise graphs and numerical results are unavailable. For the same reason, **R^2_lin** has not been confirmed here as a validated compression selector.
+
+Related literature adds context. *Your Transformer is Secretly Linear* **2405.12250** is summarized on Hugging Face. That summary says removing or linearly approximating some very linear blocks did not significantly affect loss or performance. The same survey summary also says regularization that reduces linearity improved some benchmark performance. That leaves no simple rule such as “more linear is better.”
+
+## Analysis
+
+This question matters because interpretability can inform design and operations. If some FFNs behave close to linear maps after training, they may deserve separate treatment. They may be better viewed as expensive linear layers in some settings. That could help identify candidates for low-rank approximation. It could also support block-wise replacement tests in serving. At a research level, it opens a way to examine whether nonlinearity is learned rather than architectural.
+
+Several limits should stay clear. High linear recoverability does not imply low importance. A nearly linear block can still matter under certain tasks or shifts. Interactions across blocks also complicate full-model prediction from local measurements. Paper **2109.12036** reports that Transformers prefer linear generalization over hierarchical generalization. That context is relevant. Still, it does not justify saying FFN linearity causes generalization.
+
+The link to interpretability also needs care. Paper **2203.14680** says FFNs produce predictions by promoting concepts in vocabulary space. That supports the idea that FFNs have internal structure. But internal structure is different from linear recoverability. One is a functional explanation. The other is a function-approximation property. Mixing them can weaken the conclusion.
+
+## Practical application
+
+For practitioners, the message is closer to block-by-block treatment than immediate architecture changes. If the goal is compression or latency reduction, uniform FFN approximation may be unwise. It is better to compare linearity measurements with ablation sensitivity. If highly linear blocks are also replaceable, computation may fall. If a block appears linear but destabilizes downstream tasks, it should stay.
+
+**Checklist for Today:**
+- Collect FFN input-output samples and record each block’s **R^2_lin** or equivalent explanatory measure.
+- Test high-linearity blocks with removal, linear replacement, and low-rank replacement in separate ablations.
+- Review results by lower, middle, and upper layers, then compare performance, loss, latency, and stability.
+
+## FAQ
+
+**Q. Can FFN linearity measurement be used directly for model compression?**  
+It seems safer as a candidate-discovery metric. Related material reports limited performance impact for some linear blocks. But no evidence here confirms that **R^2_lin** itself is broadly validated for compression selection.
+
+**Q. If linear recoverability is high, is that block less important?**  
+Not necessarily. Linear recoverability and functional importance are different questions. Some blocks may look linear yet remain important under certain tasks or distribution shifts.
+
+**Q. Does this research mean Transformers are essentially linear models?**  
+That conclusion would go too far. The question here is narrower. It asks how linearly some FFN blocks operate after training. Overall nonlinear structure, block interactions, and out-of-distribution behavior still matter.
+
+## Conclusion
+
+FFN linearity measurement looks like more than a minor interpretability topic. It can act as an instrumentation tool for Transformer internals. It may also help map candidates for compression and optimization. The next question is not only whether a block looks linear. It is which blocks remain replaceable under which conditions.
+
+## Further Reading
+- [AI Coding Needs Review More Than Speed Gains](/en/posts/ai-coding-needs-review-more-than-speed-gains)
+- [AI Research Automation and the Reality of Labor](/en/posts/ai-research-automation-and-the-reality-of-labor)
+- [AI Resource Roundup (24h) - 2026-06-20](/en/posts/ai-resources-roundup-2026-06-20)
+- [Arabic Fine-Tuning and Cross-Lingual Transfer Beyond Semitic Relatedness](/en/posts/arabic-fine-tuning-cross-lingual-transfer-semitic-relatedness)
+- [Auditing LLM Judges Without Trusted Gold Labels](/en/posts/auditing-llm-judges-without-trusted-gold-labels)
+---
+
+## References
+
+- [Paper page - Your Transformer is Secretly Linear - huggingface.co](https://huggingface.co/papers/2405.12250)
+- [Transformer Feed-Forward Layers Are Key-Value Memories - arxiv.org](https://arxiv.org/abs/2012.14913)
+- [Transformers Generalize Linearly - arxiv.org](https://arxiv.org/abs/2109.12036)
+- [Transformer Feed-Forward Layers Build Predictions by Promoting Concepts in the Vocabulary Space - arxiv.org](https://arxiv.org/abs/2203.14680)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.19379)

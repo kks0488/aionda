@@ -1,0 +1,113 @@
+---
+title: JustDiag for Auditable Root Cause Analysis in LLM Workflows
+slug: justdiag-auditable-root-cause-analysis-llm-workflows
+date: '2026-06-20'
+lastReviewedAt: '2026-06-20'
+locale: en
+description: >-
+  Why JustDiag reframes LLM root cause analysis around evidence, alternatives,
+  contradictions, and uncertainty.
+tags:
+  - agi
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-b94412c94213a6b8
+sourceUrl: 'https://arxiv.org/abs/2606.19407'
+verificationScore: 0.61
+alternateLocale: /ko/posts/justdiag-auditable-root-cause-analysis-llm-workflows
+coverImage: /images/posts/justdiag-auditable-root-cause-analysis-llm-workflows.png
+---
+
+In high-risk operations, a fluent RCA answer can still hide missing evidence. What matters is the diagnostic process behind the answer.
+
+## TL;DR
+
+- JustDiag is presented in arXiv `2606.19407` as a justification engine for accountable root cause analysis.
+- This matters because high-risk teams need evidence, alternatives, contradictions, and uncertainty, not only a final answer.
+- Review your RCA workflow and add structured fields for evidence, alternatives, contradictions, and uncertainty if they are missing.
+
+Example: A response tool suggests one likely cause for an outage. The team still checks the evidence, reviews other explanations, and marks unresolved conflicts before acting.
+
+## Current State
+
+The source excerpt confirms several concrete details. The paper title is `JustDiag!: A Diagnostic Justification Engine for Accountable Root Cause Analysis`. The arXiv identifier is `2606.19407`.
+
+The abstract says LLMs can produce fluent root cause analysis. In high-risk operations, accountability is hard to secure from the final answer alone. Engineers want more than a single answer.
+
+They want the supporting evidence and alternative explanations. They also want remaining contradictions and preserved uncertainty.
+
+This concern extends beyond one study. The findings cite related literature in AIOps, autonomous incident resolution, and agentic AI for cybersecurity. These topics treat root cause analysis, explainability, human oversight, and auditability as central requirements.
+
+The search includes `2606.09122` and `2602.11897`. It also includes an AIOps RCA study on ScienceDirect. However, these references do not show that JustDiag has been validated in operations or security response.
+
+What can be confirmed is a possible connection across related domains. No deployment outcomes or quantitative results were verified in the provided material.
+
+Trust is another important axis. The findings say uncertainty expression can help operators calibrate trust. Related research on ScienceDirect also notes a possible gap between subjective trust and actual behavior.
+
+That means a simple rule is not supported here. Showing uncertainty can help, but presentation and verification should be designed together.
+
+## Analysis
+
+JustDiag matters because it shifts evaluation criteria for LLMs. Many teams focus on fluency, speed, and accuracy. In operational settings, those criteria can be incomplete.
+
+If an incident cause is wrong, recovery can be delayed. In security response, one wrong hypothesis can redirect an investigation. As a result, teams may need to ask different questions.
+
+They may need to ask why an answer was produced. They may also need to ask what was ruled out. They should ask where confidence remains limited.
+
+There are also limits. A longer justification does not necessarily improve diagnostic accuracy. If the evidence is weak, the explanation can become packaging rather than substance.
+
+Uncertainty signaling is also double-edged. Operators may trust a cautious system more. They may also undervalue an answer that is still useful.
+
+An explainable structure can slow workflow. In high-risk settings, speed and auditability can conflict. For that reason, JustDiag looks closer to decision interface design than answer generation alone.
+
+## Practical Application
+
+Practitioners can start with the output format. If you use an LLM for incident response or RCA support, require structured fields. Use `claim-evidence-alternative hypotheses-contradictions-remaining uncertainty`.
+
+These five fields can make review easier. If they are empty, the answer should be treated as reference material. It should not stand alone in operational decisions.
+
+Consider an outage analysis bot that says the cause is database connection pool exhaustion. Stopping there would be risky. The supporting logs and metrics should be preserved.
+
+Competing hypotheses should also be shown. One example is error growth after an application deployment. Contradictory signals should be recorded too.
+
+The output should also say whether the conclusion is final or provisional. This structure helps a human operator challenge or approve the conclusion more quickly.
+
+**Checklist for Today:**
+- Add a fixed RCA section for alternative hypotheses, such as “at least two alternative hypotheses,” if it is missing.
+- Add a rule that uncertainty should be stated explicitly and test it on sample incident records.
+- Review team checklists and separate evidence traceability from contradiction marking instead of scoring accuracy alone.
+
+## FAQ
+
+**Q. Is JustDiag already a product widely used in operational environments?**  
+No. The provided material supports a research context tied to an arXiv abstract. It does not establish deployment scope or commercial adoption.
+
+**Q. Does showing uncertainty improve operator trust?**  
+Not necessarily. The findings say it can help trust calibration. They also say presentation can create a gap between subjective trust and actual behavior.
+
+**Q. Can this approach also be used for security incident response or agentic automation?**  
+There is potential. Related literature treats explainability, human oversight, and auditability as important. However, no confirmed evidence here shows direct validation of JustDiag in those domains.
+
+## Conclusion
+
+JustDiag is not about making answers sound more plausible. It is about preserving how an answer was produced. It also preserves omissions and the limits of certainty.
+
+That framing could make LLM-based diagnosis more accountable in operations. The key question is how well this justification structure works in real incident response workflows.
+
+## Further Reading
+- [AI Coding Needs Review More Than Speed Gains](/en/posts/ai-coding-needs-review-more-than-speed-gains)
+- [AI Research Automation and the Reality of Labor](/en/posts/ai-research-automation-and-the-reality-of-labor)
+- [AI Resource Roundup (24h) - 2026-06-20](/en/posts/ai-resources-roundup-2026-06-20)
+- [Arabic Fine-Tuning and Cross-Lingual Transfer Beyond Semitic Relatedness](/en/posts/arabic-fine-tuning-cross-lingual-transfer-semitic-relatedness)
+- [Auditing LLM Judges Without Trusted Gold Labels](/en/posts/auditing-llm-judges-without-trusted-gold-labels)
+---
+
+## References
+
+- [More is not better: Visual uncertainty cues and the fragility of trust calibration in LLM-assisted decision making - ScienceDirect - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S2949882126000587)
+- [Graph-Augmented Multi-Agent Robust Root Cause Analysis in AIOps - ScienceDirect - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S1546221826005011)
+- [Autonomous Incident Resolution at Hyperscale: An Agentic AI Architecture for Network Operations - arxiv.org](https://arxiv.org/abs/2606.09122)
+- [Agentic AI for Cybersecurity: A Meta-Cognitive Architecture for Governable Autonomy - arxiv.org](https://arxiv.org/abs/2602.11897)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.19407)
