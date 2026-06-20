@@ -1,0 +1,90 @@
+---
+title: MakeupMirror Shifts AR Makeup Toward Trust And Identity
+slug: makeupmirror-ar-makeup-trust-identity
+date: '2026-06-20'
+lastReviewedAt: '2026-06-20'
+locale: en
+description: >-
+  MakeupMirror targets identity and skin tone preservation in makeup transfer,
+  reframing AR commerce around trust over demos.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-4a81e5c31f37edea
+sourceUrl: 'https://arxiv.org/abs/2606.20094'
+verificationScore: 0.77
+alternateLocale: /ko/posts/makeupmirror-ar-makeup-trust-identity
+coverImage: /images/posts/makeupmirror-ar-makeup-trust-identity.png
+---
+
+
+Example: A shopper tries a virtual lipstick shade. The color looks appealing. The face shape and skin tone feel slightly off. The shopper hesitates because the result no longer feels like their own reflection.
+
+## TL;DR
+
+- MakeupMirror focuses on identity and skin tone preservation in diffusion-based makeup transfer, not only prettier generated makeup.
+- Readers should compare candidates using facial similarity, human evaluation, and latency, then start with a narrower pilot scope.
+
+In virtual makeup shopping, users often notice contour and skin tone shifts before judging color appeal. That makes this research relevant to deployable VTO and AR. The available evidence is limited to the abstract and search snippets. Broader claims about generalization and real-time use should be treated cautiously.
+
+## Current status
+
+According to the cited excerpt, MakeupMirror addresses identity and skin tone preservation limits in diffusion-based makeup transfer. The abstract says earlier diffusion approaches improved realism and makeup accuracy. It also says identity and skin color preservation remained limited. That framing shifts attention from prettier outputs to outputs that may fit commercial use.
+
+Identity preservation is not new in this field. Prior work has tried to keep the source face’s core characteristics after makeup transfer. Based on the available snippets, MakeupMirror reported a **+60%** relative improvement in facial recognition similarity. It also mentioned a **94%** expert acceptance rate for core identity preservation criteria. However, the available materials do not confirm the recognition model. They also do not confirm the expert evaluation protocol.
+
+
+## Analysis
+
+This research matters because it changes the evaluation frame. Makeup transfer has often been treated like style transfer. The focus was often natural-looking eye shadow, lip color, and blush transfer. In shopping and AR, trust can matter before aesthetics. If the result looks attractive but not like the user, trust can weaken. That can affect recommendation quality, conversion, and repeat use. By centering facial recognition similarity and expert acceptance, this work clarifies what commerce-oriented systems may need to show.
+
+That said, the available evidence should not drive an immediate deployment decision. First, the current findings do not confirm consistent skin tone preservation across lighting, ethnicity, and broad skin tone ranges. Related studies discuss real-world variation. It remains unclear whether MakeupMirror itself ran subgroup evaluations. Second, the real-time issue remains significant. At **1.25 seconds** per image or **2–3 FPS**, the format may suit some uses better than live AR. Third, high facial similarity scores may not fully match user perception. A recognition model can rate a result as similar while users dislike the makeup intensity or skin texture.
+
+## Practical Application
+
+Decision-makers should separate “live AR mirror” from “asynchronous VTO recommendation.” If the goal is a live camera overlay, the reported speed figures imply that optimization or pipeline separation may be needed. In that case, latency budget and perceived responsiveness should be prioritized. If the goal is still-image VTO on product pages, stronger identity preservation may matter more. In that setting, users may tolerate some delay. Whether the result still looks like their own face can become the key decision factor.
+
+The evaluation frame should also change. A single attractive demo image is not enough. Facial recognition similarity, human evaluation, and speed should sit in the same table. Conditions with strong lighting shifts should be reviewed separately. Selfies with poor white balance should also be separated. Low-resolution front-camera shots should be reviewed as their own group. Makeup transfer is closer to a trust-sensitive system than a simple filter. An attractive result can still fail if it no longer looks like the person.
+
+**Checklist for Today:**
+
+- Put facial recognition similarity, human evaluation, and latency on one comparison slide for each candidate model.
+- Separate live AR and still-image VTO into different requirements documents with different latency targets.
+- Build test sets by skin tone and lighting first, then label failures by trust risk, not beauty alone.
+
+## FAQ
+
+**Q. Can MakeupMirror already be used directly in commercial AR makeup?**
+
+That is difficult to confirm from the available evidence. The confirmed materials show a focus on identity and skin tone preservation. They also include some quantitative metrics. Real-time deployment cost and latency still need separate validation.
+
+**Q. Why is identity preservation measured using facial recognition similarity?**
+
+It offers a machine-based way to compare whether core facial characteristics remain after makeup transfer. However, that signal alone is not enough. Human review, including expert evaluation, should be considered alongside it.
+
+**Q. Can skin tone preservation also be considered proven?**
+
+The available materials confirm that skin tone preservation is a target. They do not confirm consistent performance across lighting, ethnicity, and the full skin tone range. That part still needs direct verification within the available evidence scope.
+
+## Conclusion
+
+MakeupMirror raises a practical question. After makeup transfer, does the user still look like themselves? The next stage in this field may depend less on visual flair alone. It may depend more on how convincingly systems balance identity preservation, skin tone stability, and latency.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-20](/en/posts/ai-resources-roundup-2026-06-20)
+- [Auditing LLM Judges Without Trusted Gold Labels](/en/posts/auditing-llm-judges-without-trusted-gold-labels)
+- [Interpreting Style-Caption TTS With Cross-Attention Attribution](/en/posts/interpreting-style-caption-tts-cross-attention-attribution)
+- [AI Resource Roundup (24h) - 2026-06-19](/en/posts/ai-resources-roundup-2026-06-19)
+- [Can General Models Extract Legal Networks Reliably](/en/posts/can-general-models-extract-legal-networks-reliably)
+---
+
+## References
+
+- [A Diffusion Model for Virtual Try-On Systems - openrepository.aut.ac.nz](https://openrepository.aut.ac.nz/server/api/core/bitstreams/b3e06fdf-3ebf-47ca-9f8c-a44e888efd6e/content)
+- [FPMT: Fast and precise high-resolution makeup transfer via Laplacian pyramid - sciencedirect.com](https://www.sciencedirect.com/science/article/abs/pii/S003132032600186X)
+- [From Synthetic to Real: Toward Identity-Consistent Makeup Transfer with Synthetic and Real Data - arxiv.org](https://arxiv.org/abs/2605.07861)
+- [BeautyDiffusion: Generative latent decomposition for makeup transfer via diffusion models - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S1566253525003148)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.20094)
