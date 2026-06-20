@@ -1,0 +1,104 @@
+---
+title: How LLMs Encode Essay Quality for Scoring
+slug: how-llms-encode-essay-quality-for-scoring
+date: '2026-06-20'
+lastReviewedAt: '2026-06-20'
+locale: en
+description: >-
+  Examines how LLMs encode essay quality in hidden representations and whether
+  those signals persist across prompt changes.
+tags:
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-9f65dfdd8b9beec6
+sourceUrl: 'https://arxiv.org/abs/2606.20152'
+verificationScore: 0.8
+alternateLocale: /ko/posts/how-llms-encode-essay-quality-for-scoring
+coverImage: /images/posts/how-llms-encode-essay-quality-for-scoring.png
+---
+
+A scoring system changes behavior when prompts change. That can affect fairness and reliability in essay evaluation.
+
+## TL;DR
+
+- This article examines how LLMs represent essay quality internally across prompts and languages.
+- It matters because stable internal signals may differ from stable real-world scoring behavior.
+- Readers should test repeated runs, prompt changes, and small human-labeled checks before deployment.
+
+Example: A school tests one essay scorer with different instructions. The scores shift, even when the writing stays the same.
+
+## Current landscape
+
+Based on the cited excerpt, this paper compares the hidden representations of **8 LLMs**. The target data includes **2 English essay datasets** and **1 Portuguese dataset**.
+
+The English datasets in the excerpt are **ASAP++** and **CSEE**. The Portuguese dataset is **ENEM**. The methods include **linear probing**, **cross-prompt generalization**, and **dimensionality reduction**.
+
+The key point is not competition on essay scoring performance. The researchers examine **where essay quality representations appear**. They also test whether those signals remain when prompts change.
+
+This distinction matters. Two models can reach similar accuracy. Yet one may track writing quality more closely. Another may follow superficial formal signals.
+
+That said, stable representations do not automatically imply trustworthy evaluation. According to the reviewed findings, the paper argues that hidden representations show strong discriminative power in cross-prompt settings. However, separate reliability studies suggest that alignment with human judgment can vary with prompt design and repeated runs.
+
+These ideas may overlap, but they are not the same. Internal generalization differs from operational reliability.
+
+
+
+## Analysis
+
+This research shifts attention from **score prediction** to the **evaluation mechanism**. Many discussions stop at agreement with human scores. Deployment raises additional questions.
+
+A small prompt change can shift scoring standards. A language change can mix style and content signals. Repeated runs can also alter judgments. Internal representation analysis can help trace these instabilities.
+
+This also affects bias and safety discussions. Separate studies have warned that **LLM-as-a-Judge** stability can be affected by bias. Other research has proposed estimating score offsets with a small human-labeled set. The system can then be calibrated.
+
+A clear distinction is still needed. The reviewed findings do not confirm that this paper directly demonstrates bias mitigation. Interpretability does not automatically produce controllability. Reading internal representations differs from steering them reliably.
+
+## Practical application
+
+Practitioners can read this study as a starting point for an **explainable scorer**. Schools, edtech companies, testing agencies, and internal automation teams should look beyond one score metric.
+
+They can check whether quality signals remain stable across prompts. They can compare representational patterns across languages and task formats. They can also measure score variance across repeated runs.
+
+A diagnostic dashboard may be more useful than a single leaderboard. It can reveal instability that average performance hides.
+
+For example, an admissions team could rescore the same responses with different prompts before deployment. They could record the score range for each response. High-variance responses could go to human review. A separate small human-scored set could also check systematic score offsets.
+
+**Checklist for Today:**
+- Rescore the same essay samples **twice** with different prompts, then record score variation.
+- Keep a small human-scored validation set, then compare consistency and score offsets.
+- Monitor average scores, cross-prompt variation, rerun variation, and language-specific variation together.
+
+## FAQ
+
+**Q. Does this paper claim state-of-the-art automated essay scoring performance?**  
+No. Based on the cited excerpt, the study focuses on hidden representation analysis, not performance competition. It examines internal essay quality signals with linear probing, cross-prompt generalization, and dimensionality reduction.
+
+**Q. If a representation remains stable when the prompt changes, can we trust it immediately?**  
+Not necessarily. The reviewed findings suggest a relationship to reliability. However, they do not show that representational stability and operational reliability are identical.
+
+**Q. Does this kind of internal representation analysis directly solve bias problems?**  
+It is difficult to say that it does. Internal analysis can help identify bias signals and support safer design. The reviewed findings do not confirm direct validation of a bias mitigation technique.
+
+## Conclusion
+
+In essay scoring, the main question is no longer only **"How accurately does it predict the score?"** Another question also matters. What is the LLM tracking when it assigns that score?
+
+It also matters whether that judgment structure persists across prompts and languages. Representational stability, reproducibility, and bias control may become more important than benchmark tables when evaluating trustworthiness.
+
+## Further Reading
+- [AI Coding Needs Review More Than Speed Gains](/en/posts/ai-coding-needs-review-more-than-speed-gains)
+- [AI Research Automation and the Reality of Labor](/en/posts/ai-research-automation-and-the-reality-of-labor)
+- [AI Resource Roundup (24h) - 2026-06-20](/en/posts/ai-resources-roundup-2026-06-20)
+- [Arabic Fine-Tuning and Cross-Lingual Transfer Beyond Semitic Relatedness](/en/posts/arabic-fine-tuning-cross-lingual-transfer-semitic-relatedness)
+- [Auditing LLM Judges Without Trusted Gold Labels](/en/posts/auditing-llm-judges-without-trusted-gold-labels)
+---
+
+## References
+
+- [Harnessing LLMs for multi-dimensional writing assessment: Reliability and alignment with human judgments - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S2405844024102939)
+- [Large language models and automated essay scoring of English language learner writing: Insights into validity and reliability - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S2666920X24000353)
+- [Evaluating Scoring Bias in LLM-as-a-Judge - arxiv.org](https://arxiv.org/abs/2506.22316)
+- [LLM Essay Scoring Under Holistic and Analytic Rubrics: Prompt Effects and Bias - arxiv.org](https://arxiv.org/abs/2604.00259)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.20152)
