@@ -1,0 +1,91 @@
+---
+title: 장편 서사 평가의 핵심
+slug: evaluating-long-form-story-generation-beyond-surface-writing-quality
+date: '2026-06-22'
+lastReviewedAt: '2026-06-22'
+locale: ko
+description: '장편 서사 평가는 문장력보다 일관성, 인과, 완결성, 규칙 유지로 나눠 봐야 한다.'
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '1269251'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1269251'
+verificationScore: 0.86
+alternateLocale: /en/posts/evaluating-long-form-story-generation-beyond-surface-writing-quality
+coverImage: >-
+  /images/posts/evaluating-long-form-story-generation-beyond-surface-writing-quality.png
+---
+
+한 문장의 문장력이 아니라, 끝까지 지켜야 할 규칙이 문제다. 장편 서사 평가 논문들은 이 문제를 감으로 다루지 않는다. 2311.15208의 LongStory는 논문 초록 기준으로 coherence, completeness, relevance, repetitiveness를 주요 평가 항목으로 보고 비교한다. 2603.05890의 Lost in Stories는 narrative consistency를 겨냥한다. 모델이 이미 세운 사실·성격·세계 규칙을 스스로 깨뜨리는지 묻는다. 창작형 LLM을 평가할 때 “재미있었나”만 묻는 방식이 부족한 이유도 여기에 있다.
+
+이 쟁점은 취향 논쟁으로만 끝나지 않는다. 이야기 생성은 제품 기능이기도 하다. 에이전트의 장문 출력 품질과도 맞닿아 있다. 초반에 세운 시간 규칙을 후반에 어기거나, 복선을 던져 놓고 회수하지 못하거나, 사건 사이 인과가 비는 순간 사용자는 문장보다 구조에서 먼저 이탈한다. 그래서 서사 품질 평가는 감상문이 아니라 테스트 설계의 문제가 된다.
+
+## 세 줄 요약
+
+- 핵심 쟁점은 LLM의 “문장력”보다 설정 일관성, 시간 규칙 유지, 사건 간 인과, 결말 완결성을 어떻게 나눠 평가하느냐다.
+- 이게 중요한 이유는 창작형 출력의 실패가 취향 문제를 넘어 제품 신뢰도 문제로 이어질 수 있기 때문이다. 모델이 자기 세계관을 스스로 깨면 긴 출력 전체의 신뢰도도 떨어진다.
+- 독자는 이야기 프롬프트를 바로 길게 던지기보다 규칙표·사건표·결말 조건을 분리해 주는 편이 낫다. 결과물도 일관성·인과·회수 항목으로 나눠 채점해 비교하는 편이 낫다.
+
+## 현황
+
+공개 논문 기준으로 서사 생성 평가는 이미 구조적 항목 중심으로 흐르고 있다. LongStory는 장문 이야기를 coherence, completeness, relevance, repetitiveness로 나눠 본다. 여기서 핵심은 단일 총점이 아니라는 점이다. 재미가 조금 떨어져도 완결성이 높을 수 있다. 문장이 유려해도 반복과 모순이 많을 수 있다.
+
+공개된 연구 중에는 더 직접적으로 “일관성 버그”를 겨냥하는 사례도 있다. Lost in Stories는 ConStory-Bench를 제안하며 narrative consistency를 본다. 이 논문 요약에 따르면 문제는 단순 사실 오류에 그치지 않는다. 모델은 스스로 세운 사실, 캐릭터 특성, 세계 규칙을 뒤집을 수 있다. 사용자가 읽다가 “이건 아까 한 말과 다르다”고 느끼는 순간을 벤치마크 항목으로 가져온 셈이다.
+
+장문 구조를 어떻게 쪼개 볼지도 연구마다 다르다. StoryWriter는 discourse coherence를 평가하면서 plot consistency, logical coherence, completeness를 함께 묶는다. Neural Story Planning 쪽 요약은 narrative coherence를 사건들이 causally related한지, 즉 서로 인과적으로 연결되는지로 본다. OpenMEVA는 메트릭이 인간 판단과 얼마나 맞는지도 시험한다. 정리하면, 창작형 평가는 이제 “좋은 글 같음”보다 “무엇이 무너졌는지”를 항목별로 찾는 쪽에 가깝다.
+
+프롬프트 설계 쪽 공식 가이드도 같은 방향을 가리킨다. OpenAI 가이드는 첫 줄에 간결한 지시를 두고, 모호하면 하위 단계로 나누고, 결과는 마지막에 두라고 안내한다. Anthropic과 Google 관련 가이드 요약도 번호 목록, 태그, few-shot 예시, 형식 일관성을 강조한다. 이야기 생성에서도 “한 번에 잘 써봐”보다 “규칙을 먼저 정의하고, 단계별로 출력하게 하라”는 접근이 더 맞을 수 있다.
+
+## 분석
+
+의사결정 관점에서 보면, 창작형 LLM의 평가는 두 갈래로 나뉜다. 목표가 짧은 마케팅 카피나 캐릭터 톤 샘플이라면 문장 리듬과 어조가 더 중요할 수 있다. 반대로 목표가 단편소설, 시나리오 초안, 게임 퀘스트, 인터랙티브 픽션이라면 일관성과 인과가 우선순위로 올라간다. 전자는 순간 인상으로 통과할 수 있다. 후자는 중반 이후의 구조적 붕괴가 치명적이다. 같은 모델이라도 어떤 업무에 쓰느냐에 따라 평가표가 달라져야 한다.
+
+트레이드오프도 있다. 규칙을 촘촘히 주면 모순은 줄어들 수 있지만, 글이 경직될 수 있다. 반대로 자유 생성 폭을 넓히면 뜻밖의 장면은 잘 나올 수 있지만 시간선, 복선 회수, 결말 정합성에서 흔들릴 가능성이 커진다. 또 자동 평가만으로는 한계가 있다. causally related 같은 지표는 인과를 잡는 데 쓸모가 있지만, 독자가 납득하는 감정선까지 충분히 포착하는지는 별개다. 인간 평가만 믿는 것도 문제다. 재미 평점은 심사자 취향에 크게 흔들린다. 그래서 실무에서는 자동 검사와 인간 루브릭을 함께 쓰는 편이 낫다.
+
+여기서 특히 놓치기 쉬운 대목이 시간 규칙이다. 판타지 설정이든 타임루프든 기억 상실 장치든, 초반에 한 번 정의한 규칙이 후반 사건의 허용 범위를 정한다. 이 축이 무너지면 단순 오류를 넘어 이야기의 기본 약속이 깨진다. 독자는 문장이 매끈해도 배신감을 느낄 수 있다. 결국 좋은 서사 모델은 “잘 쓰는 모델”보다 “자기가 한 약속을 끝까지 지키는 모델”에 더 가깝다.
+
+## 실전 적용
+
+실무에서는 이야기 생성 프롬프트를 한 덩어리로 쓰지 않는 편이 낫다. 먼저 세계 규칙, 등장인물 제약, 시간선, 반드시 회수할 복선을 분리해 적는다. 그다음 모델에게 초안 전에 아웃라인을 먼저 제출하게 한다. 아웃라인이 규칙과 충돌하는지 점검한 뒤 본문을 쓰게 한다. 마지막으로 후검수 단계에서 “앞에서 세운 규칙을 어긴 문장만 표시하라” 같은 검증 프롬프트를 따로 돌린다.
+
+예: 시간 규칙이 핵심인 단편이라면 “주인공은 하루를 한 번만 되돌릴 수 있다”, “되돌림 이후 물리적 상처는 유지된다”, “결말에서 이 규칙을 뒤집지 않는다” 같은 제약을 먼저 고정한다. 그리고 사건표를 “원인→행동→결과” 형식으로 강제한다. 이렇게 하면 문체 취향과 별개로 최소한의 구조적 비교가 가능해진다.
+
+오늘 바로 할 일 체크리스트 3개
+
+- 이야기 생성 프롬프트를 규칙표, 사건표, 결말 조건의 3개 블록으로 나눠 다시 작성하라.
+- 결과물을 읽을 때 재미 점수 하나만 매기지 말고 일관성, 인과, 회수, 완결성 항목으로 나눠 표시하라.
+- 같은 프롬프트를 두 번 이상 실행해 규칙 위반이 반복되는지 확인하라. 반복된다면 모델 문제만 볼 것이 아니라 프롬프트 구조 문제인지도 먼저 점검하라.
+
+## FAQ
+
+**Q. 창작 글쓰기 평가는 결국 취향 아닌가요?**  
+완전히 그렇지는 않습니다. 공개 연구들은 coherence, completeness, plot consistency, logical coherence처럼 구조적 항목으로 나눠 평가합니다. 취향이 개입되는 영역은 남지만, 어떤 종류의 실패가 있었는지는 더 분명하게 구분할 수 있습니다.
+
+**Q. 자동 평가만으로 좋은 소설 모델을 고를 수 있나요?**  
+아닙니다. 자동 평가는 반복, 인과 연결, 규칙 위반 같은 결함을 빠르게 찾는 데 유리합니다. 다만 감정선, 긴장 조절, 결말의 여운까지 충분히 대신 판단해주지는 못합니다. 그래서 자동 평가와 인간 평가를 함께 쓰는 편이 낫습니다.
+
+**Q. 프롬프트를 길게 쓰면 일관성이 바로 좋아지나요?**  
+그렇지 않습니다. 중요한 것은 길이보다 구조입니다. 첫 지시를 분명히 하고, 규칙과 예시와 출력 형식을 분리하며, 필요하면 단계별로 생성하게 해야 합니다. 길기만 한 프롬프트는 오히려 핵심 제약을 흐릴 수 있습니다.
+
+## 결론
+
+LLM 서사품질 평가는 재미의 문제가 아니라 약속의 문제다. 모델이 초반에 세운 규칙을 끝까지 지키는지, 사건들이 인과로 이어지는지, 결말이 앞선 설정을 회수하는지 따로 봐야 한다. 창작형 모델을 고르거나 프롬프트를 설계할 때도 문장보다 구조를 먼저 테스트해야 한다.
+
+## 다음으로 읽기
+- [AI와 페르미 역설, L의 의미](/ko/posts/ai-fermi-paradox-meaning-of-l)
+- [AI 자료 모음 (24h) - 2026-06-22](/ko/posts/ai-resources-roundup-2026-06-22)
+- [LLM 의인화와 장문 안전](/ko/posts/anthropomorphism-in-llms-and-long-conversation-safety-risks)
+- [Apertus, 주권형 AI의 조건](/ko/posts/apertus-sovereign-ai-open-model-test)
+- [일본 AI법과 EU 규제의 경계](/ko/posts/japan-ai-law-eu-regulatory-boundary-compared)
+---
+
+## 참고 자료
+
+- [Prompt generation | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/prompt-generation)
+- [Prompting | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/prompting)
+- [Paper page - Neural Story Planning - huggingface.co](https://huggingface.co/papers/2212.08718)
+- [Paper page - OpenMEVA: A Benchmark for Evaluating Open-ended Story Generation Metrics - huggingface.co](https://huggingface.co/papers/2105.08920)
+- [LongStory: Coherent, Complete and Length Controlled Long story Generation - arxiv.org](https://arxiv.org/abs/2311.15208)
+- [Lost in Stories: Consistency Bugs in Long Story Generation by LLMs - arxiv.org](https://arxiv.org/abs/2603.05890)
+- [StoryWriter: A Multi-Agent Framework for Long Story Generation - arxiv.org](https://arxiv.org/abs/2506.16445)
