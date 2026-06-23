@@ -1,0 +1,108 @@
+---
+title: RLHF Alignment Through the Lens of Social Choice
+slug: rlhf-alignment-social-choice
+date: '2026-06-23'
+lastReviewedAt: '2026-06-23'
+locale: en
+description: >-
+  A look at recent research framing RLHF as preference aggregation, with
+  implications for fairness and safety.
+tags:
+  - agi
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-1bdf821b12431e52
+sourceUrl: 'https://arxiv.org/abs/2606.21550'
+verificationScore: 0.85
+alternateLocale: /ko/posts/rlhf-alignment-social-choice
+coverImage: /images/posts/rlhf-alignment-social-choice.png
+---
+
+In arXiv paper `2606.21550`, AI alignment is framed as a preference aggregation problem. RLHF is treated as a design choice about conflicting human judgments.
+
+## TL;DR
+
+- Human-feedback alignment, including RLHF, can be read as preference aggregation across conflicting judgments.
+- This matters because average reward can hide group harms and axiomatic failures in aggregation.
+- Review your pipeline as aggregation design, compare rules, and track group-level and worst-case outcomes.
+
+Example: Imagine a tutoring assistant that satisfies most users, yet repeatedly fails students with different needs. The issue may come from aggregation choices, not model capability alone.
+
+## Current state
+
+Let us start with the facts. `AI Alignment From Social Choice Perspectives` appears on arXiv as `2606.21550v1`. Based on the excerpt, it surveys work on aggregating conflicting judgments of desirability.
+
+The paper does not mainly present one new algorithm. It brings social choice theory into AI alignment. Social choice studies how individual preferences become collective decisions.
+
+This perspective questions common RLHF assumptions. A standard RLHF pipeline collects preferences from multiple raters. It then compresses them into one reward model.
+
+However, `Axioms for AI Alignment from Human Feedback` (`2405.14758`) treats reward learning as preference aggregation. It argues Bradley-Terry-Luce family models do not satisfy basic axioms. So, the answer preferred on average may not be socially justified.
+
+A similar concern appears in other papers. `2310.16048` argues no unique voting rule can produce universal alignment through RLHF alone. `2506.12350` argues classical axioms alone are insufficient. It proposes preference matching, preference equivalence, and group preference matching.
+
+`2405.00254` treats homogeneous human preferences as a weak assumption. It proposes an approach combining personalization and preference aggregation.
+
+Practically, the stronger connection seems different. It appears closer to average utility estimation, corrected variants, and MaxMin-style aggregation. These methods can protect worst-case outcomes across groups.
+
+By contrast, the cited findings did not confirm dominance for Borda, Condorcet, or maximal lotteries. The evidence also does not show one industry-wide aggregation formula.
+
+## Analysis
+
+Why does this matter? Alignment debates often focus on model scale, training data, reward quality, and refusal policy. The social-choice view moves one level deeper.
+
+The objective function itself can reflect institutional choices. Different weights across user groups can change model behavior. Different tolerance for minority harm can also change behavior.
+
+The cited papers include several concrete markers. `2606.21550v1` frames the topic on arXiv. `2310.16048` questions a unique democratic rule for universal alignment. `2405.14758` argues some aggregation models fail basic axioms.
+
+There is also a common misunderstanding. Social choice does not automatically make AI fairer. `2310.16048` does not identify one universal rule. `2405.14758` raises axiomatic concerns about existing models.
+
+`2506.12350` proposes added criteria. Still, the cited findings do not confirm one standard metric for fairness and safety. Social choice looks more like a framework for visible tradeoffs.
+
+## Practical application
+
+Development teams can start with a simpler reframing. Treat the alignment pipeline as preference aggregation design. Then ask who the raters are and how groups are combined.
+
+You should also examine how failures are distributed across groups. Average reward alone can miss repeated harms for specific groups.
+
+In healthcare, education, and public information, value conflicts are common. In those settings, examine group satisfaction and worst-case outcomes together. A model can look acceptable overall yet lag for minority groups.
+
+Those failures may come less from learning rate choices. They may come more from the aggregation rule.
+
+**Checklist for Today:**
+- Verify whether your RLHF or preference-learning data can be partitioned into meaningful rater groups.
+- Place average reward beside group-level welfare, group-level failure rates, and worst-case metrics.
+- Compare average-type and MaxMin-type aggregation on the same data, and record the differences.
+
+## FAQ
+
+**Q. Is social choice theory a new learning method that replaces RLHF?**  
+No. It is better seen as a framework for interpreting and evaluating RLHF's existing aggregation step.
+
+**Q. Then is a reward model that follows average preference the wrong approach?**  
+Not necessarily. Averaging fits existing pipelines, but it can miss minority preferences and fairness concerns.
+
+**Q. What is the most realistic choice right now?**  
+Based on the cited findings, average-utility approaches and MaxMin-style aggregation look more directly connected. No agreed conclusion confirms one best rule.
+
+## Conclusion
+
+AI alignment is not only about training quality. It is also about whose preferences are combined and under which rules. Going forward, teams should inspect aggregation rules alongside reward models and fairness criteria.
+
+## Further Reading
+- [Agent Routing Meets Pay-Per-Intelligence Cost Governance](/en/posts/agent-routing-pay-per-intelligence-cost-governance)
+- [AI Resource Roundup (24h) - 2026-06-23](/en/posts/ai-resources-roundup-2026-06-23)
+- [Employee Data Governance Questions in AI Training Pipelines](/en/posts/employee-data-governance-ai-training-pipelines)
+- [Fair LLM Routing for Equitable AI Tutoring](/en/posts/fair-llm-routing-equitable-ai-tutoring)
+- [How Data Shapes LLM Performance Beyond Model Size](/en/posts/how-data-shapes-llm-performance-beyond-model-size)
+---
+
+## References
+
+- [AI Alignment and Social Choice: Fundamental Limitations and Policy Implications - huggingface.co](https://huggingface.co/papers/2310.16048)
+- [Theoretical Tensions in RLHF: Reconciling Empirical Success with Inconsistencies in Social Choice Theory - arxiv.org](https://arxiv.org/abs/2506.12350)
+- [AI Alignment and Social Choice: Fundamental Limitations and Policy Implications - arxiv.org](https://arxiv.org/abs/2310.16048)
+- [Axioms for AI Alignment from Human Feedback - arxiv.org](https://arxiv.org/abs/2405.14758)
+- [RLHF from Heterogeneous Feedback via Personalization and Preference Aggregation - arxiv.org](https://arxiv.org/abs/2405.00254)
+- [Social Choice Should Guide AI Alignment in Dealing with Diverse Human Feedback - arxiv.org](https://arxiv.org/abs/2404.10271)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.21550)
