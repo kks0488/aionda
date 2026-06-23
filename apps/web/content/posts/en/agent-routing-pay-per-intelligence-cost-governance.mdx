@@ -1,0 +1,136 @@
+---
+title: Agent Routing Meets Pay-Per-Intelligence Cost Governance
+slug: agent-routing-pay-per-intelligence-cost-governance
+date: '2026-06-23'
+lastReviewedAt: '2026-06-23'
+locale: en
+description: >-
+  As model routing meets per-request payments, agent operations shift toward
+  cost control, budget limits, and access governance.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: aws-ml-ad989be628b0bd7d
+sourceUrl: >-
+  https://aws.amazon.com/blogs/machine-learning/building-pay-per-intelligence-for-ai-agents-how-ampersend-uses-amazon-bedrock-agentcore-payments/
+verificationScore: 0.84
+alternateLocale: /ko/posts/agent-routing-pay-per-intelligence-cost-governance
+coverImage: /images/posts/agent-routing-pay-per-intelligence-cost-governance.png
+---
+
+
+## TL;DR
+
+- It matters because routing quality, cost control, delegated authority, and auditability now interact in one execution path.
+- Review routing signals, latency, cost ceilings, and session budgets together before expanding agent payment authority.
+
+Example: A support team routes simple questions through a cheaper path, while sensitive disputes go through a stricter review path.
+
+## TL;DR
+
+- The key issue is an operational layer where the agent selects models by task and pays per request.
+- This change matters because quality competition now overlaps with cost governance and authority control.
+- Readers should review quality signals, latency, cost ceilings, and session budgets as one policy.
+
+## Current state
+
+What the AWS blog excerpt confirms is fairly narrow. Ampersend built a pay-per-intelligence routing layer on Amazon Bedrock AgentCore Payments.
+
+
+The excerpt also says it covers the end-to-end payment flow. It also explains how to begin implementing it.
+
+The excerpt alone does not confirm specific pricing. It also does not confirm supported regions. It does not confirm the scope of applicable models.
+
+
+Model routing has often been treated as a quality or latency problem. This case puts spending authority and spending limits in the same layer.
+
+This direction also appears in the research findings. The SEAR paper says routing should handle intent, context, response characteristics, issue attribution, and quality scores.
+
+It should also handle latency, cost, and throughput. That combines at least 5 quality signals with 3 operational metrics.
+
+
+The AWS description also mentions a four-role pattern. That separates the control plane from the data plane.
+
+That structure reduces the chance that one role can raise a budget and spend it immediately. Read with NIST SP 800-53 rev. 5, this looks like internal control design.
+
+## Analysis
+
+This structure matters because the economic unit is shifting. The focus moves from monthly subscriptions toward per-request decisions.
+
+Some tasks can use a lower-cost model. Some tasks can justify a higher-quality model.
+
+That choice is not only a performance issue. If routing fails on quality prediction, accuracy can fall.
+
+If routing fails on cost prediction, budget control can break first. Pay-per-intelligence is therefore both inference optimization and financial control.
+
+There are also limitations. First, finding the most suitable model may not end with static rules.
+
+As SEAR suggests, quality signals and operational metrics should be collected in a structured way. That evaluation layer can increase infrastructure cost.
+
+Second, the term two-hop payment pattern was not directly confirmed in official documentation. Based on the findings, it should not be treated as a settled standard.
+
+Third, delegated authority expands the attack surface. If budget increases, actual calls, and log access sit in one place, risk rises quickly.
+
+The analysis should stay evidence-bound. The excerpt confirms payment flow, budgets, and implementation guidance. It does not confirm pricing, regions, or model coverage.
+
+## Practical application
+
+Decision-makers should not frame this only as adding payment. The first question is narrower.
+
+Under which requests can the agent choose a more expensive model? Without that rule, a payment layer can automate cost before it improves outcomes.
+
+If quality criteria, failure criteria, session budgets, expiry time, and role separation are defined first, the payment layer becomes more controllable.
+
+For customer support, frequently asked questions can go through a lower-cost path. Refund disputes or policy interpretation can go through a higher-tier path.
+
+Routing rules should not rely on simple keywords alone. They should consider intent, context, expected quality, latency, and remaining session budget.
+
+Payment authority should be divided under least privilege. Transactions should be recorded as logs, metrics, and traces.
+
+**Checklist for Today:**
+
+- Put each request type, cost ceiling, and failure tolerance in one table before changing routing policy.
+- Separate budget-raising authority from spending authority, and set expiry time and `maxSpendAmount` defaults.
+- Log quality score, latency, cost, remaining budget, and failure cause together for each evaluated route.
+
+## FAQ
+
+**Q. Isn’t agent payment infrastructure ultimately just an API payment wrapper?**  
+Not exactly. The key point is the combined flow of routing, budget execution, delegated authority, and audit logs.
+
+An operational system should explain which model was selected for each request. It should also explain why that cost was allowed.
+
+**Q. Isn’t quality alone enough for model routing?**  
+Probably not. The findings point to quality signals and operational metrics together.
+
+Those metrics include latency, cost, and throughput. They also include payment limits and `maxSpendAmount`.
+
+If only quality is optimized, budget control can weaken.
+
+**Q. What is the first thing that should be prevented in delegated authority?**  
+A single actor should not raise the budget and spend it in the same flow.
+
+The AWS four-role pattern addresses that risk. NIST’s separation-of-duties principle points in the same direction.
+
+Least privilege, role separation, and comprehensive logging are the baseline controls.
+
+## Conclusion
+
+Agent payment infrastructure is not only a new payment method. It is closer to an operating layer for buying intelligence by task, request, and limit.
+
+The key review point is not one better model. It is whether model selection and spending authority belong in the same policy engine.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-23](/en/posts/ai-resources-roundup-2026-06-23)
+- [AI, Fermi Paradox, and the Meaning of L](/en/posts/ai-fermi-paradox-meaning-of-l)
+- [AI Resource Roundup (24h) - 2026-06-22](/en/posts/ai-resources-roundup-2026-06-22)
+- [Anthropic Government Clash Over AI Deployment Control](/en/posts/anthropic-government-clash-ai-deployment-control)
+- [Apertus And The Real Test Of Sovereign AI](/en/posts/apertus-sovereign-ai-open-model-test)
+---
+
+## References
+
+- [Security and Privacy Controls for Information Systems and Organizations - nvlpubs.nist.gov](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf?4d18fa22_page=3&b542f830_page=5&bc45c90c_page=2)
+- [SEAR: Schema-Based Evaluation and Routing for LLM Gateways - arxiv.org](https://arxiv.org/abs/2603.26728)
