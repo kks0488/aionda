@@ -1,0 +1,86 @@
+---
+title: 'LLM 성능, 데이터가 좌우하나'
+slug: how-data-shapes-llm-performance-beyond-model-size
+date: '2026-06-23'
+lastReviewedAt: '2026-06-23'
+locale: ko
+description: 'Chinchilla와 Pile 사례로 본 LLM 성능의 핵심 변수: 모델 크기보다 데이터 규모·품질·정제가 더 중요할 수 있다.'
+tags:
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: '1271029'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1271029'
+verificationScore: 0.88
+alternateLocale: /en/posts/how-data-shapes-llm-performance-beyond-model-size
+coverImage: /images/posts/how-data-shapes-llm-performance-beyond-model-size.png
+---
+
+400개가 넘는 언어 모델을 7천만~160억+ 파라미터, 50억~5천억 토큰 범위에서 학습한 Chinchilla 연구는 고정된 compute 예산에서 모델 크기와 학습 토큰 수를 함께 비례적으로 늘리는 것이 compute-optimal하다고 보고했다. 같은 compute 예산이라면, 모델 크기만 키우는 전략보다 데이터 토큰을 더 투입한 쪽이 더 나은 지점이 있었다는 점이다. 실제로 Chinchilla는 MMLU 67.5%를 기록했고, Gopher 대비 7%p 이상 개선됐다고 보고했다. 이 결과는 LLM 경쟁력의 핵심이 아키텍처인지, 데이터의 양과 질인지 다시 따져보게 만든다.
+
+## 세 줄 요약
+
+- 핵심 쟁점은 이거다. 공개 연구에서는 사전학습 데이터의 규모와 품질이 벤치마크 성능과 강하게 연결된다. 다만 특정 플랫폼 기업의 독점 데이터가 성능 격차를 얼마나 직접 만들었는지는 공개 근거가 아직 충분하지 않다.
+- 이게 중요한 이유는 분명하다. 데이터 확보와 정제 능력이 경쟁력의 중심이라면, 모델 회사의 경쟁은 알고리즘을 넘어 데이터 파이프라인과 플랫폼 지배력으로 옮겨간다.
+- 독자는 지금 이렇게 움직이면 된다. 모델 평가표를 볼 때 아키텍처 홍보보다 학습 토큰 규모, 데이터 정제 방식, 사후학습 개입 범위를 먼저 확인하라.
+
+## 현황
+
+공개 자료에서 가장 분명한 신호는 스케일링 법칙 연구에서 나온다. Chinchilla 연구는 70 million에서 16 billion 파라미터까지, 5 to 500 billion tokens 범위에서 모델을 학습해 compute-optimal 구간을 분석했다. 여기서 핵심은 “모델을 무작정 키우는 것”보다 “적절한 크기와 충분한 토큰”의 조합이 낫다는 점이다. 이 결과는 데이터가 단순 재료를 넘어서 성능 곡선에 영향을 주는 요소임을 보여준다.
+
+데이터의 질도 따로 떼어놓기 어렵다. The Pile 논문은 800GB 규모의 말뭉치를 22개 high-quality subsets로 구성했다. 또 더 폭넓게 구성된 데이터셋이 cross-domain knowledge와 downstream generalization을 높인다고 설명한다. 논문 요약 기준으로도 Raw CC나 CC-100보다 Pile 기반 학습이 전 구성요소와 downstream evaluations에서 더 나은 결과를 냈다. 같은 “인터넷 텍스트”라도 무엇을 섞고 무엇을 버리느냐가 성능 차이로 이어질 수 있다는 뜻이다.
+
+사후학습도 무시하기 어렵다. OpenAI 공식 문서는 SFT가 performance and accuracy를 높일 수 있다고 설명한다. Preference tuning과 reinforcement fine-tuning도 특정 작업 성능을 높이는 수단으로 제시한다. 다만 중요한 단서가 있다. 공식 문서들은 사후학습의 효과를 사례 중심으로 설명할 뿐, “같은 사전학습 기반이면 이 정도 오른다”는 공통 규칙은 제시하지 않았다.
+
+플랫폼 기업의 데이터 우위 주장은 일부만 확인됐다. Google Research는 deduplication, 즉 중복 제거가 언어모델 성능을 높인다고 밝혔다. Meta는 사전·사후학습 데이터의 양과 질을 함께 개선했다고 설명했다. OpenAI는 내부 데이터 에이전트를 통해 더 빠르고 정확한 답을 찾기 어려운 문제를 풀려 했다고 말했다. 다만 이 자료들만으로 “플랫폼 기업의 독점 데이터가 경쟁사 대비 구조적 성능 격차를 만든다”고 단정할 수는 없다.
+
+## 분석
+
+이 토론이 중요한 이유는 LLM 개발의 병목이 달라질 수 있기 때문이다. 아키텍처가 중심이면 연구 인력과 알고리즘이 우선순위가 된다. 반대로 데이터가 더 큰 차이를 만든다면, 승부처는 데이터 수집, 라이선스, 정제, 중복 제거, 합성 데이터 생성, 사후학습용 피드백 루프로 옮겨간다. 겉으로는 같은 파라미터 수, 비슷한 인터페이스를 내세워도 실제 격차는 “무엇을 먹였는가”에서 벌어질 수 있다.
+
+그렇다고 “데이터가 전부다”라고 밀어붙이기는 어렵다. 이번 조사 결과는 상관관계와 scaling-law 수준의 증거를 제공한다. 공개 자료만 놓고 보면 데이터 품질이 아키텍처나 사후학습보다 항상 더 중요하다고 말할 근거는 부족하다. 더구나 독점 플랫폼 데이터의 우위는 외부에서 검증하기 어렵다. 비공개 데이터는 양, 질, 오염 여부, 벤치마크와의 거리조차 공개되지 않는 경우가 많다. 그래서 “좋은 데이터가 많다”는 주장과 “그래서 실제 성능이 더 높다”는 결론 사이에는 아직 빈칸이 남는다.
+
+## 실전 적용
+
+개발자와 제품팀이 당장 얻어야 할 교훈은 단순하다. 새 모델을 고를 때 데모 품질만 보지 말고, 그 모델이 어떤 데이터 전략 위에서 만들어졌는지 확인해야 한다. 사전학습 데이터의 토큰 규모, 정제 여부, 중복 제거, 사후학습 방식이 조금이라도 공개되면 해석력이 높아진다. 반대로 이 정보가 거의 없으면, 벤치마크 점수가 높아도 재현성과 도메인 적합성을 따로 검증해야 한다.
+
+사내에서 모델을 튜닝하는 팀도 마찬가지다. 범용 모델이 기대보다 약할 때 아키텍처 교체부터 검토하기 쉽다. 하지만 실제로는 데이터셋 재구성만으로 더 큰 개선이 나올 수 있다. 예를 들어 도메인 문서를 다시 모으고, 중복을 걷어내고, 라벨 품질을 높이고, 선호도 데이터 수집 절차를 다듬는 편이 비용 대비 더 나을 수 있다. 오늘 필요한 것이 “더 큰 모델”보다 “덜 지저분한 데이터”일 가능성도 있다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 벤더 비교표에 모델명 대신 학습 토큰 범위, 데이터 출처 공개 수준, 사후학습 방식 공개 여부 칸을 추가하라.
+- 내부 평가셋에서 중복 문서와 오래된 문서를 분리해 성능 변화를 다시 측정하라.
+- 미세조정보다 먼저 사전 데이터셋 정제와 preference 데이터 품질 점검에 하루를 써라.
+
+## FAQ
+
+**Q. 결국 아키텍처보다 데이터가 더 중요하다는 뜻인가?**  
+그렇게 단정할 수는 없습니다. 공개 연구는 데이터 규모와 품질이 성능과 강하게 연결된다는 근거를 줍니다. 다만 데이터가 아키텍처나 사후학습보다 항상 우위에 있다는 보편 명제까지 확인해 주지는 않습니다.
+
+**Q. 플랫폼 기업은 내부 데이터만으로 계속 앞서갈 수 있나?**  
+가능성은 있습니다. 다만 이번에 확인된 공식 자료만으로는 내부 데이터 우위가 경쟁사 대비 최종 성능 격차를 얼마나 직접 만드는지 정량적으로 입증되지는 않았습니다.
+
+**Q. 사후학습은 중요하지 않은가?**  
+그렇지 않습니다. 공식 문서는 SFT, preference tuning, reinforcement fine-tuning이 특정 과업의 성능과 정확도를 높일 수 있다고 설명합니다. 다만 그 향상 폭을 모든 모델에 공통으로 적용할 수 있는 규칙으로 제시하지는 않습니다.
+
+## 결론
+
+지금 공개된 근거로 보면, LLM 경쟁력은 아키텍처 차이만으로 설명되지 않는다. 데이터의 양과 질, 그리고 이를 다루는 파이프라인도 큰 영향을 준다. 다만 플랫폼 데이터 우위가 실제 시장 지배력으로 얼마나 이어지는지는 더 많은 공개 검증이 필요하다.
+
+## 다음으로 읽기
+- [에이전트 결제형 라우팅](/ko/posts/agent-routing-pay-per-intelligence-cost-governance)
+- [AI 자료 모음 (24h) - 2026-06-23](/ko/posts/ai-resources-roundup-2026-06-23)
+- [직원 데이터와 AI 거버넌스](/ko/posts/employee-data-governance-ai-training-pipelines)
+- [AI 튜터 라우팅과 교육 형평성](/ko/posts/fair-llm-routing-equitable-ai-tutoring)
+- [안전 중심 운전자 메시지 평가](/ko/posts/safety-aware-llm-driver-intervention-evaluation)
+---
+
+## 참고 자료
+
+- [GPT-4 Technical Report - cdn.openai.com](https://cdn.openai.com/papers/gpt-4.pdf?trk=article-ssr-frontend-pulse_little-text-block)
+- [Fine-tuning now available for GPT-4o | OpenAI - openai.com](https://openai.com/index/gpt-4o-fine-tuning/)
+- [Reinforcement fine-tuning | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/reinforcement-fine-tuning)
+- [OpenAI o1 and new tools for developers | OpenAI - openai.com](https://openai.com/index/o1-and-new-tools-for-developers/)
+- [Introducing Llama 3.1: Our most capable models to date - ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)
+- [Inside OpenAI’s in-house data agent - openai.com](https://openai.com/index/inside-our-in-house-data-agent/)
+- [Training Compute-Optimal Large Language Models - arxiv.org](https://arxiv.org/abs/2203.15556)
+- [The Pile: An 800GB Dataset of Diverse Text for Language Modeling - arxiv.org](https://arxiv.org/abs/2101.00027)

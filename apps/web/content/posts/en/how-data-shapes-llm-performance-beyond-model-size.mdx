@@ -1,0 +1,163 @@
+---
+title: How Data Shapes LLM Performance Beyond Model Size
+slug: how-data-shapes-llm-performance-beyond-model-size
+date: '2026-06-23'
+lastReviewedAt: '2026-06-23'
+locale: en
+description: >-
+  Chinchilla and Pile suggest LLM performance may depend more on data scale,
+  quality, and curation than model size alone.
+tags:
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: '1271029'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1271029'
+verificationScore: 0.88
+alternateLocale: /ko/posts/how-data-shapes-llm-performance-beyond-model-size
+coverImage: /images/posts/how-data-shapes-llm-performance-beyond-model-size.png
+---
+
+In one public study, researchers trained more than 400 models.  
+They tested sizes from 70 million to 16 billion parameters.  
+They also tested 5 to 500 billion tokens.  
+Under the same compute budget, more data sometimes beat larger model size.  
+Chinchilla reached 67.5% on MMLU.  
+These results raise a basic question.  
+Do performance gaps come more from architecture, or from data scale and quality?
+
+## TL;DR
+
+- Public research suggests data scale and quality can change model performance, not only architecture.
+- This matters because competition may depend on data pipelines, curation, and post-training, not only model design.
+- Readers should check token scale, curation, deduplication, and post-training details before trusting model scorecards.
+
+Example: A team compares two similar models for a product launch.  
+One looks stronger in demos.  
+The other shares more about training data, cleanup steps, and post-training.  
+The second model may be easier to evaluate and deploy responsibly.
+
+## Current state
+
+The clearest public signal comes from scaling-law research.  
+The Chinchilla study trained models from 70 million to 16 billion parameters.  
+It covered the 5 to 500 billion token range.  
+It analyzed the compute-optimal regime.  
+The main point is narrower than some summaries suggest.  
+Appropriately sized models with sufficient tokens can outperform larger models.  
+This happened under the same compute budget.  
+That result suggests data affects the performance curve.
+
+Data quality is also hard to isolate.  
+The Pile paper built an 800GB corpus.  
+It used 22 high-quality subsets.  
+The paper says broader dataset composition improves cross-domain knowledge.  
+It also says this helps downstream generalization.  
+In the paper summary, Pile-based training beat Raw CC and CC-100.  
+That pattern held across components and downstream evaluations.  
+Even within internet text, dataset choices can affect results.
+
+Post-training also matters.  
+OpenAI documentation says SFT can improve performance and accuracy.  
+It also presents preference tuning and reinforcement fine-tuning.  
+These methods can improve task-specific performance.  
+Still, the public description has limits.  
+The documents mainly describe effects through examples.  
+They do not provide a common rule for expected gains.
+
+Claims about platform data advantage remain only partly supported.  
+Google Research said deduplication improves language model performance.  
+Meta said it improved the quantity and quality of pretraining data.  
+Meta also said it improved post-training data quality and quantity.  
+OpenAI said it used internal data agents on difficult problems.  
+Those materials are informative, but limited.  
+They do not establish a structural gap from proprietary data alone.
+
+## Analysis
+
+This discussion matters because the bottleneck may be shifting.  
+If architecture matters most, talent and algorithms stay central.  
+If data matters more, the battleground changes.  
+It can shift toward collection, licensing, curation, and deduplication.  
+It can also shift toward synthetic data and post-training feedback loops.  
+Two models can share similar parameter counts and interfaces.  
+Their practical differences may still come from training data.
+
+Still, it would overstate the case to say data explains everything.  
+The public evidence is narrower than that.  
+It shows correlation patterns and scaling-law results.  
+It does not establish a universal ranking among data, architecture, and post-training.  
+Public evidence also says little about proprietary data effects.  
+Non-public datasets often lack quantity disclosure.  
+They may also lack quality or contamination disclosure.  
+Benchmark distance may also remain unclear.  
+That leaves a gap in the argument.  
+Good private data may help.  
+Public materials alone do not show how much it helps.
+
+## Practical application
+
+Developers and product teams should look past demo quality alone.  
+They should examine the model's data strategy when possible.  
+Useful details include token scale, curation, and deduplication.  
+Post-training disclosure also helps interpretation.  
+If little is disclosed, evaluation should be stricter.  
+High benchmark scores alone may not show reproducibility or domain fit.
+
+The same logic applies to internal model tuning.  
+When a general-purpose model underperforms, architecture changes may seem tempting.  
+But dataset work can sometimes help more.  
+Teams can re-collect domain documents.  
+They can remove duplicates and improve label quality.  
+They can also refine preference data collection.  
+In some cases, cleaner data may help more than a larger model.
+
+**Checklist for Today:**
+- Add vendor table columns for token range, data-source disclosure, and post-training disclosure.
+- Re-test internal evaluations after separating duplicate and outdated documents.
+- Before fine-tuning, review dataset curation and preference data quality.  
+
+## FAQ
+
+**Q. Does this ultimately mean data is more important than architecture?**  
+That cannot be stated definitively.  
+Public research links data scale and quality with performance.  
+It does not establish that data outweighs architecture or post-training in all cases.
+
+**Q. Can platform companies keep leading solely through internal data?**  
+It is possible.  
+However, the public materials reviewed here do not quantify that effect clearly.  
+They do not show how directly internal data creates final performance gaps.
+
+**Q. Is post-training not important?**  
+That is not the implication.  
+Official documentation says SFT can improve performance and accuracy.  
+It also presents preference tuning and reinforcement fine-tuning for specific tasks.  
+But it does not give a uniform rule for improvement size.
+
+## Conclusion
+
+Public evidence suggests LLM competitiveness is not only about architecture.  
+Data quantity, data quality, and data handling also affect outcomes.  
+At the same time, the public record remains incomplete.  
+More validation is needed to estimate proprietary data advantages.  
+That includes their effect on real-world market performance.
+
+## Further Reading
+- [Agent Routing Meets Pay-Per-Intelligence Cost Governance](/en/posts/agent-routing-pay-per-intelligence-cost-governance)
+- [AI Resource Roundup (24h) - 2026-06-23](/en/posts/ai-resources-roundup-2026-06-23)
+- [Employee Data Governance Questions in AI Training Pipelines](/en/posts/employee-data-governance-ai-training-pipelines)
+- [Fair LLM Routing for Equitable AI Tutoring](/en/posts/fair-llm-routing-equitable-ai-tutoring)
+- [Safety-Aware Evaluation for LLM Driver Intervention Messages](/en/posts/safety-aware-llm-driver-intervention-evaluation)
+---
+
+## References
+
+- [GPT-4 Technical Report - cdn.openai.com](https://cdn.openai.com/papers/gpt-4.pdf?trk=article-ssr-frontend-pulse_little-text-block)
+- [Fine-tuning now available for GPT-4o | OpenAI - openai.com](https://openai.com/index/gpt-4o-fine-tuning/)
+- [Reinforcement fine-tuning | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/reinforcement-fine-tuning)
+- [OpenAI o1 and new tools for developers | OpenAI - openai.com](https://openai.com/index/o1-and-new-tools-for-developers/)
+- [Introducing Llama 3.1: Our most capable models to date - ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)
+- [Inside OpenAI’s in-house data agent - openai.com](https://openai.com/index/inside-our-in-house-data-agent/)
+- [Training Compute-Optimal Large Language Models - arxiv.org](https://arxiv.org/abs/2203.15556)
+- [The Pile: An 800GB Dataset of Diverse Text for Language Modeling - arxiv.org](https://arxiv.org/abs/2101.00027)
