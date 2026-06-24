@@ -1,0 +1,89 @@
+---
+title: HOLMES Challenges LLMs With Higher-Order Logic Reasoning
+slug: holmes-higher-order-logic-reasoning-benchmark
+date: '2026-06-24'
+lastReviewedAt: '2026-06-24'
+locale: en
+description: >-
+  HOLMES probes higher-order logic reasoning beyond final answers, exposing
+  limits in LLM rule, predicate, and constraint handling.
+tags:
+  - llm
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: arxiv-cs-ai-6de533de85ecf205
+sourceUrl: 'https://arxiv.org/abs/2606.23238'
+verificationScore: 0.82
+alternateLocale: /ko/posts/holmes-higher-order-logic-reasoning-benchmark
+coverImage: /images/posts/holmes-higher-order-logic-reasoning-benchmark.png
+---
+
+In a benchmark with 1,379 problems, average accuracy was 50.64%, and best performance was 59.54%. These results suggest caution about claims that LLM logical reasoning is already sufficient. HOLMES does not target simple true or false classification. It targets higher-order logical reasoning over rules, predicates, constraints, and decision procedures.
+
+## TL;DR
+
+- HOLMES is a higher-order logic benchmark. It evaluates reasoning about rules, predicates, functions, constraints, and decision procedures.
+- The reported results matter because 1,379 problems yielded 50.64% average accuracy and 59.54% best performance. Final accuracy alone can hide shortcut reasoning.
+- Readers should expand evaluation beyond final answers. Add rule changes, scope conditions, combinatorial tests, and verifiable reasoning traces.
+
+Example: A contract review assistant gives the right answer in one setting. After a rule exception appears, its explanation stays fluent, but its reasoning shifts.
+
+## Current status
+
+HOLMES is an attempt to change the evaluation axis of logical reasoning benchmarks. According to the source excerpt, existing benchmarks have generally centered on first-order logic. They have focused on object-level deduction over fixed predicates. HOLMES goes one step further. It makes rules, predicates, functions, constraints, and decision procedures the targets of reasoning.
+
+Its composition is also different. According to the findings, HOLMES combines natural language problems with HOL formalizations, gold answers, verifiable reasoning traces, and controlled reasoning factors. The HOLMES dataset contains 1,379 instances spanning law and finance. The design focus is not only whether the model got the answer right. It also asks what structure the model understood and which constraints it missed.
+
+The difficulty also appears substantial. Based on the findings, current LLMs recorded 50.64% average accuracy on HOLMES. The best model reached 59.54%. Numerically, that is only slightly above half. The paper also analyzes how high final answer accuracy can mask shortcut reasoning. That means some correct answers may still involve unreliable reasoning processes.
+
+HOLMES also connects with other work on reasoning robustness. Separate studies have reported sharp drops after interventions that change structure while preserving surface statistics. In mathematical proof evaluation, hallucination and incompleteness have been identified repeatedly. These results suggest that solving a problem alone may not justify strong claims about logical generalization.
+
+## Analysis
+
+Why does this matter? In real-world work, rules can change more often than objects. A system that reads legal documents should reason about priority relations among clauses. Financial regulation review should separate exception conditions from scopes of applicability. In such settings, handling overridden rules can matter more than memorizing simple implications. HOLMES targets that layer.
+
+There are also implications for AI evaluation. If benchmarks have centered on final answers, demand may grow for evaluations of reasoning stability and explainability together. Performance may collapse when scope conditions are added. It may also collapse when rules conflict or combinatorial reasoning is required. That possibility can increase deployment risk in high-risk domains. A fluent model and a reliable reasoner may not be the same.
+
+That said, caution is still appropriate. There is no evidence here that HOLMES has become an industry standard. The findings also do not directly confirm a detailed quantitative comparison table against existing benchmarks. They also do not confirm external follow-up validation. They do not confirm dense comparisons of model-specific error distributions. The legal and finance domains may increase realism, but generalization to other fields should be validated separately.
+
+Its scalability should also be assessed cautiously. Higher-order symbolic reasoning may allow extensions toward agents, formal verification, and tool-use reasoning. However, the confirmed scope here is narrower. It includes higher-order symbolic reasoning, verifiable reasoning traces, and law and finance. It would be premature to treat it as already extended to agent execution, tool calling, or formal verification tasks.
+
+## Practical application
+
+Developers and evaluators can change one practice now. Replace the accuracy leaderboard with a reasoning audit sheet. Two models may show the same accuracy. One may fail under rule conflicts. The other may be unstable only under scope conditions. Operational risk can emerge from those differences.
+
+**Checklist for Today:**
+- Add rule-conflict, scope-condition, and combinatorial-reasoning cases to your current evaluation set.
+- Retain final answers and verifiable reasoning traces, or keep step-level evidence logs where available.
+- Define, with domain experts, which problem types make shortcut reasoning a critical failure mode.
+
+## FAQ
+
+**Q. How is HOLMES different from existing logic benchmarks?**  
+Existing evaluations mainly addressed object-level reasoning over fixed predicates. HOLMES treats rules, predicates, functions, constraints, and decision procedures as reasoning targets. It tests the problem content and the rule layer used to solve it.
+
+**Q. Does a score of 50.64% mean it is not useful yet?**  
+Not necessarily. However, 50.64% average accuracy and 59.54% best performance indicate visible limitations on higher-order logic tasks. Even when the final answer is correct, the process may still reflect shortcut reasoning. Additional inspection is therefore useful for operational decisions.
+
+**Q. Can HOLMES be used immediately for evaluating agents or formal verification?**  
+There is potential, but that extension has not been confirmed here. The confirmed scope is higher-order symbolic reasoning, verifiable reasoning traces, and the legal and finance domains. It is safer to use HOLMES as a reference axis than as a dedicated benchmark for those tasks.
+
+## Conclusion
+
+The core significance of HOLMES is not simply another scoreboard. It is a way to distinguish rule-following from surface-pattern imitation. Going forward, answer accuracy should not be the only focus. Reasoning should also be checked when structure changes.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-24](/en/posts/ai-resources-roundup-2026-06-24)
+- [Agent Routing Meets Pay-Per-Intelligence Cost Governance](/en/posts/agent-routing-pay-per-intelligence-cost-governance)
+- [The AI Evaluability Gap in Risk Governance](/en/posts/ai-evaluability-gap-risk-governance)
+- [AI Resource Roundup (24h) - 2026-06-23](/en/posts/ai-resources-roundup-2026-06-23)
+- [How To Compare AI Tools For Comic Production](/en/posts/compare-ai-tools-for-comic-production)
+---
+
+## References
+
+- [Mathematical Proof as a Litmus Test: Revealing Failure Modes of Advanced Large Reasoning Models - huggingface.co](https://huggingface.co/papers/2506.17114)
+- [Large Language Model Reasoning Failures - huggingface.co](https://huggingface.co/papers/2602.06176)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.23238)
+- [Evaluating Robustness of Reasoning Models on Parameterized Logical Problems - arxiv.org](https://arxiv.org/abs/2602.12665)

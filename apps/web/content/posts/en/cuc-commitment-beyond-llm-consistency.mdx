@@ -1,0 +1,83 @@
+---
+title: Why CUC Measures Commitment Beyond LLM Consistency
+slug: cuc-commitment-beyond-llm-consistency
+date: '2026-06-24'
+lastReviewedAt: '2026-06-24'
+locale: en
+description: >-
+  This examines how abstaining answers can inflate consistency scores and why
+  CUC adds commitment to LLM evaluation.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-6e6bd480faefe034
+sourceUrl: 'https://arxiv.org/abs/2606.21083'
+verificationScore: 0.67
+alternateLocale: /ko/posts/cuc-commitment-beyond-llm-consistency
+coverImage: /images/posts/cuc-commitment-beyond-llm-consistency.png
+---
+
+In the 2026 arXiv paper `2606.21083`, a high consistency score can still hide answer avoidance. The paper questions whether that should count as reasoning. According to the excerpt, a model can satisfy negation consistency without choosing entailment or refutation. That means a strong consistency score can still map to low practical value.
+
+## TL;DR
+
+- Paper `2606.21083` proposes Coherence Under Commitment, or CUC, to measure consistency and answer commitment together.
+- This matters because a contradiction-free model can still avoid decisions, which lowers utility in real tasks.
+- Add a commitment metric beside accuracy, and track refusals, deferrals, and hedges separately in evaluations.
+
+Example: In a document review workflow, a system can sound consistent while avoiding the final call. That behavior can shift work back to humans. A separate commitment measure can make that tradeoff easier to inspect.
+
+## Current status
+
+The source excerpt states the main issue clearly. “Coherence can be vacuously achieved through systematic abstention.” If a model avoids both entailment and refutation, it can satisfy negation consistency. Then consistency can look strong while usefulness stays low. To address this, the authors propose Coherence Under Commitment as a dual-query evaluation paradigm.
+
+This issue is not presented as isolated. The findings cite `2404.10960` on uncertainty-based abstention and its effects on safety and hallucination reduction. They cite `2602.04755` for the claim that SFT can induce overconfidence and harm reliability. They also cite `2412.12527` for a decoding-time method that changes abstention behavior without training.
+
+The excerpt does not settle which factor drives abstention most strongly. It does not report evidence that directly compares RLHF, decoding strategies, and uncertainty calibration under matched conditions. It also does not conclude that one factor clearly dominates. The reported pattern is narrower. Uncertainty-based calibration is linked to abstention performance and reliability. RLHF can worsen calibration in some settings. Decoding strategies can also shift behavior without training.
+
+## Analysis
+
+The paper shifts the benchmarking question. Accuracy matters. Consistency under inverted questions also matters. But consistency alone may not reflect product utility. In knowledge-intensive tasks, false confidence is risky. Indefinite postponement can also be costly. CUC separates those concerns. It asks both whether the answer avoids contradiction and whether the model made a judgment.
+
+CUC does not solve every evaluation problem. The value of abstention depends on the task. In safety-first settings, avoidance can be closer to the preferred outcome. Pushing too hard for commitment can also raise false confidence. Score changes may be hard to interpret if RLHF, calibration, and decoding change together. For that reason, CUC is better framed as a complementary axis, not a replacement for existing metrics.
+
+## Practical application
+
+Development teams may need to change logging before they change leaderboards. Model outputs can be tagged for avoidance patterns such as “judgment deferred,” “insufficient information,” “neither,” and “not certain.” Teams can then inspect accuracy, consistency, abstention rate, and commitment rate separately. They can also set weights by task-specific loss functions. Customer support retrieval and legal summarization may need different evaluation rules.
+
+**Checklist for Today:**
+- Tag answer-avoidance phrases in the current evaluation set, and count them separately from accuracy.
+- If you use negation consistency, add a commitment metric for entailment or refutation selection.
+- Change RLHF, uncertainty calibration, and decoding one at a time, and log abstention pattern shifts.
+
+## FAQ
+
+**Q. Is CUC more important than accuracy?**  
+It complements accuracy rather than replacing it. Correctness and willingness to make a judgment are different evaluation questions.
+
+**Q. Is a high abstention rate often bad?**  
+No. In high-risk tasks, abstention can support safety. But if avoidance inflates consistency scores, it can hide real-world limits. That is why it helps to measure it separately.
+
+**Q. Among RLHF, decoding, and uncertainty calibration, which should be examined first?**  
+The cited findings do not support a firm ranking. They do suggest direct effects from uncertainty-based abstention. They also show that decoding can change behavior without training. That makes those two axes reasonable starting points for isolated tests.
+
+## Conclusion
+
+The paper’s message is narrow but useful. A consistency score can capture silence as well as reasoning. Evaluation should distinguish those cases. Going forward, teams can measure not only whether a model avoids contradiction, but also whether it commits when a task calls for judgment.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-24](/en/posts/ai-resources-roundup-2026-06-24)
+- [Agent Routing Meets Pay-Per-Intelligence Cost Governance](/en/posts/agent-routing-pay-per-intelligence-cost-governance)
+- [The AI Evaluability Gap in Risk Governance](/en/posts/ai-evaluability-gap-risk-governance)
+- [AI Resource Roundup (24h) - 2026-06-23](/en/posts/ai-resources-roundup-2026-06-23)
+- [How To Compare AI Tools For Comic Production](/en/posts/compare-ai-tools-for-comic-production)
+---
+
+## References
+
+- [When to Speak, When to Abstain: Contrastive Decoding with Abstention - huggingface.co](https://huggingface.co/papers/2412.12527)
+- [Uncertainty-Based Abstention in LLMs Improves Safety and Reduces Hallucinations - arxiv.org](https://arxiv.org/abs/2404.10960)
+- [When Silence Is Golden: Can LLMs Learn to Abstain in Temporal QA and Beyond? - arxiv.org](https://arxiv.org/abs/2602.04755)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.21083)
