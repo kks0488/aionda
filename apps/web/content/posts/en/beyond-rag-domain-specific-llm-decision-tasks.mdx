@@ -1,0 +1,94 @@
+---
+title: Beyond RAG for Domain-Specific LLM Decision Tasks
+slug: beyond-rag-domain-specific-llm-decision-tasks
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: en
+description: >-
+  RAGBench and LegalBench show why enterprise LLM evaluation must separate
+  retrieval quality from domain-specific judgment.
+tags:
+  - llm
+  - deep-dive
+  - benchmark
+  - rag
+author: AI온다
+sourceId: '1274183'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1274183'
+verificationScore: 0.86
+alternateLocale: /ko/posts/beyond-rag-domain-specific-llm-decision-tasks
+coverImage: /images/posts/beyond-rag-domain-specific-llm-decision-tasks.png
+---
+
+
+## TL;DR
+
+- This piece explains why RAG helps with knowledge access, but does not settle domain judgment by itself.
+- Next, compare a base model, RAG, and added training on the same data, with separate retrieval and judgment evaluation.
+
+Example: A reviewer receives a model answer with cited policies and a confident recommendation. The citations look relevant. The final decision still conflicts with local practice and an exception path.
+
+## Current state
+
+The starting point for RAG is fairly clear. The paper *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks* says it fine-tuned and evaluated the model on knowledge-intensive NLP tasks. It also reports stronger results on **three** open-domain QA tasks. Those results were compared with parametric seq2seq models and retrieve-and-extract systems. This suggests an advantage in question answering when retrieval matters.
+
+Enterprise settings differ from open-domain QA. Internal policy, contract review, regulatory interpretation, and medical workflows add domain context. In these settings, the correct answer can differ from the organization’s accepted answer. That is why evaluation has become more granular. RAGBench includes **100k** examples. RAGBench covers five industry-specific domains and various RAG task types. LegalBench measures legal reasoning through **162** tasks and **six** legal reasoning types. Together, they suggest separate evaluation for retrieval pipelines and domain judgment.
+
+Retrieval quality also has its own standards. BEIR is a benchmark for zero-shot information retrieval evaluation. NIST materials compare rankings with metrics such as nDCG@20, nDCG@100, and Recall@100. These numbers matter for diagnosis. If retrieval is unstable, generation rests on weak inputs. Then answer quality can drop for different reasons. The failure may come from reasoning. It may also come from retrieval.
+
+## Analysis
+
+The decision point changes with the task. RAG is a strong option for document finding, summarization, and source display. It can support traceability by showing the documents used. A different problem appears when the task asks for a decision. That includes exception clauses and established practice. Retrieval alone can be insufficient in those cases. Reading documents is not the same as modeling the situation.
+
+For that reason, world models and environment-modeling approaches appear alongside RAG in recent discussion. The cited papers describe more than next-token prediction. They describe support for planning and reasoning through predicted state transitions and environmental dynamics. In simple terms, RAG brings in outside material. A world model tries to simulate what may happen inside the problem space. That does not show practical superiority by itself. The available findings do not confirm reliable gains across all domains. They also do not show that world models are consistently better than RAG.
+
+## Practical application
+
+The practical choice is not binary. If internal knowledge access is the main need, start with RAG. If decision rules are complex, add training or workflow design on top. Contract review shows the pattern. The first step can retrieve clauses and internal policies. The second step can add branching rules and human approval. In law or healthcare, error costs are high. A base model alone should be treated cautiously. The first priority should be separate measurement of retrieval and judgment.
+
+Validation design should also change. Compare the base model, a RAG system, and an added training approach on the same dataset. Do not rely on one score alone. For retrieval, check nDCG@20, nDCG@100, and Recall@100. For generation, assess correctness, evidence alignment, calibration, and robustness separately. In legal settings, include LegalBench. If the system uses RAG, use RAGBench alongside it. When the model is wrong, the evaluation should help explain why.
+
+**Checklist for Today:**
+- Separate current tasks into retrieval-heavy work and judgment-heavy work, then mark where human approval should remain.
+- Evaluate the base model, RAG, and added training on the same questions, with separate retrieval and judgment metrics.
+- Add human review for evidence alignment, not only final answer accuracy.
+
+## FAQ
+
+**Q. Does adding RAG solve domain judgment problems?**
+
+Not by itself. RAG can improve timeliness, factuality, and source traceability through retrieval. The judgment made from those documents still needs separate validation.
+
+**Q. Is RAG often better than a base model alone?**
+
+Not necessarily. RAG has shown strengths in knowledge-intensive QA. Domain-specific judgment can still depend on retrieval quality, prompt design, and human review.
+
+**Q. Is a world model immediately a practical alternative?**
+
+It is hard to say from the current materials alone. The papers describe support for planning and reasoning through predicted state transitions. They do not provide enough evidence for broad claims across domain judgment tasks.
+
+## Conclusion
+
+The limitation in domain judgment is less about raw model intelligence. It is more about the structure around the model. If knowledge access is missing, review RAG first. If exception handling and situation prediction are central, use deeper architecture and evaluation. The key step is finer-grained validation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+- [FlowR2A Reframes Planning as Reward-Conditioned Action Generation](/en/posts/flowr2a-reward-conditioned-action-generation)
+- [Grounded LLM Workflows for Inherited Disease Diagnosis Ranking](/en/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking)
+- [AI Resource Roundup (24h) - 2026-06-24](/en/posts/ai-resources-roundup-2026-06-24)
+- [CineCap And The Challenge Of Cinematic Video Captioning](/en/posts/cinecap-cinematic-video-captioning-challenge)
+---
+
+## References
+
+- [Why language models hallucinate | OpenAI - openai.com](https://openai.com/index/why-language-models-hallucinate/)
+- [Home | LegalBench - hazyresearch.stanford.edu](https://hazyresearch.stanford.edu/legalbench/)
+- [A Large-Scale Study of Relevance Assessments with Large Language Models: An Initial Look | NIST - nist.gov](https://www.nist.gov/publications/large-scale-study-relevance-assessments-large-language-models-initial-look)
+- [GenAI - Evaluating Generative AI - ai-challenges.nist.gov](https://ai-challenges.nist.gov/genai)
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks - arxiv.org](https://arxiv.org/abs/2005.11401)
+- [Qwen-AgentWorld: Language World Models for General Agents - arxiv.org](https://arxiv.org/abs/2606.24597)
+- [From Word to World: Can Large Language Models be Implicit Text-based World Models? - arxiv.org](https://arxiv.org/abs/2512.18832)
+- [Reinforcement World Model Learning for LLM-based Agents - arxiv.org](https://arxiv.org/abs/2602.05842)
+- [RAGBench: Explainable Benchmark for Retrieval-Augmented Generation Systems - arxiv.org](https://arxiv.org/abs/2407.11005)
+- [LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in Large Language Models - arxiv.org](https://arxiv.org/abs/2308.11462)
+- [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models - arxiv.org](https://arxiv.org/abs/2104.08663)

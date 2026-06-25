@@ -1,0 +1,92 @@
+---
+title: RAG를 넘는 도메인 판단
+slug: beyond-rag-domain-specific-llm-decision-tasks
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: ko
+description: 'RAGBench와 LegalBench로 본 기업 LLM 과제: 검색 성능과 도메인 판단은 분리해 검증해야 한다.'
+tags:
+  - llm
+  - deep-dive
+  - benchmark
+  - rag
+author: AI온다
+sourceId: '1274183'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1274183'
+verificationScore: 0.86
+alternateLocale: /en/posts/beyond-rag-domain-specific-llm-decision-tasks
+coverImage: /images/posts/beyond-rag-domain-specific-llm-decision-tasks.png
+---
+
+100k 예제를 담은 RAGBench와 162개 과업으로 구성된 LegalBench를 함께 보면, 지금 기업이 LLM에 맡기려는 문제의 핵심은 더 이상 “말을 그럴듯하게 하느냐”에만 있지 않다. 조직 규칙, 판례 해석, 내부 문서, 예외 처리처럼 맥락이 두꺼운 판단을 어디까지 믿을 수 있느냐가 쟁점이다. RAG는 이 문제를 일부 다룰 수 있다. 다만 검색으로 문서를 붙였다고 해서 판단이 곧바로 안전해지는 것은 아니다.
+
+## 세 줄 요약
+
+- 핵심 이슈는 이렇다: LLM은 일반 지식 응답에는 강점을 보일 수 있지만, 조직별 규칙·암묵지·예외가 많은 판단 업무에서는 베이스 모델 단독으로 한계가 드러난다. 그래서 RAG, 추가 학습, 더 나아가 환경을 모델링하는 접근까지 검토 대상이 된다.
+- 중요한 이유는 분명하다: RAG는 지식집약적 QA에서 비검색형 모델보다 정확도와 근거 추적 가능성을 높였지만, 검색된 문서를 붙이는 것과 올바른 결론을 내리는 일은 다르다. 도메인 판단 자동화에는 별도 검증이 필요하다.
+- 독자가 할 일도 분명하다: 베이스 모델 단독, RAG 결합, 추가 학습 방식을 같은 업무 데이터로 나란히 비교하고, 검색은 nDCG@20·nDCG@100·Recall@100, 판단은 도메인 벤치마크와 인간 심사로 따로 재라.
+
+## 현황
+
+RAG의 출발점은 비교적 분명하다. 원 논문인 *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks*는 지식집약적 NLP 과업 전반에서 모델을 미세조정해 평가했고, 오픈 도메인 QA 3개 과업에서 파라메트릭 seq2seq 모델과 task-specific retrieve-and-extract 시스템을 앞섰다고 적었다. 여기서 확인할 수 있는 점은 하나다. 외부 문서를 가져와 생성에 결합하면, 적어도 지식 검색이 중요한 질의응답에서는 베이스 모델 단독보다 유리할 수 있다.
+
+문제는 기업 현장이 오픈 도메인 QA와 다르다는 데 있다. 내부 정책 문서, 계약 검토, 규정 해석, 의료 워크플로처럼 도메인 문맥이 강한 업무에서는 “정답을 아는가”와 “우리 조직 기준으로 맞는가”가 갈린다. 그래서 평가도 더 촘촘해졌다. RAGBench는 100k 예제로 구성된 대규모 RAG 벤치마크를 제시했고, 5개 산업 특화 도메인과 여러 RAG 과업 유형을 포함한다. LegalBench는 162개 과업과 6가지 법률 추론 유형으로 법률 추론을 잰다. 둘을 함께 보면, 검색 파이프라인과 도메인 판단을 따로 봐야 한다는 점이 분명해진다.
+
+검색 품질을 재는 기준도 따로 있다. BEIR는 zero-shot 정보검색 평가용 벤치마크를 제공하고, NIST 자료는 nDCG@20, nDCG@100, Recall@100 같은 지표로 시스템 순위를 비교한다. 이 숫자가 중요한 이유도 분명하다. 검색이 흔들리면 생성은 그 위에 쌓인 2층 구조가 된다. 그래서 답변 품질 저하의 원인이 모델 추론인지 검색 실패인지 분리하기 어려워진다. 다시 말해 “RAG가 별로였다”가 아니라 “리트리버가 문서를 못 가져왔다”일 수 있다.
+
+## 분석
+
+여기서 의사결정 포인트가 갈린다. 질문이 “사내 문서를 찾아 요약하고 출처를 보여달라”에 가깝다면, RAG는 유력한 선택지다. 근거 문서를 함께 제시해 사람이 출처를 추적할 수 있기 때문이다. 반대로 질문이 “이 예외 조항과 관행까지 고려해 어떤 결정을 내려야 하느냐”로 이동하면, 검색만으로는 부족할 수 있다. 문서를 읽어 붙이는 일과 상황을 모델링해 결과를 예측하는 일은 다르다.
+
+그래서 최근에는 월드모델, 또는 환경 모델링 접근이 함께 논의된다. 조사 결과에 포함된 논문들은 공통으로, 이 접근이 다음 토큰 예측을 넘어서 현재 관측과 행동을 바탕으로 상태 전이와 환경 동역학을 예측해 계획과 추론을 돕는다고 설명한다. 쉽게 말해 RAG가 “밖에서 책을 더 가져오는 방식”이라면, 월드모델은 “문제 공간 안에서 무슨 일이 벌어질지 시뮬레이션하는 방식”에 가깝다. 다만 이것이 곧바로 실무 우위를 뜻하는 것은 아니다. 이번 조사 결과만으로는 월드모델이 모든 도메인에서 판단 한계를 안정적으로 해결하는지, 또는 RAG보다 늘 낫다고 볼 근거는 확인되지 않는다.
+
+## 실전 적용
+
+현실적인 선택은 흑백논리가 아니다. 내부 지식 접근이 핵심이면 먼저 RAG를 붙이고, 판단 규칙이 복잡하면 추가 학습이나 업무 플로 설계를 얹어야 한다. 예를 들어 계약 검토라면 1차로 관련 조항과 사내 기준 문서를 검색해 붙이고, 2차로 사람이 승인해야 하는 분기 규칙을 둬야 한다. 의료나 법률처럼 오류 비용이 큰 영역이라면 베이스 모델 단독 배치는 피하고, 검색 성능과 판단 성능을 따로 재는 구조부터 깔아야 한다.
+
+검증 설계도 바꿔야 한다. 베이스 모델 단독, RAG 결합, 추가 학습 방식을 같은 데이터셋으로 비교하되, 한 개 점수로 끝내면 안 된다. 검색은 nDCG@20, nDCG@100, Recall@100으로 보고, 생성은 정답성·근거 일치·캘리브레이션·강건성을 따로 봐야 한다. 법률이면 LegalBench 같은 도메인 추론 벤치마크를 섞고, RAG 파이프라인이면 RAGBench를 같이 써야 한다. 모델이 틀렸을 때 “왜 틀렸는지”를 알 수 있어야 다음 투자 판단도 가능하다.
+
+오늘 바로 할 일 체크리스트:
+- 현재 업무를 “지식 검색형”과 “상황 판단형”으로 나눠서, RAG만으로 풀 문제와 사람 승인 루프가 필요한 문제를 분리하라.
+- 같은 질문 세트로 베이스 모델, RAG, 추가 학습 방식을 병렬 평가하고 검색 지표와 판단 지표를 따로 기록하라.
+- 답변 정확도만 보지 말고, 모델이 제시한 근거 문서가 실제 결론과 맞물리는지 인간 리뷰 항목을 추가하라.
+
+## FAQ
+
+**Q. RAG를 붙이면 도메인 판단 문제는 해결되나?**
+
+그렇지 않습니다. RAG는 외부 문서를 검색해 최신성, 사실성, 출처 추적 가능성을 높이는 데 도움을 줍니다. 하지만 검색된 문서를 바탕으로 올바른 판단을 내리는 문제는 별도로 검증해야 합니다.
+
+**Q. 베이스 모델 단독보다 RAG가 항상 낫나?**
+
+항상 그렇다고 볼 수는 없습니다. 지식집약적 질의응답에서는 RAG가 강점을 보였지만, 특정 조직의 규칙 해석이나 암묵지 판단에서는 검색 품질, 프롬프트 설계, 인간 검토 절차가 함께 작동해야 합니다.
+
+**Q. 월드모델은 실무에서 바로 대안이 되나?**
+
+바로 대안이라고 단정하기는 어렵습니다. 조사 결과의 논문들은 월드모델이 상태 전이와 행동 결과 예측을 통해 계획과 추론을 보완한다고 설명합니다. 다만 도메인 판단 업무 전반에서 검증된 우위를 넓게 일반화할 근거는 이번 자료만으로 충분하지 않습니다.
+
+## 결론
+
+LLM의 도메인 판단 한계는 “모델이 똑똑하냐”보다 “어떤 구조 위에서 쓰느냐”의 문제에 가깝다. 지식이 부족하면 RAG를 먼저 검토하고, 상황 예측과 예외 처리가 핵심이면 더 깊은 아키텍처와 평가 체계가 필요하다. 지금 필요한 것은 더 큰 기대보다, 더 잘게 나눈 검증이다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-06-25](/ko/posts/ai-resources-roundup-2026-06-25)
+- [FlowR2A, 보상으로 배우는 계획](/ko/posts/flowr2a-reward-conditioned-action-generation)
+- [유전질환 진단의 AI 경쟁력](/ko/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking)
+- [AI 자료 모음 (24h) - 2026-06-24](/ko/posts/ai-resources-roundup-2026-06-24)
+- [영화문법 비디오캡셔닝의 과제](/ko/posts/cinecap-cinematic-video-captioning-challenge)
+---
+
+## 참고 자료
+
+- [Why language models hallucinate | OpenAI - openai.com](https://openai.com/index/why-language-models-hallucinate/)
+- [Home | LegalBench - hazyresearch.stanford.edu](https://hazyresearch.stanford.edu/legalbench/)
+- [A Large-Scale Study of Relevance Assessments with Large Language Models: An Initial Look | NIST - nist.gov](https://www.nist.gov/publications/large-scale-study-relevance-assessments-large-language-models-initial-look)
+- [GenAI - Evaluating Generative AI - ai-challenges.nist.gov](https://ai-challenges.nist.gov/genai)
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks - arxiv.org](https://arxiv.org/abs/2005.11401)
+- [Qwen-AgentWorld: Language World Models for General Agents - arxiv.org](https://arxiv.org/abs/2606.24597)
+- [From Word to World: Can Large Language Models be Implicit Text-based World Models? - arxiv.org](https://arxiv.org/abs/2512.18832)
+- [Reinforcement World Model Learning for LLM-based Agents - arxiv.org](https://arxiv.org/abs/2602.05842)
+- [RAGBench: Explainable Benchmark for Retrieval-Augmented Generation Systems - arxiv.org](https://arxiv.org/abs/2407.11005)
+- [LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in Large Language Models - arxiv.org](https://arxiv.org/abs/2308.11462)
+- [BEIR: A Heterogenous Benchmark for Zero-shot Evaluation of Information Retrieval Models - arxiv.org](https://arxiv.org/abs/2104.08663)
