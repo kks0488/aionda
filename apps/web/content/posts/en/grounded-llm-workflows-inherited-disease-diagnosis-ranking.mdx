@@ -1,0 +1,101 @@
+---
+title: Grounded LLM Workflows for Inherited Disease Diagnosis Ranking
+slug: grounded-llm-workflows-inherited-disease-diagnosis-ranking
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: en
+description: >-
+  DeepBD highlights grounded LLM workflows for inherited disease diagnosis,
+  emphasizing traceable evidence and recall gains.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-8d4922c7cebc9025
+sourceUrl: 'https://arxiv.org/abs/2606.24779'
+verificationScore: 0.88
+alternateLocale: /ko/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking
+coverImage: /images/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking.png
+---
+
+In an internal held-out solved-case benchmark, DeepBD reported Recall@1 of 0.658 and Recall@10 of 0.929. These results frame a broader question for medical AI. Evidence tracing may matter as much as polished conversation.
+
+## TL;DR
+
+- DeepBD is an arXiv study on congenital genetic disorder diagnosis with a four-stage, agentic evidence workflow.
+- This matters because genomic diagnosis often depends on interpretation, phenotype quality, and reviewable evidence links.
+- Readers should assess agents by traceability, Recall@1/3/5/10, and documented failure cases under incomplete phenotypes.
+
+Example: A genetics team receives a difficult case with scattered notes and uncertain symptoms. The agent organizes findings, gathers conflicting evidence, and presents ranked candidates for human review.
+
+## Current status
+
+DeepBD is a study published on arXiv. It targets variant prioritization and diagnostic support for congenital genetic disorders. According to the reviewed findings, the system uses a four-stage chain. The sequence is LLM-assisted case structuring, a pretrained evidence engine, specialist evidence modules, and a grounded diagnostic review layer.
+
+It structures patient cases. It gathers evidence. It performs domain-specific review. It ends with a diagnosis-oriented review.
+
+The design emphasizes role separation. The study does not describe a free-form model making end-to-end decisions alone. The evidence engine combines structured rule-based evidence, sequence or variant-effect representations, and phenotype-conditioned biological context. Specialist modules and the agentic layer handle tool-based refinement, candidate-pool review, and diagnosis-oriented synthesis.
+
+This design may improve verifiability. It separates evidence processing from final synthesis.
+
+
+Interpretation still needs caution. The reviewed findings did not confirm a time-savings figure. They also did not confirm direct comparisons on precision or diagnostic yield. These scores are notable. They do not support broad claims such as faster or more accurate by themselves.
+
+## Analysis
+
+This study helps clarify medical AI evaluation. In consumer AI, plausible wording may sometimes be enough. Genetic disease diagnosis is different.
+
+Patient phenotypes can be incomplete. Gene-disease associations can be shaped by literature bias and annotation quality. The reviewed materials note that incomplete initial phenotype information can omit the causal variant from the original panel. They also note that clinical phenotype is central when judging disease-gene association credibility.
+
+The value of a medical agent is not only a correct final answer. It also includes gathering scattered evidence and narrowing candidates more carefully. That can support later human review.
+
+The limitations are also visible. Results from an internal solved-case benchmark are a starting point. The reviewed findings did not confirm external prospective clinical validation.
+
+Failure patterns matter. Incomplete phenotype information can push a true pathogenic variant down the ranking. Biased biomedical data can support false disease associations or overinterpretation. When an agent links evidence, incorrect links can also look plausible. In this setting, grounded refers to reviewable evidence use at each stage.
+
+## Practical application
+
+Hospitals, genomics teams, and digital health startups can draw a practical lesson. It may be better to separate case structuring and evidence layers first. Starting with a chat interface can hide workflow problems.
+
+Variant interpretation workflows include retrieval, reranking, evidence summarization, and final review. If one model handles everything in one response, debugging becomes harder. If teams preserve stepwise outputs, they can inspect where phenotype omission caused failure. They can also see why a candidate moved down.
+
+If phenotype information for a fetus or newborn is not well organized, a different workflow may help. The agent can structure symptom descriptions first. It can then organize evidence conflicts for each candidate variant. A human expert can narrow the candidate set afterward.
+
+This approach is closer to operational design than to a performance race. Auditable logs and failure cases may matter more than a larger model alone.
+
+**Checklist for Today:**
+- Identify where case structuring, evidence retrieval, candidate reranking, and final review are mixed in your pipeline.
+- Track missed pathogenic variants separately when comparing baseline tools and agent outputs with top-k recall.
+- Build a separate set of cases with incomplete phenotypes and record when candidate ranking fails.
+
+## FAQ
+
+**Q. How is DeepBD different from simply putting papers and symptoms into an LLM and having it rerank candidates?**  
+The stages are separated instead of relying on prompt-based reranking alone. Based on the reviewed findings, DeepBD includes case structuring, an evidence engine, specialist modules, and a grounded review layer. This design can support evidence tracing and error inspection.
+
+**Q. Can these performance numbers alone justify immediate clinical use?**  
+No. The confirmed metrics are Recall@1, Recall@3, Recall@5, and Recall@10 on an internal held-out solved-case benchmark. Time savings, external prospective validation, and direct comparisons on other metrics were not confirmed in the reviewed findings. Separate validation should come before clinical deployment.
+
+**Q. What is the most dangerous failure mode in a medical agent?**  
+A serious risk is ranking the causal variant too low because phenotypes are incomplete. Biased literature and annotation data can make that worse. The system can then present an incorrect disease association in a plausible form. Human re-review and preserved evidence logs can reduce this risk.
+
+## Conclusion
+
+DeepBD points to a specific direction for medical agents. Natural conversation may matter less than evidence organization and reviewability. The main questions remain consistent. Readers should look for external validation and disclosed failure cases before drawing broader conclusions.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+- [AI Resource Roundup (24h) - 2026-06-24](/en/posts/ai-resources-roundup-2026-06-24)
+- [CineCap And The Challenge Of Cinematic Video Captioning](/en/posts/cinecap-cinematic-video-captioning-challenge)
+- [Compositional 3D Generation With Multi-View Consistency Challenges](/en/posts/compositional-3d-generation-multi-view-consistency)
+- [Why CUC Measures Commitment Beyond LLM Consistency](/en/posts/cuc-commitment-beyond-llm-consistency)
+---
+
+## References
+
+- [Increased diagnostic yield from negative whole genome-slice panels using automated reanalysis - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC10524710/)
+- [Curating genomic disease-gene relationships with Gene2Phenotype (G2P) - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC11539801/)
+- [Medical genomics: The intricate path from genetic variant identification to clinical interpretation - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC4887840/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.24779)
