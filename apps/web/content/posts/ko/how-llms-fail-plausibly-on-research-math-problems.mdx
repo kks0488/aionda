@@ -1,0 +1,88 @@
+---
+title: LLM의 그럴듯한 수학 오답
+slug: how-llms-fail-plausibly-on-research-math-problems
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: ko
+description: 연구급 수학에서 LLM이 그럴듯하게 틀리는 네 가지 실패 모드와 검증 설계의 필요성을 짚는다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-01b60fcb32e812e0
+sourceUrl: 'https://arxiv.org/abs/2606.24902'
+verificationScore: 0.76
+alternateLocale: /en/posts/how-llms-fail-plausibly-on-research-math-problems
+coverImage: /images/posts/how-llms-fail-plausibly-on-research-math-problems.png
+---
+
+연구급 수학 문제를 LLM에 던졌을 때 더 위험한 순간은 “모르겠다”가 아니라 “맞는 말처럼 들리는 오답”이 나올 때다. 이번 글이 다루는 논문은 정답률 경쟁보다 한 걸음 물러나, 모델이 **어떻게 그럴듯하게 틀리는지**를 해부한다. 이 관점은 수학만의 이야기에 그치지 않는다. 코드, 법률, 과학처럼 검증 비용이 큰 영역에도 이어진다. 핵심은 성능 수치만으로는 놓치는 리스크가 있다는 점이다.
+
+## 세 줄 요약
+
+- 이 글의 핵심 쟁점은 연구급 수학에서 LLM이 내는 오답을 `citation fabrication`, `premise smuggling`, `silent problem reformulation`, `local-to-global compatibility gaps` 같은 구조적 실패로 나눠 봐야 한다는 점이다.
+- 이 분류가 중요한 이유는 모델이 틀릴 때도 유창하고 자신감 있게 답하기 때문이다. 학술 인용 감사 연구에서는 10개 상용 배치 모델의 69,557개 citation instance를 점검했고, hallucination 비율은 11.4%에서 56.8%까지 벌어졌다. 법률 인용 벤치마크에서도 21개 LLM 가운데 성능이 높은 축에 속한 모델조차 citation retrieval·completion 점수가 7/100 아래였고, 21개 중 20개는 Misleading Answer Rate가 94%를 넘었다.
+- 독자는 정답률만 보지 말고 검증 체인을 설계해야 한다. 수학·코드·리서치 워크플로에서는 답변 생성과 검증을 분리하고, 인용·전제·문제 재정의 여부를 따로 체크하는 테스트셋을 만들어야 한다.
+
+## 현황
+
+이번 논문은 arXiv에 올라온 `Failure Modes of Large Language Models on Research-Level Mathematics: A Taxonomy and an Empirical Characterisation`다. 제공된 초록 발췌에 따르면 저자는 `First Proof` 벤치마크의 부록 사후 분석을 바탕으로, 연구 수준 수학 문제에서 공개 LLM들이 왜 틀리는지 네 가지 실패 모드로 정리했다. 초점은 “얼마나 맞히는가”보다 “왜 그럴듯하게 틀리는가”에 있다. 전자는 리더보드에 가깝고, 후자는 신뢰성 설계에 가깝다.
+
+여기서 말하는 실패 모드는 이름부터 실무적이다. `citation fabrication`은 없는 정리나 문헌, 출처를 끌어오는 유형이다. `premise smuggling`은 문제에 없는 전제를 은근히 넣는 유형이다. `silent problem reformulation`은 원래 문제를 말없이 더 쉬운 문제나 다른 문제로 바꿔 푸는 경우다. `local-to-global compatibility gaps`는 중간 단계 각각은 그럴듯해도 전체 증명이나 전체 구조로 연결하면 모순이 생기는 유형이다.
+
+중요한 점은 이 네 분류가 공개 LLM 전반에서 얼마나 재현되는지, 이를 한 연구가 같은 기준으로 비교해 준 상태는 아니라는 점이다. 조사 결과 기준으로는 이 네 실패 모드를 동일 기준으로 공개 모델들에 걸쳐 직접 비교한 단일 연구를 확인하지 못했다. 다만 인용 조작류 실패는 다른 영역에서도 반복해 보고된다. 학술 글쓰기의 참고문헌 조작을 감사한 한 연구는 10개 상용 배치 LLM을 4개 학문 분야에 걸쳐 평가하며 69,557개의 citation instance를 검증했고, 관찰된 hallucination 비율이 11.4%에서 56.8%까지 나타났다고 보고했다. 법률 인용 벤치마크에서도 21개 LLM을 평가했는데, 성능이 높은 모델도 citation retrieval·completion에서 7/100 아래였고, 21개 중 20개는 Misleading Answer Rate가 94%를 넘었다.
+
+추론 방식과의 상관도 자주 묻는 대목이다. 조사 결과에 따르면 더 긴 CoT, 여러 추론 경로 탐색, verifier 결합 같은 inference-time scaling이 복잡한 수학 추론의 정확도를 높인다는 근거는 있다. 다만 그것이 `premise smuggling`이나 `silent problem reformulation` 같은 **각 실패 모드의 발생률**을 어떻게 바꾸는지는 공개 자료만으로 직접 확인되지 않았다. 따라서 “더 오래 생각하게 하면 해결된다”는 결론은 이르다. 정확도는 오를 수 있지만, 틀리는 방식이 더 교묘해질 가능성도 함께 봐야 한다.
+
+## 분석
+
+이 논문이 던지는 메시지는 평가 기준을 바꾸라는 데 있다. 지금까지 LLM 평가는 종종 “맞혔나, 틀렸나”에 묶였다. 하지만 연구급 수학, 법률 분석, 고위험 코드 생성에서는 그 이분법만으로는 부족하다. 같은 오답이라도 없는 출처를 만들며 틀리는 답과 문제를 바꿔치기하며 틀리는 답은 대응법이 다르다. 전자는 인용 검증기로 잡아야 하고, 후자는 문제 보존성 검사나 전제 추적이 필요하다. 실패를 분류하면 방어선도 나눠 설계할 수 있다.
+
+동시에 이 프레임에도 한계가 있다. 첫째, 조사 결과 기준으로 네 실패 모드 각각이 모델 규모와 어떤 상관을 갖는지, 또 공개 모델 전반에서 얼마나 반복되는지에 대한 정량 비교는 비어 있다. 둘째, 툴 사용과 정형 검증기, 증명 보조기가 일부 개선을 만든다는 근거는 있지만 그 효과가 이 네 실패 유형 각각에 어느 정도 작동하는지는 아직 직접 계량되지 않았다. 예를 들어 APOLLO 같은 형식 정리 증명 결합 접근은 correctness와 efficiency 개선을 보고했지만, 자연어 연구수학 문제 전반에 같은 수준으로 옮겨갈지는 별개의 질문이다. 결국 “분류는 설득력 있다”와 “산업 표준으로 굳었다”는 다른 말이다.
+
+## 실전 적용
+
+실무자는 이 논문을 “수학 전용 읽을거리”로 넘기면 안 된다. 더 쓸모 있는 읽기법은 이렇다. 내 팀이 쓰는 LLM이 어떤 방식으로 틀리는지, 그 실패를 지금 분류하고 있는가를 묻는 것이다. 코드 리뷰 봇이면 허구 API 호출과 숨은 전제 추가를 따로 잡아야 한다. 리서치 보조면 인용 진위와 질문 재정의를 따로 감시해야 한다. 법률 보조면 답변 품질보다 먼저 근거 문서 회수와 조문 대조를 강제해야 한다.
+
+도구 결합은 이미 실전 힌트를 준다. 조사 결과에 따르면 정형 검증기, 증명 보조기, verifier를 붙인 시스템은 적어도 일부 환경에서 정확도와 효율을 높였다. 하지만 여기서 배워야 할 핵심은 “도구를 붙이면 다 해결된다”가 아니다. **검증 가능한 형식으로 답을 바꾸는 순간, 거짓말의 공간이 줄어든다**는 점이다. 자연어로 끝나는 답보다, 출처·가정·중간 단계·최종 결론을 분리 제출하게 하는 답이 다루기 쉽다.
+
+### 오늘 바로 할 일
+
+- 팀의 LLM 평가표에서 정답률 한 칸만 남겨두지 말고 `인용 오류`, `숨은 전제`, `문제 재정의`, `부분-전체 불일치` 항목을 따로 추가하라.
+- 고정밀 업무에서는 단일 답변을 바로 채택하지 말고, 생성기와 검증기를 분리해 최소 한 번은 출처 대조나 형식 검사를 거치게 하라.
+- 프롬프트에 “문제를 다시 쓰지 말고, 사용한 전제를 명시하고, 확실하지 않은 인용은 추정으로 표시하라”는 규칙을 넣고 실패 사례를 별도 로그로 쌓아라.
+
+## FAQ
+
+**Q. 이 논문은 LLM이 수학을 못 한다는 결론인가요?**  
+그렇게 읽으면 범위가 좁습니다. 이 논문이 더 직접적으로 다루는 대상은 성능 자체보다 오답의 구조입니다. 맞고 틀림의 비율만 보는 대신, 어떤 방식으로 그럴듯하게 실패하는지 분류하자는 제안으로 읽는 편이 더 정확합니다.
+
+**Q. 더 큰 모델이나 더 긴 추론을 쓰면 이 문제가 사라지나요?**  
+현재 공개 근거만 보면 그렇게 말하기는 어렵습니다. 같은 계열에서 규모 확대가 인용 조작류 실패를 일부 줄인다는 신호는 있지만, 문제를 없애지는 못했습니다. 더 긴 CoT나 verifier 결합이 수학 추론 정확도를 높인다는 결과는 있으나, 네 가지 실패 모드 각각의 발생률이 어떻게 바뀌는지는 직접 확인되지 않았습니다.
+
+**Q. 그러면 실무에서는 LLM을 수학·법률·코드에 쓰지 말아야 하나요?**  
+아닙니다. 다만 단독 판정자로 쓰면 위험합니다. 검증기, 증명 보조기, 정적 분석, 출처 회수 같은 외부 장치를 붙여야 합니다. 특히 인용과 전제가 중요한 업무에서는 자연어 답변을 그대로 신뢰하지 말고, 검증 가능한 근거 형식으로 다시 제출하게 만드는 편이 더 안전합니다.
+
+## 결론
+
+이 논문의 핵심 가치는 “LLM이 틀린다”는 사실을 다시 말하는 데 있지 않다. **LLM이 어떻게 틀리는지 이름을 붙였다는 점**에 있다. 앞으로 볼 것은 더 높은 점수만이 아니다. 이 실패 분류가 평가표와 제품 설계, 검증 도구 안으로 실제로 들어오는지도 함께 봐야 한다.
+
+## 다음으로 읽기
+- [3D 고정 후 AI 작화의 현실](/ko/posts/3d-layout-ai-animation-stability)
+- [AI 자료 모음 (24h) - 2026-06-25](/ko/posts/ai-resources-roundup-2026-06-25)
+- [RAG를 넘는 도메인 판단](/ko/posts/beyond-rag-domain-specific-llm-decision-tasks)
+- [FlowR2A, 보상으로 배우는 계획](/ko/posts/flowr2a-reward-conditioned-action-generation)
+- [유전질환 진단의 AI 경쟁력](/ko/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking)
+---
+
+## 참고 자료
+
+- [ProofCompass: Enhancing Specialized Provers with LLM Guidance - huggingface.co](https://huggingface.co/papers/2507.14335)
+- [Clover: Closed-Loop Verifiable Code Generation | SAIL Blog - ai.stanford.edu](https://ai.stanford.edu/blog/clover/)
+- [How LLMs Cite and Why It Matters: A Cross-Model Audit of Reference Fabrication in AI-Assisted Academic Writing and Methods to Detect Phantom Citations - arxiv.org](https://arxiv.org/abs/2603.03299)
+- [LegalCiteBench: Evaluating Citation Reliability in Legal Language Models - arxiv.org](https://arxiv.org/abs/2605.10186)
+- [Towards Thinking-Optimal Scaling of Test-Time Compute for LLM Reasoning - arxiv.org](https://arxiv.org/abs/2502.18080)
+- [Improving LLM Reasoning through Scaling Inference Computation with Collaborative Verification - arxiv.org](https://arxiv.org/abs/2410.05318)
+- [APOLLO: Automated LLM and Lean Collaboration for Advanced Formal Reasoning - arxiv.org](https://arxiv.org/abs/2505.05758)
+- [CodeMirage: Hallucinations in Code Generated by Large Language Models - arxiv.org](https://www.arxiv.org/pdf/2408.08333)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.24902)

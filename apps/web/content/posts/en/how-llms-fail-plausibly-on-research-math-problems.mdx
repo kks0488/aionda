@@ -1,0 +1,211 @@
+---
+title: How LLMs Fail Plausibly on Research Math Problems
+slug: how-llms-fail-plausibly-on-research-math-problems
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: en
+description: >-
+  A look at four plausible LLM failure modes in research-level math and why
+  verification design matters beyond accuracy.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-01b60fcb32e812e0
+sourceUrl: 'https://arxiv.org/abs/2606.24902'
+verificationScore: 0.76
+alternateLocale: /ko/posts/how-llms-fail-plausibly-on-research-math-problems
+coverImage: /images/posts/how-llms-fail-plausibly-on-research-math-problems.png
+---
+
+In a research-level math workflow, the risk often appears when a wrong answer sounds correct.
+
+## TL;DR
+
+- This article reviews a taxonomy of four plausible LLM failure modes in research-level mathematics.
+- It matters because fluent errors appear in other domains, with rates like 11.4% to 56.8% in citation audits.
+- Next, separate generation from verification, and test citations, premises, and problem preservation independently.
+
+Example: A researcher asks for a proof, receives a polished argument, and later finds the model changed the question quietly.
+
+## Current landscape
+
+The paper discussed here is the arXiv paper `Failure Modes of Large Language Models on Research-Level Mathematics.
+A Taxonomy and an Empirical Characterisation`.
+
+According to the provided abstract excerpt, the authors analyze the appendix of the `First Proof` benchmark.
+
+They organize open LLM failures on research-level mathematics into four failure modes.
+
+The focus is not only correctness frequency.
+
+The focus is also why failures can sound plausible.
+
+That framing is closer to reliability engineering than leaderboards.
+
+The four failure modes are also useful at the naming level.
+
+`citation fabrication` refers to nonexistent theorems, papers, or sources.
+
+`premise smuggling` refers to inserted assumptions absent from the original problem.
+
+`silent problem reformulation` refers to changing the original problem into an easier or different one.
+
+`local-to-global compatibility gaps` refers to plausible local steps that conflict when combined.
+
+An important limit also appears in the available evidence.
+
+Based on the reviewed findings, no single study was confirmed under one shared standard.
+
+That missing study would compare all four categories across open LLMs.
+
+However, citation-fabrication-type failures are reported in other domains too.
+
+One academic citation audit covered 69,557 citation instances across 10 commercial models.
+
+
+A legal citation benchmark evaluated 21 LLMs.
+
+Even higher-performing models scored below 7/100 on citation retrieval and completion.
+
+
+Another common question concerns reasoning style.
+
+The surveyed findings suggest some inference-time scaling methods can improve accuracy.
+
+Examples include longer CoT, multiple reasoning paths, and verifier combinations.
+
+Still, the public evidence does not directly show effects on each failure mode.
+
+That includes `premise smuggling` and `silent problem reformulation`.
+
+So, it is early to claim longer reasoning resolves the underlying issue.
+
+Accuracy can improve.
+
+Failure patterns can also become harder to detect.
+
+## Analysis
+
+The paper suggests a change in evaluation criteria.
+
+Many LLM evaluations still center on a binary outcome.
+
+That outcome is often simply right or wrong.
+
+In research mathematics, legal analysis, and high-risk code generation, that split can be too coarse.
+
+Different wrong answers call for different countermeasures.
+
+Invented sources call for citation verification.
+
+A changed problem calls for premise tracking and problem-preservation checks.
+
+Once teams classify failures, they can design separate defensive layers.
+
+This framework also has limits.
+
+First, the reviewed findings still leave a quantitative comparison gap.
+
+That gap concerns all four failure modes across open models.
+
+It also concerns recurrence consistency and possible relationships to model scale.
+
+Second, some tool-based approaches show improvements in some settings.
+
+Those approaches include formal verifiers, proof assistants, and related integrations.
+
+But the reviewed material does not directly quantify effects by failure type.
+
+That uncertainty matters for all four categories.
+
+For example, APOLLO is mentioned as reporting correctness and efficiency improvements.
+
+But transfer to natural-language research mathematics remains a separate question.
+
+A persuasive taxonomy and an industry standard are not the same claim.
+
+## Practical application
+
+Practitioners can read this paper beyond mathematics.
+
+A useful question is whether your team analyzes how the model fails.
+
+For a code review bot, fabricated API calls and hidden premises can be tracked separately.
+
+For a research assistant, citation validity and question reformulation can be monitored separately.
+
+For a legal assistant, retrieval and statute comparison can be checked before answer quality.
+
+Tool integration already offers practical hints.
+
+The surveyed results suggest some augmented systems improved accuracy and efficiency in some settings.
+
+Examples include formal verifiers, proof assistants, and verifier-based setups.
+
+But the lesson is not that adding tools resolves everything.
+
+The stronger lesson is about verifiable structure.
+
+When an answer is converted into a verifiable format, deceptive latitude can shrink.
+
+Natural-language answers are harder to audit.
+
+Answers with explicit sources, assumptions, intermediate steps, and conclusions are easier to manage.
+
+**Checklist for Today:**
+
+- Add four failure columns to evaluations: `citation errors`, `hidden premises`, `problem reformulation`, and `part-whole inconsistency`.
+- Separate generator and verifier roles, and require one source check or formal check before adoption.
+- Add prompt rules for premise disclosure, problem preservation, and uncertainty marking, then log failures separately.
+
+## FAQ
+
+**Q. Does this paper conclude that LLMs are bad at mathematics?**  
+That reading would be too narrow.
+
+The paper addresses the structure of wrong answers more directly than raw performance.
+
+It is better read as a classification proposal for plausible failures.
+
+**Q. If we use a larger model or longer reasoning, does this problem go away?**  
+Based on the public evidence reviewed here, that is difficult to claim.
+
+Within some model families, scaling shows signals of reducing some citation-fabrication-type failures.
+
+But it does not remove the problem.
+
+Longer CoT or verifier integration can improve reasoning accuracy.
+
+Still, direct evidence by failure mode has not been confirmed here.
+
+**Q. Then does this mean LLMs should not be used for mathematics, law, or code in practice?**  
+No.
+
+But using them as sole decision-makers can be risky.
+
+External mechanisms can help.
+
+Examples include verifiers, proof assistants, static analysis, and source retrieval.
+
+This is especially relevant when citations and premises matter.
+
+## Further Reading
+- [Can 3D Layout Plus AI Improve Animation Stability](/en/posts/3d-layout-ai-animation-stability)
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+- [Beyond RAG for Domain-Specific LLM Decision Tasks](/en/posts/beyond-rag-domain-specific-llm-decision-tasks)
+- [FlowR2A Reframes Planning as Reward-Conditioned Action Generation](/en/posts/flowr2a-reward-conditioned-action-generation)
+- [Grounded LLM Workflows for Inherited Disease Diagnosis Ranking](/en/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking)
+---
+
+## References
+
+- [ProofCompass: Enhancing Specialized Provers with LLM Guidance - huggingface.co](https://huggingface.co/papers/2507.14335)
+- [Clover: Closed-Loop Verifiable Code Generation | SAIL Blog - ai.stanford.edu](https://ai.stanford.edu/blog/clover/)
+- [How LLMs Cite and Why It Matters: A Cross-Model Audit of Reference Fabrication in AI-Assisted Academic Writing and Methods to Detect Phantom Citations - arxiv.org](https://arxiv.org/abs/2603.03299)
+- [LegalCiteBench: Evaluating Citation Reliability in Legal Language Models - arxiv.org](https://arxiv.org/abs/2605.10186)
+- [Towards Thinking-Optimal Scaling of Test-Time Compute for LLM Reasoning - arxiv.org](https://arxiv.org/abs/2502.18080)
+- [Improving LLM Reasoning through Scaling Inference Computation with Collaborative Verification - arxiv.org](https://arxiv.org/abs/2410.05318)
+- [APOLLO: Automated LLM and Lean Collaboration for Advanced Formal Reasoning - arxiv.org](https://arxiv.org/abs/2505.05758)
+- [CodeMirage: Hallucinations in Code Generated by Large Language Models - arxiv.org](https://www.arxiv.org/pdf/2408.08333)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.24902)

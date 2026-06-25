@@ -1,0 +1,93 @@
+---
+title: Rethinking Agent Safety Beyond Model Internal Guardrails
+slug: rethinking-agent-safety-beyond-model-internal-guardrails
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: en
+description: >-
+  Why agent safety must shift from internal prompts and filters to external
+  runtime permission enforcement.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-00538b1497f90aae
+sourceUrl: 'https://arxiv.org/abs/2606.26057'
+verificationScore: 0.76
+alternateLocale: /ko/posts/rethinking-agent-safety-beyond-model-internal-guardrails
+coverImage: /images/posts/rethinking-agent-safety-beyond-model-internal-guardrails.png
+---
+
+The figure of **74%** frames one side of this debate. One adjacent study wrote that **74% of policy requirements for domain-specific agents can be enforced with symbolic guardrails**. Another study evaluated **60 execution traces** in a robot-control context. It explained that **parameter selection for physical actions is model-dependent and non-deterministic**. Against this backdrop, the discussion of an **"agent safety kernel"** changes the question. It shifts attention from model compliance to external control after tool access.
+
+## TL;DR
+
+- This article examines whether guardrails belong inside the model or outside the execution loop.
+- This matters because tool use shifts safety toward permission enforcement and runtime control.
+- Readers should map tool permissions, test external policies, and review execution logs.
+
+Example: A support agent drafts a refund, opens customer records, and prepares an email. The key question is not wording alone. The key question is who can approve each action outside the model.
+
+The reason this topic matters is simple. Prompts and output filters are still necessary. However, once an agent starts calling APIs, writing files, and touching external systems, many observers argue those measures may not be sufficient. This is especially relevant for long-running agents and robotics. In those settings, execution time is long and external impact is significant. As a result, some teams are redesigning safety as authority enforcement in execution infrastructure.
+
+## Current state
+
+The concern in the excerpted source is clear. The study treats AI agents as **"active principals"** that access tools, APIs, and infrastructure. In that setting, a common control pattern places controls inside the agent runtime. Examples include system prompts, output filters, and guardrail libraries. The study challenges that pattern. Its argument is narrower. Controls inside the agent's address space can also be influenced by inputs.
+
+This concern is not isolated. **SafeAgent** wrote that LLM agents are vulnerable to prompt injection attacks. It also wrote that input and output filters alone do not provide sufficiently reliable protection. The **Symbolic Guardrails** study wrote that learning-based methods and neural guardrails may help reliability. It did not present them as complete protection. It claimed that **74% of policy requirements** can be enforced with **simple, low-cost mechanisms**. The **Proof-of-Guardrail** study described its TEE-based approach as **"lightweight"** with **"modest latency overhead."** However, the quantitative performance cost of the **agent safety kernel** paper itself could not be directly confirmed from the research findings.
+
+In the physical world, this issue becomes sharper. **Harnessing Embodied Agents** wrote that governance for embodied agents should be externalized into a dedicated runtime layer. Those agents interact with tools, robots, and physical environments. **When Agents Control Robots** evaluated **60 execution traces** across **two LFM backends**. It presented early evidence that action-parameter selection is **model-dependent** and **non-deterministic**. **Agent libOS** treats long-running agents as software actors. Those actors maintain state, fork subtasks, wait for external events, and request human approval. In this context, a safety kernel looks less like a simple filter. It looks more like part of an execution operating system.
+
+## Analysis
+
+The idea of an agent safety kernel shifts the focus of AI safety. Much of the discussion has focused on alignment, prompt design, and output filtering. That focus can change when an agent edits a calendar, requests a payment, moves a robot, or reads internal documents. The main question is no longer **"what did it say"**. The main question becomes **"what authority did it exercise"**. A kernel-style approach draws on a familiar security principle. It places more trust in an external reference monitor than in rules embedded inside the application.
+
+That said, this approach should not be treated as a universal solution. First, external policy enforcement can improve security. However, coarse policy design can also block legitimate work. Second, the meaning of a **"safe action"** differs by organization. One team may allow file reads but block external transmission. Another may auto-approve small payments. Another may set limits on a robot's speed, force, and spatial range. Third, performance costs are described differently across studies. **Symbolic Guardrails** describes its approach as low-cost. **Proof-of-Guardrail** says the latency overhead is not large. However, a quantitative comparison with sandboxes could not be confirmed. Numerical results from the agent safety kernel paper itself also could not be confirmed. The direction may be useful. Even so, each team should validate operating cost and development complexity directly.
+
+## Practical application
+
+In practice, the first task is to catalog not **"what the model can say"** but **"what it can execute."** An agent that retrieves internal documents and an agent that calls a payment API may share the same chat interface. However, they carry different risks. For the former, retrieval scope and download restrictions may matter most. For the latter, approval workflows and audit logs may matter more. Safety-kernel thinking starts here. Teams decide who approves before and after a tool call. They also decide which policies are checked and where execution stops after a failure.
+
+For robots or automated workflows, the standard should be stricter. The action plan generated by the model should be separated from execution authority. High-risk actions should go through a separate approval path.
+
+**Checklist for Today:**
+
+- List each tool and API, then label read, write, external transmission, payment, or physical actuation risk.
+- Mark rules that rely only on prompts or filters, then pilot one external runtime policy.
+- Review one week of logs, then separate uncomfortable approvals from necessary blocked actions.
+
+## FAQ
+
+**Q. How is an agent safety kernel different from an ordinary guardrail library?**  
+The main difference is location. A guardrail library typically operates inside the agent runtime. The safety-kernel concept aims to enforce policy from outside it. In the excerpted source, controls inside the agent's address space can be influenced by inputs. That creates a structural concern.
+
+**Q. Can this alone prevent prompt injection?**  
+It is difficult to make that claim categorically. However, the cited studies state that input and output filters alone provide insufficient protection. They also explain that runtime protection architectures can improve robustness. A practical approach combines internal model guardrails with external policy enforcement.
+
+**Q. Can the same idea be applied to robots or long-running agents?**  
+Yes, it can. However, the better framing is not simply reusing the same model. The approach adds an external enforcement layer on top of it. In the research findings, embodied agents, robot control, and long-running agents repeatedly highlight dedicated runtime layers or policy-level enforcement.
+
+## Conclusion
+
+The core of the agent safety kernel discussion is simple. It is a call to stop viewing safety only as a matter of the model.
+
+## Further Reading
+- [Can 3D Layout Plus AI Improve Animation Stability](/en/posts/3d-layout-ai-animation-stability)
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+- [Beyond RAG for Domain-Specific LLM Decision Tasks](/en/posts/beyond-rag-domain-specific-llm-decision-tasks)
+- [FlowR2A Reframes Planning as Reward-Conditioned Action Generation](/en/posts/flowr2a-reward-conditioned-action-generation)
+- [Grounded LLM Workflows for Inherited Disease Diagnosis Ranking](/en/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking)
+---
+
+## References
+
+- [Silent Failures in Physical AI: A Literature Review of Runtime Action Authorization for Autonomous Systems - huggingface.co](https://huggingface.co/papers/2606.00090)
+- [SafeAgent: A Runtime Protection Architecture for Agentic Systems - arxiv.org](https://arxiv.org/abs/2604.17562)
+- [Symbolic Guardrails for Domain-Specific Agents: Stronger Safety and Security Guarantees Without Sacrificing Utility - arxiv.org](https://arxiv.org/abs/2604.15579)
+- [Proof-of-Guardrail in AI Agents and What (Not) to Trust from It - arxiv.org](https://arxiv.org/abs/2603.05786)
+- [Harnessing Embodied Agents: Runtime Governance for Policy-Constrained Execution - arxiv.org](https://arxiv.org/abs/2604.07833)
+- [When Agents Control Robots: A Zero Trust Policy Model for Agentic Cyber-Physical Systems - arxiv.org](https://arxiv.org/abs/2605.25653)
+- [Agent libOS: A Library-OS-Inspired Runtime for Long-Running, Capability-Controlled LLM Agents - arxiv.org](https://arxiv.org/abs/2606.03895)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26057)
