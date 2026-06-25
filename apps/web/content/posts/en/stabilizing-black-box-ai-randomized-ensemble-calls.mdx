@@ -1,0 +1,140 @@
+---
+title: Stabilizing Black-Box AI With Randomized Ensemble Calls
+slug: stabilizing-black-box-ai-randomized-ensemble-calls
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: en
+description: >-
+  A 2026 arXiv paper proposes randomized repeated calls to stabilize black-box
+  AI, with tradeoffs in cost and sigma range.
+tags:
+  - agi
+  - hardware
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: arxiv-cs-ai-2fbd6a56a0fc4f7f
+sourceUrl: 'https://arxiv.org/abs/2606.25269'
+verificationScore: 0.74
+alternateLocale: /ko/posts/stabilizing-black-box-ai-randomized-ensemble-calls
+coverImage: /images/posts/stabilizing-black-box-ai-randomized-ensemble-calls.png
+---
+
+On **June 24, 2026**, an arXiv paper described a way to stabilize black-box AI outputs.
+
+## TL;DR
+
+- A paper proposes input randomization and **B** repeated calls, then aggregates outputs by averaging or majority vote.
+- This matters because closed AI services can expose unstable outputs, but gains may depend on **σ<2.7** and extra cost.
+- Next, test your own workload by tracking noise level, repeated calls, stability, error, latency, and cost.
+
+Example: A team sees inconsistent outputs after small prompt changes. They try slight input variations and aggregate results. Stability improves in some cases, but larger changes make outputs less consistent.
+
+## Current status
+
+The paper is titled *Stabilizing black-box algorithms through task-oriented randomization*.  
+The arXiv submission record lists **June 24, 2026**.
+
+The problem statement is practical.  
+Black-box outputs can change even when inputs change only slightly.  
+This can happen across structured Gaussian inputs and complex data with unknown structure.
+
+The method is straightforward.  
+It creates **B** datasets with added noise.  
+It then runs the black-box algorithm **B times**.  
+Finally, it combines results by averaging or majority vote.
+
+The method does not modify the model internals.  
+That makes it relevant when weights or structure are inaccessible.
+
+However, stabilization does not imply improvement in every setting.  
+The paper reports a trade-off between stability and exploration.  
+In the neural network example, stability improved only when **σ<2.7**.  
+
+There is also a cost trade-off.  
+The method raises black-box calls to at least **B times**.  
+The search results did not confirm wall-clock time, GPU usage, or token cost.  
+In AI services, repeated calls could increase latency and billing.
+
+## Analysis
+
+The paper reframes stability as an input-output issue.  
+It does not treat stability only as a model-internals problem.
+
+This framing matters for commercial AI APIs and closed services.  
+Users often cannot change model parameters directly.  
+They can change inputs, validate outputs, or combine both.
+
+This paper focuses on the input side.  
+It asks the system multiple times with slightly changed inputs.  
+It then aggregates outputs to reduce fluctuations.
+
+Related search materials also mention black-box stability testing.  
+Those materials do not assume access to the algorithm or data distribution.  
+That makes the topic relevant to production evaluation.
+
+Operational constraints remain central.  
+More stability can require more calls.  
+A poor noise setting can worsen both performance and stability.  
+That concern may matter in LLM APIs and multimodal services.
+
+Each extra call can affect latency, cost, and reproducibility tracking.  
+The findings reviewed here do not confirm direct tests on commercial LLM APIs.  
+They also do not confirm direct tests on multimodal services.  
+So, possible applicability and production readiness should be evaluated separately.
+
+## Practical application
+
+The practical takeaway is cautious testing.  
+Start by measuring output fluctuation under small input changes.  
+Then compare single-call results with multi-call aggregated results.
+
+Do not track only average accuracy.  
+Also record variation under perturbation and failure patterns.  
+Use separate records for noise magnitude and repeated call count **B**.
+
+**Checklist for Today:**
+
+- Measure how often outputs change under small prompt or input variations for the same task.
+- Compare single-call results with aggregated results while tracking accuracy, latency, and cost together.
+- Identify where stability improves or degrades across noise settings before changing production defaults.
+
+## FAQ
+
+**Q. Can this method also be applied to closed AI APIs?**  
+It can be connected to black-box systems with hidden internals.  
+However, the reviewed findings did not confirm direct tests on commercial LLM APIs or multimodal services.
+
+**Q. If stability increases, does performance also improve?**  
+Not necessarily.  
+The retrieved information describes a trade-off among stability, exploration, and prediction error.  
+In the neural network example, stability improved only for **σ<2.7**.  
+For **σ>2.7**, instability increased.
+
+**Q. How should we think about computational cost?**  
+You can expect black-box calls to increase to **B times**.  
+The method creates **B** noise-augmented datasets and aggregates **B** outputs.  
+The reviewed search results did not confirm time complexity, GPU time, or actual service cost.
+
+## Conclusion
+
+This paper presents an operational approach to black-box AI stability.  
+It uses input randomization and output aggregation.  
+The reported limits are also important.  
+The neural network example changed behavior around **σ<2.7** and **σ>2.7**.  
+The method also increases calls to **B times**.  
+For production use, it is reasonable to verify whether stability gains outweigh added latency and cost.
+
+## Further Reading
+- [Can 3D Layout Plus AI Improve Animation Stability](/en/posts/3d-layout-ai-animation-stability)
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+- [Beyond RAG for Domain-Specific LLM Decision Tasks](/en/posts/beyond-rag-domain-specific-llm-decision-tasks)
+- [FlowR2A Reframes Planning as Reward-Conditioned Action Generation](/en/posts/flowr2a-reward-conditioned-action-generation)
+- [Grounded LLM Workflows for Inherited Disease Diagnosis Ranking](/en/posts/grounded-llm-workflows-inherited-disease-diagnosis-ranking)
+---
+
+## References
+
+- [Black-box tests for algorithmic stability - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC10576650/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.25269)
+- [Stabilizing black-box algorithms through task-oriented randomization - arxiv.org](https://arxiv.org/pdf/2606.25269.pdf)
