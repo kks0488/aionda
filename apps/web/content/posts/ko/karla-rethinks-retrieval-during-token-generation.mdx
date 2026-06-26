@@ -1,0 +1,83 @@
+---
+title: KARLA가 바꾸는 RAG 설계
+slug: karla-rethinks-retrieval-during-token-generation
+date: '2026-06-26'
+lastReviewedAt: '2026-06-26'
+locale: ko
+description: KARLA는 토큰 생성 중 사실을 끌어와 RAG의 노이즈·지연·비용 구조를 다시 묻게 한다.
+tags:
+  - llm
+  - explainer
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-17e4086a9070e410
+sourceUrl: 'https://arxiv.org/abs/2606.26807'
+verificationScore: 0.81
+alternateLocale: /en/posts/karla-rethinks-retrieval-during-token-generation
+coverImage: /images/posts/karla-rethinks-retrieval-during-token-generation.png
+---
+
+
+이 차이는 작지 않다. 기존 RAG는 검색 문서를 통째로 컨텍스트에 넣는 경우가 많다. 그래서 노이즈, 지연시간, 토큰 비용 문제가 따라붙는다. 반면 KARLA 계열 접근은 필요한 사실을 생성 중에 더 촘촘히 결합하려 한다. 아직 검색 결과만으로는 기존 RAG 대비 정확도, 지연시간, 비용의 정량 우위를 확인하기 어렵다. 다만 생성과 검색을 결합하는 방식이 다시 바뀌고 있다는 점은 읽을 수 있다.
+
+## 세 줄 요약
+
+- KARLA의 핵심 쟁점은 LLM이 토큰 생성 중 지식베이스의 사실을 자동으로 끌어오는 방식이다. 논문 초록은 재학습 없는 사실 업데이트, 출처 추적, 소형 모델의 사실 정확도 개선 가능성을 앞세운다.
+- 이 방식이 중요한 이유는 사실 정확도를 더 큰 파라미터 규모만으로 풀지 않고, 검색·지식 연동 설계로 풀려 하기 때문이다. 이 논점은 환각 대응, 서빙 비용, 지연시간 구조와 함께 연결된다.
+- 독자는 지금 자사 워크플로에서 “문서 통째 첨부형 RAG”와 “사실 단위 결합형 설계”를 분리해 평가해야 한다. 특히 출처 추적 가능성, prefill 부담, 소형 모델 활용 가능성을 같은 표에서 비교하라.
+
+## 현황
+
+
+여기서 중요한 것은 “어떻게”다. 기존 RAG는 보통 검색한 문서 청크를 프롬프트 컨텍스트에 넣고, 모델이 그 긴 문맥을 읽은 뒤 답을 생성한다. TurboRAG 설명에 따르면 이런 구조는 많은 청크를 prefill해야 해서 time-to-first-token 지연과 계산량을 키운다. 즉, 검색을 붙인다고 끝나는 문제가 아니다. 언제, 어떤 단위로 붙이느냐가 성능과 비용을 바꾼다.
+
+비슷한 문제의식을 가진 다른 연구도 있다. KBLaM은 외부 검색 모듈을 없애고, 계산 오버헤드가 KB 크기에 선형으로 늘어난다고 설명한다. 반대로 소형 모델 활용성에 대해서는 경고도 있다. “Can Small Language Models Use What They Retrieve?”는 7B 이하 모델이 oracle retrieval이 주어져도, 스스로는 답할 수 없는 질문에서 정답 활용에 자주 실패한다고 보고했다. 이 대목은 중요하다. 소형 모델이 검색 결과를 “받는 것”과 그 결과를 “제대로 쓰는 것”은 다른 문제다.
+
+## 분석
+
+KARLA가 흥미로운 이유는 RAG의 병목을 다른 층위에서 건드리기 때문이다. 지금까지 업계는 사실성 문제를 두 갈래로 풀어왔다. 하나는 더 큰 모델에 더 많은 지식을 넣는 방식이다. 다른 하나는 외부 검색을 붙이는 방식이다. KARLA는 두 번째 갈래를 더 잘게 나눈다. 검색 문서를 덩어리째 넣는 대신, 생성 시점에 필요한 사실을 끌어오는 쪽으로 무게를 옮긴다. 이 접근이 맞아떨어지면 “큰 모델이 더 잘 안다”는 비용 공식을 일부 흔들 수 있다.
+
+출처 추적도 실무에서는 가볍지 않다. 조사 결과 기준으로 attribution은 감사 가능성과 검증 가능성을 높이는 근거가 확인된다. 다만 여기서 과장하면 안 된다. 출처를 추적할 수 있다고 해서 환각이 모든 상황에서 자동으로 줄어드는 것은 아니다. 검색 기반 시스템은 원래 외부 근거에 답을 묶어두려는 구조다. attribution은 그 근거를 더 쉽게 확인하게 해주는 장치에 가깝다. 게다가 KARLA의 정확도, 지연시간, 비용이 기존 RAG보다 얼마나 나은지는 검색 결과만으로 정량 확인되지 않았다. 지금 단계에서 확실한 것은 설계 방향의 변화다. 모든 환경에서 우위가 확인됐다고 보기는 어렵다.
+
+## 실전 적용
+
+실무자는 이 주제를 “RAG의 다음 버전” 정도로 뭉뚱그리면 안 된다. 문서 검색형 RAG와 지식베이스 연동형 생성은 데이터 구조부터 다르다. 전자는 비정형 문서를 청크로 쪼개 검색하는 데 강하다. 후자는 정규화된 사실, 엔티티, 관계, 갱신 이력, 출처 관리가 중요한 환경에 더 잘 맞는다. 고객지원 문서 전체를 읽혀야 하는 일과 가격표·제품 사양·정책 문구 같은 사실을 정확히 뽑아야 하는 일은 다르게 설계해야 한다.
+
+예: 상품 카탈로그, 내부 정책집, 규정 문구처럼 “한 문장 사실”의 최신성이 중요한 서비스라면 긴 문서 prefill보다 사실 단위 조회가 더 맞을 수 있다. 반대로 계약서 해석, 리서치 요약처럼 문맥 전체를 읽어야 하는 작업은 기존 RAG나 긴 컨텍스트 방식이 여전히 유리할 수 있다. 핵심은 모델 교체가 아니다. 데이터 결합 단위를 다시 설계하는 일이다.
+
+오늘 바로 할 일 체크리스트 3개:
+
+- 현재 RAG 파이프라인에서 검색된 청크 수, prefill 길이, 첫 토큰 지연을 한 화면에 모아 병목을 확인하라.
+- 답변에 포함된 사실 문장을 기준으로, 각 문장이 어떤 원천 데이터에 연결되는지 provenance 테스트를 설계하라.
+- 소형 모델을 쓰고 있다면 “검색 성공”과 “검색 활용 성공”을 분리해 평가하라.
+
+## FAQ
+
+**Q. KARLA는 기존 RAG를 대체합니까?**  
+그렇게 단정하기는 어렵습니다. 검색 결과 기준으로 KARLA는 기존 RAG의 한계인 긴 문서 prefill과 노이즈 문제를 다른 방식으로 풀려는 접근입니다. 다만 정확도, 지연시간, 비용에서 기존 RAG 대비 얼마나 나은지는 검색 결과만으로 정량 확인되지 않았습니다.
+
+**Q. 출처 추적이 되면 환각도 줄어듭니까?**  
+일부 상황에서는 도움이 될 수 있습니다. 출처 추적은 답변의 근거를 검증하고 감사하는 데 직접 연결됩니다. 하지만 출처 추적 자체가 모든 환각을 자동으로 줄인다고 말할 근거는, 제공된 조사 결과만으로는 충분하지 않습니다.
+
+**Q. 소형 모델도 큰 모델 수준의 사실 정확도를 낼 수 있습니까?**  
+KARLA 논문은 그런 주장을 합니다. 조사 결과에 따르면 저자들은 factual question answering, long-form generation, counterfactual KB-update 설정에서 그런 방향의 결과를 제시합니다. 다만 이 결론은 KARLA식 KB 연동과 해당 평가 조건에 묶여 있습니다. 일반적인 RAG 환경 전체로 바로 확장하기는 어렵습니다.
+
+## 결론
+
+KARLA가 던지는 질문은 명확하다. 사실성은 더 큰 모델만으로 풀 문제인가, 아니면 생성 순간의 지식 결합 방식으로 다시 설계할 문제인가. 지금 봐야 할 포인트는 “RAG 이후”라는 구호가 아니다. 토큰 생성 중 지식 주입이 실제 서비스에서 정확도, 지연시간, 비용을 어떻게 바꾸는지다.
+
+## 다음으로 읽기
+- [에이전트형 AI의 새 기준](/ko/posts/agentic-ai-enterprise-coding-metrics)
+- [AI 자료 모음 (24h) - 2026-06-26](/ko/posts/ai-resources-roundup-2026-06-26)
+- [HiLSVA와 과학 시각화 통제](/ko/posts/hilsva-scientific-visualization-agent-control-oversight)
+- [모델 출시, 허가제인가](/ko/posts/model-release-control-or-de-facto-permit-system)
+- [에이전트 프라이버시의 핵심](/ko/posts/privacy-risks-shift-from-models-to-agent-operations)
+---
+
+## 참고 자료
+
+- [Paper page - TurboRAG: Accelerating Retrieval-Augmented Generation with Precomputed KV Caches for Chunked Text - huggingface.co](https://huggingface.co/papers/2410.07590)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26807)
+- [KBLaM: Knowledge Base augmented Language Model - arxiv.org](https://arxiv.org/abs/2410.10450)
+- [Attribution Techniques for Mitigating Hallucinated Information in RAG Systems: A Survey - arxiv.org](https://arxiv.org/abs/2601.19927)
+- [Can Small Language Models Use What They Retrieve? An Empirical Study of Retrieval Utilization Across Model Scale - arxiv.org](https://arxiv.org/abs/2603.11513)
