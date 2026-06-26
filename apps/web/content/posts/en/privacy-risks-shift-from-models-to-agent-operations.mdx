@@ -1,0 +1,89 @@
+---
+title: Privacy Risks Shift From Models to Agent Operations
+slug: privacy-risks-shift-from-models-to-agent-operations
+date: '2026-06-26'
+lastReviewedAt: '2026-06-26'
+locale: en
+description: >-
+  Why LLM agent privacy risks arise from data flows, memory, tools, logs, and
+  delegated permissions in operation.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - privacy
+author: AI온다
+sourceId: arxiv-cs-ai-0e89f99678718c84
+sourceUrl: 'https://arxiv.org/abs/2606.26627'
+verificationScore: 0.81
+alternateLocale: /ko/posts/privacy-risks-shift-from-models-to-agent-operations
+coverImage: /images/posts/privacy-risks-shift-from-models-to-agent-operations.png
+---
+
+In privacy evaluations of multi-agent systems, leakage rates exceeded 37.8% in one cited result. This shows where privacy issues can emerge when agents move from answering to acting. The attack surface expands when agents query databases, retrieve documents, call external APIs, and remember past conversations. The central issue is not only what the model learned. It is also which data flows and permissions exist during execution.
+
+## TL;DR
+- This article examines agent privacy as an operational data surface, not only a training-data issue.
+- This matters because memory, tools, logs, and delegated permissions can create more leakage paths.
+- Readers should map data flows, then apply minimization, separation, and auditing controls.
+
+Example: A support agent helps a user, checks past notes, calls external services, and stores memory for later. That convenience can also widen the path for sensitive data to spread across tools, logs, and future sessions.
+
+## Current State
+
+An excerpt from “Agents That Know Too Much: A Data-Centric Survey of Privacy in LLM Agents,” published on arXiv, summarizes the issue. LLM agents query databases, retrieve document collections, call external APIs, remember past interactions, and act for users. Privacy becomes harder in that same sentence. Data comes from multiple sources. Tasks span multiple steps. State can persist across sessions. Permissions can be delegated.
+
+The survey examines agents through data surfaces rather than attack types. The findings suggest memory-based agents can be read as a surface of remembered interactions. Tool-using agents can be read as surfaces involving databases, retrieval, and external APIs. However, the available search results did not confirm these as official category names. That distinction matters. A feature-based threat model can miss some areas. A data-flow model can bring logs, caches, and reinjection stages into view.
+
+Practice signals point in the same direction. Sensitive information minimization can be implemented before requests reach the model provider. PII or confidential information can be detected and replaced automatically. The same redacted version can also be preserved in trace logs. Permission separation can divide memory into per-user namespaces. It can also separate read-only memory from writable memory. Auditability is described through records of LLM generations, tool calls, handoffs, and guardrail events.
+
+
+## Analysis
+
+This survey shifts the privacy discussion from inside the model to outside the system. In single chatbots, the focus was often prompts and responses. It also included training data and inference data. In agents, more layers appear in between. These include search indexes, session memory, tool arguments, external responses, execution logs, and retry records. If an agent uses long-term memory for personalization, memory quality is not the only issue. Storage duration also matters. Reinjection criteria matter too. Deletion paths should be examined early. If automation expands through external API calls, permission scope should be designed before answer accuracy. Rollback on failure should also be considered early.
+
+The trade-offs are also visible. Stronger privacy protections can reduce personalization or convenience. Broad PII redaction can truncate context. It can also reduce retrieval quality. Conservative memory isolation can reduce the usefulness of continuous conversation. On the other hand, broad storage of past interactions can increase the chance that sensitive context reappears later. A better decision rule is narrower. Do not store what does not need to be remembered. Privacy is not simply the opposite of functionality. It is a design rule for the scope of functionality.
+
+## Practical Application
+
+Developers and product teams should redraw the agent as a data pipeline. Input, retrieval, memory, tool calls, output, and logs should be shown in one line. At each stage, teams should check whether sensitive information enters, is copied, or crosses a permission boundary. Controls can then be added. First is minimization. Do not send identifiers that are not necessary to the model. Second is separation. Separate per-user memory. Separate read and write permissions. Third is auditing. Record who called which tool with what data.
+
+Decision-making can also be organized as conditionals. If personalization is the core value, apply redaction before memory storage. Apply expiration policies early. If the agent can modify external systems, separate the read-only stage from the approval stage. If the industry has significant regulatory or audit requirements, tracing and audit log design should take priority over performance improvements.
+
+**Checklist for Today:**
+- Draw the agent’s data flow on one page and mark where sensitive information enters, moves, or persists.
+- Separate long-term memory by user, and split read-only memory from writable memory.
+- Verify that generations, tool calls, handoffs, and guardrail events are preserved in execution traces.
+
+## FAQ
+
+**Q. How is agent privacy different from traditional chatbot privacy?**
+
+Traditional chatbots were often treated as an input and output issue. Agents extend the scope to retrieval, memory, external APIs, delegated permissions, and execution logs. As a result, the review surface can grow even with the same model.
+
+**Q. Are memory-based agents and tool-using agents separate threat models?**
+
+The available search results support distinguishing remembered interactions from external tool use. However, those results did not confirm them as official category names in the survey.
+
+**Q. Does strengthening privacy reduce performance?**
+
+Not necessarily. However, the trade-off should be measured. On the privacy side, teams can examine ε, membership inference attack success rate, and leakage rates. On the utility side, teams can examine NDCG@10, Recall@K, and F1 together. Optimizing only one side can create operational problems.
+
+## Conclusion
+
+The core of agent privacy is not only the model. It is also the flow. More important than memory alone is where data moves, under which permissions, and how far it travels. A strong design goal is not just longer memory or more tools. It is a structure that keeps that complexity more controllable.
+
+## Further Reading
+- [How Agentic AI Redefines Enterprise Coding Metrics Today](/en/posts/agentic-ai-enterprise-coding-metrics)
+- [AI Resource Roundup (24h) - 2026-06-26](/en/posts/ai-resources-roundup-2026-06-26)
+- [Model Release Control or De Facto Permit System](/en/posts/model-release-control-or-de-facto-permit-system)
+- [Can 3D Layout Plus AI Improve Animation Stability](/en/posts/3d-layout-ai-animation-stability)
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+---
+
+## References
+
+- [Audit logs | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/audit-logs?lang=go)
+- [Got a Secret? LLM Agents Can't Keep It: Evaluating Privacy in Multi-Agent Systems - huggingface.co](https://huggingface.co/papers/2605.27766)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26627)
+- [Differential privacy in collaborative filtering recommender systems: a review - frontiersin.org](https://www.frontiersin.org/journals/big-data/articles/10.3389/fdata.2023.1249997/full)
