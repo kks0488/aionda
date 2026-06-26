@@ -1,0 +1,90 @@
+---
+title: GUI Agents Must Stop at Sensitive Screens
+slug: gui-agents-stop-at-sensitive-screens
+date: '2026-06-25'
+lastReviewedAt: '2026-06-25'
+locale: en
+description: >-
+  Why GUI agents should hand control to users on sensitive screens, beyond task
+  success alone.
+tags:
+  - llm
+  - deep-dive
+  - automation
+  - privacy
+  - security
+author: AI온다
+sourceId: arxiv-cs-ai-decb43bc84a9dec3
+sourceUrl: 'https://arxiv.org/abs/2606.25705'
+verificationScore: 0.7
+alternateLocale: /ko/posts/gui-agents-stop-at-sensitive-screens
+coverImage: /images/posts/gui-agents-stop-at-sensitive-screens.png
+---
+
+A browser payment page shows an address beside card details. At that point, the automation standard changes. The key question is not faster clicking. The question is whether the agent should proceed or hand control to the user. `2606.25705`, posted on arXiv, examines that boundary.
+
+## TL;DR
+- `2606.25705` frames GUI agent safety around sensitive screens and user handover, not only task completion.
+- This matters because success rate alone can miss privacy and security risks in open GUI environments.
+- Review benchmarks and policies for sensitive screen detection, handover conditions, and stop failure cases.
+
+Example: A support agent reaches a page with private account details and pauses. The user reviews the page, confirms the next step, and then returns control.
+
+## Current status
+
+`GUI agent: Guided Exploration of User-Sensitive Screens` is a study under arXiv identifier `2606.25705`. The abstract-level point is clear. LLM agents in open GUI environments can encounter user-sensitive screens. In those cases, user takeover can be desirable or necessary.
+
+The problem appears in existing training objectives. According to the abstract, current LLM-based GUI agents are often fine-tuned for task completion. That focus can overlook safety implications. In other words, they may learn to finish tasks. They may not learn when to stop.
+
+
+Much remains unconfirmed. Quantitative metrics from this study were not confirmed in the investigated results. Examples include detection accuracy, false positive rate, false negative rate, and takeover frequency. So the immediate point is direction, not performance. Evaluation appears to be shifting from a single success metric to a multi-metric safety view.
+
+## Analysis
+
+This study suggests a broader change than a general safety reminder. It raises a question about how to define GUI agent performance. Many automation systems have been judged by success rate, completion time, and step count. In open GUIs, those metrics seem incomplete. Sensitive and untrusted screens can appear in the same environment. Examples include ads, user posts, payment information, and account settings. If an agent keeps reasoning and clicking there, task completion can increase risk.
+
+The trade-off is also clear. Frequent takeover can reduce privacy risk. It can also interrupt automation more often. A high takeover threshold can preserve convenience. It can also raise exposure risk. Based on the investigated results, there is no basis to rank rule-based, model-based, or policy-based methods. Still, the visible research direction appears hybrid. It first identifies a sensitive state. Then it links that result to policy criteria. Finally, it asks for human approval for specific actions.
+
+This direction may also help in practice. Rules alone can miss context. Models alone can reduce explainability and control. The cited record includes several concrete anchors. These include `2606.25705`, `2601.18842`, `2504.17934`, and `2503.23434`. Only one cited framework here states a numeric structure. That structure is the `3-stage` design in GUIGuard.
+
+## Practical application
+
+Teams evaluating GUI agents should change the first question. It should not start with task completion. It should start with stopping conditions. Benchmarks should record more than success rate. They should track whether the agent reached a sensitive screen. They should track whether handover was needed. They should also track safety failures, including indirect prompt injection and data leakage. The AgentHazard-related concerns in the investigated results point the same way. Real deployments include mixed third-party content. They are not curated demo screens.
+
+For an internal IT help desk agent, some screens should get higher scrutiny. Password reset screens are one example. Personal information edit screens are another. Payment method screens and mailboxes also fit. Those segments may be better handled through approval or direct takeover. Other segments can stay automated more often. Examples include public document search, general settings checks, and non-sensitive notifications. A practical design focus is screen-level risk rating with action permissions.
+
+**Checklist for Today:**
+- Add `sensitive screen entry` and `handover timing` to scorecards beside task success rate.
+- Mark payment, account, personally identifiable information, and mailbox screens as high-risk segments.
+- Review false positives and false negatives separately from automation interruption costs and exposure costs.
+
+## FAQ
+
+**Q. Did this study prove sensitive screen detection performance with numerical results?**  
+Such quantitative metrics were not confirmed in the investigated results. Within the confirmed scope, the core issue is problem definition. That means identifying sensitive screens and requesting user handover.
+
+**Q. Is a rule-based or model-based takeover trigger better?**  
+Based on the confirmed materials alone, it is hard to rank one method above another. Hybrid designs are being discussed as a practical direction. They combine sensitive-state recognition with policy criteria.
+
+**Q. What metrics should enterprises look at immediately?**  
+Task success rate alone is not enough. Teams should also examine whether the agent reached a sensitive screen. They should examine whether user approval was needed at that moment. They should also examine safety failures such as data leakage or indirect prompt injection.
+
+## Conclusion
+
+The core issue in GUI agent safety is not smarter clicking. It is more appropriate stopping. That is the question raised by `2606.25705`. Before deployment, teams should decide which screens belong to the agent. They should also decide which screens belong to the user.
+
+## Further Reading
+- [Can 3D Layout Plus AI Improve Animation Stability](/en/posts/3d-layout-ai-animation-stability)
+- [AI Resource Roundup (24h) - 2026-06-25](/en/posts/ai-resources-roundup-2026-06-25)
+- [Autodata Reframes Synthetic Data as Agentic System Design](/en/posts/autodata-agentic-synthetic-data-system-design)
+- [Automating Benchmarks for Neural Relational Reasoning Generalization](/en/posts/automating-benchmarks-neural-relational-reasoning-generalization)
+- [Balancing AI Benefits and Existential Risks Economically](/en/posts/balancing-ai-benefits-and-existential-risks)
+---
+
+## References
+
+- [Mobile GUI Agents under Real-world Threats: Are We There Yet? - huggingface.co](https://huggingface.co/papers/2507.04227)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.25705)
+- [GUIGuard: Toward a General Framework for Privacy-Preserving GUI Agents - arxiv.org](https://arxiv.org/abs/2601.18842)
+- [Toward a Human-Centered Evaluation Framework for Trustworthy LLM-Powered GUI Agents - arxiv.org](https://arxiv.org/abs/2504.17934)
+- [Towards Trustworthy GUI Agents: A Survey - arxiv.org](https://arxiv.org/abs/2503.23434)
