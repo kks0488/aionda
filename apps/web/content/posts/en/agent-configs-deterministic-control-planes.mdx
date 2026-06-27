@@ -1,0 +1,89 @@
+---
+title: Why Agent Configs Need Deterministic Control Planes
+slug: agent-configs-deterministic-control-planes
+date: '2026-06-27'
+lastReviewedAt: '2026-06-27'
+locale: en
+description: >-
+  Why reused coding agent config files can become an unmanaged control layer
+  with security and operational risks.
+tags:
+  - llm
+  - robotics
+  - explainer
+  - prompt-injection
+author: AI온다
+sourceId: arxiv-cs-ai-9b1fd55589f428d5
+sourceUrl: 'https://arxiv.org/abs/2606.26924'
+verificationScore: 0.76
+alternateLocale: /ko/posts/agent-configs-deterministic-control-planes
+coverImage: /images/posts/agent-configs-deterministic-control-planes.png
+---
+
+In a study of 10,008 public GitHub repositories, 6,145 agent configuration files were examined. According to the cited excerpt, 10.1% of tracked paths appeared as SHA-256 exact duplicates across independent repositories. This figure suggests something beyond isolated reuse. In coding agents with file and shell access, rule files, agent definitions, and IDE markdown documents can shape operational control.
+
+## TL;DR
+
+- Agent configuration files are being reused across repositories, and 10.1% of tracked paths were exact SHA-256 duplicates.
+- This matters because configuration can affect file access, shell use, network reach, and other operational boundaries.
+- Review configuration like code, trace duplicate origins first, and separate permission review from prompt writing.
+
+If agent safety is treated only as a model performance issue, an important layer can be missed. Risk can emerge in the configuration layer. That layer helps determine which tools an agent can use, when it can use them, and within which boundaries. This article explains why that layer can be understood as a “deterministic control plane.” It also explains what development teams should change.
+
+Example: A team adopts a copied agent setup from another repository. The files look like routine documentation. Later, the agent can read more than expected, run broader commands, and reach systems no one reviewed.
+
+## Current state
+
+The cited excerpt raises a clear concern. LLM coding harnesses can give agents broad file access and shell access. Yet the configuration layer that governs that behavior is described as “largely unmanaged.” Here, the configuration layer includes rule files, agent definitions, and IDE-specific markdown documents. In practice, these files can function as operational policy.
+
+
+The nature of configuration files matters. Many teams treat system prompts or rule documents as productivity tips. However, OpenAI’s explanation of prompt injection says third parties can inject malicious instructions into conversation context. As a mitigation, it advises limiting agent access scope to necessary data. OpenAI’s Codex safe operation guidance points in a similar direction. It says agents should operate within clear technical boundaries. It also describes managed configuration, constrained execution, network policy, and agent-native logs together.
+
+## Analysis
+
+The core point is simple. Risk may depend less on what the model “thinks” than on what the configuration “permits.” The same model can behave differently across environments. Outcomes can vary with repository access, shell scope, external network reach, and blocked file patterns. For that reason, one rule file can resemble an IAM policy, an execution sandbox, and operating procedures.
+
+This issue also fits a supply chain lens. Not only application dependencies propagate. Agent behavioral rules can also spread across repositories. The SHA-256 exact-match duplicates suggest more than idea-level similarity. They may indicate that identical files moved across projects. However, the study does not establish that duplicated configurations caused public incidents. What the excerpt supports is narrower. A weak configuration layer can contribute to data leakage, privilege escalation, and unintended tool execution. The operational implication is that managed configuration and execution boundaries can reduce those risks.
+
+There is also a counterargument. Reuse is not inherently bad. Teams often copy validated templates for consistency. The concern is not copying alone. The concern is unclear provenance, missing change history, and omitted permission review. This issue is closer to “policy cloning” than “prompt reuse.” Rule files are often treated like documentation. That can make them easier to exclude from review. As a result, spreading configurations without security review can create more risk than teams expect.
+
+## Practical application
+
+In practice, agent configuration should be handled at the same level as code. First, manage rule files and agent definitions in a separate directory or repository. Then attach a change approval process. Second, do not stop at natural-language descriptions of agent behavior. Break them into verifiable items such as file paths, shell scope, and network access. Third, do not copy configuration documents directly from IDE extensions or team wikis without review. Record their source and the person responsible for the last review.
+
+A practical pattern is role separation. One approach is to split configurations into roles such as “review-only,” “test-execution-only,” and “documentation-only.” Then assign different read scopes and tool lists to each role. This can narrow the impact of any single configuration file.
+
+**Checklist for Today:**
+
+- Find rule files, agent definitions, and IDE markdown documents, then record their source and current owner.
+- Document each agent’s file access, shell scope, and network permissions, then reduce defaults toward least privilege.
+- Review duplicate configurations first, then keep one canonical version with change history and review logs.
+
+## FAQ
+
+**Q. How is this different from prompt management?**  
+A. It is broader than prompt management. The issue includes permissions, tool usage, execution boundaries, and review procedures.
+
+**Q. If duplicated configuration files are found, should they immediately be considered risky?**  
+A. Not necessarily. Duplication alone does not show an incident. However, if the origin or review history is unclear, check for copied permissions and outdated rules.
+
+**Q. Do small teams also need a concept like a control plane?**  
+A. It can still help. Smaller teams may copy one or two documents quickly, which can make management gaps easier to create. Start with version control and least privilege.
+
+## Conclusion
+
+The operational problem of the agent era extends beyond the model itself. The figures matter here: 10,008 repositories, 6,145 configuration files, and 10.1% exact-match duplication. Those details suggest that rule files are already moving like shared components. Coding agent configuration should be treated less like documentation and more like a control plane.
+
+## Further Reading
+- [Financial Recommendations Need Explainability Before Cross-Channel Linking](/en/posts/financial-recommendations-explainability-before-cross-channel-linking)
+- [Learning Motion Feasibility Before Costly Planning in Clutter](/en/posts/learning-motion-feasibility-before-costly-planning-in-clutter)
+- [OpenFinGym Reframes How Financial AI Systems Are Evaluated](/en/posts/openfingym-financial-ai-evaluation-workflow)
+- [SBI Versus MCMC for Rapid Epidemiological Bayesian Inference](/en/posts/sbi-versus-mcmc-rapid-epidemiological-bayesian-inference)
+- [Agent-Driven Iteration Loops for Industrial Recommender Systems](/en/posts/agent-driven-iteration-loops-industrial-recommender-systems)
+---
+
+## References
+
+- [Understanding prompt injections | OpenAI - openai.com](https://openai.com/safety/prompt-injections/)
+- [Running Codex safely at OpenAI | OpenAI - openai.com](https://openai.com/index/running-codex-safely/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26924)
