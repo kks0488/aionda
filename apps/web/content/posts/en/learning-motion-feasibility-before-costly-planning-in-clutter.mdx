@@ -1,0 +1,95 @@
+---
+title: Learning Motion Feasibility Before Costly Planning in Clutter
+slug: learning-motion-feasibility-before-costly-planning-in-clutter
+date: '2026-06-27'
+lastReviewedAt: '2026-06-27'
+locale: en
+description: >-
+  A study on filtering infeasible motion attempts in cluttered scenes using
+  point-cloud predictors before sampling-based planning.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - k-ai-pulse
+author: AI온다
+sourceId: arxiv-cs-ai-7508ee8e4a91c90c
+sourceUrl: 'https://arxiv.org/abs/2606.26700'
+verificationScore: 0.79
+alternateLocale: /ko/posts/learning-motion-feasibility-before-costly-planning-in-clutter
+coverImage: >-
+  /images/posts/learning-motion-feasibility-before-costly-planning-in-clutter.png
+---
+
+## TL;DR
+
+- This paper presents a feasibility predictor for SBMP using RGB-D and point clouds in cluttered scenes.
+- It matters because failed motion attempts can dominate runtime in TAMP and manipulation pipelines.
+- Next, evaluate pipeline time, success rate, and false rejects before integrating it into production.
+
+Example: A robot arm faces a crowded workbench and considers many possible motions. A front-end predictor screens weak options before full planning begins.
+
+A heavily cluttered workbench creates many motion paths that fail after expensive search. This paper studies that problem. *Learning Motion Feasibility from Point Clouds in Cluttered Environments*, posted on arXiv, describes a way to pre-screen paths using point clouds and RGB-D observations. The core idea is simple. Before expensive planning, ask whether a path is worth attempting.
+
+## TL;DR
+
+- A point-cloud-based feasibility predictor is proposed as a front-end classifier for SBMP in cluttered environments.
+- This matters because robotic manipulation and TAMP can spend large runtime on failed motion attempts.
+- Evaluation should cover predictor accuracy, TAMP success rate, false detections, and uncertainty handling.
+
+## Current status
+
+
+A stronger claim about high-dimensional generalization is not yet supported by the available evidence. A more cautious reading is possible. The method may use point clouds as a front-end classifier to reduce infeasible attempts. The abstract says three representative classifier families were benchmarked. It also mentions a point-cloud-based Transformer. However, the available material does not verify generalization as dimensionality increases.
+
+There is also earlier work on related problems. The 2019 RA-L paper *Learning Feasibility for Task and Motion Planning in Tabletop Environments* reported that infeasible motion search can consume much of runtime. The 2022 arXiv paper *Neural Feasibility Checking* described earlier filtering at the task planner stage. The RSS 2023 PIGINet case also fits this line of work. These examples suggest feasibility predictors are an active practical approach. Still, direct numeric comparison is difficult across different settings and protocols.
+
+## Analysis
+
+This topic matters because robot planning bottlenecks can come from unnecessary search. That concern is common in manipulation and TAMP. In such scenes, objects overlap, occlude one another, and create many collision possibilities. A point-cloud predictor could filter candidates with high failure likelihood early. Then the planner can focus more computation on remaining candidates. The idea is similar to deprioritizing dead ends in route search.
+
+That said, the work should be interpreted carefully. The available information does not quantify high-dimensional generalization. It also does not settle performance under out-of-distribution scenes. Reliability under sensor noise and occlusion is also unclear from the current evidence. Misclassification cost is a central issue. If an infeasible case is marked feasible, time is lost. If a feasible case is rejected, a successful action may be missed. Practical deployment should examine uncertainty, not only a single score. It should also keep safeguards in the final planner stage.
+
+## Practical application
+
+From a developer perspective, AUROC alone is not enough. The main question is pipeline impact. The useful test is not only whether the predictor classifies well. The key test is how it changes planning time and success rate across the full stack. That is why prior studies examined planner success rate and planning time together.
+
+For production teams, shadow mode is a cautious first step. The existing planner can keep final control. The predictor can log which attempts it would have pruned. Then teams can inspect false rejects. That means paths that would have succeeded, but were screened out. In safety-critical settings, high uncertainty may justify passing cases to the planner instead of rejecting them.
+
+**Checklist for Today:**
+- Calculate the share of runtime spent on failed motion attempts in current planning logs.
+- Redefine metrics to include planning time, success rate retention, and false reject cost.
+- Separate occlusion and sensor-noise scenes, then test uncertainty-aware fallback rules.
+
+## FAQ
+
+**Q. Can this paper be taken as having solved high-dimensional configuration space problems using point clouds alone?**  
+It is difficult to say that conclusively. Based on the confirmed abstract and investigation results, it is more appropriate to view this as a classifier for geometric information in cluttered scenes. Its role is to reduce infeasible SBMP attempts. Quantitative evidence for the degree of high-dimensional generalization has not yet been confirmed.
+
+**Q. Does adding a feasibility predictor actually make things faster?**  
+Prior work has reported planning-time reductions. However, this specific point-cloud paper still needs validation across the full TAMP pipeline. That validation should include both latency and success rate.
+
+**Q. Can it be deployed immediately in safety-critical robotic systems?**  
+A cautious use case is as an auxiliary signal. Uncertainty estimation, out-of-distribution checks, and final collision checking should be used together. Relying on a single classification score would be risky.
+
+## Conclusion
+
+The paper’s message is straightforward. In robot planning, value can come from filtering low-value attempts earlier. The key evaluation is not only classifier benchmarking. Time savings, success rate retention, and uncertainty handling should be tested together in a real TAMP stack.
+
+## Further Reading
+- [Agent-Driven Iteration Loops for Industrial Recommender Systems](/en/posts/agent-driven-iteration-loops-industrial-recommender-systems)
+- [How Agentic AI Redefines Enterprise Coding Metrics Today](/en/posts/agentic-ai-enterprise-coding-metrics)
+- [AI Resource Roundup (24h) - 2026-06-26](/en/posts/ai-resources-roundup-2026-06-26)
+- [Emotion Vectors in Open LLMs and Behavior Control](/en/posts/emotion-vectors-in-open-llms-and-behavior-control)
+- [HiLSVA Reframes Scientific Visualization Agent Control and Oversight](/en/posts/hilsva-scientific-visualization-agent-control-oversight)
+---
+
+## References
+
+- [Learning Feasibility for Task and Motion Planning in Tabletop Environments - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC6491048/)
+- [Learning Feasibility for Task and Motion Planning in Tabletop Environments - kavrakilab.rice.edu](https://kavrakilab.rice.edu/publications/wells2019learning-feasibility-for-tmp.pdf)
+- [Sample-Efficient Safety Assurances using Conformal Prediction - research.nvidia.com](https://research.nvidia.com/publication/2021-09_sample-efficient-safety-assurances-using-conformal-prediction)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26700)
+- [Accelerating Integrated Task and Motion Planning with Neural Feasibility Checking - arxiv.org](https://arxiv.org/abs/2203.10568)
+- [Safe motion planning with environment uncertainty - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0921889022001166)
+- [Learnable Conformal Prediction with Context-Aware Nonconformity Functions for Robotic Planning and Perception - arxiv.org](https://arxiv.org/abs/2509.21955)

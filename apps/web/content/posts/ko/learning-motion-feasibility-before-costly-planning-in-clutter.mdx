@@ -1,0 +1,83 @@
+---
+title: 클러터 작업대 모션 선별
+slug: learning-motion-feasibility-before-costly-planning-in-clutter
+date: '2026-06-27'
+lastReviewedAt: '2026-06-27'
+locale: ko
+description: 포인트클라우드 기반 predictor로 클러터 환경의 실패 경로를 사전 선별하는 모션 플래닝 연구를 다룬다.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - k-ai-pulse
+author: AI온다
+sourceId: arxiv-cs-ai-7508ee8e4a91c90c
+sourceUrl: 'https://arxiv.org/abs/2606.26700'
+verificationScore: 0.79
+alternateLocale: /en/posts/learning-motion-feasibility-before-costly-planning-in-clutter
+coverImage: >-
+  /images/posts/learning-motion-feasibility-before-costly-planning-in-clutter.png
+---
+
+
+## 세 줄 요약
+
+- 이 접근이 중요한 이유는 로봇 조작과 TAMP에서 런타임의 큰 부분이 실패할 모션 시도에 쓰이기 때문이다. 관련 선행 사례에서는 계획 시간 감소도 보고됐다.
+- predictor의 정확도만 볼 것이 아니라, TAMP 전체 성공률 유지 여부, 오검출 비용, 불확실성 처리까지 함께 검증하는 실험 설계가 필요하다.
+
+## 현황
+
+
+확인된 정보 기준으로 보면, 이 논문의 강점을 “고차원 configuration space 일반화가 이미 입증됐다”는 데 두기는 어렵다. 더 조심스러운 평가는 이렇다. 클러터 환경의 기하 정보를 포인트클라우드로 받아, SBMP 앞단에서 infeasible 시도를 줄이는 분류기로 활용할 가능성이 있다. 초록에는 point-cloud-based Transformer를 포함한 세 가지 대표 분류기군을 벤치마크했다고 적혀 있다. 다만 차원 수가 커질수록 일반화가 얼마나 유지되는지는, 현재 확보된 자료만으로는 확인되지 않는다.
+
+비슷한 문제를 다룬 선행 사례도 있다. 2019년 RA-L 논문 *Learning Feasibility for Task and Motion Planning in Tabletop Environments*는 조작 문제에서 런타임의 상당 부분이 infeasible한 모션 탐색에 쓰인다고 짚었다. 2022년 arXiv의 *Neural Feasibility Checking*도 task planner 단계에서 infeasible action을 먼저 걸러 계획 시간을 줄이는 접근을 설명했다. RSS 2023의 PIGINet 사례까지 더하면, feasibility predictor는 실제 파이프라인 가속 수단으로 계속 검토돼 온 흐름에 놓여 있다. 다만 수치 비교는 문제 설정과 평가 방식에 따라 달라질 수 있으니, 같은 축에서 바로 비교하긴 어렵다.
+
+## 분석
+
+이 주제가 중요한 이유는 로봇 플래닝의 병목이 모델 추론보다 불필요한 탐색인 경우가 있기 때문이다. 특히 조작과 TAMP에서는 물체가 겹치고 가려지며 충돌 가능성도 많다. 이때 포인트클라우드 기반 predictor가 앞단에서 실패 가능성이 높은 후보를 걸러내면, 플래너는 남은 후보에 계산을 더 집중할 수 있다. 쉽게 말해, 길찾기 엔진이 막다른 골목을 먼저 덜 우선시하는 것과 비슷하다.
+
+다만 이 연구를 과대해석하면 안 된다. 현재 확보된 정보만으로는 이 방식이 고차원 feasibility 일반화를 어느 정도 달성하는지, OOD 장면에서 얼마나 유지되는지, 센서 노이즈와 가려짐에서 신뢰도를 어떻게 다루는지 정량적으로 판단하기 어렵다. 더 큰 문제는 오분류 비용이다. infeasible을 feasible로 잘못 분류하면 시간 손실이 생긴다. 반대로 feasible을 infeasible로 잘못 자르면, 성공 가능한 행동 자체를 놓칠 수 있다. 그래서 실제 적용에서는 단일 confidence score만 볼 것이 아니라, 불확실성 추정과 최종 플래너 단계의 안전 장치를 함께 검토할 필요가 있다.
+
+## 실전 적용
+
+개발자 입장에서 볼 핵심은 predictor의 AUROC 하나로 판단하지 말아야 한다는 점이다. 실제 가치는 TAMP나 manipulation stack에 넣었을 때 드러난다. 즉 “분류를 잘하나?”보다 “파이프라인 전체에서 시간과 성공률을 어떻게 바꾸나?”를 봐야 한다. 과거 연구들이 planner success rate와 planning time을 함께 본 이유도 여기에 있다.
+
+현업 팀이라면 포인트클라우드 기반 predictor를 곧바로 메인 플래너에 붙이기보다, shadow mode로 먼저 돌리는 편이 낫다. 실제 실행 결정은 기존 플래너가 맡고, predictor는 어떤 시도를 미리 잘랐을지 로그로만 남긴다. 그다음 false reject, 즉 원래 성공했을 경로를 얼마나 놓쳤는지 확인해야 한다. 안전이 중요한 환경이라면, 불확실성이 높을 때는 “거부”보다 “플래너로 넘김” 규칙을 두는 편이 현실적이다.
+
+**오늘 바로 할 일 체크리스트**
+- 현재 플래닝 로그에서 실패한 모션 시도가 전체 런타임에서 차지하는 비중부터 계산하라.
+- feasibility predictor의 평가지표를 정확도 중심이 아니라 계획 시간, 성공률 유지, false reject 비용까지 포함하도록 다시 정의하라.
+- 가려짐과 센서 노이즈가 있는 장면을 따로 묶어, uncertainty-aware fallback 규칙을 실험하라.
+
+## FAQ
+
+**Q. 이 논문이 포인트클라우드만으로 고차원 configuration space 문제를 해결했다고 봐도 되나?**  
+그렇게 단정하긴 어렵습니다. 현재 확인된 초록과 조사 결과 기준으로는, 이 연구는 클러터 환경의 기하 정보를 입력으로 받아 SBMP의 비실행 가능 시도를 줄이는 분류기로 해석하는 편이 적절합니다. 그러나 고차원 일반화를 얼마나 달성했는지에 대한 정량 근거는 아직 확인되지 않았습니다.
+
+**Q. feasibility predictor를 넣으면 실제로 빨라지나?**  
+과거 사례 기준으로는 계획 시간 감소가 보고된 바 있습니다. 다만 이번 포인트클라우드 논문이 TAMP 전체 파이프라인에서 성공률과 지연시간을 어떻게 바꾸는지는 별도로 검증해야 합니다.
+
+**Q. 안전이 중요한 로봇 시스템에도 바로 넣을 수 있나?**  
+바로 메인 의사결정기로 두기보다는 보조 신호로 넣는 편이 안전합니다. 불확실성 추정, OOD 감지, 최종 충돌 검사 같은 장치를 함께 써야 합니다. 신뢰도 보장이 없는 단일 분류 점수에 전부 맡기면 위험합니다.
+
+## 결론
+
+이 논문이 던지는 메시지는 분명하다. 로봇 플래닝에서는 더 나은 탐색만큼, 탐색할 가치가 낮은 시도를 얼마나 일찍 걸러내느냐도 중요하다. 다만 핵심 평가는 분류기 벤치마크에만 있지 않다. 실제 TAMP 스택에서 시간 절감, 성공률 유지, 불확실성 관리가 함께 검증돼야 한다.
+
+## 다음으로 읽기
+- [추천 실험 루프의 에이전트화](/ko/posts/agent-driven-iteration-loops-industrial-recommender-systems)
+- [에이전트형 AI의 새 기준](/ko/posts/agentic-ai-enterprise-coding-metrics)
+- [AI 자료 모음 (24h) - 2026-06-26](/ko/posts/ai-resources-roundup-2026-06-26)
+- [LLM 감정 벡터의 의미](/ko/posts/emotion-vectors-in-open-llms-and-behavior-control)
+- [HiLSVA와 과학 시각화 통제](/ko/posts/hilsva-scientific-visualization-agent-control-oversight)
+---
+
+## 참고 자료
+
+- [Learning Feasibility for Task and Motion Planning in Tabletop Environments - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC6491048/)
+- [Learning Feasibility for Task and Motion Planning in Tabletop Environments - kavrakilab.rice.edu](https://kavrakilab.rice.edu/publications/wells2019learning-feasibility-for-tmp.pdf)
+- [Sample-Efficient Safety Assurances using Conformal Prediction - research.nvidia.com](https://research.nvidia.com/publication/2021-09_sample-efficient-safety-assurances-using-conformal-prediction)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26700)
+- [Accelerating Integrated Task and Motion Planning with Neural Feasibility Checking - arxiv.org](https://arxiv.org/abs/2203.10568)
+- [Safe motion planning with environment uncertainty - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0921889022001166)
+- [Learnable Conformal Prediction with Context-Aware Nonconformity Functions for Robotic Planning and Perception - arxiv.org](https://arxiv.org/abs/2509.21955)
