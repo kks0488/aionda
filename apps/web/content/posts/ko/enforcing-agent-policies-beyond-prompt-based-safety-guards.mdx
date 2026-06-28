@@ -1,0 +1,83 @@
+---
+title: '에이전트 안전, 프롬프트를 넘어서'
+slug: enforcing-agent-policies-beyond-prompt-based-safety-guards
+date: '2026-06-28'
+lastReviewedAt: '2026-06-28'
+locale: ko
+description: 자연어 정책을 형식 규칙으로 바꿔 툴 호출 경계에서 에이전트 행동을 통제하는 접근을 다룬다.
+tags:
+  - llm
+  - explainer
+  - mcp
+author: AI온다
+sourceId: arxiv-cs-ai-c8dc21c33120d411
+sourceUrl: 'https://arxiv.org/abs/2606.26649'
+verificationScore: 0.82
+alternateLocale: /en/posts/enforcing-agent-policies-beyond-prompt-based-safety-guards
+coverImage: /images/posts/enforcing-agent-policies-beyond-prompt-based-safety-guards.png
+---
+
+프롬프트에 “하지 마라”를 써두는 것만으로 병원 예약 봇이나 금융 업무 에이전트를 믿고 운영할 수 있을까? 고위험 도메인으로 갈수록 이 질문은 철학이 아니라 운영 문제가 된다. 최근 나온 한 논문은 에이전트 프롬프트, MCP 툴 설명, 자연어 정책 문서를 형식 정책으로 바꿔 집행하자고 제안한다. 핵심은 간단하다. 확률적으로 막는 가드레일 대신, 툴 호출 경계에서 결정적으로 막는 쪽으로 무게중심을 옮기자는 것이다.
+
+## 세 줄 요약
+
+- 이 글의 핵심은 자연어로 적힌 에이전트 지침과 MCP 툴 설명을 형식 정책으로 자동 변환해 집행하는 접근이다.
+- 프롬프트 스티어링이나 분류기형 가드레일은 형식적 보장을 주지 못한다. 반면 고위험 워크플로에서는 툴 호출 단위의 통제·검증·감사가 더 큰 차이를 만들 수 있다.
+- 독자는 에이전트의 답변 품질만 보지 말고, 툴 호출 전후에 어떤 정책을 결정적으로 강제할지부터 정리해야 한다. 그 뒤에는 자연어 정책과 실제 집행 규칙 사이의 의미 차이를 따로 검증해야 한다.
+
+## 현황
+
+지금까지 에이전트 안전은 대체로 두 갈래였다. 하나는 프롬프트에 규칙을 길게 적어 모델을 유도하는 방식이다. 다른 하나는 분류기나 필터를 붙여 위험 출력을 걸러내는 방식이다. 문제는 둘 다 확률적이라는 점이다. 이번 arXiv 논문은 이 지점을 직접 다룬다. 발췌 기준으로 논문은 에이전트 프롬프트, MCP 툴 설명, 자연어 정책 문서를 LLM 기반 generator-critic loop로 변환해 formally verified policies를 만든다고 설명한다.
+
+
+형식 검증 쪽에서도 움직임이 있다. 다른 연구는 MCP 기반 에이전트의 상호작용 체인을 labeled transition systems와 trust boundary annotations로 다루며 정적·런타임 분석 모델을 제안한다. 이 맥락은 중요하다. 정책을 코드로 쓴다는 말은 단순히 “규칙을 더 엄격하게 적는다”는 뜻이 아니다. 에이전트의 의사결정 전체를 다루기보다, 적어도 툴 접근·파라미터 검증·승인 게이트·감사 로그 같은 구간을 더 명시적으로 다룬다는 뜻에 가깝다.
+
+## 분석
+
+이 접근이 중요한 이유는 안전의 중심이 출력 텍스트에서 실행 권한으로 이동하기 때문이다. 예전에는 모델이 위험한 말을 했는지가 핵심이었다. 에이전트 시대에는 모델이 실제로 무엇을 실행했는지가 핵심이 된다. 예를 들어 일정 변경, 송금 요청, 의료 정보 조회처럼 되돌리기 어려운 행동에서는 “나쁜 답변을 생성하지 않게 하자”보다 “정책에 맞지 않는 툴 호출은 아예 실행되지 않게 하자”가 더 직접적이다. 고위험 도메인에서 policy-as-code가 자주 언급되는 이유도 여기에 있다.
+
+다만 자동 형식화가 곧 의미 보존을 뜻하지는 않는다. 관련 연구는 자연어에서 생성한 형식 산출물이 syntactic correctness에는 강할 수 있어도 semantic alignment를 보장하지 못한다고 지적한다. 쉽게 말해 문법적으로는 그럴듯한 정책 코드가 나와도, 원래 사람이 의도한 규칙과 어긋날 수 있다는 뜻이다. 여기에 MCP 설명 품질 문제까지 겹치면 위험은 더 커진다. 형식 정책은 강한 집행층이 될 수 있다. 하지만 잘못 번역된 정책을 더 강하게 집행하는 시스템이 될 가능성도 있다.
+
+확률적 가드레일을 버리면 끝나는 문제도 아니다. 고위험 배치에서는 오히려 역할이 나뉠 가능성이 크다. 형식 정책은 “허용/차단/승인 요청”을 결정적으로 다룬다. 분류기형 가드레일은 이상 징후 탐지나 에스컬레이션 보조로 남는 구조다. 이 조합은 비용과 사용자 경험에도 영향을 준다. Anthropic은 공식 연구 페이지에서 1세대 Constitutional Classifiers가 compute costs를 23.7% 늘렸고, harmless queries에 대한 refusal rates를 0.38% 높였다고 설명했다. 분류기를 붙일수록 마찰이 생길 수 있다는 뜻이다. 그래서 어디를 확률적으로 다루고, 어디를 정책으로 고정할지 아키텍처 설계가 중요해진다.
+
+## 실전 적용
+
+개발자와 제품팀이 지금 봐야 할 지점은 “모델이 똑똑한가”가 아니다. “어느 경계에서 기계적으로 막을 것인가”다. 특히 외부 툴 호출이 있는 에이전트라면 자연어 안전 원칙을 시스템 프롬프트에만 넣어서는 부족하다. 툴별 허용 행위, 금지 파라미터, 인간 승인 조건, 로그 보존 항목으로 나눠야 한다. 그다음에야 자동 형식화 같은 접근이 의미를 가진다.
+
+예: 고객 지원 에이전트가 환불 툴과 계정 수정 툴을 함께 쓴다면 “민감한 계정 변경은 엄격히 다뤄라” 같은 문장으로는 부족하다. 환불 한도, 계정 변경 전 본인 확인, 특정 필드 수정 금지, 야간 승인 차단 같은 규칙으로 바꿔야 한다. 그래야 툴 호출 전 검사와 호출 후 감사가 가능하다.
+
+오늘 바로 할 일:
+- 에이전트가 호출하는 모든 툴의 설명을 모아 애매한 표현, 누락된 파라미터 제약, 승인 조건 부재를 먼저 찾는다.
+- 자연어 정책 문서를 “허용·차단·승인 필요·로그 필요” 네 가지 집행 규칙으로 분해해 본다.
+- 자동 형식화 결과를 정답처럼 쓰지 말고, 원문 정책 담당자와 함께 의미 보존 검토 절차를 따로 둔다.
+
+## FAQ
+
+**Q. 형식 정책 집행이 프롬프트 가드레일보다 더 낫습니까?**  
+고위험 툴 호출 통제에는 더 적합할 수 있습니다. 다만 검색 결과 기준으로 모든 배치 환경에서 항상 우월하다고 확인된 것은 아니며, 지연과 유연성 저하 같은 트레이드오프도 함께 봐야 합니다.
+
+**Q. 자동 형식화만 잘하면 사람 검토는 필요 없습니까?**  
+아닙니다. 관련 연구는 자연어에서 생성된 형식 산출물이 문법적으로 맞더라도 원래 의도와의 의미 정렬을 보장하지 못한다고 지적합니다. 정책 담당자나 도메인 전문가의 검토가 빠지면 잘못된 규칙을 더 엄격하게 집행할 수 있습니다.
+
+**Q. MCP 툴 설명까지 왜 중요합니까?**  
+에이전트는 툴 설명을 보고 어떤 도구를 어떻게 쓸지 판단하기 때문입니다. 툴 설명이 부정확하거나 모호하면 정책 변환의 입력도 흔들리고, 잘못된 호출이나 검증 누락으로 이어질 수 있습니다.
+
+## 결론
+
+에이전트 정책 코드화의 본질은 모델의 말을 더 예쁘게 다듬는 데 있지 않다. 실제 행동이 일어나는 툴 경계에 규칙을 넣는 데 있다. 다만 자동 형식화의 승부처는 형식 검증 그 자체보다 자연어 의도를 얼마나 덜 왜곡하고, 운영에 맞게 유지하느냐에 달려 있다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-06-28](/ko/posts/ai-resources-roundup-2026-06-28)
+- [에이전트 설정의 숨은 위험](/ko/posts/agent-configs-deterministic-control-planes)
+- [금융 추천, 연결보다 설명](/ko/posts/financial-recommendations-explainability-before-cross-channel-linking)
+- [클러터 작업대 모션 선별](/ko/posts/learning-motion-feasibility-before-costly-planning-in-clutter)
+- [LLM 갈등 완화 안전성](/ko/posts/nvc-constraints-llm-safety-de-escalation-quality)
+---
+
+## 참고 자료
+
+- [Next-generation Constitutional Classifiers: More efficient protection against universal jailbreaks - anthropic.com](https://www.anthropic.com/research/next-generation-constitutional-classifiers?cam=claude)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26649)
+- [Towards an Agentic LLM-based Approach to Requirement Formalization from Unstructured Specifications - arxiv.org](https://arxiv.org/abs/2604.18228)
+- [Model Context Protocol (MCP) Tool Descriptions Are Smelly! Towards Improving AI Agent Efficiency with Augmented MCP Tool Descriptions - arxiv.org](https://arxiv.org/abs/2602.14878)
+- [A Formal Security Framework for MCP-Based AI Agents: Threat Taxonomy, Verification Models, and Defense Mechanisms - arxiv.org](https://arxiv.org/abs/2604.05969)

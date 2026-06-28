@@ -1,0 +1,88 @@
+---
+title: Enforcing Agent Policies Beyond Prompt-Based Safety Guards
+slug: enforcing-agent-policies-beyond-prompt-based-safety-guards
+date: '2026-06-28'
+lastReviewedAt: '2026-06-28'
+locale: en
+description: >-
+  How formalized policies can deterministically govern agent tool calls beyond
+  probabilistic prompt steering and filters.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - mcp
+author: AI온다
+sourceId: arxiv-cs-ai-c8dc21c33120d411
+sourceUrl: 'https://arxiv.org/abs/2606.26649'
+verificationScore: 0.82
+alternateLocale: /ko/posts/enforcing-agent-policies-beyond-prompt-based-safety-guards
+coverImage: /images/posts/enforcing-agent-policies-beyond-prompt-based-safety-guards.png
+---
+
+## TL;DR
+
+- This approach turns prompts, MCP tool descriptions, and policy documents into enforceable rules at tool-call boundaries.
+- It matters because risky outcomes often come from executed actions, not only from generated text.
+- Review tool descriptions, split policies into rule types, and verify semantic alignment before deployment.
+
+Example: A hospital agent tries to reschedule a visit and edit an account in one session. The model sounds careful, but the real question is which actions the tools can execute.
+
+A hospital appointment bot or financial workflow agent can fail at the tool boundary. In high-risk settings, that becomes an operational question. A recent paper proposes formalizing agent prompts, MCP tool descriptions, and natural-language policies. The goal is enforcement, not only prompt steering. The core idea is simple. Shift control toward deterministic checks at tool-call boundaries.
+
+## Current state
+
+Agent safety has largely followed two paths so far. One path uses long prompt rules to steer the model. The other path uses classifiers or filters to block risky outputs. Both approaches are probabilistic. This arXiv paper addresses that limitation directly. Based on the excerpted description, it uses an LLM generator-critic loop. That loop transforms prompts, MCP tool descriptions, and policy documents into formally verified policies.
+
+
+There is movement on formal verification as well. Other research models MCP agent interaction chains with labeled transition systems. It also uses trust boundary annotations. These works propose static and runtime analysis models. This context matters. Policy as code is not only stricter wording. It means explicit treatment of tool access, parameter validation, approval gates, and audit logs.
+
+## Analysis
+
+This approach matters because the safety focus shifts to execution authority. Earlier systems often centered on dangerous text. Agent systems center on dangerous actions. For hard-to-reverse actions, execution control is often more direct. Examples include schedule changes, transfer requests, and medical information lookups. In such cases, blocking noncompliant tool calls can help more than steering text alone.
+
+However, automatic formalization does not imply semantic preservation. Related research notes a gap between syntactic correctness and semantic alignment. Policy code can look valid while missing human intent. Poor MCP descriptions can deepen that risk. Formal policy can be a strong enforcement layer. It can also enforce a mistranslated rule more consistently.
+
+This is not a reason to discard probabilistic guardrails. In high-risk deployments, roles may split across layers. Formal policy can handle allow, block, and approval decisions deterministically. Classifier guardrails can support anomaly detection or escalation. This split also affects cost and user experience. In Anthropic’s constitutional classifier case, compute costs rose 23.7%. Refusal rates for harmless queries rose 0.38%. Those numbers suggest added friction is possible. Architecture then becomes the key question. Decide which controls stay probabilistic and which become policy rules.
+
+## Practical application
+
+Developers and product teams should examine control boundaries first. The key question is not only whether the model is smart. The key question is where actions should be blocked mechanically. If an agent calls external tools, prompt principles alone are not enough. Policies should be split into allowed actions by tool. They should also define prohibited parameters, approval conditions, and logging requirements. Then automatic formalization becomes more meaningful.
+
+If a support agent uses a refund tool and an account modification tool, vague wording is weak. A sentence about strict handling is not enough. It should become explicit rules. Those rules can cover refund limits, identity verification, restricted fields, and time-based approval blocks. Then pre-call checks and post-call audits become possible.
+
+**Checklist for Today:**
+- Gather every tool description and flag ambiguous wording, missing parameter limits, and missing approval conditions.
+- Break each policy into four rule types: allow, block, approval required, and logging required.
+- Treat automatic formalization as a draft and run a semantic review with the original policy owner.
+
+## FAQ
+
+**Q. Is formal policy enforcement better than prompt guardrails?**  
+It may fit high-risk tool control better. Available results do not show universal superiority across all deployments. Trade-offs can include latency and reduced flexibility.
+
+**Q. If automatic formalization works well, is human review unnecessary?**  
+Human review still matters. Related research notes that syntactic correctness does not ensure semantic alignment. Without domain review, teams may enforce the wrong rule more strictly.
+
+**Q. Why do MCP tool descriptions matter as well?**  
+Agents use descriptions to choose tools and parameters. If those descriptions are inaccurate or ambiguous, policy transformation inputs become unstable. That can lead to incorrect calls or missed validation.
+
+## Conclusion
+
+Turning agent policies into code is not mainly about polishing model text. It is about placing rules at the tool boundary. That is where real actions occur. The key question is not only formal verification. It is also whether the formalization preserves intent and stays maintainable in operations.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-28](/en/posts/ai-resources-roundup-2026-06-28)
+- [Why Agent Configs Need Deterministic Control Planes](/en/posts/agent-configs-deterministic-control-planes)
+- [Financial Recommendations Need Explainability Before Cross-Channel Linking](/en/posts/financial-recommendations-explainability-before-cross-channel-linking)
+- [Learning Motion Feasibility Before Costly Planning in Clutter](/en/posts/learning-motion-feasibility-before-costly-planning-in-clutter)
+- [NVC Constraints Shift LLM Safety Toward De-Escalation Quality](/en/posts/nvc-constraints-llm-safety-de-escalation-quality)
+---
+
+## References
+
+- [Next-generation Constitutional Classifiers: More efficient protection against universal jailbreaks - anthropic.com](https://www.anthropic.com/research/next-generation-constitutional-classifiers?cam=claude)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26649)
+- [Towards an Agentic LLM-based Approach to Requirement Formalization from Unstructured Specifications - arxiv.org](https://arxiv.org/abs/2604.18228)
+- [Model Context Protocol (MCP) Tool Descriptions Are Smelly! Towards Improving AI Agent Efficiency with Augmented MCP Tool Descriptions - arxiv.org](https://arxiv.org/abs/2602.14878)
+- [A Formal Security Framework for MCP-Based AI Agents: Threat Taxonomy, Verification Models, and Defense Mechanisms - arxiv.org](https://arxiv.org/abs/2604.05969)

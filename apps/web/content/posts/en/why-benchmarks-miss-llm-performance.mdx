@@ -1,0 +1,91 @@
+---
+title: Why Benchmarks Miss Much of LLM Performance
+slug: why-benchmarks-miss-llm-performance
+date: '2026-06-28'
+lastReviewedAt: '2026-06-28'
+locale: en
+description: >-
+  How single-run LLM benchmarks can miss usable performance, and why model
+  choice, retries, and cost matter.
+tags:
+  - llm
+  - robotics
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: arxiv-cs-ai-c86e516486be5ffe
+sourceUrl: 'https://arxiv.org/abs/2606.26836'
+verificationScore: 0.89
+alternateLocale: /ko/posts/why-benchmarks-miss-llm-performance
+coverImage: /images/posts/why-benchmarks-miss-llm-performance.png
+---
+
+**82%** is the paper’s headline estimate for missed usable performance. *The Capability Frontier: Benchmarks Miss 82% of Model Performance*, published on arXiv, argues that common evaluations can understate practical capability. The focus is single-model, single-run scoring. The core idea is simple. Some problems suit model A. Others suit model B. The same model can also improve on another generation.
+
+## TL;DR
+
+- This paper reframes evaluation from one model and one run toward model choice, repeated runs, and cost.
+- It matters because the abstract reports **54%**, **82%**, and **85%** shifts under alternative evaluation setups.
+- Readers should test repeated runs, co-failure, and cost together before relying on one benchmark score.
+
+Example: A support team compares several models for one workflow. One model handles policy questions better. Another handles edge cases better. A second attempt sometimes fixes a weak first answer. The useful decision becomes a mix of quality, cost, and selection.
+
+## Current state
+
+The paper states that it compares **21 LLMs** across **16** widely used benchmarks. The scope is broad. The abstract and review findings mention coding, reasoning, medicine, factuality, instruction following, and agent tasks. The authors call this idea the “Capability Frontier.” They suggest a Pareto frontier. It jointly considers cost, sample count, and model choice.
+
+
+There is, however, an important caveat. The review findings do not verify these figures against real service logs and operational datasets. The abstract’s phrase “production workloads” appears closer to a usage scenario. That scenario includes multi-model selection and repeated generation under cost constraints. It does not directly establish live-service performance. Latency, failure handling, and review costs may change outcomes.
+
+This concern connects with other research directions. Separate studies suggest repeated submission is often helpful. Their reported value varies by benchmark. The same is true for larger token budgets, external feedback, and parallel attempts. Another line of research focuses on co-failure. That is the rate at which all models fail together. Combining models does not automatically improve results. It helps more when their failures differ.
+
+## Analysis
+
+This paper challenges more than one evaluation technique. It also questions the benchmark standard. Public benchmarks often center on one question. Which model ranks first? Capability Frontier asks different questions. Given the same budget, which combination performs best? For the same performance, how much cost can drop? Is one more generation worth it for this task?
+
+These questions may fit product work more closely. Users experience quality, latency, and cost together. They do not experience only a model name.
+
+Several points also need careful reading. This approach is not automatically better for every team. Multi-sampling raises inference cost and latency. Selection strategies add their own cost. Operational complexity also rises. The effect depends on whether selection uses humans, a verifier, or a rule-based filter.
+
+This review also does not settle every design choice. It is hard to generalize the best sample count by task type from this material alone. The same applies to the best selection rule. The proposal to reshape leaderboards into a frontier form is notable. The standard frontier axes are not yet settled.
+
+## Practical application
+
+This paper should not be read as “discard benchmarks.” A narrower reading is more defensible. A single score is a starting point. Deployment decisions often need one more layer. Customer support automation and code generation can need different evaluation methods. Customer support often prioritizes consistency and safe refusal. Code generation may benefit more from repeated attempts plus test-based selection.
+
+If you run an internal document retrieval assistant, do not check only one average score. First, segment question types. Then identify where models fail together. Next, measure quality changes from one additional generation within an acceptable cost range. If the gain is small, reduce repeated runs. If the gain is large, apply a best-of-n style selectively to specific question groups.
+
+**Checklist for Today:**
+- Add columns for repeated-run score and added cost beside the single-run score in your evaluation sheet.
+- Record co-failure for top candidate models, not only average accuracy rank on the same tasks.
+- Split tasks by category and test where repeated runs help enough to justify extra cost.
+
+## FAQ
+
+**Q. Does this paper say existing benchmarks are useless?**  
+No. Existing benchmarks remain useful as a starting point. The paper argues that single-model, single-run scores can miss important differences in usable performance.
+
+**Q. Does multi-sampling often improve performance?**  
+Not necessarily. The review findings suggest repeated submission can help. They also suggest benefits vary by benchmark and task type.
+
+**Q. What should product teams change first?**  
+Start with the evaluation dashboard. Consider cost, repeated runs, model combinations, and co-failure beside the single-model score.
+
+## Conclusion
+
+The paper’s message is fairly direct. LLM performance may not be captured well by one best single attempt. A frontier view may be more useful in some settings. It asks what more can be gained under the same budget. It also asks what less can be spent for the same performance. Those questions may become more important evaluation criteria.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-28](/en/posts/ai-resources-roundup-2026-06-28)
+- [Why Agent Configs Need Deterministic Control Planes](/en/posts/agent-configs-deterministic-control-planes)
+- [Financial Recommendations Need Explainability Before Cross-Channel Linking](/en/posts/financial-recommendations-explainability-before-cross-channel-linking)
+- [Learning Motion Feasibility Before Costly Planning in Clutter](/en/posts/learning-motion-feasibility-before-costly-planning-in-clutter)
+- [NVC Constraints Shift LLM Safety Toward De-Escalation Quality](/en/posts/nvc-constraints-llm-safety-de-escalation-quality)
+---
+
+## References
+
+- [When Does Combining Language Models Help? A Co-Failure Ceiling on Routing, Voting, and Mixture-of-Agents Across 67 Frontier Models - huggingface.co](https://huggingface.co/papers/2606.27288)
+- [State of What Art? A Call for Multi-Prompt LLM Evaluation - huggingface.co](https://huggingface.co/papers/2401.00595)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.26836)
+- [How Inference Compute Shapes Frontier LLM Evaluation - arxiv.org](https://arxiv.org/abs/2606.17930)
