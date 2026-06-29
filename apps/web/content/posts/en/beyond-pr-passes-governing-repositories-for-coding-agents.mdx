@@ -1,0 +1,93 @@
+---
+title: 'Beyond PR Passes: Governing Repositories for Coding Agents'
+slug: beyond-pr-passes-governing-repositories-for-coding-agents
+date: '2026-06-29'
+lastReviewedAt: '2026-06-29'
+locale: en
+description: >-
+  Autonomous coding agents should be evaluated beyond PR pass rates, with
+  repository-level risk and structural health in view.
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-0008492543d509ea
+sourceUrl: 'https://arxiv.org/abs/2606.28235'
+verificationScore: 0.64
+alternateLocale: /ko/posts/beyond-pr-passes-governing-repositories-for-coding-agents
+coverImage: /images/posts/beyond-pr-passes-governing-repositories-for-coding-agents.png
+---
+
+2606.28235. One paper abstract shifts the safety question from the pull request to the repository.
+
+## TL;DR
+
+- This article covers arXiv 2606.28235 and its argument for repository-level evaluation of coding agents.
+- This matters because test-passing pull requests can still degrade maintainability, navigability, and robustness over time.
+- Readers should add repository-level review rules, structural checks, and audits to current agent evaluation workflows.
+
+Example: a team merges agent-written changes that pass tests, yet the codebase grows harder to navigate and maintain.
+
+The abstract of arXiv 2606.28235 argues that shared repositories can accumulate risk. Individual tasks may still pass tests. That gap is the starting point here. A single PR may look fine. The repository can still deteriorate gradually.
+
+This suggests a change in the unit of evaluation. Coding agent evaluation has often focused on one agent, one task, and one result. The paper reframes the issue. It points away from the model alone. It points toward the collaborative environment and repository design.
+
+## TL;DR
+
+- The central issue in this article is PR-level success can miss structural defects and operational risks in a shared repository.
+- This matters because passing tests and repository health are different outcomes with different failure modes.
+- Readers should expand scorecards beyond pass or fail and include repository rules, structural metrics, and audits.
+
+## Current state
+
+The confirmed facts are limited. The core point is still fairly clear. The abstract of arXiv 2606.28235 says agents can pass their own tests while problems accumulate in the repository. Those problems may not be explained by one contribution alone. The abstract then asks where responsibility lies. It asks about individual agents and the repository that allowed accumulation. Even from the abstract, the evaluation target appears to shift toward the repository ecosystem.
+
+The exact names or formulas of the repository-level metrics are not confirmed from the materials cited here. Still, there are comparison points. NITR is described as checking not only behavioral correctness but also a maintainable structure. SWE-Explore appears as a repository exploration benchmark in 2606.07297. Both examples connect to the same broader concern. Passing tests may not be enough for evaluating coding systems.
+
+Three numeric details help anchor this discussion. ArXiv 2606.28235 frames the repository-level safety problem. ArXiv 2606.07297 covers repository exploration as a separate capability. NITR is described here as a C++ repository-level benchmark. Together, they suggest an expanding evaluation axis. The question is moving from one problem outcome to repository handling.
+
+## Analysis
+
+This paper matters because it revisits responsibility. Recent attention has often centered on incorrect code, test outcomes, and task completion. Real repositories degrade in quieter ways. Small workarounds can accumulate. Duplicate abstractions can spread. Documentation edits can stay shallow. Dependencies can grow without clear boundaries. Human developers do this too. Agents may increase the pace and frequency of change. In that setting, individual success can still produce collective failure.
+
+For decisions, the implication is practical. If agents continuously modify a shared repository, evaluation criteria should expand toward repository operations metrics. If agent use stays limited to drafts or narrow patches, pass or fail evaluation may remain useful for now. There is also a trade-off. Stronger repository governance can slow work. Review rules, structural checks, and audits add overhead. That cost should be compared with refactoring debt and incident response later.
+
+There are also limits. The available materials do not confirm the paper's exact metrics. They also do not confirm how strongly those metrics relate to team productivity. Repository health can vary by language, team size, and testing culture. NITR is described here as C++. SWE-Explore evaluates exploration separately. That pattern suggests repository-level evaluation may resist reduction to one number.
+
+## Practical application
+
+Development teams may need to adjust repository defenses, not only agent scope. Do not focus only on whether a PR passed tests. Also inspect repeated patterns in the same folder or abstraction layer. Check whether documentation and interfaces changed together. Review whether structural changes increased exploration cost. Repository governance is not only an AI safety task. Maintainers, reviewers, and platform engineers can share it.
+
+**Checklist for Today:**
+- Add PR template checks for new abstractions, duplicate code, and coordinated updates to documentation and tests.
+- Run a weekly structural review that is separate from test pass rates and tracks repository navigability changes.
+- Include grouped repository-quality degradation cases in agent reports, not only task success rates.
+
+## FAQ
+
+**Q. Has this paper already presented a new quantitative metric?**  
+Based on the materials cited here, the exact metric name or formula is not confirmed. At the abstract level, the paper still raises a measurable repository-risk question.
+
+**Q. If tests pass, can we consider it safe?**  
+Not necessarily. Passing tests may indicate functional correctness. It may not reflect maintainability or structural consistency.
+
+**Q. Is this an issue only large enterprises need to worry about?**  
+It does not appear limited to large organizations. Shared repositories with repeated agent changes can face similar issues in smaller teams. Smaller teams may also have less cleanup capacity for structural debt.
+
+## Conclusion
+
+The paper's main provocation is about repository operating rules, not only model scoreboards. In coding-agent workflows, safety may depend as much on repository governance as on task-level performance.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-29](/en/posts/ai-resources-roundup-2026-06-29)
+- [Cloud LLM Costs Versus Local Deployment Decisions](/en/posts/cloud-llm-costs-versus-local-deployment-decisions)
+- [AI Resource Roundup (24h) - 2026-06-28](/en/posts/ai-resources-roundup-2026-06-28)
+- [Enforcing Agent Policies Beyond Prompt-Based Safety Guards](/en/posts/enforcing-agent-policies-beyond-prompt-based-safety-guards)
+- [Why Benchmarks Miss Much of LLM Performance](/en/posts/why-benchmarks-miss-llm-performance)
+---
+
+## References
+
+- [NITR: Needle in the Repo - cs.ucr.edu](https://www.cs.ucr.edu/~qzhang/nitr.html)
+- [SWE-Explore: Benchmarking How Coding Agents Explore Repositories - arxiv.org](https://arxiv.org/abs/2606.07297)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.28235)
