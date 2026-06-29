@@ -1,0 +1,96 @@
+---
+title: Do Language Models Really Build Stable World Models
+slug: do-language-models-build-stable-world-models
+date: '2026-06-29'
+lastReviewedAt: '2026-06-29'
+locale: en
+description: >-
+  Strong language performance may not imply a stable world model. Reassessing
+  LLMs through failures in time, space, and physics.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: '1282972'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1282972'
+verificationScore: 0.88
+alternateLocale: /ko/posts/do-language-models-build-stable-world-models
+coverImage: /images/posts/do-language-models-build-stable-world-models.png
+---
+
+In tasks like cube tracking over time, models can fail after a few state changes. This gap matters in product design and evaluation. Strong text prediction is not the same as a stable world model.
+
+## TL;DR
+
+- This piece examines whether language performance implies stable state tracking, physical reasoning, and object identity preservation.
+- It matters because benchmark design, prompts, and token bias can change results and distort reliability judgments.
+- Review failure patterns before demos, and retest adoption plans with temporal, spatial, and physical task sets.
+
+Example: A support agent explains a device issue well, but loses track of which part moved after several turns.
+
+## Current state
+
+Public research has measured “understanding the world” in two main ways. One way uses text-based physical reasoning. NEWTON evaluates physical property understanding, explicit application, and implicit scenario analysis. It uses **160K** pre-generated questions. PHYBench presents **500** problems from real physical situations.
+
+The other way uses more controlled environments. Approaches like SimuPhy convert motion descriptions into code-based simulations. They then validate execution results with follow-up questions. Another paper proposed a Myhill-Nerode-based world-model recovery metric. It used environments such as games, logic puzzles, and navigation. These approaches do not only check final answers. They also assess how consistently a model reconstructs state transitions.
+
+Formal benchmarks also show recurring failure patterns. In Continuous Perception-style evaluations, researchers wrote that even simple settings can break recent open-source and commercial models. The issue is not one-time object recognition. The issue is whether the model can accumulate evidence over time. A model can answer each scene correctly in isolation. It can still become unstable when scenes should be connected.
+
+Spatial reasoning shows a similar pattern. On benchmarks for spatial prepositions, no model reached human performance. In Paper Folding Puzzles-style tasks, reports placed many multimodal models at **near-chance** levels. Text fluency and stable mental rotation do not yet appear to align cleanly.
+
+## Analysis
+
+A key counterargument concerns how to interpret performance jumps. Research by Wei et al. described emergent abilities in large models. A follow-up paper by Schaeffer et al. argued that many cases may reflect metric effects instead. In one meta-analysis, the phrase **“2 metrics account for >92% of claimed emergent abilities”** appeared. That result suggests the same curve can look abrupt or gradual, depending on the metric.
+
+Prompts and bias also complicate interpretation. Research by Kojima et al. reported gains from the phrase **“Let’s think step by step”** alone. Research by Jiang et al. stated that many models rely on token bias in controlled synthetic logic tasks. These results do not make next-token prediction useless. They do suggest caution when treating it as evidence of generalized world simulation. That caution matters for agents, robotics, long-term planning, and multi-step verification.
+
+Premature negative conclusions also seem unhelpful. Weaknesses in physics benchmarks or spatial puzzles do not show that models learn no world-related structure. Some studies propose new ways to evaluate implicit world models in controlled environments. Physics benchmarks also continue to become more refined. The practical question is narrower. Under which conditions can a model preserve and transform state reliably?
+
+## Practical application
+
+For search, summarization, or drafting, these limits may be manageable. The risk changes when a model should track continuous state. It also changes when objects, locations, order, or causality should remain consistent. Operational log analysis, multi-turn support, UI agents, robot instructions, and simulation tools fit this pattern. These tasks care more about preserved state than one plausible answer.
+
+Evaluation methods should change with that risk. Single-answer accuracy should not stand alone. Add tests that revisit the same object across a timeline. Add tests that restate the same scene from another perspective. Add tests that convert explanations into code or action plans. Then revalidate the result. Strong demos can still hide weak state tracking.
+
+**Checklist for Today:**
+
+- Add temporal integration and object identity tasks to your evaluation sheet as separate scored items.
+- Test whether a one-line prompt change shifts scores, and track prompt sensitivity separately from reasoning results.
+- Split candidate automations into state-tracking and one-shot tasks, then add human review or simulation to the first group.
+
+## FAQ
+
+**Q. Should we conclude that Language Models do not have a world model?**
+
+That claim seems too strong from the current materials alone. Public research proposes ways to evaluate implicit world models in some environments. The same literature also reports repeated failures in object identity, temporal integration, and spatial transformation. A narrower question is more useful. How stable is performance across specific tasks?
+
+**Q. Then is all the reasoning performance we see now just an illusion?**
+
+That conclusion also seems too strong. Some papers argue that performance jumps can look larger because of metric choice. Other papers show that prompt phrasing or token bias can shift outcomes. Reasoning performance may be real in some settings. Its interpretation should still be careful.
+
+**Q. What should companies check first when adopting a model?**
+
+They should first ask whether the task depends on accumulated state. If order, location, object identity, or long-context consistency matter, general QA scores are not enough. Build continuous tasks that resemble real work. Then test those tasks directly.
+
+## Conclusion
+
+The main issue is the gap between fluent sentence completion and stable world simulation. The next useful signal is not another polished demo. It is reduced instability on temporal integration, spatial transformation, and state preservation tasks.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-29](/en/posts/ai-resources-roundup-2026-06-29)
+- [Beyond PR Passes: Governing Repositories for Coding Agents](/en/posts/beyond-pr-passes-governing-repositories-for-coding-agents)
+- [Class Frequency Guided Noise Schedules in Diffusion Models](/en/posts/class-frequency-guided-noise-schedules-diffusion-models)
+- [Cloud LLM Costs Versus Local Deployment Decisions](/en/posts/cloud-llm-costs-versus-local-deployment-decisions)
+- [CoIn Rethinks 3D Scene Editing Without Precise Masks](/en/posts/coin-3d-scene-editing-without-precise-masks)
+---
+
+## References
+
+- [NEWTON: Are Large Language Models Capable of Physical Reasoning? - personalrobotics.cs.washington.edu](https://personalrobotics.cs.washington.edu/publications/wang2023newton.pdf)
+- [Continuous Perception Matters: Diagnosing Temporal Integration Failures in Multimodal Models - ai.stanford.edu](https://ai.stanford.edu/~zywang/projects/ContinuousPerceptionBenchmark/)
+- [PHYBench: Holistic Evaluation of Physical Perception and Reasoning in Large Language Models - arxiv.org](https://arxiv.org/abs/2504.16074)
+- [Evaluating the World Model Implicit in a Generative Model - arxiv.org](https://arxiv.org/abs/2406.03689)
+- [Emergent Abilities of Large Language Models - arxiv.org](https://arxiv.org/abs/2206.07682)
+- [Are Emergent Abilities of Large Language Models a Mirage? - arxiv.org](https://arxiv.org/abs/2304.15004)
