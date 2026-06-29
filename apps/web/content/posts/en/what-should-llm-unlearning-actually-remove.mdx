@@ -1,0 +1,145 @@
+---
+title: What Should LLM Unlearning Actually Remove Precisely
+slug: what-should-llm-unlearning-actually-remove
+date: '2026-06-29'
+lastReviewedAt: '2026-06-29'
+locale: en
+description: >-
+  A position paper argues LLM unlearning should mean dataset-defined deletion,
+  not output suppression or behavior editing.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-d5271dd44de5f580
+sourceUrl: 'https://arxiv.org/abs/2606.27379'
+verificationScore: 0.9
+alternateLocale: /ko/posts/what-should-llm-unlearning-actually-remove
+coverImage: /images/posts/what-should-llm-unlearning-actually-remove.png
+---
+
+At arXiv paper **2606.27379**, one question frames the debate: what should be erased?  
+The paper argues that LLM work often merges three different targets into one term.
+
+## TL;DR
+
+- This paper narrows “machine unlearning” to removing the training influence of a specified forget set \(F \subset D\).
+- The distinction matters because deletion, copyright, and safety tasks use different technical success criteria.
+- Readers should classify each request first, then choose evaluation methods that fit that request.
+
+Example: A team receives a deletion request after a dispute. They can block an answer quickly. That may change behavior. It may not show that training influence was removed.
+
+## Current landscape
+
+In LLM research and product operations, many requests ask for something to be forgotten.  
+The cited reasons include regulatory deletion obligations, copyright and licensing disputes, and safety or product policy requirements.
+
+These requests do not describe one technical task.  
+Some concern removal of specific training data.  
+Others concern policy enforcement that blocks certain responses.  
+Still others concern changing behavioral tendencies the model already internalized.
+
+This position paper draws a boundary.  
+It defines dataset-defined deletion as removing the training influence of \(F\).  
+
+The target model should be approximately indistinguishable from a counterfactual model.  
+
+This definition changes the main question.  
+The question is not only whether the model stops producing an output.  
+The question is whether it resembles retraining without that data.
+
+This criterion can conflict with loose evaluation practices.  
+The reviewed findings cite the CMU blog and the BLUR benchmark.  
+
+That separation can miss forget-retain overlap or combined queries.  
+A blocked answer does not, by itself, show that the training trace disappeared.  
+Refusal behavior can resemble deletion without establishing deletion.
+
+## Analysis
+
+This distinction separates verifiable deletion from behavioral control.  
+Both can be costly for companies.  
+The larger issue is how claims are described.
+
+A claim about removing a specific document from training needs stronger verification.  
+That verification should be close to the dataset-defined deletion criterion.  
+A claim about refusing harmful requests describes safety alignment or policy enforcement.
+
+If both are labeled “unlearning,” teams can make different promises at once.  
+That can affect legal, product, and research communication.
+
+There are counterarguments.  
+In practice, a precisely specified forget set can be hard to secure.  
+Training pipelines are long.  
+Data overlap.  
+Derived knowledge can be entangled.
+
+The reviewed findings also did not identify a rigorous mathematical decision criterion.  
+They did not confirm a specific tolerance threshold, such as epsilon or delta.  
+They also did not confirm one standard benchmark for behavior modification versus safety alignment.
+
+So, cleaner terminology is only a starting point.  
+It can help scope the problem.  
+It does not resolve evaluation by itself.
+
+## Practical application
+
+Practitioners should rewrite the request when an “unlearning” request arrives.  
+They should first classify the target.  
+Is it an exact data sample, fact suppression, or policy-violating behavior?
+
+This classification can reduce confusion.  
+If the task is dataset deletion, the baseline should be a model trained on \(D \setminus F\).  
+If the task is safety suppression, the baseline should be policy-compliant behavior.
+
+A rights holder may request deletion of a specific bundle of documents.  
+That request is not only about blocking mention of those documents.  
+It is about matching a model trained without those documents.
+
+By contrast, blocking instructions for prohibited uses is a different problem.  
+It is closer to policy behavior modification than data deletion.  
+One shared dashboard score can blur these distinctions.
+
+**Checklist for Today:**
+- Add a ticket field that asks whether a precisely specified forget set exists.
+- In evaluation reports, record overlap, combined queries, and relearning separately from forget and retain results.
+- Before using “unlearning,” state whether the task is data deletion, knowledge suppression, or behavior modification.
+
+## FAQ
+
+**Q. If the model refuses an answer, is unlearning complete?**  
+Not necessarily.  
+The reviewed findings say dataset-defined deletion uses a different success criterion.  
+The resulting model should be approximately indistinguishable from retraining without the forget set.
+
+**Q. Are all copyright disputes unlearning problems?**  
+Not necessarily.  
+Removing a specific data sample or document set is closer to unlearning.  
+Blocking infringing outputs or enforcing usage policies is a separate technical problem.
+
+**Q. Is there already a standard evaluation method?**  
+That is hard to conclude from the reviewed findings.  
+They did not confirm one standard benchmark for this distinction.  
+They also did not identify a rigorous mathematical tolerance criterion.
+
+## Conclusion
+
+The paper’s message is about precision in claims.  
+An LLM “forgets” claim should specify what changed.  
+It should also specify the comparison baseline and the expected verifier.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-06-29](/en/posts/ai-resources-roundup-2026-06-29)
+- [Beyond PR Passes: Governing Repositories for Coding Agents](/en/posts/beyond-pr-passes-governing-repositories-for-coding-agents)
+- [Class Frequency Guided Noise Schedules in Diffusion Models](/en/posts/class-frequency-guided-noise-schedules-diffusion-models)
+- [Cloud LLM Costs Versus Local Deployment Decisions](/en/posts/cloud-llm-costs-versus-local-deployment-decisions)
+- [CoIn Rethinks 3D Scene Editing Without Precise Masks](/en/posts/coin-3d-scene-editing-without-precise-masks)
+---
+
+## References
+
+- [LLM Unlearning Benchmarks are Weak Measures of Progress - blog.ml.cmu.edu](https://blog.ml.cmu.edu/2025/04/18/llm-unlearning-benchmarks-are-weak-measures-of-progress/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.27379)
+- [BLUR: A Benchmark for LLM Unlearning Robust to Forget-Retain Overlap - arxiv.org](https://arxiv.org/abs/2506.15699)
+- [Digital forgetting in large language models: a survey of unlearning methods - link.springer.com](https://link.springer.com/article/10.1007/s10462-024-11078-6)
