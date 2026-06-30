@@ -1,0 +1,105 @@
+---
+title: Deploying AI for Rhythm Games by Function
+slug: deploying-ai-for-rhythm-games-by-function
+date: '2026-06-30'
+lastReviewedAt: '2026-06-30'
+locale: en
+description: >-
+  Rhythm game AI works best when API and local inference are split by function,
+  balancing latency, limits, cost, and memory.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: '1283893'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1283893'
+verificationScore: 0.89
+alternateLocale: /ko/posts/deploying-ai-for-rhythm-games-by-function
+coverImage: /images/posts/deploying-ai-for-rhythm-games-by-function.png
+---
+
+In a rhythm game, note judgment can fail if response delays stack up. Teams should often evaluate call limits, round-trip latency, and data retention before model quality. This distinction matters more in rhythm games. Immediate features differ from asynchronous features. Judgment and note processing need fast responses. Dialogue generation, operations support, and classification can run later.
+
+## TL;DR
+
+- This is a framework for splitting rhythm game AI across APIs, local inference, and task-specific models.
+- It matters because latency, token limits, memory limits, and data rules affect stability and cost.
+- Start by sorting functions into real-time and non-real-time groups, then test deployment rules per function.
+
+Example: A player finishes a song, receives instant scoring feedback, and later sees generated event dialogue in the menu.
+
+The core point is simple. For a commercial rhythm game, pushing AI into one general-purpose model can increase operational complexity. A split design can be easier to manage. Functions can be separated across API, local inference, and task-specific models. Then latency, cost, and memory constraints can be handled differently.
+
+## TL;DR
+
+- The key issue is whether to use one model or split functions across API and local models.
+- This choice affects latency, data retention, call limits, GPU memory, service stability, and cost structure.
+- The next step is to divide functions by real-time needs, then define rules using RPM, TPM, RPD, TPD, IPM, and memory limits.
+
+## Current status
+
+
+Latency is another variable. Official documentation says round-trip latency accumulates. It also says latency depends heavily on the model and generated token count. In rhythm games, this split is clear. Gameplay features needing immediate response should avoid network round trips and long generations. Features that can wait somewhat longer can use an API.
+
+Data retention policy also affects service design. Official documentation says Zero Data Retention and Modified Abuse Monitoring require prior approval. It also says `store` for `/v1/responses` and `v1/chat/completions` is treated as `false` under ZDR. Operations teams should therefore design logging and endpoint use per function.
+
+
+The toolchain for task-specific training already exists. Public documentation says PEFT supports LoRA, IA3, and AdaLoRA. Serving can use adapters on top of a base model. That setup is worth evaluating in rhythm games. Functions are clearly defined. Teams can add only the needed functions instead of replacing the whole model.
+
+## Analysis
+
+The main decision criterion is closer to response timing than output type. Latency-sensitive functions may not fit an API-centered design. Examples include judgment correction, real-time note recommendation, and reactive presentation during play. Network round trips are involved. Response time can rise as generated token count rises. A rule-based system or a small local model can be more realistic here.
+
+By contrast, non-real-time functions may fit APIs better. Examples include dialogue drafts, user report classification, operations dashboard summaries, and event copy generation. APIs can simplify model replacement and quality improvement. Work can begin without separate training.
+
+That does not mean local deployment is the answer in every case. In memory-constrained environments, model size and quantization level affect quality, speed, and operational complexity. The documented 8-bit memory reduction is a meaningful advantage. However, fit for a specific game feature still needs direct testing. APIs can simplify some quality work, but data retention policy, prior-approval options, and project-level limit management still need review.
+
+A rhythm game AI strategy may work better with function-level dualization or tri-partitioning than with one centralized model. Real-time gameplay processing can stay local or rule-based. Operational tasks can go to APIs. Repetitive classification and recommendation tasks with clear labels can use task-specific models.
+
+## Practical application
+
+In practice, the first step is a function inventory. Use three criteria. Ask whether the function needs an immediate in-game response. Ask whether user input can go to an external API. Ask whether the output format is narrow. Narrow outputs include difficulty tags, pattern categories, and report types. For such tasks, a classifier or small fine-tuned model can be simpler than a large generative model.
+
+Story event dialogue drafts can go to an asynchronous API. Difficulty classification of user-uploaded charts can use a local classification model. Judgment and recommendation during gameplay can stay rule-based. This separation can protect core gameplay during an API outage. If all functions depend on one model call, limits, latency, and policy changes can spread across the whole game.
+
+**Checklist for Today:**
+- Divide the function list into real-time and non-real-time groups, and mark exposure to RPM and TPM.
+- Review whether ZDR or MAM applies to sensitive functions, and note the `store` behavior change.
+- Run local memory loading tests for each target function under both 8-bit and non-quantized assumptions.
+
+## FAQ
+
+**Q. What is the first criterion that should be used to divide AI functions in a rhythm game?**  
+It is real-time responsiveness. Separate functions that need immediate responses during play from functions that can wait several seconds or longer. This split also affects API use, local inference needs, and rule-based substitutes.
+
+**Q. If memory is insufficient, should local AI be abandoned?**  
+Not necessarily. Public documentation says quantization reduces memory use and can make larger models easier to load. In particular, 8-bit quantization is described as reducing memory use by half. However, actual support should be measured in the deployment environment.
+
+**Q. When should direct training of task-specific models be considered?**  
+Consider it when inputs and outputs are structured and the same task repeats often. Examples include classification, recommendation, and tagging. Public documentation says PEFT methods and adapter-based serving are practical options.
+
+## Conclusion
+
+The core of rhythm game AI adoption is division of labor, not a performance race. If API, local inference, and task-specific models are split by function, latency, memory, and policy constraints can be handled differently. The next evaluation target is not a larger model alone. Teams should first decompose which functions can tolerate network round trips and which cannot.
+
+## Further Reading
+- [AI Paper Review Between Assistance and Official Evaluation](/en/posts/ai-paper-review-assistance-vs-evaluation)
+- [AI Resource Roundup (24h) - 2026-06-30](/en/posts/ai-resources-roundup-2026-06-30)
+- [Why Apple Moved Security Patches Ahead of iOS](/en/posts/why-apple-moved-security-patches-ahead-of-ios)
+- [Why Humanoid Office Robots Need Real Validation](/en/posts/why-humanoid-office-robots-need-real-validation)
+- [AI Resource Roundup (24h) - 2026-06-29](/en/posts/ai-resources-roundup-2026-06-29)
+---
+
+## References
+
+- [Data controls in the OpenAI platform - developers.openai.com](https://developers.openai.com/api/docs/guides/your-data)
+- [Latency optimization - developers.openai.com](https://developers.openai.com/api/docs/guides/latency-optimization)
+- [Production best practices - developers.openai.com](https://developers.openai.com/api/docs/guides/production-best-practices)
+- [Rate limits - developers.openai.com](https://developers.openai.com/api/docs/guides/rate-limits#usage-tiers)
+- [Optimizing inference · Hugging Face - huggingface.co](https://huggingface.co/docs/transformers/main/llm_optims)
+- [Bitsandbytes · Hugging Face - huggingface.co](https://huggingface.co/docs/transformers/v4.56.0/quantization/bitsandbytes)
+- [Quantization · Hugging Face - huggingface.co](https://huggingface.co/docs/transformers/v4.36.0/en/main_classes/quantization)
+- [Using the evaluator · Hugging Face - huggingface.co](https://huggingface.co/docs/evaluate/en/base_evaluator)
+- [Parameter-efficient fine-tuning · Hugging Face - huggingface.co](https://huggingface.co/docs/transformers/peft)
