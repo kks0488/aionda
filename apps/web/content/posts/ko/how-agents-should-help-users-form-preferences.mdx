@@ -1,0 +1,91 @@
+---
+title: '에이전트, 선호를 돕는 법'
+slug: how-agents-should-help-users-form-preferences
+date: '2026-07-01'
+lastReviewedAt: '2026-07-01'
+locale: ko
+description: AI 에이전트가 선호 추출을 넘어 사용자의 선호 형성을 도울 때 필요한 평가와 안전 기준을 짚는다.
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-5ad0895e4744037a
+sourceUrl: 'https://arxiv.org/abs/2606.30863'
+verificationScore: 0.87
+alternateLocale: /en/posts/how-agents-should-help-users-form-preferences
+coverImage: /images/posts/how-agents-should-help-users-form-preferences.png
+---
+
+2024년 7월 26일, NIST는 생성형 AI 프로파일을 포함한 AI Risk Management Framework 관련 문서를 공개했다. 같은 해 성립한 EU AI Act는 조작적이거나 기만적이거나 취약성을 악용하는 AI 관행에 선을 그었다. 그리고 2026년 6월 arXiv에 올라온 한 논문은 그 사이의 공백을 짚는다. 지금의 에이전트는 사용자의 선호를 “묻는” 데 익숙하지만, 사용자가 무엇을 원하는지 아직 모를 때는 선호 “형성”을 도와야 한다는 문제제기다.
+
+## 세 줄 요약
+- 이 글의 핵심 쟁점은 에이전트가 이미 정해진 선호를 끌어내는 도구에 머물 것인지, 아니면 사용자의 이해를 넓혀 선호 형성까지 돕는 쪽으로 바뀔 것인지다.
+- 이 전환은 UX 문제에 그치지 않는다. 설계가 적절하면 비전문가의 의사결정을 도울 수 있지만, 설계가 잘못되면 과도한 유도와 조작 위험이 커진다.
+- 에이전트 평가는 “정답률”만으로 끝내기 어렵다. 정보 제공 방식, 사용자 노력, 동의 기반 개입, 최종 결정의 질을 함께 보는 실험 규칙이 필요하다.
+
+## 현황
+
+문제제기는 분명하다. arXiv의 “Beyond expert users: agents should help users construct preferences, not just elicit them” 초록에 따르면, 에이전트는 대개 잘 형성된 선호를 가진 ‘전문가 사용자’를 가정하고, 과제가 덜 구체적일 때는 명확화 질문으로 되묻는다. 논문 초록은 이 가정이 비현실적이라고 본다. 사용자는 어떤 기능에 대한 선호를 물어도, 그 도메인 지식이 없으면 답하지 못할 수 있기 때문이다.
+
+
+관련 연구는 조각나 있다. Decisive는 비정형 문서에서 옵션 점수 행렬을 추출하고, 사용자의 잠재 선호 벡터를 표적 질문으로 학습하는 접근을 제시한다. 2025년 공개된 “Preference Construction”은 질문 정책을 유한 마르코프 결정 과정으로 다루고, Monte Carlo Tree Search를 활용해 누적 불확실성 감소를 노린다고 설명한다. 다만 조사 결과상, ‘선호 형성형 에이전트’를 정면으로 정의하고 선호 추출형과 표준화된 방식으로 비교하는 공인 벤치마크 이름은 확인되지 않았다.
+
+UX 연구도 힌트를 준다. 인간-AI 협업 패턴을 정리한 체계적 문헌 검토는 사용자가 필요할 때 AI 도움을 요청하는 상호작용을 중요한 패턴으로 다룬다. 설명가능성 연구는 일회성 메시지보다 열린 대화형 설명을 제안한다. 오래된 선호 추출 인터페이스 연구도 시스템의 정량 표현과 사용자의 내적 선호 표현 사이에 어긋남이 생길 수 있다고 짚었다. “무엇을 원하나”를 숫자 슬라이더로만 묻게 되면, 사용자는 자기 생각보다 시스템 형식에 맞춰 답하게 될 수 있다.
+
+## 분석
+
+이 논점이 중요한 이유는 에이전트 설계의 기본 가정을 건드리기 때문이다. 지금까지 많은 에이전트 UX는 “모호하면 더 물어본다”에 가깝다. 하지만 비전문가가 보험 상품, 학위 과정, 의료 정보, 금융 옵션, 복잡한 소프트웨어 구매처럼 낯선 문제를 만날 때는 질문에 답할 언어부터 없는 경우가 있다. 이때는 추가 질문보다 비교 프레임, 핵심 개념, 선택의 부작용을 먼저 설명하는 흐름이 필요할 수 있다. 에이전트의 역할이 검색창에서 코파일럿으로 옮겨갈수록, 정렬의 기준도 “지시 이행”만이 아니라 “이해를 돕되 넘어서지 않기”까지 포함하게 된다.
+
+문제는 여기서 바로 안전 이슈가 열린다는 점이다. 사용자의 선호 형성을 돕는다는 말은, 다른 표현으로 하면 사용자의 판단 형성 과정에 개입한다는 뜻이기도 하다. OECD AI 원칙이 자율성, 존엄, 이해 가능한 정보 제공을 강조하는 이유도 여기에 있다. NIST는 측정, 평가, 표준, 가이드라인의 기반 마련에 무게를 둔다. EU AI Act는 조작적, 기만적, 취약성 악용 관행을 금지한다. 또 2025년 연구 한 편은 인간의 의사결정이 AI 기반 조작에 취약할 수 있다고 경고했다. 선호 형성형 에이전트는 더 친절한 추천기가 될 수도 있고, 더 정교한 설득 엔진이 될 수도 있다. 경계선은 “무엇을 추천했는가”보다 “어떻게 비교했고, 무엇을 숨겼고, 언제 멈췄는가”에서 갈린다.
+
+## 실전 적용
+
+팀이 이 개념을 제품에 넣고 싶다면, 첫 설계 원칙은 “즉답”보다 “이해 보조”를 앞세우는 것이다. 사용자가 답하지 못하는 질문을 반복하지 말고, 먼저 선택지를 나누는 축을 짧게 설명한 뒤 “어느 축이 더 중요한가”를 묻는 식으로 바꿔야 한다. 예를 들어 구매 에이전트라면 곧바로 최종 추천을 내지 말고, 가격, 유지비, 학습 난이도, 호환성 같은 비교 기준을 제시한 다음 사용자가 기준 자체를 수정하게 해야 한다. 설명은 한 번에 제시하는 공지가 아니라 대화형이어야 한다.
+
+평가도 바꿔야 한다. 최종 추천 정확도만 보면, 사용자를 몰아붙여 빠르게 대답하게 하는 에이전트가 더 좋아 보일 수 있다. 대신 숨겨진 잠재 선호를 둔 다회차 과제, 정보 제공과 비교의 질, 질문 전략, 사용자 노력, 거절 후 자제 여부, 동의 기반 개입 여부를 함께 봐야 한다. 이런 항목은 조사 결과에서 제시된 벤치마크 설계 방향과 맞닿아 있다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 현재 에이전트 플로우에서 “명확화 질문”이 연속으로 나오는 구간을 찾고, 그 앞에 개념 설명과 비교 프레임 단계를 넣어라.
+- 오프라인 평가표에 정답률 외 항목으로 사용자 노력, 설명 이해도, 동의 없는 개입 빈도를 추가해라.
+- 추천 화면마다 “왜 이 기준을 먼저 물었는지”와 “다른 기준으로 다시 볼 수 있는지”를 드러내는 문장을 넣어라.
+
+## FAQ
+
+**Q. 선호 형성형 에이전트는 그냥 추천을 더 많이 해주는 시스템인가요?**
+
+아닙니다. 핵심은 추천의 양이 아니라, 사용자가 아직 모르던 판단 기준을 이해하고 스스로 우선순위를 세우게 돕는 과정입니다. 질문만 던지는 대신 정보 제공, 비교, 설명, 수정 가능한 기준 제시가 함께 들어가야 합니다.
+
+**Q. 이 접근을 도입하면 개인화가 더 잘 되나요?**
+
+그럴 가능성은 있습니다. 다만 조사 결과만으로 선호 형성형 UX가 기존 명확화 질문 UX보다 일관되게 더 낫다고 단정할 수는 없습니다. 도메인별 과제와 사용자군에 맞춘 평가 설계가 먼저 필요합니다.
+
+**Q. 가장 큰 리스크는 무엇인가요?**
+
+과도한 유도입니다. 사용자의 이해를 돕는다는 명분 아래 특정 선택으로 밀어붙이거나, 취약한 사용자의 판단을 교묘하게 흔들 수 있습니다. 그래서 근거 설명, 사용자의 통제권, 인간 감독, 동의 기반 개입이 중요합니다.
+
+## 결론
+
+선호 형성형 에이전트는 “더 똑똑한 챗봇” 논쟁이 아니다. 사용자가 처음부터 답을 알고 있다고 가정해 온 에이전트 설계 자체를 다시 묻는 일이다. 다음 경쟁력은 더 많이 말하는 모델보다, 사용자가 아직 만들지 못한 선호를 더 공정하게 함께 만들어 가는 인터랙션에서 갈릴 가능성이 있다.
+
+## 다음으로 읽기
+- [AI 고용 서사의 이동](/ko/posts/ai-employment-narrative-shifts-job-loss-to-redesign)
+- [AI 자료 모음 (24h) - 2026-07-01](/ko/posts/ai-resources-roundup-2026-07-01)
+- [LLM 자기평가 일관성의 함정](/ko/posts/generator-evaluator-consistency-llm-self-review)
+- [공공 AI 투명성의 함정](/ko/posts/public-ai-transparency-paper-compliance)
+- [교육용 AI, 클라우드가 답일까](/ko/posts/rethinking-ai-tutors-beyond-cloud-chatbots-in-education)
+---
+
+## 참고 자료
+
+- [AI principles | OECD - oecd.org](https://www.oecd.org/en/topics/ai-principles.html)
+- [Artificial intelligence | NIST - nist.gov](https://www.nist.gov/artificial-intelligence)
+- [AI Risk Management Framework | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework)
+- [AI Act | Shaping Europe’s digital future - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [KnowU-Bench: Towards Interactive, Proactive, and Personalized Mobile Agent Evaluation - arxiv.org](https://arxiv.org/abs/2604.08455)
+- [Decisive: Guiding User Decisions with Optimal Preference Elicitation from Unstructured Documents - arxiv.org](https://arxiv.org/abs/2604.18122)
+- [Preference Construction: A Bayesian Interactive Preference Elicitation Framework Based on Monte Carlo Tree Search - arxiv.org](https://arxiv.org/abs/2503.15150)
+- [Human Decision-making is Susceptible to AI-driven Manipulation - arxiv.org](https://arxiv.org/abs/2502.07663)
+- [Human-AI collaboration is not very collaborative yet: a taxonomy of interaction patterns in AI-assisted decision making from a systematic review - frontiersin.org](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2024.1521066/full)
+- [Artificial agents’ explainability to support trust: considerations on timing and context - link.springer.com](https://link.springer.com/article/10.1007/s00146-022-01462-7)
+- [Designing interfaces for explicit preference elicitation: a user-centered investigation of preference representation and elicitation process - link.springer.com](https://link.springer.com/article/10.1007/s11257-011-9116-6)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2606.30863)
