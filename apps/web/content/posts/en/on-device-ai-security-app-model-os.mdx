@@ -1,0 +1,85 @@
+---
+title: 'On-Device AI Security Across App, Model, and OS'
+slug: on-device-ai-security-app-model-os
+date: '2026-07-02'
+lastReviewedAt: '2026-07-02'
+locale: en
+description: >-
+  A look at the main security risks in mobile on-device AI, focusing on attack
+  surfaces across apps, models, and OS.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-3b22e36417c579ab
+sourceUrl: 'https://arxiv.org/abs/2607.00362'
+verificationScore: 0.8
+alternateLocale: /ko/posts/on-device-ai-security-app-model-os
+coverImage: /images/posts/on-device-ai-security-app-model-os.png
+---
+
+In `2607.00362`, `2605.29450`, and `QSEE`, mobile on-device AI appears as a security design problem. At first glance, these labels can seem dry. They instead frame a practical question. What becomes vulnerable first inside the device?
+
+## TL;DR
+
+- This matters because privacy and low latency can improve while model theft, input manipulation, and privilege misuse remain relevant risks.
+- Next, map app permissions and tool access, then review model protection and input validation as separate controls.
+
+Example: A local assistant drafts a message, reads a file, and uses a sensor after a crafted prompt. The feature stays on the device, but the risky path comes from how the app connects tools and permissions.
+
+## Current State
+
+
+
+Hardware security is not a complete answer. Research findings describe TEE, secure enclaves, and NPU isolation as helpful for separating models, keys, and sensitive intermediate values. `2605.29450` also notes an imbalance between attack and defense research. Some attack categories have no corresponding defense research. The findings state that adversarial attacks account for roughly one third of the surveyed attack literature, not necessarily one third of attack categories. Isolation helps. It does not address input manipulation or app-OS integration weaknesses by itself.
+
+## Analysis
+
+On-device AI security is difficult because boundaries blur. In cloud AI, access control and monitoring can sit within the server boundary. On mobile devices, the model file, runtime, app logic, OS permissions, sensors, and local storage interact closely. That design creates more places where mistakes can matter.
+
+A common misunderstanding is that local execution is automatically safer. Reduced network transmission is a separate benefit. The device itself can still be accessible to an attacker. Another misunderstanding is that hardware isolation finishes the job. The research findings describe QSEE as a widely used TEE on many Android smartphones. They also note that it has been a target of attack. A security boundary can help and still become a target. A fuller design should consider model protection, input validation, privilege minimization, and runtime isolation together.
+
+## Practical Application
+
+Developers should change the threat model first. Do not ask only whether the model can be exfiltrated. Ask which permissions external input can reach. If voice or text enters a local agent, the next question is critical. Does that agent connect to contacts, files, or messages? If yes, input manipulation can become a privilege issue. A TEE or similar isolation layer can help. If app-layer prompt or input validation is weak, another leakage path can remain.
+
+Users and product owners also have practical checkpoints. A feature running on-device is not the whole story. Check what data the feature can access. Check how far it can operate offline. Security design may be less visible than performance metrics. In mobile AI, it can strongly affect product trust.
+
+**Checklist for Today:**
+
+- List each local permission and tool the AI feature can invoke, then test whether user input can reach those paths.
+- Review model protection and input validation separately, because one control does not fully replace the other.
+- Before release, test both a network-blocked state and malicious input conditions with separate scenarios.
+
+## FAQ
+
+**Q. Is on-device AI more secure than cloud AI?**
+
+That is difficult to state definitively. On-device AI can improve privacy and offline use. It also creates an attack surface across the local model, app, and OS. Reducing network risk does not make device security simple.
+
+**Q. Is the most realistic attack model extraction or input manipulation?**
+
+The current evidence does not support a definitive ranking. Research findings repeatedly identify both model extraction and input manipulation. Risk also appears to grow when external input connects to permissions or tools.
+
+**Q. Is using a TEE or secure enclave sufficient?**
+
+That does not appear sufficient by itself. These technologies can isolate models, keys, and sensitive intermediate values. The research findings also note that some attack categories lack corresponding defense research. Isolation is one layer. It should be paired with input validation and privilege minimization.
+
+## Conclusion
+
+The core issue in mobile on-device AI security is not only placing the model on the device. It is also defining what the model can do between the app and the OS. The main design questions are fairly clear. How are defenses for input manipulation handled? How are privilege links constrained? How are isolation limits reflected in product design?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-02](/en/posts/ai-resources-roundup-2026-07-02)
+- [Bug Reproduction Tests as Signals for Code Agents](/en/posts/bug-reproduction-tests-signals-code-agents)
+- [Dynamic 3D Reconstruction from Monocular Video with Generative Priors](/en/posts/dynamic-3d-reconstruction-from-monocular-video)
+- [Interpreting RAG Retrieval With Sparse Autoencoder Features](/en/posts/interpreting-rag-retrieval-with-sparse-autoencoder-features)
+- [Latent Space Control for Trustworthy LLM Behavior](/en/posts/latent-space-control-trustworthy-llm-behavior)
+---
+
+## References
+
+- [Protecting On-Device AI Inference: A Systematic Review of Attacks and Defence Mechanisms - arxiv.org](https://arxiv.org/abs/2605.29450)
+- [Vulnerability analysis of Qualcomm Secure Execution Environment (QSEE) - sciencedirect.com](https://www.sciencedirect.com/science/article/abs/pii/S016740482200027X)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.00362)
