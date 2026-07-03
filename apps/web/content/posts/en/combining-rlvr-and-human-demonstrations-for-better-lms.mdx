@@ -1,0 +1,91 @@
+---
+title: Combining RLVR and Human Demonstrations for Better LMs
+slug: combining-rlvr-and-human-demonstrations-for-better-lms
+date: '2026-07-03'
+lastReviewedAt: '2026-07-03'
+locale: en
+description: >-
+  A paper on combining RLVR with human demonstrations to train style, structure,
+  and diversity beyond verifiable rewards.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-a537aeffcbe6eb01
+sourceUrl: 'https://arxiv.org/abs/2607.01181'
+verificationScore: 0.79
+alternateLocale: /ko/posts/combining-rlvr-and-human-demonstrations-for-better-lms
+coverImage: /images/posts/combining-rlvr-and-human-demonstrations-for-better-lms.png
+---
+
+A paper with arXiv ID 2607.01181 examines a gap in language model training. RLVR works well when answers can be scored directly. Style, structure, and diversity often fall outside that rubric. This study explores adding human demonstrations to training.
+
+## TL;DR
+
+- This paper combines verifiable rewards with human demonstrations to train both correctness and presentation quality.
+- It matters because awkward style, reward hacking, and low diversity can hurt product behavior.
+- Readers should separate verifiable and non-verifiable evaluations before changing training pipelines.
+
+Example: Imagine a writing assistant that gives factually correct replies, yet its tone feels rigid and repetitive. A team could score factual accuracy automatically, then review flow and structure with human examples.
+
+Code and mathematics have graders. Long-form explanation, general instruction following, and story generation are harder to score with graders alone. This work aims to train not only correct outputs, but also better presentation. For companies and research teams, this is more than a quality issue. It may affect deployment stability in products.
+
+## Current status
+
+The paper is titled *Right in the Right Way: LM Training with Verifiable Rewards and Human Demonstrations*. Its arXiv identifier is 2607.01181. The available evidence comes from the abstract and retrieved snippets.
+
+According to the abstract, RLVR is strong for tasks with clear success criteria. Examples include code generation and mathematical reasoning. Current methods optimize what can be graded objectively. Subjective elements such as style and structure can be missed.
+
+The issue is not only writing style. The reviewed findings describe diversity collapse, unnatural responses, and reward hacking as failure modes. The proposed method jointly optimizes verifiable rewards and a discriminator signal. That signal is learned from human demonstrations. The snippets describe more diverse and more human-like story outputs. They also describe near elimination of failures on a reward-hacking benchmark. However, benchmark values and task-level differences are not confirmed here.
+
+The scope should be assessed carefully. The retrieved evidence indicates a focus beyond code and mathematics. It includes general instruction following and long-form generation. It remains unclear how robust the method is in practice. OpenAI's DPO documentation discusses learning subjective human preferences. The InstructGPT introduction also covers preference-based alignment. The reviewed materials do not justify broader superiority claims over that family.
+
+## Analysis
+
+The research message is fairly direct. Problems with a correct answer and problems that read well can be treated separately. RLVR is suited to the first category. Real products often struggle with the second. Customer-support replies, report drafts, educational explanations, and story generation are hard to judge on correctness alone. Combining human demonstrations can be read as a way to reconnect these two axes. One axis is verification. The other is human preference.
+
+There are trade-offs. Human demonstrations create more room to learn style and structure. They also increase the importance of data quality management. The reviewed findings state that a warm start with high-quality human demonstrations is needed. There is also a counterargument on diversity. *Does LLM Alignment Really Need Diversity?* argues that standard reward-maximization RLVR can work for moral-reasoning adaptation. That suggests diversity is not the main bottleneck for every alignment task. If correctness and rule compliance are the priority, pure RLVR may be simpler. If tasks include long-form generation or user preferences, human demonstrations may add value.
+
+## Practical application
+
+The main takeaway is evaluation design. Teams should divide tasks into two categories. One category covers verifiable correctness. Examples include format compliance, calculation accuracy, and successful code execution. The other category covers human-evaluated quality. Examples include sentence flow, information order, repetition control, and tonal consistency. If both are merged into one score, the model may optimize the easier metrics first.
+
+If you run an internal document summarization tool, track omitted core facts separately. That item is verifiable. Track readability and structure separately. Those items need human evaluation. Before training, collect failure modes first. Gather reward-hacking cases, repetitive replies, and template-like responses separately. That evidence can help decide whether RLVR alone is enough. It can also indicate whether human demonstrations should be added.
+
+**Checklist for Today:**
+- Split the current evaluation set into verifiable metrics and human-evaluation metrics, then document both groups.
+- Extract recent high-score failures from deployment logs, including repetitive phrasing, awkward style, or low satisfaction cases.
+- Define independent experiment metrics for maintained accuracy and improved non-verifiable quality before new training runs.
+
+## FAQ
+
+**Q. Has this method already been validated outside code and mathematics?**  
+That cannot be stated conclusively. The confirmed evidence shows a target of non-verifiable quality problems. Examples include general instruction following and long-form generation. Public snippets do not confirm comparable quantitative stability in those domains.
+
+**Q. In what ratio should verifiable rewards and human demonstrations be mixed?**  
+The confirmed materials do not provide a fixed optimal ratio. The ratio likely varies by task, data quality, and failure mode. The reviewed findings support only a directional claim. A warm start with high-quality human demonstrations is described as needed. Accuracy is described as maintained while non-verifiable quality improved.
+
+**Q. Should this method therefore be considered better than RLHF or DPO?**  
+That remains difficult to say. The distinction is clearer than the ranking. RLHF and DPO are strong for learning human preferences. This approach combines verifiable rewards with human-demonstration signals. The reviewed findings are not enough to support cross-task superiority claims.
+
+## Conclusion
+
+This paper asks two questions at once. Does the model produce the correct answer? Does it present that answer in a way people prefer? RLVR plus human-demonstration training is an attempt to narrow that gap. The next step is not only conceptual review. It is checking reproducibility in general instruction following and long-form generation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-03](/en/posts/ai-resources-roundup-2026-07-03)
+- [Counterfactual Coaching From Latent Space in StarCraft II](/en/posts/counterfactual-coaching-latent-space-starcraft-ii)
+- [Where AI Meets Quantum Information in Practice](/en/posts/where-ai-meets-quantum-information-in-practice)
+- [AI Data Centers Depend on Power and Cooling](/en/posts/ai-data-centers-power-cooling-constraints)
+- [AI Resource Roundup (24h) - 2026-07-02](/en/posts/ai-resources-roundup-2026-07-02)
+---
+
+## References
+
+- [Direct preference optimization | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/direct-preference-optimization)
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/?_hsmi=202743306)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01181)
+- [Does LLM Alignment Really Need Diversity? An Empirical Study of Adapting RLVR Methods for Moral Reasoning - arxiv.org](https://arxiv.org/abs/2603.10588)
+- [MaxMin-RLHF: Alignment with Diverse Human Preferences - arxiv.org](https://arxiv.org/abs/2402.08925)
