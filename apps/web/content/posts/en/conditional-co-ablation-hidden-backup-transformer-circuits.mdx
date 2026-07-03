@@ -1,0 +1,87 @@
+---
+title: Conditional Co-Ablation Reveals Hidden Backup Transformer Circuits
+slug: conditional-co-ablation-hidden-backup-transformer-circuits
+date: '2026-07-03'
+lastReviewedAt: '2026-07-03'
+locale: en
+description: >-
+  How CoAx exposes backup circuits that single ablation can miss due to
+  self-repair in transformers.
+tags:
+  - agi
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-3fae6ee544504950
+sourceUrl: 'https://arxiv.org/abs/2607.01940'
+verificationScore: 0.8
+alternateLocale: /ko/posts/conditional-co-ablation-hidden-backup-transformer-circuits
+coverImage: /images/posts/conditional-co-ablation-hidden-backup-transformer-circuits.png
+---
+
+In the GPT-2-small IOI circuit, backup-head recovery rose from `0.33` to `0.91` ROC-AUC under CoAx. This result frames transformer `self-repair` as a practical evaluation problem. The paper `Conditional Co-Ablation: Recovering Self-Repair Backups in Transformer Circuits` argues that single ablation can mislead.
+
+## TL;DR
+
+- This paper studies conditional co-ablation, or CoAx, for finding backup circuits missed by single ablation.
+- It matters because self-repair can hide important components in interpretability, safety, and pruning work.
+- You should re-check component importance after removing primary components, not rely on one ablation score.
+
+Example: Imagine a model behavior weakens only slightly after one suspected head is turned off. You might label that head unimportant. A conditional co-ablation check can show that another quiet head was acting as a backup.
+
+## Current State
+
+This paper proposes conditional co-ablation, or CoAx for short. The idea is simple. It does not test one component in an otherwise intact model only. It first removes a set of major components. It then measures whether the ablation effect of remaining components grows.
+
+According to the paper excerpt, the core concern is straightforward. Primary, or first-order, single-ablation scores fit cases with roughly linear importance. Self-repair can break that assumption. In those cases, interpretation can drift.
+
+The clearest numeric result comes from the GPT-2-small IOI circuit experiment. CoAx improved backup-head recovery from `0.33` to `0.91` ROC-AUC. The best self-repair-aware gradient score reached `0.82`. These results suggest CoAx can provide a stronger signal in that setting. However, this evidence comes from the specific GPT-2-small IOI case. The excerpt does not establish the same result across other model families or tasks.
+
+Context also matters. The earlier self-repair study `The Hydra Effect` discussed self-repair in language model computation. The retrieved snippet says one layer ablation affected only a small number of downstream layers. In addition, `Circuit Component Reuse Across Tasks in Transformer Language Models` says the IOI circuit appears in larger GPT-2 models. It also says the circuit is reused across other tasks. Taken together, these papers suggest loosely connected components, reused circuits, and backup mechanisms may coexist.
+
+## Analysis
+
+Why does this matter? It can destabilize a common interpretability workflow. Researchers often ask how much performance drops after one component is removed. Self-repair can blur that signal. Other circuits may compensate after the primary component is removed. Then the main component can look less important than it is.
+
+Backup components can also stay quiet in the intact model. That can make them look unimportant. A similar issue appears in safety evaluation. A capability may seem removed after one path is blocked. A backup path may still remain.
+
+That said, it seems early to treat CoAx as a standard solution. The retrieved findings do not show broad generality yet. They do not directly establish results for non-language transformers, including vision or multimodal models. Computational cost is also a practical concern. Co-ablation likely needs more combinations than single ablation. However, the provided evidence includes no specific cost figures or complexity bounds. At this stage, CoAx seems better read as a way to test the limits of single ablation.
+
+## Practical Application
+
+The practical message is direct. For pruning, interpretation, or safety inspection, single-rank importance tables may be incomplete. In capability knockout experiments, first-order ablation alone may not justify a removal claim. After removing the primary circuit, practitioners should inspect which remaining components become more important. That process can reveal backup circuits.
+
+**Checklist for Today:**
+- Add a "conditional co-ablation revalidation status" column to tables built from single ablation scores.
+- In capability knockout work, keep a separate log of amplified effects after primary components are removed.
+- When choosing pruning candidates, compare intact-state importance with conditional importance side by side.
+
+## FAQ
+
+**Q. Does conditional co-ablation replace single ablation?**  
+It is difficult to say that it does. Single ablation remains a fast and intuitive first-pass tool. However, self-repair can weaken its reliability in some circuits. Conditional co-ablation seems more appropriate as a complementary step.
+
+**Q. Can we assume this method works across all transformers and tasks?**  
+There is still insufficient evidence to conclude that. The retrieved findings confirm the GPT-2-small IOI case. They do not directly establish broad generalization across tasks or non-language transformers.
+
+**Q. What changes does this imply for safety evaluation?**  
+Removal claims should become more conservative. Single ablation may miss backup circuits. Verification should inspect not only the main path. It should also inspect alternative paths that remain afterward.
+
+## Conclusion
+
+The paper's core point is narrow but important. In transformers, a weak effect after one ablation does not by itself show low importance. A key open question is how widely methods like CoAx will be used. That question extends beyond interpretability to pruning, capability removal, and safety validation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-03](/en/posts/ai-resources-roundup-2026-07-03)
+- [Combining RLVR and Human Demonstrations for Better LMs](/en/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [How To Compare Code Models Beyond Benchmark Scores](/en/posts/compare-code-models-beyond-benchmark-scores)
+- [Context Governance for Verifiable AI Agent Knowledge](/en/posts/context-governance-verifiable-ai-agent-knowledge)
+- [Counterfactual Coaching From Latent Space in StarCraft II](/en/posts/counterfactual-coaching-latent-space-starcraft-ii)
+---
+
+## References
+
+- [The Hydra Effect: Emergent Self-repair in Language Model Computations - huggingface.co](https://huggingface.co/papers/2307.15771)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01940)
+- [Circuit Component Reuse Across Tasks in Transformer Language Models - arxiv.org](https://arxiv.org/abs/2310.08744)

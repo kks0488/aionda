@@ -1,0 +1,79 @@
+---
+title: 자가복구가 숨긴 핵심 회로
+slug: conditional-co-ablation-hidden-backup-transformer-circuits
+date: '2026-07-03'
+lastReviewedAt: '2026-07-03'
+locale: ko
+description: 트랜스포머 자가복구로 단일 절제가 놓치는 백업 회로를 CoAx가 어떻게 드러내는지 정리한다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-3fae6ee544504950
+sourceUrl: 'https://arxiv.org/abs/2607.01940'
+verificationScore: 0.8
+alternateLocale: /en/posts/conditional-co-ablation-hidden-backup-transformer-circuits
+coverImage: /images/posts/conditional-co-ablation-hidden-backup-transformer-circuits.png
+---
+
+헤드를 하나 꺼도 모델이 답을 이어가는 경우가 있다. 단일 절제 실험에서는 중요하지 않아 보였던 부품이, 다른 부품을 먼저 제거한 뒤에는 핵심처럼 드러나기도 한다. 이런 현상을 트랜스포머의 `self-repair`, 즉 자가복구라고 부른다. 논문 `Conditional Co-Ablation: Recovering Self-Repair Backups in Transformer Circuits`는 이 현상 때문에 익숙한 “하나씩 꺼보고 점수 매기기” 방식이 오해를 낳을 수 있다고 다룬다.
+
+## 세 줄 요약
+
+- 이 글의 핵심 쟁점은 단일 절제 기반 중요도 평가가 트랜스포머의 자가복구 때문에 실제 핵심 회로를 놓칠 수 있다는 점이다.
+- 이 문제는 해석가능성 연구뿐 아니라 capability knockout, 안전성 평가, 프루닝·압축에도 영향을 준다. 중요하지 않다고 지운 부품이 실제로는 백업 회로일 수 있기 때문이다.
+- 단일 ablation 점수 하나만으로 결론을 내리기보다, 핵심 구성요소를 먼저 제거한 뒤 나머지 부품의 영향이 어떻게 달라지는지 조건부 공동절제로 다시 확인할 필요가 있다.
+
+## 현황
+
+이번 논문은 조건부 공동절제, 줄여서 CoAx를 제안한다. 아이디어는 단순하다. 정상 상태의 모델에서 부품 하나를 꺼보는 대신, 먼저 주요 구성요소 집합을 제거한 뒤 그 상태에서 남은 부품의 절제 효과가 얼마나 커지는지 본다. 논문 발췌에 따르면 핵심 문제의식은 이렇다. 1차적, 즉 first-order 단일 절제 점수는 중요도가 더해지는 구조에서는 자연스럽다. 하지만 트랜스포머가 자가복구를 시작하면 해석을 잘못 이끌 수 있다.
+
+조사 결과에서 확인되는 가장 구체적인 숫자는 GPT-2-small의 IOI 회로 실험이다. 여기서 CoAx는 backup-head recovery를 `0.33`에서 `0.91` ROC-AUC로 높였고, self-repair-aware gradient score의 최고치 `0.82`보다도 높았다. 이 수치는 “백업 회로를 얼마나 잘 찾아내느냐”라는 질문에서 단일 절제보다 조건부 공동절제가 더 강한 신호를 줄 수 있음을 시사한다. 다만 이 결과는 GPT-2-small IOI 회로라는 특정 사례에서 나온 것이다. 다른 모델군과 과제 전반에 그대로 확장된다고 단정할 근거는 아직 없다.
+
+맥락도 중요하다. 기존 self-repair 연구인 `The Hydra Effect`는 언어 모델 계산에서 자가복구가 나타난다고 다뤘다. 검색된 스니펫에는 한 레이어를 절제해도 영향이 소수의 다운스트림 레이어에만 미친다는 설명이 있다. 또 `Circuit Component Reuse Across Tasks in Transformer Language Models`는 IOI 과제에서 찾은 회로가 더 큰 GPT-2 모델에서 재현되고, 다른 과제에도 재사용된다고 적었다. 이를 함께 보면, 트랜스포머 내부에는 느슨하게 연결된 부품과 재사용되는 회로, 그리고 잠복한 백업 메커니즘이 있을 수 있다.
+
+## 분석
+
+왜 이 문제가 중요한가. 해석가능성 연구의 기본 단위가 흔들릴 수 있기 때문이다. 지금까지는 “이 부품을 껐더니 성능이 얼마나 떨어지나”를 보고 중요도를 매기는 일이 흔했다. 그런데 자가복구가 있으면 주 부품을 꺼도 다른 회로가 대신 작동할 수 있다. 그러면 원래 핵심 부품은 과소평가된다. 백업 부품은 정상 상태에서는 눈에 띄지 않아 중요하지 않은 것처럼 보일 수 있다. 안전성 평가에서도 비슷한 문제가 생긴다. 어떤 능력을 제거했다고 판단했지만, 실제로는 주 경로만 멈췄고 백업 경로는 남아 있을 수 있다.
+
+그렇다고 CoAx를 곧바로 표준 해법으로 받아들이기에는 이르다. 조사 결과만 놓고 보면 이 방법의 일반성은 아직 넓게 확인되지 않았다. 비언어 트랜스포머, 예를 들어 비전이나 멀티모달까지 폭넓게 통하는지는 검색 결과만으로 확인되지 않는다. 계산 비용 문제도 실무에서는 바로 떠오른다. 단일 절제보다 공동절제가 더 많은 실험 조합을 요구할 가능성이 크다. 하지만 구체적인 복잡도 수치나 비용 상한은 제공된 근거에 없다. 그래서 현 단계에서 CoAx는 단일 절제의 한계를 점검하는 도구로 읽는 편이 적절하다.
+
+## 실전 적용
+
+실무자에게 이 논문이 던지는 메시지는 직접적이다. 프루닝이든 해석이든 안전성 점검이든, 단일 중요도 랭킹만으로 부품을 지우지 말라는 것이다. 특히 어떤 기능을 없애려는 capability knockout 실험에서는 1차 절제 결과만 보고 “제거 성공”이라고 적기 어렵다. 주 회로를 제거한 뒤, 남은 부품 중 누가 갑자기 중요해지는지 다시 봐야 한다. 그 과정에서 백업 회로가 드러날 수 있다.
+
+예: 특정 행동을 만드는 어텐션 헤드를 찾았다고 하자. 기존 방식은 그 헤드를 꺼보고 출력 저하가 작으면 “중요하지 않다”고 적는다. CoAx식 접근은 먼저 의심되는 주요 헤드 묶음을 제거한 뒤, 남은 헤드의 절제 효과가 커지는지 본다. 정상 상태에서는 조용하던 헤드가 이 조건에서 큰 영향을 주면, 그 헤드는 백업일 가능성이 있다.
+
+오늘 바로 할 일 체크리스트:
+- 단일 ablation 점수로 만든 중요도 표에 “조건부 공동절제 재검증 여부” 열을 추가한다.
+- capability knockout 실험에서는 주 구성요소 제거 후 남은 부품의 영향 증폭을 별도 로그로 남긴다.
+- 프루닝 후보를 고를 때 정상 상태 중요도와 조건부 중요도를 나란히 비교한다.
+
+## FAQ
+
+**Q. 조건부 공동절제는 단일 절제를 대체합니까?**  
+그렇게 보기는 어렵습니다. 단일 절제는 여전히 빠르고 직관적인 1차 점검 도구입니다. 다만 자가복구가 의심되는 회로에서는 단일 절제만으로 결론을 내리면 오판할 수 있습니다. 그래서 조건부 공동절제를 보완 단계로 쓰는 편이 적절합니다.
+
+**Q. 이 방법이 모든 트랜스포머와 과제에 통한다고 봐도 됩니까?**  
+아직 그렇게 단정할 근거는 부족합니다. 조사 결과 기준으로는 GPT-2-small IOI 회로 같은 사례가 확인됩니다. 하지만 비언어 트랜스포머나 넓은 과제 범위에서의 일반화는 직접 확인되지 않았습니다.
+
+**Q. 안전성 평가에는 어떤 변화가 생깁니까?**  
+가장 큰 변화는 “제거됐다”는 판정을 더 보수적으로 해야 한다는 점입니다. 단일 절제가 놓친 백업 회로가 있을 수 있습니다. 그래서 기능 제거 여부를 확인할 때는 주 경로 제거 뒤의 대체 경로까지 함께 점검해야 합니다.
+
+## 결론
+
+이 논문의 핵심은 분명하다. 트랜스포머에서는 “하나 꺼보고 별일 없었다”가 곧 “중요하지 않다”를 뜻하지 않는다. 앞으로는 CoAx 같은 조건부 평가가 해석가능성 도구를 넘어 프루닝, 능력 제거, 안전성 검증의 절차에 얼마나 널리 쓰일지가 관건이다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-07-03](/ko/posts/ai-resources-roundup-2026-07-03)
+- [RLVR와 인간시연 결합 학습](/ko/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [코드 모델 비교의 기준](/ko/posts/compare-code-models-beyond-benchmark-scores)
+- [에이전트 컨텍스트 거버넌스](/ko/posts/context-governance-verifiable-ai-agent-knowledge)
+- [게임 AI의 반사실 코칭](/ko/posts/counterfactual-coaching-latent-space-starcraft-ii)
+---
+
+## 참고 자료
+
+- [The Hydra Effect: Emergent Self-repair in Language Model Computations - huggingface.co](https://huggingface.co/papers/2307.15771)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01940)
+- [Circuit Component Reuse Across Tasks in Transformer Language Models - arxiv.org](https://arxiv.org/abs/2310.08744)
