@@ -1,0 +1,108 @@
+---
+title: OCB Tests Native Office Understanding Beyond PDF QA
+slug: ocb-native-office-understanding-beyond-pdf-qa
+date: '2026-07-03'
+lastReviewedAt: '2026-07-03'
+locale: en
+description: >-
+  OCB evaluates native Office file understanding, revealing document AI limits
+  beyond PDF-based QA.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - multimodal
+author: AI온다
+sourceId: arxiv-cs-ai-5d7a8ae157a6103b
+sourceUrl: 'https://arxiv.org/abs/2607.01245'
+verificationScore: 0.67
+alternateLocale: /ko/posts/ocb-native-office-understanding-beyond-pdf-qa
+coverImage: /images/posts/ocb-native-office-understanding-beyond-pdf-qa.png
+---
+
+In one reported result, the strongest frontier system reached about 59.3% on Domain Q&A. Office Comprehension Bench, or OCB, examines that gap. It evaluates native `.docx`, `.xlsx`, and `.pptx` files together.
+
+## TL;DR
+
+- OCB evaluates Word, Excel, and PowerPoint understanding together using native office files, not PDF snapshots.
+- This matters because file structure and visual context can affect results, and one reported score was about 59.3%.
+- Teams should test native files separately from PDFs and split results by application and task type.
+
+Example: A team reviews a spreadsheet and a slide deck for the same project. The visible text looks clear, but hidden structure and notes change the answer.
+
+## Current status
+
+OCB was introduced as a public benchmark. Based on the cited excerpts, it evaluates Word, Excel, and PowerPoint together. The target formats are `.docx`, `.xlsx`, and `.pptx`, plus variants.
+
+The focus is not simple text extraction alone. It asks about structure and visual perception together.
+
+Its composition is also relatively clear. Based on the cited findings, OCB has 2 tracks. File Fidelity Q&A measures structural and visual perception of office artifacts.
+
+These artifacts include tables, charts, embedded images, formulas, headers, speaker notes, and named ranges. Based on the Hugging Face dataset snippet, the File Fidelity track includes 244 files and 922 queries.
+
+There is also a clear difficulty signal. The cited excerpts state that the strongest frontier system achieved about 59.3% on Domain Q&A. That result suggests OCB is not an easy benchmark.
+
+However, the public snippets do not confirm direct comparisons with DocVQA-family benchmarks or other multimodal benchmarks. Because of that, its relative difficulty remains unclear.
+
+## Analysis
+
+This benchmark matters because it changes the unit of evaluation for document AI. Many evaluations have centered on PDFs, images, and OCR outputs. Real office work often differs.
+
+Headers in Word documents can matter. Formulas and named ranges in Excel can matter. Speaker notes in PowerPoint can matter. A simple rendered image can miss these elements.
+
+A useful office evaluation should cover visible content and file structure together. That framing is more relevant for office agents.
+
+From a product perspective, the benchmark should be read carefully. If a product focuses on contract review or report summarization, the File Fidelity axis can serve as a warning. If the goal is financial model editing, slide revision, or spreadsheet Q&A, Domain Q&A may matter more.
+
+This creates a trade-off. A file-parsing approach can capture structure well. It can also miss visual context. A vision-centric approach can read the screen well. It can also miss semantic units inside the file.
+
+Based on the cited findings, there is no confirmed evidence that either approach is more robust across Word, Excel, and PowerPoint overall. A more practical question is how to combine both approaches.
+
+There are also limitations. It has not been established how strongly OCB scores correlate with real office automation outcomes. A high benchmark score does not yet show the same ranking in enterprise workflows.
+
+Benchmarks still matter. They are not the endpoint. End-to-end office automation includes clicking, editing, saving, and handling version conflicts.
+
+## Practical Application
+
+Product and engineering teams should specify what a model understands, in which formats, and to what level. Word, Excel, and PowerPoint should be evaluated separately. Within each application, text, tables, charts, formulas, and metadata should also be evaluated separately.
+
+That split can help locate failure sources. The issue may come from model reasoning. It may come from the file parser. It may come from rendering.
+
+**Checklist for Today:**
+- Gather 20 internal office files and separate questions by application and by text versus structure.
+- Record File Fidelity-type issues separately from Domain-type issues instead of using one aggregate accuracy score.
+- Compare native files with PDF-converted versions using the same questions and note where format loss appears.
+
+## FAQ
+
+**Q. Is OCB more difficult than existing document QA benchmarks?**
+
+The reported 59.3% Domain Q&A result suggests meaningful difficulty. However, the cited findings do not confirm direct comparative figures against broader benchmark sets. That makes exact comparison difficult.
+
+**Q. Is a file-parsing-based approach better than a vision-based approach?**
+
+The currently cited information does not support a definitive claim. OCB evaluates structural and visual perception together. A combined approach appears more realistic than assuming one method is sufficient.
+
+**Q. If an OCB score is high, can we assume real office automation will also perform well?**
+
+Not yet. The cited findings do not confirm a quantitative correlation between OCB scores and real-world automation outcomes. Benchmark scores and operational results should be validated separately.
+
+## Conclusion
+
+OCB points to a broader evaluation target. Office understanding is not limited to reading PDFs. It involves native file structure, visual elements, and work context together.
+
+If one reported top result is about 59.3%, then teams should ask a more specific question. In which office files does the system fail, and at what point?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-03](/en/posts/ai-resources-roundup-2026-07-03)
+- [Combining RLVR and Human Demonstrations for Better LMs](/en/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [How To Compare Code Models Beyond Benchmark Scores](/en/posts/compare-code-models-beyond-benchmark-scores)
+- [Conditional Co-Ablation Reveals Hidden Backup Transformer Circuits](/en/posts/conditional-co-ablation-hidden-backup-transformer-circuits)
+- [Context Governance for Verifiable AI Agent Knowledge](/en/posts/context-governance-verifiable-ai-agent-knowledge)
+---
+
+## References
+
+- [microsoft/OfficeComprehensionBenchmark · Datasets at Hugging Face - huggingface.co](https://huggingface.co/datasets/microsoft/OfficeComprehensionBenchmark)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01245)

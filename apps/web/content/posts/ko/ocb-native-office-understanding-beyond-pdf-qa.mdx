@@ -1,0 +1,84 @@
+---
+title: OCB로 본 오피스 이해 한계
+slug: ocb-native-office-understanding-beyond-pdf-qa
+date: '2026-07-03'
+lastReviewedAt: '2026-07-03'
+locale: ko
+description: 'OCB는 네이티브 오피스 파일 이해를 평가하며, PDF QA를 넘는 문서 AI 한계를 드러낸다.'
+tags:
+  - llm
+  - deep-dive
+  - multimodal
+author: AI온다
+sourceId: arxiv-cs-ai-5d7a8ae157a6103b
+sourceUrl: 'https://arxiv.org/abs/2607.01245'
+verificationScore: 0.67
+alternateLocale: /en/posts/ocb-native-office-understanding-beyond-pdf-qa
+coverImage: /images/posts/ocb-native-office-understanding-beyond-pdf-qa.png
+---
+
+LLM이 계약서의 표는 읽는데, 엑셀의 named range와 파워포인트의 speaker notes 앞에서 멈춘다면 그 모델을 “오피스 이해형”이라고 부를 수 있을까? Office Comprehension Bench, OCB는 이 질문을 겨냥한다. 이 벤치마크는 PDF 스냅샷이 아니라 .docx, .xlsx, .pptx 네이티브 파일 자체를 대상으로 Word·Excel·PowerPoint 이해를 함께 본다. 원문 발췌 기준 strongest frontier system도 Domain Q&A에서 about 59.3%에 그쳤다.
+
+## 세 줄 요약
+
+- OCB의 핵심은 네이티브 오피스 파일인 .docx·.xlsx·.pptx를 대상으로, Word·Excel·PowerPoint 이해를 함께 평가한다는 점이다.
+- 이 벤치마크가 중요한 이유는 문서 AI의 병목이 텍스트 읽기보다 파일 구조, 시각 요소, 앱별 맥락을 함께 다루는 문제로 옮겨가고 있기 때문이다. strongest frontier system도 Domain Q&A에서 about 59.3%에 그쳤다.
+- 독자는 오피스 에이전트 평가 기준을 PDF QA에서 끝내지 말고, 파일 충실도와 도메인 추론을 나눠 검증해야 한다. 내부 파일셋으로 OCB식 테스트 항목부터 복제해보라.
+
+## 현황
+
+OCB는 공개 벤치마크로 소개됐다. 원문 발췌와 조사 결과에 따르면 이 벤치마크는 Word, Excel, PowerPoint를 공동 평가하며, 대상 포맷은 .docx, .xlsx, .pptx와 그 변형본이다. 초점은 단순 텍스트 추출이 아니다. 구조와 시각 인지를 함께 묻는다.
+
+구성도 비교적 분명하다. 조사 결과에 따르면 OCB는 두 개의 트랙으로 이뤄진다. File Fidelity Q&A는 표, 차트, 임베디드 이미지, 수식, 헤더, speaker notes, named ranges 같은 오피스 아티팩트의 구조·시각 인지를 본다. Hugging Face 데이터셋 스니펫 기준으로 File Fidelity 트랙은 244 files와 922 queries를 포함한다.
+
+난이도 신호도 나와 있다. 원문 발췌와 조사 결과는 strongest frontier system이 Domain Q&A에서 about 59.3%에 그쳤다고 적는다. 이 수치만으로 OCB가 쉽지 않은 벤치마크라는 점은 알 수 있다. 다만 기존 DocVQA 계열이나 다른 멀티모달 벤치마크와 비교해 변별력이 얼마나 높은지는 공개 스니펫만으로는 판단하기 어렵다. 직접 비교할 표준 수치가 확인되지 않았기 때문이다.
+
+## 분석
+
+이 벤치마크가 중요한 이유는 문서 AI의 평가 단위를 바꾸기 때문이다. 지금까지 문서 이해 평가는 PDF, 이미지, OCR 결과를 중심으로 이뤄지는 경우가 많았다. 하지만 실제 업무는 다르다. 워드 문서의 헤더, 엑셀의 수식과 named range, 파워포인트의 speaker notes는 단순 렌더링 이미지로는 놓치기 쉽다. 오피스 에이전트를 말하려면, 화면에 보이는 정보와 파일 안의 구조를 함께 알아야 한다.
+
+의사결정 관점에서는 더 냉정하게 볼 필요가 있다. 제품이 계약서 검토나 보고서 요약처럼 읽기 중심이라면, OCB의 File Fidelity 축이 경고가 된다. 반대로 복잡한 재무 모델 수정, 슬라이드 개정, 스프레드시트 질의응답까지 자동화하려면 Domain Q&A 성능이 더 중요해진다. 여기서 트레이드오프가 생긴다. 파일 파싱 중심 접근은 구조를 잘 짚을 수 있지만 시각 맥락을 놓칠 수 있다. 비전 중심 접근은 화면을 잘 읽어도 파일 내부 의미 단위를 놓칠 수 있다. 조사 결과 기준으로 어느 한 방식이 Word·Excel·PowerPoint 전반에서 더 강건하다고 단정할 직접 근거는 없다. 그래서 현재로서는 “파싱이냐 비전이냐”보다 “둘을 어떻게 결합하느냐”가 더 현실적인 질문이다.
+
+한계도 있다. OCB 점수가 실제 업무 자동화 성공률과 얼마나 강하게 연결되는지는 확인되지 않았다. 다시 말해, OCB에서 높은 점수를 받은 시스템이 실제 기업 업무 플로우에서도 같은 순위로 잘할 것이라고 말할 근거는 아직 없다. 벤치마크는 중요하지만 끝은 아니다. 특히 클릭, 수정, 저장, 버전 충돌 처리까지 포함하는 end-to-end 오피스 자동화는 파일 이해보다 더 넓은 문제다.
+
+## 실전 적용
+
+제품팀과 개발팀이 지금 해야 할 일은 단순하다. “우리 모델이 문서를 읽는다”는 문장을 버리고, 무엇을 어떤 포맷에서 어느 수준까지 이해하는지 나눠 적어야 한다. 최소한 Word, Excel, PowerPoint를 분리하고, 각 앱에서 텍스트, 표, 차트, 수식, 메타 요소를 따로 봐야 한다. 그래야 실패 원인이 모델 추론인지, 파일 파서인지, 렌더링인지 드러난다.
+
+예: 내부 재무팀이 쓰는 .xlsx 파일에서 분기 매출 합계를 묻는 작업은 텍스트 QA가 아니다. 수식, 시트 구조, named range, 차트 캡션이 함께 걸릴 수 있다. 영업팀 슬라이드 요약도 표지 문구만 읽는 문제가 아니다. speaker notes와 본문 슬라이드가 충돌할 때 무엇을 우선하는지도 봐야 한다.
+
+오늘 바로 할 일 체크리스트:
+- 사내 오피스 파일 20개를 모아 Word·Excel·PowerPoint별로 질문을 나누고, 텍스트형 질문과 구조형 질문을 분리해라.
+- 평가 결과를 “정답률 1개”로 합치지 말고 File Fidelity 성격의 문제와 Domain 성격의 문제로 나눠 기록해라.
+- PDF 변환본 성능과 네이티브 파일 성능을 같은 질문셋으로 비교해, 포맷 손실이 어디서 발생하는지 확인해라.
+
+## FAQ
+
+**Q. OCB는 기존 문서 QA 벤치마크보다 더 어렵습니까?**
+
+원문 발췌 기준 strongest frontier system이 Domain Q&A에서 about 59.3%에 그쳤다는 점은 난도가 높다는 신호입니다. 다만 기존 벤치마크 전반과의 직접 비교 수치는 조사 결과에서 확인되지 않았기 때문에, “얼마나 더 어렵다”까지 정량적으로 말하기는 어렵습니다.
+
+**Q. 파일 파싱 기반이 비전 기반보다 더 낫습니까?**
+
+현재 확인된 정보만으로는 그렇게 단정하기 어렵습니다. OCB 자체가 structural and visual perception을 함께 평가하도록 설계돼 있어서, 한쪽만으로 충분하다고 보기보다 결합 접근을 검토하는 편이 현실적입니다.
+
+**Q. OCB 점수가 높으면 실제 오피스 자동화도 잘한다고 봐도 됩니까?**
+
+아직은 그렇게 보기 어렵습니다. 조사 결과에서는 OCB 점수와 실제 업무 자동화 성능 사이의 직접 상관관계를 정량화한 근거가 확인되지 않았습니다. 따라서 벤치마크 점수와 실사용 자동화 성공률은 따로 검증해야 합니다.
+
+## 결론
+
+OCB가 던지는 메시지는 단순하다. 오피스 이해는 이제 PDF를 읽는 문제에 그치지 않는다. 네이티브 파일의 구조와 시각 요소, 업무 맥락을 함께 다루는 문제다. strongest frontier system도 about 59.3%에 그친 영역이라면, 기업의 다음 질문은 “우리 모델이 문서를 읽는가”가 아니라 “어떤 오피스 파일에서 어디까지 실패하는가”여야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-07-03](/ko/posts/ai-resources-roundup-2026-07-03)
+- [RLVR와 인간시연 결합 학습](/ko/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [코드 모델 비교의 기준](/ko/posts/compare-code-models-beyond-benchmark-scores)
+- [자가복구가 숨긴 핵심 회로](/ko/posts/conditional-co-ablation-hidden-backup-transformer-circuits)
+- [에이전트 컨텍스트 거버넌스](/ko/posts/context-governance-verifiable-ai-agent-knowledge)
+---
+
+## 참고 자료
+
+- [microsoft/OfficeComprehensionBenchmark · Datasets at Hugging Face - huggingface.co](https://huggingface.co/datasets/microsoft/OfficeComprehensionBenchmark)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01245)
