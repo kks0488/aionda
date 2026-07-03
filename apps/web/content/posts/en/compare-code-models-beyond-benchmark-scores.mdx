@@ -1,0 +1,107 @@
+---
+title: How To Compare Code Models Beyond Benchmark Scores
+slug: compare-code-models-beyond-benchmark-scores
+date: '2026-07-03'
+lastReviewedAt: '2026-07-03'
+locale: en
+description: >-
+  Code model evaluation should weigh real task success, retries, latency, and
+  token cost, not benchmark scores alone.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: '1289333'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1289333'
+verificationScore: 0.9
+alternateLocale: /ko/posts/compare-code-models-beyond-benchmark-scores
+coverImage: /images/posts/compare-code-models-beyond-benchmark-scores.png
+---
+
+79.6%, 75.9%, and 59.1% appear in current code model evaluations. Preference alone is not enough for comparison. Official documentation shows a shift in evaluation. The focus is moving beyond plausible code. It now includes real repository fixes, terminal tasks, and repeated runs. In production, overall productivity matters more than one score. That includes first-attempt completion, retries, token use, and elapsed time.
+
+## TL;DR
+
+- Code model evaluation is shifting toward repository tasks, terminal tasks, and repeated-run results, not only single benchmark scores.
+- This matters because retries, token usage, and latency can change total cost, even when a model’s unit price looks lower.
+- Next, track first-attempt success, reprompt count, token usage, and completion time on the same tasks.
+
+Example: A team compares two coding models on the same bug-fix workflow. One looks cheaper per token. The other finishes more tasks cleanly on the first try. The practical choice depends on total task cost, not appearance alone.
+
+## TL;DR
+
+- The core of comparing code models is not one score alone. It is how to interpret task-based evaluations. These include repository issue resolution, terminal task pass rates, and repeated-run criteria.
+- A higher success rate does not automatically mean a cheaper choice. Retry counts, input and output tokens, and latency can change total cost.
+- Do not look only at benchmark scores. For the same tasks, record first-attempt success, reprompt count, token usage, and completion time together. Then build model selection rules from that.
+
+## Current state
+
+Code generation and agent evaluations in official documentation have shifted to task-based formats. OpenAI describes SWE-bench Verified in concrete terms. The model receives a code repository and an issue description. It then generates a patch to resolve the problem. This is not a short snippet-matching test. It is a test of reading and modifying a real repository.
+
+The same documentation also notes limitations in SWE-bench Verified. After auditing the 27.6% subset that frequently failed, it reported that at least 59.4% included flawed tests.
+
+The implication is fairly direct. Benchmark numbers are useful. However, numbers alone can be hard to interpret. If the test set is flawed, correct fixes can be marked wrong. That makes simple ranking claims harder to support. If evaluation quality is unstable, leaderboard positions can also be unstable.
+
+
+OpenAI documentation shows another axis. MLE-bench evaluates machine learning engineering tasks. According to the documentation, o1-preview with AIDE scaffolding reached at least Kaggle bronze-medal level in 16.9% of competitions. This can be read as a historical example. It still shows that evaluation has moved beyond single-function completion. It now includes long-running tasks, tool use, and iterative revision.
+
+Pricing and context are also practical variables. In OpenAI pricing documentation, GPT-4.1 is listed at $2.00 per 1M input tokens. It is listed at $8.00 per 1M output tokens. The same model documentation lists a 1,047,576 context window. It also lists 32,768 max output tokens. These figures suggest that large contexts can fit in one pass. They also suggest that billing volume can rise as more context is included.
+
+## Analysis
+
+This is where decisions begin to diverge. If one model has a higher first-attempt success rate, total cost can decrease. That can happen even when its token price is somewhat higher. Conversely, a lower unit price can look attractive at first. Yet two or three retries can add input tokens, lengthen outputs, and increase review time. Cost evaluation for code models is closer to task completion cost. It is less about price per 1M tokens alone. Benchmarks are a starting point. They are not a complete purchasing rule.
+
+That does not mean benchmarks are unhelpful. Task-based benchmarks can help verify repository modification, terminal operation, and tool integration. However, there are limitations. First, SWE-bench Verified has documented concerns about flawed tests. Second, disclosed metrics differ by provider. In the material reviewed here, task-based metrics were confirmed in OpenAI and Anthropic documentation. Official documented figures from other providers were not directly confirmed here. Third, production failure costs are more complex than benchmark tables suggest. Prompting habits, approval mode, file-reading scope, and session length can affect both quality and token usage.
+
+Operating style also changes outcomes. OpenAI recommends specific instructions and examples of the desired output format in prompts. Codex CLI and Code Interpreter documentation assume repeated reading, editing, and execution. Anthropic documentation notes a separate issue in longer sessions. Previous conversation and read files can accumulate. That can raise cost and create context-limit pressure. The documentation also states that quality can drop as context fills. Model comparison therefore includes workflow design, not only model behavior.
+
+## Practical Application
+
+A team should decide its main selection criterion first. It can choose the model that seems strongest. It can also choose the model with the lowest total cost per work item. For bug fixing, correctness is relatively clear. In that case, first-attempt success rate should weigh heavily. For code explanation, documentation, or test drafting, the cost of failure is often lower. In those cases, unit price may matter more. If accurate patches are critical, prioritize task-based benchmarks and internal repository trials. If total cost matters most, build a cost table with the same prompts and retry counts included.
+
+Example: assign the same bug-fix tickets to two models. For each ticket, record whether the first response is mergeable. Record how many additional instructions were needed. Record input and output token use. Record completion time. In this setup, a low first-attempt success rate can raise total cost, even with a lower unit price. A higher first-attempt success rate can offset a higher output price by reducing review time.
+
+**Checklist for Today:**
+- Create a matched task bundle, and record first-attempt success and reprompt count for each model in one table.
+- Separate input tokens, output tokens, and cache usage in billing logs, then convert them into per-task cost.
+- Split or compress long sessions by task unit to limit accumulated cost and possible quality decline.
+
+## FAQ
+
+**Q. Can I just pick the model with the highest benchmark score?**  
+Not by itself. Benchmarks are a starting point. Selection also depends on retry counts, token cost, and completion time.
+
+**Q. If token pricing is low, is it often better for coding tasks?**  
+Not necessarily. Repeated first-attempt failures can accumulate tokens. Human review time can also increase total cost.
+
+**Q. If a model supports long context, does productivity often increase?**  
+Not necessarily. A large context can include more files and conversation at once. However, longer sessions can increase cost. Some documentation also notes possible quality decline.
+
+## Conclusion
+
+The criteria for comparing code models are broader than plausible-looking answers. You should examine real task success rates, retry costs, and context-management strategy together. The next numbers to check are not only leaderboard lines. They are your team’s per-task success rate and cost table.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-03](/en/posts/ai-resources-roundup-2026-07-03)
+- [Combining RLVR and Human Demonstrations for Better LMs](/en/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [Counterfactual Coaching From Latent Space in StarCraft II](/en/posts/counterfactual-coaching-latent-space-starcraft-ii)
+- [DiscoLoop Tests Internal Multi-Hop Reasoning In One Pass](/en/posts/discoloop-internal-multi-hop-reasoning-one-pass)
+- [Where AI Meets Quantum Information in Practice](/en/posts/where-ai-meets-quantum-information-in-practice)
+---
+
+## References
+
+- [Introducing SWE-bench Verified | OpenAI - openai.com](https://openai.com/index/introducing-swe-bench-verified/)
+- [Why SWE-bench Verified no longer measures frontier coding capabilities | OpenAI - openai.com](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)
+- [MLE-bench: Evaluating Machine Learning Agents on Machine Learning Engineering | OpenAI - openai.com](https://openai.com/index/mle-bench/)
+- [Raising the bar on SWE-bench Verified with Claude 3.5 Sonnet | Anthropic - anthropic.com](https://www.anthropic.com/engineering/swe-bench-sonnet?lang=es%2F)
+- [Claude Sonnet 4.6 System Card - www-cdn.anthropic.com](https://www-cdn.anthropic.com/bbd8ef16d70b7a1665f14f306ee88b53f686aa75.pdf)
+- [Pricing | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/pricing)
+- [GPT-4.1 Model | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/models/gpt-4.1)
+- [Best practices for prompt engineering with the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6654000-best-best-practices-for-prompt-engineering-with-openai-api)
+- [Codex CLI | OpenAI Developers - developers.openai.com](https://developers.openai.com/codex/cli)
+- [Code Interpreter | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/tools-code-interpreter)
+- [Code generation | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/guides/code-generation)
