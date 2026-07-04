@@ -1,0 +1,106 @@
+---
+title: PACE Tests Cheap Proxies For Agent Benchmark Performance
+slug: pace-cheap-proxies-agent-benchmark-performance
+date: '2026-07-04'
+lastReviewedAt: '2026-07-04'
+locale: en
+description: >-
+  PACE examines whether low-cost non-agent benchmarks can predict expensive
+  agent benchmark performance.
+tags:
+  - llm
+  - deep-dive
+  - benchmark
+author: AI온다
+sourceId: arxiv-cs-ai-ecf5744c5f2c8234
+sourceUrl: 'https://arxiv.org/abs/2607.02032'
+verificationScore: 0.86
+alternateLocale: /ko/posts/pace-cheap-proxies-agent-benchmark-performance
+coverImage: /images/posts/pace-cheap-proxies-agent-benchmark-performance.png
+---
+
+A single agent evaluation can cost **thousands of dollars** and take **days** to complete. PACE studies whether cheaper tests can predict costly agent benchmarks.
+
+## TL;DR
+
+- PACE compares **14 models**, **4 agent benchmarks**, and **19 non-agent benchmarks** to test proxy-based evaluation.
+- It matters because agent benchmarks can cost thousands of dollars and take days, which can slow iteration.
+- Use proxies as a first screen, then confirm finalists with real agent benchmarks and interaction tests.
+
+Example: A team narrows several agent candidates with cheap proxy tests, then checks finalists in realistic tool-using workflows before selection.
+
+## Current state
+
+
+The causes are fairly clear. These evaluations involve tool calls, environment execution, and long-horizon tasks. They also require more infrastructure than simple question answering.
+
+PACE focuses on this bottleneck. The study examined **14 models**, **4 agent benchmarks**, and **19 non-agent benchmarks**. It asked whether cheap proxies can estimate expensive agent results.
+
+
+The alignment was not uniform across capabilities. The strongest correlation appeared on the planning axis. The summary says PlanBench contributed most across **all 4 agent benchmarks**.
+
+This pattern suggests coding skill alone may not explain agent performance. Planning and action sequencing may also matter.
+
+That does not mean proxies replace agent evaluation. Dialogue SWE-Bench noted that a stronger coding model does not often become a stronger interactive coding agent.
+
+The DecisionBench summary points in a similar direction. Average final task quality may hide differences in orchestration. A single score can miss coordination behavior.
+
+## Analysis
+
+From a decision-making view, PACE seems more useful for compression than replacement. If proxy evaluations recover rankings at about **85%** accuracy, teams can screen candidates earlier. They do not need to send every candidate into a SWE-Bench-class environment.
+
+This can help several groups. Model research teams can iterate faster. Platform teams can reduce infrastructure load. Procurement teams can compare options more efficiently.
+
+There is a condition. Proxy value may weaken when an agent depends heavily on dialogue, tool use, or long-horizon execution. It may also weaken when role allocation matters.
+
+Dialogue SWE-Bench suggests coding ability and interactive agent performance can diverge. DecisionBench suggests similar final outcomes can hide different coordination processes. PACE may help answer who looks stronger overall. It may say less about why failure appears in production.
+
+The trade-off is fairly direct. Proxies can reduce cost and time. They can also hide agent-specific weaknesses, such as environment interaction and exception handling.
+
+Real agent benchmarks are slower and more expensive. Still, they can reveal failure modes more clearly. The design question is what to optimize first: research speed, deployment safety, or a balance.
+
+## Practical application
+
+A two-stage gate looks like the most practical approach. In stage one, run non-agent benchmarks to narrow the candidate set. Review planning, reasoning, and code generation together.
+
+In stage two, keep agent evaluations close to real work. Review tool failures, multi-turn dialogue, long-horizon completion, and orchestration logs together.
+
+Proxies are closer to screening than final approval. Agent benchmarks are closer to a practical assignment.
+
+For a coding agent, a team can use non-agent tests for initial narrowing. It can then run interactive bug-fixing and repository-level tasks separately. For a research or business automation agent, teams should weigh plan revision and tool-failure recovery carefully. High proxy scores may still diverge from operational performance.
+
+**Checklist for Today:**
+- Split the evaluation pipeline into proxy screening first and real agent validation second.
+- Record planning-related and dialogue-related metrics separately instead of relying on one score.
+- Review failure logs and coordination traces before the final model decision.
+
+## FAQ
+
+**Q. If we have a proxy like PACE, can we skip running SWE-Bench or GAIA?**  
+Probably not. The published summary suggests useful prediction, not a complete substitute. Real agent evaluation still matters for final deployment decisions.
+
+**Q. Which capability is especially important as a proxy?**  
+Based on the findings, planning showed the strongest correlation. More detailed axis definitions were not verified here.
+
+**Q. Then if a model has a high coding score, is it a good agent?**  
+Not necessarily. Dialogue SWE-Bench said a stronger coding model does not often lead to a stronger interactive coding agent. Dialogue, interaction, and orchestration should be checked separately.
+
+## Conclusion
+
+PACE presents a fairly clear message. Agent evaluation may not need to stay fully heavy and slow. A proxy can work as a screening shortcut. It may reduce cost, but it does not fully replace real interactive agent evaluation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-04](/en/posts/ai-resources-roundup-2026-07-04)
+- [Why Alignment Shapes LLM Behavior More Than Personality](/en/posts/alignment-shapes-llm-behavior-more-than-personality)
+- [Five-Modal MKGR for Cold-Start PPI Prediction](/en/posts/five-modal-mkgr-cold-start-ppi-prediction)
+- [ReContext Makes Long Context Actually Usable in Reasoning](/en/posts/recontext-long-context-evidence-replay-reasoning)
+- [Training-Free Attribution for Long Document Multimodal QA](/en/posts/training-free-attribution-long-document-multimodal-qa)
+---
+
+## References
+
+- [PACE: A Proxy for Agentic Capability Evaluation - huggingface.co](https://huggingface.co/papers/2607.02032)
+- [PlanBench: An Extensible Benchmark for Evaluating Large Language Models on Planning and Reasoning about Change - huggingface.co](https://huggingface.co/papers/2206.10498)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.02032)
+- [Dialogue SWE-Bench: A Benchmark for Dialogue-Driven Coding Agents - arxiv.org](https://arxiv.org/abs/2606.13995)
+- [DecisionBench: A Benchmark for Emergent Delegation in Long-Horizon Agentic Workflows - arxiv.org](https://arxiv.org/abs/2605.19099)
