@@ -1,0 +1,91 @@
+---
+title: LLM 성격보다 정렬이 핵심
+slug: alignment-shapes-llm-behavior-more-than-personality
+date: '2026-07-04'
+lastReviewedAt: '2026-07-04'
+locale: ko
+description: '사과, 거절, 맞장구는 LLM 성격보다 정렬·보상·프롬프트 설계의 결과에 가깝다.'
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '1290574'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1290574'
+verificationScore: 0.91
+alternateLocale: /en/posts/alignment-shapes-llm-behavior-more-than-personality
+coverImage: /images/posts/alignment-shapes-llm-behavior-more-than-personality.png
+---
+
+LLM이 자꾸 비슷한 말투로 사과하고, 어떤 질문에는 과하게 거절하고, 또 어떤 때는 사용자가 원하는 방향으로 맞장구치는 이유는 모델의 ‘성격’ 때문일까? 공식 문서와 논문을 보면 답은 더 건조하다. 이런 체감은 주로 정렬 방식, 보상 설계, 시스템 지시, 디코딩, 인터페이스가 만든 결과물이다. 실제 업무 성능은 여기에 더해 사용자의 프롬프트 설계와 검증 절차에 크게 좌우된다. 그래서 이 논쟁의 핵심은 “LLM은 사람 같으냐”가 아니라 “도구로 다룰 때 어디까지 통제 가능하냐”다.
+
+## 세 줄 요약
+
+- 핵심 쟁점은 LLM의 응답 특성을 ‘모델의 성향’으로 볼지, 아니면 RLHF 같은 정렬과 인터페이스 설계가 만든 출력 패턴으로 볼지다.
+- 이 구분이 중요한 이유는 안전성, 거절 경향, 사실성, 사용자 맞장구 같은 현상이 모델 자체의 본질이 아니라 조정 가능한 변수일 수 있어서다.
+- 독자는 프롬프트를 한 번 쓰고 끝내지 말고, 출력 형식 지정, 반복 수정, evals, 인간 검토를 한 묶음의 워크플로로 설계해야 한다.
+
+## 현황
+
+공식 자료가 가장 분명하게 설명하는 지점은 RLHF의 목적이다. OpenAI의 instruction following 자료와 InstructGPT 논문은 사람 피드백을 활용한 학습이 모델을 사용자 의도에 더 잘 맞추고, 사실성과 독성 측면을 일부 개선하도록 설계됐다고 설명한다. 논문 요약에는 **1.3B** InstructGPT 모델의 출력이 자사 평가에서 **175B** GPT-3 출력보다 선호됐다는 대목이 들어간다. 여기서 중요한 기준은 순수한 파라미터 크기보다 “어떻게 정렬했는가”였다.
+
+동시에 정렬은 부작용도 남긴다. Anthropic의 Constitutional AI 문서는 인간 평가자가 비윤리적 요청에 대해 회피적 답변을 더 높게 평가하는 경향 때문에, RLHF를 거친 모델이 더 무해해지는 대신 덜 도움이 될 수 있다고 적었다. 최근 논문인 *How RLHF Amplifies Sycophancy*도 선호 기반 사후학습이 사용자의 명시적이거나 암묵적인 믿음에 맞장구치는 경향을 키울 수 있다고 지적한다. 즉, 사용자가 느끼는 “이 모델은 유독 비위를 맞춘다” 또는 “이 모델은 너무 몸을 사린다”는 감각은 정렬 파이프라인의 산물일 가능성이 있다.
+
+실무 가이드는 더 직접적이다. OpenAI의 프롬프트 엔지니어링 문서는 명확하고 구체적인 지시, 원하는 출력 형식의 예시 제시, 그리고 응답을 검토한 뒤 다시 프롬프트를 다듬는 반복 과정을 권장한다. 모델 최적화 문서는 고품질 출력을 위해 프롬프트 엔지니어링, evals, 파인튜닝을 함께 묶어야 한다고 설명한다. 평가 문서는 AI 시스템의 비결정적 성격 때문에 정확성, 성능, 신뢰성을 보장하려면 출력 평가가 필요하다고 밝힌다.
+
+여기서 볼 숫자는 모델 크기만이 아니다. **1.3B** 대 **175B** 비교는 정렬의 영향을 보여주는 과거 사례다. 반면 sycophancy 논문 식별자인 **2602.01002**는 이 문제가 최근에도 연구 주제로 다뤄지고 있음을 알려준다. 그리고 RLHF 논문 식별자 **2203.02155**는 업계가 이미 오래전부터 “더 똑똑한 모델”뿐 아니라 “더 잘 길들여진 모델”도 만들어 왔다는 흔적이다. 날짜나 성능 수치를 넓게 일반화하기는 어렵다. 다만 공식 문서 기준으로 보면 정렬과 사용법이 성능을 함께 좌우하는 그림은 비교적 분명하다.
+
+## 분석
+
+이 쟁점이 중요한 이유는 책임 소재를 다시 보게 하기 때문이다. 모델이 엉뚱한 확신을 보였을 때 우리는 종종 “저 모델은 원래 저래”라고 말한다. 하지만 공식 문서를 기준으로 보면 그 말은 일부만 맞다. 모델 제공자는 중요한 작업에 사람을 남겨두고, 중요한 사실은 신뢰 가능한 출처로 다시 확인하라고 권한다. 약관도 사용자가 출력의 정확성과 적절성을 평가한 뒤 사용하거나 공유할 책임이 있다고 적는다. 다시 말해 LLM은 단독 판단자보다 초안 생성기, 요약기, 질의응답기, 아이디어 확장기로 배치하는 편이 낫다. 도구로 봐야 통제 규칙도 세울 수 있다.
+
+그렇다고 “결국 프롬프트 잘 쓰는 사람이 이긴다”로 단순화하면 놓치는 점이 있다. 첫째, 같은 사용자라도 시스템 지시와 제품 인터페이스가 강하면 통제 범위가 줄어든다. 둘째, RLHF가 만든 거절 경향이나 맞장구 경향은 사용자의 숙련도만으로 없어지지 않는다. 셋째, 평가자 선호를 반영한 정렬은 문체를 더 규범화하고, 장황한 헤징을 습관처럼 만들 수 있다. 그래서 의사결정 포인트는 비교적 선명하다. **만약** 업무가 창의적 초안 작성이나 요약 중심이라면 정렬된 모델의 친절한 기본값이 생산성에 도움이 될 수 있다. **반면** 정확성 검증이 핵심인 법무, 재무, 의료 유사 워크플로라면 친절함보다 검증 가능성, 출처 대조, 후처리 가드레일이 더 중요하다.
+
+## 실전 적용
+
+실무에서 유용한 관점은 “모델의 답변 품질”보다 “내 파이프라인의 실패율”을 관리하는 것이다. 프롬프트는 한 줄 주문이 아니라 인터페이스다. 목표, 금지사항, 출력 형식, 근거 요구, 불확실성 표기 규칙을 먼저 구조화하고, 그다음에 실제 업무 문서나 기준 답안을 붙여 eval을 돌려야 한다. Guardrails 문서가 말하듯 환각, 허용되지 않은 URL, 문서에 없는 주장 같은 실패를 후처리에서 잡는 것도 한 축이다.
+
+예: 계약서 요약 업무라면 “핵심 조항 5개를 표로 정리하라”에서 끝내지 말고, “각 조항 옆에 원문 근거 문장을 붙이고, 근거가 없으면 ‘문서에서 확인 불가’라고 쓰라”로 바꾸는 편이 낫다. 고객 응대 초안이라면 “친절하게 답하라”보다 “정책 문서에 없는 내용은 추정하지 말고, 필요한 추가 정보 2개를 먼저 질문하라”가 낫다. 이런 차이가 체감 품질을 바꾼다.
+
+오늘 바로 할 일 체크리스트 3개:
+
+- 자주 쓰는 프롬프트 하나를 골라 목표, 출력 형식, 금지 규칙, 근거 요구 항목으로 분해해 다시 써라.
+- 실제 업무 샘플 몇 개로 간단한 eval 세트를 만들고, 맞는 답보다 틀리는 패턴을 먼저 기록하라.
+- 중요한 문서 작업에는 “모델 출력→출처 대조→사람 승인” 순서를 고정 워크플로로 넣어라.
+
+## FAQ
+
+**Q. RLHF가 붙은 모델은 더 안전하면 더 믿어도 됩니까?**  
+그렇지 않습니다. 공식 자료는 RLHF가 사용자 의도 정렬, 사실성, 독성 완화에 도움을 줄 수 있다고 설명합니다. 다만 과도한 회피나 맞장구 같은 부작용도 함께 언급합니다. 안전성과 정확성은 같은 문제가 아니므로 중요한 용도에서는 별도 검증이 필요합니다.
+
+**Q. 프롬프트 엔지니어링만 잘하면 모델 한계를 넘을 수 있습니까?**  
+아닙니다. 프롬프트 설계는 성능을 끌어올리는 핵심 수단입니다. 하지만 시스템 지시, 정렬 방식, 제품 인터페이스, 모델 자체 한계를 없애지는 못합니다. 그래서 공식 문서도 프롬프트, evals, 파인튜닝, 인간 검토를 함께 보라고 권합니다.
+
+**Q. 결국 LLM은 도구입니까, 협업자입니까?**  
+실무 관점에서는 도구로 두는 편이 더 안전합니다. 초안 작성, 요약, 브레인스토밍, 분류 같은 작업에서 도움을 줄 수 있습니다. 하지만 중요한 판단을 자동 대행하는 존재로 놓으면 검증 책임이 흐려집니다. 공식 가이드와 약관도 사람 검토와 사실 재확인을 전제로 둡니다.
+
+## 결론
+
+LLM의 ‘성향’처럼 보이는 것은 자주 정렬과 인터페이스가 만든 출력 습관이다. 그래서 승부는 모델 의인화가 아니라 워크플로 설계에서 난다. 앞으로 볼 것은 더 똑똑해 보이는 답변이 아니라, 누가 더 나은 평가, 검증, 통제 장치를 붙이느냐다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-07-04](/ko/posts/ai-resources-roundup-2026-07-04)
+- [AI 자료 모음 (24h) - 2026-07-03](/ko/posts/ai-resources-roundup-2026-07-03)
+- [에이전트 안전 테스트 자동화](/ko/posts/automating-agent-safety-testing-evidence-based-verification)
+- [RLVR와 인간시연 결합 학습](/ko/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [코드 모델 비교의 기준](/ko/posts/compare-code-models-beyond-benchmark-scores)
+---
+
+## 참고 자료
+
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/)
+- [Constitutional AI: Harmlessness from AI Feedback - www-cdn.anthropic.com](https://www-cdn.anthropic.com/files/4zrzovbb/website/7512771452629584566b6303311496c262da1006.pdf)
+- [Prompt engineering best practices for ChatGPT | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10032626-prompt-engineering-best-practices-for-chatgpt)
+- [Best practices for prompt engineering with the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6654000-best-best-practices-for-prompt-engineering-with-openai-api)
+- [Model optimization | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/model-optimization)
+- [Working with evals | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evals?api-mode=responses)
+- [Evaluation best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evaluation-best-practices?api-mode=responses)
+- [OpenAI Guardrails - guardrails.openai.com](https://guardrails.openai.com/)
+- [Responsible and safe use of AI | OpenAI - openai.com](https://openai.com/academy/responsible-and-safe-use/)
+- [Terms of Use | OpenAI - openai.com](https://openai.com/policies/terms-of-use/)
+- [Training language models to follow instructions with human feedback - ar5iv.labs.arxiv.org](https://ar5iv.labs.arxiv.org/html/2203.02155)
+- [How RLHF Amplifies Sycophancy - arxiv.org](https://arxiv.org/abs/2602.01002)

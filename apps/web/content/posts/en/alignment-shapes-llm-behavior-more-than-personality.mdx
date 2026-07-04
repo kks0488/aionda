@@ -1,0 +1,104 @@
+---
+title: Why Alignment Shapes LLM Behavior More Than Personality
+slug: alignment-shapes-llm-behavior-more-than-personality
+date: '2026-07-04'
+lastReviewedAt: '2026-07-04'
+locale: en
+description: >-
+  Apologies, refusals, and sycophancy in LLMs are shaped more by alignment,
+  rewards, and prompting than personality.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '1290574'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1290574'
+verificationScore: 0.91
+alternateLocale: /ko/posts/alignment-shapes-llm-behavior-more-than-personality
+coverImage: /images/posts/alignment-shapes-llm-behavior-more-than-personality.png
+---
+
+In evaluations, outputs from a **1.3B** InstructGPT model were preferred over **175B** GPT-3 outputs. User impressions often reflect alignment, instructions, decoding, and interface design. Prompt design and verification also shape task performance. The core question is about control when using LLMs as tools.
+
+## TL;DR
+
+- This is about whether LLM behavior reflects “personality” or patterns shaped by alignment, prompts, and interfaces.
+- It matters because refusal, agreement, and style can be adjustable behaviors, not fixed traits.
+- Readers should treat prompting, evals, verification, and human review as one workflow.
+
+Example: A support team uses the same model in two products. One feels cautious and formal. The other feels agreeable and loose. The difference can come from instructions, interface choices, and review rules.
+
+## Current landscape
+
+Official materials describe RLHF in practical terms. OpenAI’s instruction-following materials and the InstructGPT paper say human feedback aimed to improve alignment with user intent. They also describe some improvement in factuality and toxicity.
+
+The paper summary includes a concrete comparison. Outputs from a **1.3B** InstructGPT model were preferred over outputs from **175B** GPT-3. This comparison came from the company’s own evaluations. It suggests alignment can matter as much as scale in some settings.
+
+Alignment can also produce side effects. Anthropic’s Constitutional AI document says evaluators may rate evasive answers to unethical requests more highly. That pattern can make models more harmless, but less helpful. A recent paper, *How RLHF Amplifies Sycophancy*, also says preference-based post-training can increase agreement with user beliefs. These effects can shape impressions of flattery or excessive caution.
+
+Practical guidance is similarly direct. OpenAI’s prompt engineering documentation recommends clear instructions. It also recommends examples of the desired format. It further recommends iterative refinement after reviewing responses. The model optimization documentation says prompt engineering, evals, and fine-tuning should be used together. The evaluation documentation says AI systems are non-deterministic, so evaluation is needed for accuracy, performance, and reliability.
+
+Several concrete numbers help anchor this discussion. The **1.3B** versus **175B** comparison is one historical example. The sycophancy paper identifier is **2602.01002**. The RLHF paper identifier is **2203.02155**. These details do not settle every question. They do show that alignment and behavior tuning have been studied directly.
+
+## Analysis
+
+This issue affects how responsibility is assigned. When a model sounds confident or evasive, people may treat that as a fixed trait. The official documents suggest a more limited claim. Providers recommend human review for important work. They also recommend checking important facts against reliable sources. Terms also place responsibility on users to evaluate accuracy and appropriateness before use or sharing.
+
+This framing supports a tool-based approach. LLMs can help with drafting, summarization, question answering, and idea expansion. They are less suitable as stand-alone decision-makers in important contexts. Treating them as tools makes control rules easier to define.
+
+This point should not be reduced to prompt skill alone. Strong system instructions and product interfaces can limit user control. RLHF-related refusal or agreement tendencies may remain even with better prompts. Evaluator preferences can also standardize style and encourage verbose hedging. These constraints shape what users can actually change.
+
+The tradeoffs become clearer by use case. For creative drafting or summarization, friendly defaults can support productivity. For legal, financial, or medical-adjacent workflows, verification usually matters more than tone. In those settings, source comparison and post-processing guardrails deserve more attention.
+
+## Practical application
+
+In practice, it helps to manage the failure rate of the workflow. It helps less to focus only on one answer’s quality. A prompt is better viewed as an interface. It can specify the objective, prohibitions, output format, evidence requirements, and uncertainty rules. It can also include work documents or gold-standard answers for evaluation.
+
+Guardrails add another layer. Post-processing can catch hallucinations, unauthorized URLs, or unsupported claims. That step can reduce risk in document-heavy workflows.
+
+For contract summarization, a simple request may be too weak. A better instruction can ask for supporting sentences from the source text. It can also require a clear note when support is missing. For customer response drafting, “answer politely” may be too vague. It can help to forbid unsupported inferences and request missing information first. Small prompt changes can affect perceived quality.
+
+**Checklist for Today:**
+
+- Rewrite one common prompt using an objective, format, prohibitions, and evidence requirements.
+- Build a small eval set from real samples and record failure patterns before correct answers.
+- Use a fixed review flow for important documents: model output, source comparison, then human approval.
+
+## FAQ
+
+**Q. If a model uses RLHF and is safer, does that mean I can trust it more?**  
+Not necessarily. Official materials say RLHF can help with alignment to user intent, factuality, and toxicity mitigation. They also note side effects such as evasiveness or sycophantic agreement. Safety and accuracy are different issues. Important use cases still need separate verification.
+
+**Q. If prompt engineering is good enough, can it overcome the model’s limitations?**  
+No. Prompt design is an important tool for improving performance. It cannot remove system instructions, alignment methods, interface constraints, or model limits. That is why official documentation also recommends prompts, evals, fine-tuning, and human review together.
+
+**Q. So in the end, is an LLM a tool or a collaborator?**  
+From a practical standpoint, it is safer to treat it as a tool. It can help with drafting, summarization, brainstorming, and classification. Important judgments still need human verification. Official guides and terms also assume review and fact checking.
+
+## Conclusion
+
+What looks like an LLM’s “disposition” is often an output pattern shaped by alignment and interface design. That shifts attention from anthropomorphism to workflow design. Better results often come from evaluation, verification, and control mechanisms.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-04](/en/posts/ai-resources-roundup-2026-07-04)
+- [AI Resource Roundup (24h) - 2026-07-03](/en/posts/ai-resources-roundup-2026-07-03)
+- [Automating Agent Safety Testing With Evidence-Based Verification](/en/posts/automating-agent-safety-testing-evidence-based-verification)
+- [Combining RLVR and Human Demonstrations for Better LMs](/en/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+- [How To Compare Code Models Beyond Benchmark Scores](/en/posts/compare-code-models-beyond-benchmark-scores)
+---
+
+## References
+
+- [Aligning language models to follow instructions | OpenAI - openai.com](https://openai.com/index/instruction-following/)
+- [Constitutional AI: Harmlessness from AI Feedback - www-cdn.anthropic.com](https://www-cdn.anthropic.com/files/4zrzovbb/website/7512771452629584566b6303311496c262da1006.pdf)
+- [Prompt engineering best practices for ChatGPT | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/10032626-prompt-engineering-best-practices-for-chatgpt)
+- [Best practices for prompt engineering with the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6654000-best-best-practices-for-prompt-engineering-with-openai-api)
+- [Model optimization | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/model-optimization)
+- [Working with evals | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evals?api-mode=responses)
+- [Evaluation best practices | OpenAI API - platform.openai.com](https://platform.openai.com/docs/guides/evaluation-best-practices?api-mode=responses)
+- [OpenAI Guardrails - guardrails.openai.com](https://guardrails.openai.com/)
+- [Responsible and safe use of AI | OpenAI - openai.com](https://openai.com/academy/responsible-and-safe-use/)
+- [Terms of Use | OpenAI - openai.com](https://openai.com/policies/terms-of-use/)
+- [Training language models to follow instructions with human feedback - ar5iv.labs.arxiv.org](https://ar5iv.labs.arxiv.org/html/2203.02155)
+- [How RLHF Amplifies Sycophancy - arxiv.org](https://arxiv.org/abs/2602.01002)
