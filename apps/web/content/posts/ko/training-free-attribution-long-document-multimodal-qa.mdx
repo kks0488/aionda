@@ -1,0 +1,85 @@
+---
+title: 장문서 QA 근거추적의 조건
+slug: training-free-attribution-long-document-multimodal-qa
+date: '2026-07-04'
+lastReviewedAt: '2026-07-04'
+locale: ko
+description: 'MultAttnAttrib의 장문서·멀티모달 근거추적 가능성과 한계, 평가 기준을 짚는다.'
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-9395dd1283f53099
+sourceUrl: 'https://arxiv.org/abs/2607.01420'
+verificationScore: 0.72
+alternateLocale: /en/posts/training-free-attribution-long-document-multimodal-qa
+coverImage: /images/posts/training-free-attribution-long-document-multimodal-qa.png
+---
+
+답이 그럴듯해도, 그 답이 문서의 어느 문단과 어느 이미지에서 왔는지 바로 짚지 못하면 믿기 어렵다. 장문서 질의응답에서는 이 문제가 더 커진다. 텍스트 근거만 찾는 것도 쉽지 않은데, 표·슬라이드·이미지까지 섞이면 답변의 출처는 더 흐려지기 쉽다. 이런 맥락에서 나온 것이 MultAttnAttrib다. 논문 초록과 공개된 요약에 따르면, 이 방법은 모델의 프리필 단계와 선택된 어텐션 헤드를 활용해 학습 없이 멀티모달 근거 추적을 시도한다.
+
+## 세 줄 요약
+
+- 이 글의 핵심은 장문서 질의응답에서 모델 답변을 텍스트와 이미지 증거에 연결하는 `training-free` 멀티모달 attribution, 즉 MultAttnAttrib가 무엇이고 어디까지 말할 수 있는지다.
+- 이 주제가 중요한 이유는 근거 추적이 사용자 신뢰와 모델 안전의 출발점이기 때문이다. 다만 어텐션 기반 설명에는 반론 문헌이 있으므로, “근거를 붙였다”와 “설명이 검증됐다”를 같은 뜻으로 보면 안 된다.
+- 독자는 답변 품질 평가와 근거 품질 평가를 분리해서 봐야 한다. 파일럿에서는 정답률과 함께 근거 위치 정확도, 지연시간, 실패 사례를 따로 기록해 의사결정 기준을 세워야 한다.
+
+## 현황
+
+MultAttnAttrib는 장문서 질의응답의 오래된 문제를 다룬다. 질문에 답하는 것만으로는 부족하고, 그 답이 어디서 왔는지까지 보여줘야 한다는 요구다. 공개된 초록에 따르면 이 방법은 모델의 프리필 패스, 선택된 어텐션 헤드, 그리고 보정된 절차를 활용하는 `training-free attribution-generation method`다. 핵심은 별도 학습 없이 기존 모델 내부 신호로 근거를 추적한다는 점이다.
+
+확인 가능한 범위에서 성능 주장은 비교적 분명하다. 논문 요약에는 MultAttnAttrib가 여러 attribution-generation 방법과 강한 프롬프팅 기반 접근보다 앞섰다고 적혀 있다. 또 조사 결과 기준으로, 같은 베이스 모델의 프롬프팅과 비교했을 때 직접 추론 지연시간이 최대 7분의 1 수준이라고 명시돼 있다. 이 수치는 근거를 더 잘 붙이면서도 계산 부담을 낮출 가능성을 시사하지만, 공개된 정보만으로는 조건별 차이까지 판단하기 어렵다.
+
+다만 여기서 바로 retrieval-based citation보다 비용이 낮다고 단정하면 안 된다. 검색 결과에는 retrieval 방식과의 직접 수치 비교가 없다. 지금 말할 수 있는 범위는 이 정도다. 같은 모델에서 프롬프팅으로 근거를 생성하는 방식보다 지연시간 이점이 확인됐지만, 외부 검색이나 별도 생성 단계를 포함한 시스템 전체 비용과의 우열은 공개된 스니펫만으로는 확정할 수 없다.
+
+멀티모달 쪽 맥락도 중요하다. 관련 연구 요약에 따르면 긍정적 retrieval-score 질량의 50%를 설명하는 어텐션 헤드는 전체의 4.4%에서 10.2% 수준으로 희소하다. 관련 논문 요약에 따르면, 선택된 상위 5% 헤드를 마스킹했을 때 MMLongBench-Doc는 48.2%에서 5.7%로, SlideVQA는 71.2%에서 8.9%로 크게 하락했다. 이 수치는 선택된 헤드가 중요한 역할을 맡고 있음을 뒷받침한다.
+
+그렇다고 “중요한 헤드를 찾았으니 일반화도 안정적이다”라고 말할 단계는 아니다. 같은 조사 결과에는 이미지 retrieval head가 문맥 길이와 haystack modality가 바뀔 때 텍스트 retrieval head보다 더 많이 변한다는 설명이 있다. 즉, 긴 문서와 이미지가 함께 들어오는 환경에서는 헤드 선택이 조건에 따라 흔들릴 수 있다. 멀티모달 attribution의 가능성은 확인되지만, 운영 환경에서의 견고함은 따로 검증해야 한다.
+
+## 분석
+
+이 논문의 의미는 단순히 설명을 붙여준다는 데만 있지 않다. 비용 구조와 배포 현실에도 닿아 있다. 학습 없이 모델 내부 신호를 활용해 장문서와 이미지가 섞인 입력에서 근거를 꺼낼 수 있다면, 기업은 별도 파인튜닝이나 복잡한 후처리 파이프라인 없이도 투명성을 조금 더 확보할 수 있다. 특히 문서 QA, 슬라이드 QA, 내부 지식 검색 같은 환경에서는 정답 하나보다 왜 그 답이 나왔는지가 더 중요할 때가 많다.
+
+문제는 어텐션을 곧바로 설명으로 받아들이는 순간이다. 이미 널리 알려진 반론 문헌인 *Attention is not Explanation*은 어텐션 값을 인간이 납득할 설명과 같은 것으로 보기 어렵다고 지적한다. 또 다른 관련 연구에서는 시각적으로 grounded된 QA 모델이 답은 맞혀도 근거를 제대로 대지 못하는 경우가 있다고 말한다. 따라서 MultAttnAttrib의 성과는 이렇게 읽는 편이 맞다. 어텐션 기반 신호가 근거 추적에 실용적일 수 있다는 정도까지는 말할 수 있다. 하지만 모델 설명 가능성 문제가 해결됐다고 확대하면 과장이다.
+
+## 실전 적용
+
+개발자에게 이 방법의 첫 번째 가치는 평가 프레임을 바꾸는 데 있다. 지금까지 장문서 QA를 정답률 중심으로 봤다면, 이제는 답변과 근거를 분리해 측정해야 한다. 답이 맞아도 근거를 엉뚱한 이미지나 문단에 붙이면 사용자 신뢰는 오히려 떨어진다. 반대로 정답률이 조금 낮아도 근거 위치가 일관되면 디버깅과 안전 검토는 쉬워진다.
+
+예: 사내 문서 검색 챗봇이 재무 슬라이드와 회의록을 함께 읽고 답할 때, 답변 아래에 관련 슬라이드 영역과 문단을 함께 제시한다고 하자. 이때 중요한 것은 “근거가 붙었다”가 아니라 “근거가 실제로 답을 지지하는가”다. 파일럿 단계에서는 사람이 소량의 샘플을 직접 검토해 정답, 근거 적합성, 지연시간을 따로 기록하는 편이 낫다.
+
+오늘 바로 할 일 체크리스트 3개
+
+- 현재 QA 시스템 평가표에 정답률과 별개로 근거 위치 정확도 항목을 추가하라.
+- 프롬프팅 기반 citation 방식이 있다면 동일 질문 세트로 지연시간과 근거 품질을 나란히 비교하라.
+- 긴 문서 길이, 이미지 비중, 문서 유형을 바꿔가며 선택된 헤드의 안정성이 흔들리는 구간을 먼저 찾으라.
+
+## FAQ
+
+**Q. MultAttnAttrib의 핵심은 무엇인가?**  
+답변만 생성하는 것이 아니라, 그 답변을 텍스트와 이미지 증거에 연결하려는 점이 핵심입니다. 공개된 초록 기준으로는 프리필 단계와 선택된 어텐션 헤드를 활용하는 학습 없는 attribution 방식입니다.
+
+**Q. 이 방식이 환각을 줄였다고 말할 수 있나?**  
+그렇게 단정하기는 어렵습니다. 확인된 자료에서는 근거 추적이 사용자 신뢰와 모델 안전에 중요하다고 문제를 제기하지만, 환각 감소 수치나 사용자 연구를 통해 신뢰 향상을 직접 입증했다는 문구는 확인되지 않았습니다.
+
+**Q. 어텐션 기반 근거 추적은 곧 설명 가능한 AI인가?**  
+아닙니다. 어텐션은 유용한 신호일 수 있지만, 그것만으로 설명이 검증됐다고 보기는 어렵습니다. 관련 반론 문헌이 있으므로, 실제 서비스에서는 사람 검토나 별도 평가 지표를 함께 두는 편이 안전합니다.
+
+## 결론
+
+멀티모달 근거 추적의 포인트는 답을 더 그럴듯하게 만드는 데 있지 않다. 답이 어디서 왔는지, 그 연결이 비용 대비 얼마나 믿을 만한지를 따지는 데 있다. MultAttnAttrib는 그 방향에서 한 걸음을 내딛었지만, 실제 도입 판단은 성능 숫자 하나가 아니라 근거 정확도, 지연시간, 일반화 안정성을 함께 보고 내려야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-07-04](/ko/posts/ai-resources-roundup-2026-07-04)
+- [LLM 성격보다 정렬이 핵심](/ko/posts/alignment-shapes-llm-behavior-more-than-personality)
+- [AI 자료 모음 (24h) - 2026-07-03](/ko/posts/ai-resources-roundup-2026-07-03)
+- [에이전트 안전 테스트 자동화](/ko/posts/automating-agent-safety-testing-evidence-based-verification)
+- [RLVR와 인간시연 결합 학습](/ko/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+---
+
+## 참고 자료
+
+- [Paper page - Can Retrieval Heads See Images? Multimodal Retrieval Heads in Long-Context Vision-Language Models - huggingface.co](https://huggingface.co/papers/2605.27243)
+- [Can I Trust Your Answer? Visually Grounded Video Question Answering - huggingface.co](https://huggingface.co/papers/2309.01327)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01420)
+- [Attention is not Explanation - arxiv.org](https://arxiv.org/abs/1902.10186)

@@ -1,0 +1,85 @@
+---
+title: Training-Free Attribution for Long Document Multimodal QA
+slug: training-free-attribution-long-document-multimodal-qa
+date: '2026-07-04'
+lastReviewedAt: '2026-07-04'
+locale: en
+description: >-
+  A look at MultAttnAttrib for long-document multimodal QA, covering attribution
+  benefits, limits, and evaluation criteria.
+tags:
+  - agi
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-9395dd1283f53099
+sourceUrl: 'https://arxiv.org/abs/2607.01420'
+verificationScore: 0.72
+alternateLocale: /ko/posts/training-free-attribution-long-document-multimodal-qa
+coverImage: /images/posts/training-free-attribution-long-document-multimodal-qa.png
+---
+
+## TL;DR
+
+- MultAttnAttrib is a training-free multimodal attribution method for long-document question answering with text and images.
+- It matters because evidence tracing can improve trust, but evidence attachment is not the same as explanation.
+- Readers should test answer accuracy, evidence-location accuracy, latency, and failure cases as separate measures.
+
+
+Example: imagine a document assistant answers from slides and notes together. It highlights a paragraph and an image region. The key question is whether that evidence supports the answer.
+
+## Current status
+
+MultAttnAttrib addresses a longstanding problem in long-document question answering. A useful system should answer questions and show where answers came from. The public abstract describes a `training-free attribution-generation method`. It uses the model’s prefill pass, selected attention heads, and calibrated thresholds. The key idea is evidence tracing from internal model signals. It does this without separate training.
+
+
+
+That said, the public material does not support a cost claim against retrieval-based citation. No direct quantitative comparison appears in the available search results. The current evidence supports a latency advantage over prompting-based evidence generation. It does not settle total system cost versus systems with external retrieval or separate generation stages.
+
+The multimodal setting also matters. Related summaries say image retrieval heads vary more than text retrieval heads. This variation appears when context length and haystack modality change. In mixed long-document and image settings, head selection may shift by condition. The potential looks meaningful, but production robustness still needs separate validation.
+
+## Analysis
+
+This paper’s significance is not limited to attaching explanations. It also affects cost structure and deployment choices. If internal signals can extract evidence from long documents and images, teams may gain transparency without fine-tuning. They may also avoid more complex post-processing pipelines. In document QA, slide QA, and internal knowledge retrieval, evidence can matter as much as answers.
+
+The main caution starts when attention is treated as explanation itself. The counterargument paper *Attention is not Explanation* raises this concern directly. Other related research says visually grounded QA models can answer correctly yet miss proper evidence. For that reason, MultAttnAttrib should be read carefully. Attention-based signals may help practical evidence tracing. That does not mean explainability is fully solved.
+
+## Practical application
+
+For developers, the first practical value is a new evaluation frame. Long-document QA is often judged mainly by answer accuracy. This method suggests measuring answers and evidence separately. A correct answer with the wrong paragraph or image can still harm trust. A slightly weaker answer with consistent evidence can still help debugging and safety review.
+
+**Checklist for Today:**
+
+- Add an evidence-location accuracy field to QA evaluation, separate from answer accuracy.
+- Compare prompting-based citation and this approach on the same question set for latency and evidence quality.
+- Vary document length, image proportion, and document type to find where head stability starts to shift.
+
+## FAQ
+
+**Q. What is the core of MultAttnAttrib?**  
+The core is linking answers to textual and visual evidence. The public abstract describes a training-free attribution method. It uses the prefill stage and selected attention heads.
+
+**Q. Can we say this method reduced hallucinations?**  
+That is difficult to state from the verified materials. The available sources discuss trust and safety. They do not confirm hallucination-reduction metrics or user-study results.
+
+**Q. Is attention-based evidence tracing equivalent to explainable AI?**  
+No. Attention can be a useful signal. That alone does not make an explanation validated. In real services, human review or separate evaluation metrics can still help.
+
+## Conclusion
+
+The goal of multimodal evidence tracing is not just more plausible answers. The goal is locating the source and judging that link against cost. MultAttnAttrib appears to move in that direction. Adoption decisions should consider evidence accuracy, latency, and generalization stability together.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-04](/en/posts/ai-resources-roundup-2026-07-04)
+- [Why Alignment Shapes LLM Behavior More Than Personality](/en/posts/alignment-shapes-llm-behavior-more-than-personality)
+- [AI Resource Roundup (24h) - 2026-07-03](/en/posts/ai-resources-roundup-2026-07-03)
+- [Automating Agent Safety Testing With Evidence-Based Verification](/en/posts/automating-agent-safety-testing-evidence-based-verification)
+- [Combining RLVR and Human Demonstrations for Better LMs](/en/posts/combining-rlvr-and-human-demonstrations-for-better-lms)
+---
+
+## References
+
+- [Paper page - Can Retrieval Heads See Images? Multimodal Retrieval Heads in Long-Context Vision-Language Models - huggingface.co](https://huggingface.co/papers/2605.27243)
+- [Can I Trust Your Answer? Visually Grounded Video Question Answering - huggingface.co](https://huggingface.co/papers/2309.01327)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.01420)
+- [Attention is not Explanation - arxiv.org](https://arxiv.org/abs/1902.10186)
