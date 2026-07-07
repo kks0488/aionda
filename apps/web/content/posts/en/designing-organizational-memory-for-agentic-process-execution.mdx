@@ -1,0 +1,95 @@
+---
+title: Designing Organizational Memory for Agentic Process Execution
+slug: designing-organizational-memory-for-agentic-process-execution
+date: '2026-07-07'
+lastReviewedAt: '2026-07-07'
+locale: en
+description: >-
+  Agent bottlenecks are not just reasoning. Separate organizational knowledge
+  into memory layers for reliability and control.
+tags:
+  - agi
+  - llm
+  - deep-dive
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-a90b9ba696671330
+sourceUrl: 'https://arxiv.org/abs/2607.03228'
+verificationScore: 0.61
+alternateLocale: /ko/posts/designing-organizational-memory-for-agentic-process-execution
+coverImage: >-
+  /images/posts/designing-organizational-memory-for-agentic-process-execution.png
+---
+
+2607.03228 is a paper identifier, not a new model release. Business process agents often fail on memory design, not only reasoning. The arXiv paper *Organizational Memory for Agentic Business Process Execution* focuses on that issue. If organizational knowledge is scattered across policies, process models, and SOPs, longer prompts can be a temporary workaround.
+
+## TL;DR
+
+- This piece examines organizational memory for business process agents, based on arXiv paper 2607.03228 and related cited systems.
+- It matters because reliability, permissions, updates, and auditability can break when teams store business knowledge in prompts.
+- Review your agent memory design next: separate RAG, procedural registries, and private or shared context.
+
+Example: A team builds an internal approval agent. It retrieves policy text from source documents, reuses a stored procedure for escalations, and keeps each user’s working context separate.
+
+## Current state
+
+The excerpted source starts from a practical point. LLM-based agents can expand automation beyond rule-based systems. The next issue is organizational knowledge. That knowledge is often scattered across policy documents, process models, and standard operating procedures. General-purpose LLMs do not inherently contain that knowledge.
+
+
+*Anything2Skill* is cited as an example of this procedural approach. It describes a persistent SkillBank. It also describes taxonomy-aware compilation, registry-level reconciliation, lifecycle tracking, and versioned updates.
+
+Authorization and auditability are also part of memory design. *Collaborative Memory* divides memory into 2 tiers. One tier is private memory. The other tier is shared memory. Each fragment carries immutable provenance attributes. Timestamps are also recorded.
+
+Enterprise connectivity can also link memory to administrative controls. The text cites RBAC, group-level permissions, SSO, and SCIM. It also cites OpenAI help documentation. That documentation says app access permissions do not override connected source-system permissions. This distinction matters. Agent performance and data-boundary compliance are different concerns.
+
+## Analysis
+
+From a decision-making perspective, this topic is closer to system reliability than model competition. If teams hardcode organizational knowledge into prompt templates, one change can alter behavior across the agent system. A separate memory layer can make update points clearer. RAG can supply factual grounding. A registry such as a SkillBank can hold reusable procedures. RBAC and source permissions can constrain access.
+
+This structure can be summarized in If/Then form. **If** policy changes frequently disrupt workflows, **then** inspect a version-trackable memory layer before editing prompts. **If** procedures differ by department, **then** evaluate retrieval accuracy, provenance, and permission separation together.
+
+There are counterarguments. A larger memory layer does not automatically solve reliability. Retrieved text and procedural knowledge can conflict. Shared memory can support collaboration. It can also spread errors if a fragment is shared incorrectly. A 2-tier private and shared model can be a reasonable start. Some organizations may need finer isolation.
+
+The available findings also do not show clear industry convergence on one standard architecture. So the key question is not only which structure seems correct. It is also which failures the organization can tolerate. Teams should decide whether retrieval omissions, procedural misapplication, or permission friction is the bigger risk.
+
+## Practical application
+
+Teams can divide agent memory into 3 types. First is factual grounding. Information needing source attribution, such as policy texts, SOPs, and process models, should be retrieved through RAG. Second is procedural knowledge. Repeatable execution patterns, such as approval requests, exception handling, and handoff rules, can live in a version-trackable registry. Third is user context. Personal preferences or temporary task state should remain in private memory. It should not be mixed with organization-wide shared knowledge.
+
+For a payment approval agent, the limit policy should come from the original source document. The re-request procedure for missing approval can be stored as a reusable skill. What the user is currently reviewing should stay in personal memory. If these 3 are mixed together, updates and audits become harder.
+
+**Checklist for Today:**
+- Extract policies, exception rules, and approval procedures from prompts, then classify them as evidence, procedures, or personal context.
+- Record provenance, timestamp, and access subject for each memory item, and define when it can move to shared memory.
+- Separate retrieval from execution, then review whether access stays within connected source-system permissions and RBAC mappings.
+
+## FAQ
+
+**Q. If we implement RAG well, does that solve the organizational memory problem?**  
+Not by itself. RAG is useful for source-grounded evidence. It does not replace reuse and version management for procedural knowledge. The cited findings point to a separate registry or SkillBank as well.
+
+**Q. Why is putting organizational memory into prompts a problem?**  
+Updates and control become harder. When policies change or exceptions are added, teams may need to edit many prompts. It also becomes harder to trace which version was used during execution.
+
+**Q. How should access control be handled in a memory system?**  
+A starting point is to separate private and shared memory. Record provenance and timestamps at the fragment level. Integrate RBAC as well. App access permissions also should not exceed the original source-system permissions.
+
+## Conclusion
+
+In agent-based business automation, longer prompts are not the main design issue. Organizational memory design is often more important. Separating source-grounded evidence, reusable procedures, and personal context can reduce fragility in operations. Versioning, permissions, and provenance should be designed together.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-07](/en/posts/ai-resources-roundup-2026-07-07)
+- [Attention Limits in RLHF Preference Learning and Reward Models](/en/posts/attention-limits-in-rlhf-preference-learning)
+- [Finding First Errors in Small Model Physics Reasoning](/en/posts/finding-first-errors-small-model-physics-reasoning)
+- [Hierarchical Memory and Agentic Reasoning for Long Videos](/en/posts/hierarchical-memory-agentic-reasoning-long-videos)
+- [Why LLM Automation Does Not Lower Real-World Costs](/en/posts/llm-automation-does-not-lower-real-world-costs)
+---
+
+## References
+
+- [Company knowledge in ChatGPT (Business, Enterprise, and Edu) | OpenAI Help Center - help-lb.openai.com](https://help-lb.openai.com/en/articles/12628342-company-knowledge-in-chatgpt-business-enterprise-and-edu)
+- [RBAC | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11750701)
+- [Anything2Skill: Compiling External Knowledge into Reusable Skills for Agents - arxiv.org](https://arxiv.org/abs/2606.09316)
+- [Collaborative Memory: Multi-User Memory Sharing in LLM Agents with Dynamic Access Control - arxiv.org](https://arxiv.org/abs/2505.18279)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.03228)
