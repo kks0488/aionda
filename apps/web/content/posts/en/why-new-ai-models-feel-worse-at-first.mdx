@@ -1,0 +1,149 @@
+---
+title: Why New AI Models Feel Worse At First
+slug: why-new-ai-models-feel-worse-at-first
+date: '2026-07-07'
+lastReviewedAt: '2026-07-07'
+locale: en
+description: >-
+  Early latency and extra confirmation can distort how capable an AI model
+  really is in coding and review workflows.
+tags:
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: '1297472'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1297472'
+verificationScore: 0.89
+alternateLocale: /ko/posts/why-new-ai-models-feel-worse-at-first
+coverImage: /images/posts/why-new-ai-models-feel-worse-at-first.png
+---
+
+In the first few seconds after launch, a model can seem slow and overly cautious.  
+That first impression can shape its reputation.  
+A different picture can appear during repetitive work.  
+Examples include fixing code, running tests, and reading PRs.
+
+## TL;DR
+
+- Some new models feel slower at first because reasoning time, caution, and confirmation behavior can differ.
+- This matters because official documents describe adjustable thinking time, effort levels, and workflow-focused coding use cases.
+- Re-test the same task in chat and in a repeated workflow before making an adoption decision.
+
+Example: A team tries a new model in chat, feels friction, and plans to reject it. Later, they compare it inside a coding workflow and notice a different tradeoff.
+
+## Current situation
+
+The official documents provide a hint.  
+The OpenAI Help Center release notes dated Jan 10, 2026 mention periodic adjustments.  
+They describe default thinking time for reasoning models.  
+They frame this as balancing answer quality and response speed.  
+That suggests early slowness may not be a fixed trait.
+
+Model design also affects first impressions.  
+OpenAI release notes say some reasoning-series models are designed to think longer before answering.  
+The same model can therefore feel different across settings.  
+Speed, answer length, and cautiousness can all vary.
+
+Confirmation procedures are another variable.  
+The Model Spec highlights chain of command.  
+It also highlights “Seek the truth together.”  
+It also highlights harmfulness boundaries.  
+These principles can increase assumption checks and uncertainty checks.  
+Users may experience that as extra confirmation steps.
+
+The coding tool documentation is more workflow-oriented.  
+The Codex materials discuss PR review and multiple files.  
+They also discuss terminal use and SSH access to a remote devbox.  
+They include testing apps and running test harnesses, linters, and type checkers.  
+In that setting, sustained context across steps can matter more than the first reply.
+
+## Analysis
+
+Early evaluation has a clear trap.  
+In chat, people often reward immediate replies.  
+Models that reason longer can look worse at first.  
+The same can happen with models that ask confirmation questions.  
+Tighter safety behavior can also affect initial perception.
+
+The official documents describe several moving parts.  
+Thinking time can be adjusted periodically.  
+Reasoning effort can vary across 3 levels.  
+Production behavior can also vary with system updates and prompts.  
+That makes launch-day judgment narrower than it first appears.
+
+This does not mean long-term use fixes everything.  
+The official materials do not show a systematic reversal in reputation.  
+They mainly describe release-time benchmarks, safety evaluations, response length, and latency.  
+They also describe operational variation.  
+That is useful context, but not direct proof of later improvement.
+
+There is still uncertainty.  
+Repetitive work may reveal strengths that chat does not show.  
+It may also reveal friction from frequent confirmations.  
+That friction can affect both speed and flow.  
+For short question-and-answer use, that drawback may remain important.
+
+## Practical application
+
+The evaluation method should change.  
+Ask how many round trips a task required.  
+Do not group chat, coding, and review into one score.  
+Measure them separately.  
+Compare a short Q&A with a flow that includes code edits and test execution.
+
+Development teams should evaluate models inside real tools.  
+That can mean an IDE or an agent tool.  
+The official scenarios are closer to multi-file editing than one-off answers.  
+They also include terminal execution, PR review, and remote environments.  
+Useful metrics include retries, round trips to passing tests, and review misses.
+
+**Checklist for Today:**
+
+- Split one task into a single-question version and a repeated workflow version, then record each result separately.
+- If reasoning effort is configurable, compare at least 2 settings: one speed-oriented and one quality-oriented.
+- Re-check any model that asks for confirmation during cumulative tasks like PR review, testing, and refactoring.
+
+## FAQ
+
+**Q. Should launch-day evaluations not be trusted?**  
+A. It is better to narrow their scope.  
+They can reflect first impressions and short interactions.  
+They do not stand in for repetitive work performance.
+
+**Q. Do the official documents prove that the model becomes better after long-term use?**  
+A. No.  
+The documents confirm adjustable speed, reasoning, and behavioral principles.  
+They also note possible operational variation.  
+They do not provide quantitative proof of a long-term reversal in reputation.
+
+**Q. For which users does this issue appear most strongly?**  
+A. Short Q&A users and development workflow users may feel it differently.  
+The first group may notice latency and confirmation questions more.  
+The second group may reach a different judgment during tests and PR review.
+
+## Conclusion
+
+A new model often earns its first reputation in the chat window.  
+Its adoption value may depend more on repetitive work.  
+Speed, reasoning time, and confirmation behavior should be treated as variables.  
+They should be re-evaluated in the actual workflow.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-07](/en/posts/ai-resources-roundup-2026-07-07)
+- [Finding First Errors in Small Model Physics Reasoning](/en/posts/finding-first-errors-small-model-physics-reasoning)
+- [Hierarchical Memory and Agentic Reasoning for Long Videos](/en/posts/hierarchical-memory-agentic-reasoning-long-videos)
+- [Why LLM Automation Does Not Lower Real-World Costs](/en/posts/llm-automation-does-not-lower-real-world-costs)
+- [Measuring LLM Emotion Interpretation Under Semantic Stress](/en/posts/measuring-llm-emotion-interpretation-under-semantic-stress)
+---
+
+## References
+
+- [ChatGPT — Release Notes | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6825453-connectors)
+- [Model Release Notes | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9624314-model-release-notes%25252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252523.pict)
+- [Sharing the latest Model Spec | OpenAI - openai.com](https://openai.com/index/sharing-the-latest-model-spec/)
+- [Codex for (almost) everything | OpenAI - openai.com](https://openai.com/mt-MT/index/codex-for-almost-everything/)
+- [Introducing Codex | OpenAI - openai.com](https://openai.com/index/introducing-codex/?video=1084810944)
+- [OpenAI o1 System Card | OpenAI - openai.com](https://openai.com/index/openai-o1-system-card/)
+- [GPT-4o rendszerkártya | OpenAI - openai.com](https://openai.com/hu-HU/index/gpt-4o-system-card/)
+- [Claude 3.7 Sonnet System Card - www-cdn.anthropic.com](https://www-cdn.anthropic.com/9ff93dfa8f445c932415d335c88852ef47f1201e.pdf)
+- [GPT-5.6 Preview System Card - deploymentsafety.openai.com](https://deploymentsafety.openai.com/gpt-5-6-preview/gpt-5-6-preview.pdf)

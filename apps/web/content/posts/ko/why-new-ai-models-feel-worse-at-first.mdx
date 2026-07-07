@@ -1,0 +1,87 @@
+---
+title: 출시 첫인상과 AI 실력 차이
+slug: why-new-ai-models-feel-worse-at-first
+date: '2026-07-07'
+lastReviewedAt: '2026-07-07'
+locale: ko
+description: 출시 직후 느린 응답과 확인 습관이 AI 모델의 실제 업무 적합도를 가릴 수 있음을 짚는다.
+tags:
+  - llm
+  - k-ai-pulse
+author: AI온다
+sourceId: '1297472'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1297472'
+verificationScore: 0.89
+alternateLocale: /en/posts/why-new-ai-models-feel-worse-at-first
+coverImage: /images/posts/why-new-ai-models-feel-worse-at-first.png
+---
+
+리뷰 창이 먼저 흔들린다. 어떤 새 모델은 첫 질문에서 한 박자 늦고, 한 번 더 확인하고, 평소보다 길게 생각한 뒤 답한다. 그 몇 초와 몇 문장이 출시 첫날 평판을 깎는다. 그런데 코드를 고치고 테스트를 돌리고 PR을 읽는 반복 업무에 넣으면, 첫인상과 다른 평가가 나오기 시작한다.
+
+## 세 줄 요약
+
+- 새 AI 모델의 초기 평가는 속도 저하, 더 긴 추론, 강화된 확인 습관 때문에 실제 작업 적합도와 어긋날 수 있다.
+- 왜 중요하냐면 공식 문서도 응답 속도와 답변 품질의 균형을 계속 조정한다고 밝히고 있어서, 출시 직후 체감만으로 모델을 고정 평가하면 도입 판단을 틀릴 수 있기 때문이다.
+- 독자는 단발성 채팅 평가와 반복 업무 평가를 분리하라. 같은 작업을 짧은 질의, 코드 수정, 테스트 실행, PR 검토로 나눠 다시 재보는 게 먼저다.
+
+## 현황
+
+공식 문서는 이미 힌트를 준다. OpenAI 도움말의 Jan 10, 2026 릴리스 노트에는 reasoning 모델의 기본 thinking time을 주기적으로 조정한다고 적혀 있다. 이유도 적혀 있다. “answer quality and response speed”의 균형을 맞추기 위한 실험이라는 설명이다. 즉, 사용자가 출시 첫 주에 느끼는 “느림”은 고정 성질이 아니라 운영 중 바뀔 수 있는 값이다.
+
+
+확인 절차도 변수다. Model Spec은 chain of command, “Seek the truth together”, 유해성 경계 준수 같은 원칙을 앞에 둔다. 이런 변화는 모델이 가정을 확인하고, 불확실성을 점검하고, 유도되지 않는 답을 선호하게 만들 수 있다. 사용자 입장에서는 “왜 이렇게 한 번 더 묻지?”처럼 보일 수 있다. 하지만 모델 쪽에서는 행동 기준이 달라진 결과일 수 있다.
+
+코딩 도구 쪽 문서는 더 실무적이다. OpenAI는 Codex 소개와 관련 글에서 단순 코드 생성보다 넓은 개발 워크플로를 말한다. PR 검토, 여러 파일과 터미널 확인, SSH로 원격 devbox 연결, 앱 테스트, 테스트 하니스와 린터와 타입 체커 실행 같은 시나리오가 나온다. 이런 환경에서는 첫 답변의 인상보다, 맥락을 유지한 채 여러 단계를 이어 가는 능력이 더 중요해진다.
+
+## 분석
+
+여기서 초기 평가의 함정이 생긴다. 사람은 대화형 인터페이스에서 즉각 반응하는 모델에 높은 점수를 주기 쉽다. 반면 추론 시간을 더 쓰고, 확인 질문을 던지고, 안전 경계를 더 촘촘히 지키는 모델은 첫 체감에서 손해를 본다. 그런데 공식 문서만 봐도 운영사는 thinking time을 조정하고, 모델은 effort 단계를 바꿀 수 있고, 실제 프로덕션 성능은 시스템 업데이트나 최종 파라미터, 시스템 프롬프트에 따라 달라질 수 있다고 적는다. 그래서 출시 당일 평가는 장기 성능의 확정판으로 보기 어렵다.
+
+다만 이걸 “결국 오래 쓰면 다 좋아진다”로 읽으면 안 된다. 공식 시스템 카드와 평가 문서는 주로 출시 시점의 벤치마크, 안전성 평가, 응답 길이, 지연을 보여줄 뿐이다. 장기 사용 후 평판 반전까지 체계적으로 입증하지는 않는다. 즉 반복 업무에서 유리할 가능성은 있지만, 그 주장을 곧바로 사실로 단정할 근거는 아직 충분하지 않다. 특히 확인 절차가 잦아지면 속도뿐 아니라 흐름이 끊길 수 있다. 짧은 질의응답 중심 사용자에게는 끝까지 단점으로 남을 수도 있다.
+
+## 실전 적용
+
+평가 방식을 바꿔야 한다. “첫 질문에 얼마나 똑똑해 보였나”보다 “내 워크플로에서 몇 번의 왕복으로 끝났나”를 봐야 한다. 채팅, 코딩, 검토를 한 바구니에 넣지 말고 따로 재야 한다. 예를 들어 같은 요구를 한 번은 짧은 질의응답으로, 한 번은 코드 수정과 테스트 실행까지 포함한 흐름으로 비교해 보면 평가가 달라질 수 있다.
+
+특히 개발팀은 모델을 IDE나 에이전트 도구에 붙인 뒤 평가해야 한다. 공식 문서가 제시한 시나리오 자체가 단발성 답변보다 멀티파일 편집, 터미널 실행, PR 리뷰, 원격 환경 연결에 가깝기 때문이다. 여기서 중요한 지표는 첫 토큰 속도보다 재시도 횟수, 테스트 통과까지의 왕복, 검토 과정의 누락 여부다.
+
+오늘 바로 할 일 체크리스트 3개:
+
+- 같은 작업을 “단일 질문”과 “반복 워크플로”로 나눠 테스트하고 결과를 따로 기록하라.
+- reasoning effort나 thinking level을 조절할 수 있다면 속도 우선 설정과 품질 우선 설정을 둘 다 재보라.
+- 확인 질문이 잦은 모델은 바로 제거하지 말고, PR 검토·테스트·리팩터링 같은 누적 작업에서 다시 비교하라.
+
+## FAQ
+
+**Q. 출시 직후 평가는 믿으면 안 됩니까?**  
+A. 믿지 말아야 한다기보다, 범위를 좁혀서 봐야 합니다. 출시 직후 평가는 첫인상과 짧은 상호작용에는 유효하지만, 반복 업무 성능까지 대신해주지는 않습니다.
+
+**Q. 공식 문서가 장기 사용 후 더 좋다고 증명합니까?**  
+A. 그렇지는 않습니다. 확인된 공식 문서는 속도·추론·행동 원칙의 조정 가능성과 운영 중 변동 가능성을 설명하지만, 장기 평판 반전을 직접 정량 입증하지는 않습니다.
+
+**Q. 어떤 사용자에게 이 문제가 가장 크게 보입니까?**  
+A. 짧은 질의응답 위주 사용자와 개발 워크플로 사용자가 다르게 느낄 가능성이 큽니다. 전자는 지연과 확인 질문을 더 크게 체감할 수 있고, 후자는 테스트 실행이나 PR 검토 같은 누적 작업에서 다른 평가를 내릴 수 있습니다.
+
+## 결론
+
+새 모델의 평판은 출시 첫날 채팅창에서 먼저 결정되지만, 도입 가치는 그 뒤의 반복 업무에서 갈린다. 속도, 추론 시간, 확인 절차가 모두 조정 가능한 변수라는 점을 전제로 다시 평가해야 한다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-07-07](/ko/posts/ai-resources-roundup-2026-07-07)
+- [첫 오류 보상 물리 추론](/ko/posts/finding-first-errors-small-model-physics-reasoning)
+- [긴 영상 AI의 기억과 추론](/ko/posts/hierarchical-memory-agentic-reasoning-long-videos)
+- [LLM 자동화와 물가의 간극](/ko/posts/llm-automation-does-not-lower-real-world-costs)
+- [감정 대화서 흔들리는 LLM 해석](/ko/posts/measuring-llm-emotion-interpretation-under-semantic-stress)
+---
+
+## 참고 자료
+
+- [ChatGPT — Release Notes | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/6825453-connectors)
+- [Model Release Notes | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/9624314-model-release-notes%25252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252523.pict)
+- [Sharing the latest Model Spec | OpenAI - openai.com](https://openai.com/index/sharing-the-latest-model-spec/)
+- [Codex for (almost) everything | OpenAI - openai.com](https://openai.com/mt-MT/index/codex-for-almost-everything/)
+- [Introducing Codex | OpenAI - openai.com](https://openai.com/index/introducing-codex/?video=1084810944)
+- [OpenAI o1 System Card | OpenAI - openai.com](https://openai.com/index/openai-o1-system-card/)
+- [GPT-4o rendszerkártya | OpenAI - openai.com](https://openai.com/hu-HU/index/gpt-4o-system-card/)
+- [Claude 3.7 Sonnet System Card - www-cdn.anthropic.com](https://www-cdn.anthropic.com/9ff93dfa8f445c932415d335c88852ef47f1201e.pdf)
+- [GPT-5.6 Preview System Card - deploymentsafety.openai.com](https://deploymentsafety.openai.com/gpt-5-6-preview/gpt-5-6-preview.pdf)
