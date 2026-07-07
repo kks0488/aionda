@@ -1,0 +1,90 @@
+---
+title: When Safety Alignment Over-Refuses Cyber Defense Requests
+slug: safety-alignment-over-refuses-cyber-defense-requests
+date: '2026-07-07'
+lastReviewedAt: '2026-07-07'
+locale: en
+description: >-
+  Examines how LLM safety alignment can over-refuse legitimate cyber defense
+  requests and reduce utility.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-6b5be6f8cfb12de7
+sourceUrl: 'https://arxiv.org/abs/2607.02714'
+verificationScore: 0.84
+alternateLocale: /ko/posts/safety-alignment-over-refuses-cyber-defense-requests
+coverImage: /images/posts/safety-alignment-over-refuses-cyber-defense-requests.png
+---
+
+
+Cybersecurity is a difficult case in AI safety debates. Dangerous knowledge can also be necessary knowledge. Vulnerability analysis, log interpretation, forensics, and detection rule writing use language attackers can also use. As a result, a uniform refusal policy can reduce risk on paper. It can also obstruct legitimate defensive work.
+
+## TL;DR
+
+- This article examines over-refusal in cybersecurity prompts, including a **2.72 times** higher refusal rate in one study.
+- This matters because blocked defensive work can reduce utility, even when safety metrics appear better.
+- Readers should evaluate approved defensive prompts separately and add context-based allow or deny rules before deployment.
+
+Example: A security analyst asks a model to summarize suspicious activity and draft a detection rule. The model refuses because the wording resembles attacker language, even though the task is defensive.
+
+## Current state
+
+An excerpt from the abstract of *Not All Refusals Are Equal: How Safety Alignment Fails Cybersecurity at Scale* frames the issue clearly. The abstract says safety alignment is important. It may still miss domain-specific differences and likely harm levels. It also highlights legitimate and authorized cybersecurity tasks. Those tasks can be blocked by “safety circuits.” Based on the available excerpt, the study scale and detailed results cannot yet be confirmed.
+
+Adjacent research gives more concrete numbers. *Defensive Refusal Bias: How Safety Alignment Fails Cyber Defenders* used **2,390** real NCCDC cases. It reported that models refused defensive requests with security-sensitive terminology **2.72 times** more often than neutral paraphrases. The key metric is the **refusal rate** for legitimate defensive requests. The available results do not directly define task success rate. They also do not clearly show whether false-positive refusals used an explicit threshold.
+
+This issue is not limited to security. Meta’s *CyberSecEval 2* says safety tuning can increase **False Refusal Rate, FRR** on benign prompts. It can also reduce utility. Another audit study argues refusal rate is not a good safety proxy. A model can over-refuse harmless requests. It can still comply with harmful ones. So, “refuses often” and “safe” do not mean the same thing.
+
+## Analysis
+
+From a decision-making view, the options are not simple. A security LLM can be deployed under a general-user safety policy. That can make initial risk look lower. It can also increase the chance that defenders do not get needed outputs. That includes detection engineers, incident responders, red teams, and training staff. A broader allowance policy can improve operations. It can also require stronger misuse controls. The key question is not “Should refusals increase?” It is “In what context, for whom, and what should be refused?”
+
+A differentiated policy is not yet a settled answer. Search results suggest some studies found better controllability and a better safety–utility balance in user-specific evaluations. Anthropic’s Constitutional Classifiers case reported a **0.38%** increase in harmless-query refusal rate. That increase was described as not statistically significant. Still, the available evidence does not show broad industry consensus. It does not confirm one policy can reliably combine domain, authority, and user context across real environments. The direction appears promising. Operational design still seems closer to experimentation.
+
+Evaluation design is a larger trap. Security teams can feel reassured when a model avoids dangerous outputs. That signal is incomplete if approved defensive tasks are also blocked. In that case, the model may be blunt rather than safe. In security, approved usage scenarios should be tested separately from general safety benchmarks. That separation helps distinguish over-refusal from actual risk reduction.
+
+## Practical application
+
+What companies and security organizations need now is not only model replacement. They also need an evaluation redesign. Start by collecting defense-oriented, high-risk language from internal prompt logs. Group prompts that overlap with attacker language. Examples include detection rule writing, malicious activity analysis, forensic summarization, and vulnerability validation. Test those prompts separately. Then compare refusal patterns across two sets. One set should cover general queries. The other should cover approved security work. The first question is why the model stopped. Did it detect real risk, or react to specific words?
+
+Product design can also change. A layered structure can consider work type, approval status, and audit logs together. That approach can be more useful than front-end blocking alone. Users should be told why a request was refused. They should also be told what added context can trigger reevaluation. That can reduce prompt disguise behavior. It can encourage explicit statements of approval status and defensive purpose.
+
+**Checklist for Today:**
+- Build a separate internal evaluation set with at least **20** approved security tasks.
+- Create prompt pairs with the same meaning and compare refusal rates for sensitive versus neutral wording.
+- Add over-refusal measures, including **FRR**, to policy documents beside overall refusal rate.
+
+## FAQ
+
+**Q. Should security LLMs use weaker safety alignment?**  
+Not necessarily. The issue is not whether safety alignment exists. The issue is how it is applied. If defensive work and malicious requests share the same rules, real-world utility can decline. Context and approval status can matter.
+
+**Q. If the refusal rate is lower, is it a better model?**  
+Not necessarily. Refusal rate alone cannot capture safety and utility together. A model can refuse fewer harmless requests. It can also comply more often with harmful ones. Approved use cases and risk cases should be evaluated separately and together.
+
+**Q. What metrics should we look at right now?**  
+At minimum, examine refusal rate for legitimate defensive requests. Also examine **FRR** for benign prompts. If possible, test semantically identical prompt pairs with different wording. That can show whether the policy tracks context or keywords.
+
+## Conclusion
+
+Failure of safety alignment in security is not only about weaker answers. It is also a policy problem. Approved defenders and attackers can be treated as the same sentence pattern. The key point to watch is not only model capability. It is also who receives which output, and in what context.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-07](/en/posts/ai-resources-roundup-2026-07-07)
+- [Hierarchical Memory and Agentic Reasoning for Long Videos](/en/posts/hierarchical-memory-agentic-reasoning-long-videos)
+- [Why LLM Automation Does Not Lower Real-World Costs](/en/posts/llm-automation-does-not-lower-real-world-costs)
+- [Measuring LLM Emotion Interpretation Under Semantic Stress](/en/posts/measuring-llm-emotion-interpretation-under-semantic-stress)
+- [AI Data Centers Expand Into Power And Cooling](/en/posts/ai-data-centers-power-cooling-nuclear)
+---
+
+## References
+
+- [Constitutional Classifiers: Defending against universal jailbreaks - anthropic.com](https://www.anthropic.com/news/constitutional-classifiers)
+- [The Refusal--Compliance Tradeoff: A Large-Scale Safety Behavior Audit of Large Language Models - huggingface.co](https://huggingface.co/papers/2605.05427)
+- [Defensive Refusal Bias: How Safety Alignment Fails Cyber Defenders - arxiv.org](https://arxiv.org/abs/2603.01246)
+- [Beyond Static Alignment: Hierarchical Policy Control for LLM Safety via Risk-Aware Chain-of-Thought - arxiv.org](https://arxiv.org/abs/2602.06650)
+- [CyberSecEval 2: A Wide-Ranging Cybersecurity Evaluation Suite for Large Language Models - arxiv.org](https://arxiv.org/abs/2404.13161)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.02714)
