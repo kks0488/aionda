@@ -1,0 +1,151 @@
+---
+title: Can Model Merging Beat Averaging in DiLoCo Aggregation
+slug: can-model-merging-beat-averaging-in-diloco-aggregation
+date: '2026-07-08'
+lastReviewedAt: '2026-07-08'
+locale: en
+description: >-
+  Examines whether model merging can outperform averaging in DiLoCo aggregation
+  while balancing communication costs and final performance.
+tags:
+  - agi
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-bf1e717075743bc0
+sourceUrl: 'https://arxiv.org/abs/2607.03011'
+verificationScore: 0.85
+alternateLocale: /ko/posts/can-model-merging-beat-averaging-in-diloco-aggregation
+coverImage: /images/posts/can-model-merging-beat-averaging-in-diloco-aggregation.png
+---
+
+A training setup with **8 workers** can cut communication by **500 times less** and still stay near fully synchronous optimization. This article examines whether the final aggregation step should use more than simple averaging.
+
+## TL;DR
+
+- This article reviews whether model merging can replace averaging in DiLoCo-style aggregation.
+- It matters because communication cost, synchronization, and final quality can shift together across distributed training setups.
+- Keep averaging as the default, then test hybrid aggregation with internal benchmarks before broader adoption.
+
+Example: A team trains separate workers under uneven data conditions, then compares simple averaging with a selective merge to see which trade-off fits their system.
+
+## Current state
+
+Model merging began as a way to combine independently fine-tuned models into one model. The goal was to combine capabilities from different models.
+
+Researchers have proposed methods beyond simple averaging. Some methods account for parameter importance.
+
+According to the surveyed findings, **Fisher-weighted averaging** improved over simple parameter averaging in some settings. Those settings included **robust fine-tuning** and **model ensembling**.
+
+This suggests that plain averaging is not necessarily optimal in every case.
+
+In distributed training, **local SGD** and **DiLoCo** aim to reduce communication volume. Based on the cited evidence, DiLoCo matched **fully synchronous optimization** on the **C4 dataset** with **8 workers**.
+
+
+Those two numbers, **8** and **500**, frame this discussion. Less frequent or lighter aggregation reduces communication.
+
+But it can also increase drift between local models.
+
+That motivates the paper’s question. DiLoCo aggregation has mainly relied on averaging-based methods.
+
+If workers train separately for a while, aggregation also resembles a model merging problem. The models have become somewhat different, then need recombination.
+
+When averaging works well, there may be little reason to change it. When worker updates drift from averaging-friendly conditions, merging becomes worth examining.
+
+## Analysis
+
+The decision point is fairly clear. If local models see similar data and follow similar paths, averaging remains the simpler option.
+
+Short synchronization intervals also favor averaging. It is cheap to compute and easier to debug.
+
+Longer synchronization intervals can change that balance. Larger data-distribution differences can also change it.
+
+Parameter importance may diverge across workers as well. In those cases, averaging can blur useful signals.
+
+That is why methods such as **Fisher merging** draw attention. They do not treat every parameter the same way.
+
+Still, the evidence is limited. The surveyed findings support a narrower claim.
+
+Under some conditions, merging can outperform averaging. They do not show that merging is broadly better for DiLoCo aggregation.
+
+Combining models trained on different data distributions remains difficult. Existing research also describes **merged-model performance** as **highly unpredictable**.
+
+DiLoCo’s robustness evidence came from averaging-based aggregation. There is not enough evidence to assume the same result for merging-based aggregation.
+
+So the current takeaway is modest. It is closer to rethinking aggregation design than replacing averaging.
+
+There is another trade-off. Lower synchronization frequency reduces communication.
+
+But if **H** gets too large, convergence speed and final performance can become unstable. Merging does not automatically remove that risk.
+
+It can also make aggregation more complex. Teams should define the main goal first.
+
+That goal could be lower communication, better stability, or higher final performance. If those goals mix together, experiment results become harder to interpret.
+
+## Practical application
+
+A conservative experimental approach fits engineering teams best. Averaging should remain the default starting point.
+
+Teams can first identify when averaging weakens. Relevant conditions include uneven worker data and longer synchronization intervals.
+
+Diverging importance across parameter blocks also matters. In those cases, merging-based aggregation becomes a reasonable candidate.
+
+In smaller settings, averaging may still be the better cost-performance choice. That is more likely with short synchronization intervals and homogeneous data.
+
+One result is especially useful for experiment design. In a DiLoCo-family setting, scale increased to **16 learners**.
+
+Applying **RDA** to the **non-embedding** part produced a large performance improvement. For **embeddings**, averaging tended to work slightly better.
+
+This points to a hybrid strategy by parameter region. Teams do not need to choose between averaging everything and merging everything.
+
+They can split the model and test different aggregation rules by region.
+
+**Checklist for Today:**
+
+- Measure parameter distance across workers and track quality changes as synchronization intervals vary.
+- Run a small A/B test that separates embeddings from non-embeddings and compares averaging with an alternative merge.
+- Put communication volume, convergence time, final quality, and failure recovery in one decision table.
+
+## FAQ
+
+**Q. Does this mean model merging is better than averaging?**
+
+No. The current evidence supports that merging can outperform averaging in some conditions.
+
+It does not establish broader superiority across DiLoCo aggregation.
+
+**Q. Can local models trained on different data distributions be merged reliably?**
+
+Sometimes, but this case appears difficult and less predictable. DiLoCo’s robustness result came from averaging-based aggregation.
+
+So the same assumption should not be carried over to merging.
+
+**Q. In practice, which cases should teams test first?**
+
+Start where synchronization cost is high. Also start where worker data differs or averaging already shows quality loss.
+
+Even then, partial adoption is more realistic than full replacement. Testing embeddings and non-embeddings separately is a practical first step.
+
+## Conclusion
+
+The main shift here is in aggregation philosophy, not just in one algorithm. DiLoCo’s reported results with **8 workers** and **500 times less** communication show the appeal of lower communication.
+
+Model merging asks whether that trade-off can improve further. The next question is not who wins outright.
+
+It is where the boundary lies. Under which conditions should averaging continue, and where should merging be tested?
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-08](/en/posts/ai-resources-roundup-2026-07-08)
+- [AI Resource Roundup (24h) - 2026-07-07](/en/posts/ai-resources-roundup-2026-07-07)
+- [Attention Limits in RLHF Preference Learning and Reward Models](/en/posts/attention-limits-in-rlhf-preference-learning)
+- [Designing Organizational Memory for Agentic Process Execution](/en/posts/designing-organizational-memory-for-agentic-process-execution)
+- [Finding First Errors in Small Model Physics Reasoning](/en/posts/finding-first-errors-small-model-physics-reasoning)
+---
+
+## References
+
+- [Daily Papers - Hugging Face - huggingface.co](https://huggingface.co/papers?q=Federated+Averaging)
+- [Paper page - DiLoCo: Distributed Low-Communication Training of Language Models - huggingface.co](https://huggingface.co/papers/2311.08105)
+- [Merging Models with Fisher-Weighted Averaging - arxiv.org](https://arxiv.org/abs/2111.09832)
+- [DiLoCo: Distributed Low-Communication Training of Language Models - arxiv.org](https://arxiv.org/abs/2311.08105)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.03011)
