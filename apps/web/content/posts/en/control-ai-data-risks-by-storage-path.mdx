@@ -1,0 +1,116 @@
+---
+title: Control AI Data Risks by Storage Path
+slug: control-ai-data-risks-by-storage-path
+date: '2026-07-08'
+lastReviewedAt: '2026-07-08'
+locale: en
+description: >-
+  How to separate session, RAG, and model parameter paths in generative AI to
+  design confidentiality, deletion, and audit controls.
+tags:
+  - agi
+  - llm
+  - deep-dive
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-0379c21bb7670414
+sourceUrl: 'https://arxiv.org/abs/2607.05479'
+verificationScore: 0.89
+alternateLocale: /ko/posts/control-ai-data-risks-by-storage-path
+coverImage: /images/posts/control-ai-data-risks-by-storage-path.png
+---
+
+In one prompt, a pasted legal sentence can travel through at least three data paths. Inputs can stay in session context. They can enter a RAG store. They can also affect model parameters through training or memorization.
+
+The core issue is simple. The goal is not to avoid all AI use. The goal is to design controls by data path. The same sensitive data can need different audit, retention, and deletion controls.
+
+According to the paper excerpt, generative AI handles data in three ways. Those ways are model parameters, the live session context window, and a RAG knowledge database. This distinction matters because confidentiality and legal privilege are not the same risk. Control over one path does not replace control over another.
+
+## TL;DR
+
+- This piece separates generative AI data handling into three paths: session context, RAG storage, and model parameters.
+- The distinction matters because deletion, access control, audit, and privilege risks differ across those paths.
+- Readers should map current AI workflows by data flow and review logs, retrieval, retraining, and deletion checks together.
+
+Example: A legal team uses an AI assistant for contract review. One workflow pastes text into chat. Another retrieves documents from an internal knowledge base. The same clause can face different risks, depending on where the system keeps it.
+
+## Current state
+
+The original excerpt confirms three data paths. Generative AI can retain data in model parameters. It can process data in the live session context window. It can store data in a knowledge database for RAG.
+
+The paper says these paths create different risks. Those risks include confidentiality and legal professional privilege. This can conflict with intuition. The key question is not only whether AI is used. The key question is which layer stores or processes the data.
+
+Operational controls also follow this split. On the RAG side, deletion should cascade. That design should cover the vector DB, chunks, embeddings, and caches. Verification should include deletion logs and checks for orphaned chunks.
+
+
+The session context path has different issues. OpenAI public documentation says API data has not been used for model training by default since March 1, 2023. The same documentation says sharing for training requires explicit opt-in. It also says abuse monitoring logs may be retained by default.
+
+
+## Analysis
+
+For decisions, this issue is closer to architecture selection than product selection. If sensitive data is entered directly into prompts, training use is only one question. Logs, access, and contractual retention exceptions can matter more.
+
+If internal knowledge retrieval is the main use case, the main risk shifts. It moves toward the RAG index and vector store. In that case, deletion rights, retention periods, tenant isolation, and retrieval audit become priority reviews.
+
+There are trade-offs. Broader indexing can improve retrieval quality. It can also widen the exposure surface. Longer conversational context can improve session quality. It can also increase the need for granular log controls.
+
+In regulated sectors, the structure becomes more complex. In healthcare, PHI access restrictions are central under HIPAA Privacy and Security rules. In finance, reliability, accuracy, privacy, and integrity are important under the NIST AI RMF. In legal work, client information protection and supervision become central.
+
+Based on this research alone, no single unified rule was confirmed across those three sectors. Enterprises should design AI controls by data path. That design can sit on top of industry regulation.
+
+Another trap is merging privilege and confidentiality into one category. Confidential information does not automatically preserve privilege. Restricted access does not complete privilege review.
+
+This gap matters when vendors, logs, retrieval indexing, and supervision overlap. Legal and security judgments can diverge. Security may focus on encryption and access control. Legal teams may ask who viewed the data, which path copied it, and how deletion is proven.
+
+## Practical application
+
+What is needed is not an AI prohibition notice. What is needed is a data flow diagram. You should distinguish session context, logs, and retrieved document fragments. You should also note whether those fragments return to response generation.
+
+Then controls can be attached to each path. For sessions, confirm the default non-training setting and log retention options. For RAG, verify whether deletion reaches derived objects. For the parameter path, contracts and policy can limit training, fine-tuning, and memorization risks.
+
+If a legal organization reviews draft contracts through a public chat interface, session and log controls come first. If it uses RAG against an internal repository, indexing scope, permission checks, and deletion verification come first. In both cases, "internal use only" is not enough. The useful decision criterion is the retention path and later retrievability.
+
+**Checklist for Today:**
+
+- For each AI tool in use, map whether data flows into session context, logs, RAG, training, or several paths.
+- If you run RAG, test whether source deletion reaches chunks, embeddings, caches, and verification logs.
+- In contracts and admin settings, confirm non-training defaults, opt-in terms, retention exceptions, and access scopes.
+
+## FAQ
+
+**Q. If I delete a document placed into RAG, is everything really deleted?**
+
+That result should not be assumed. Deletion should cascade to the source document, vector DB, chunks, embeddings, and cache. Verification should use deletion logs and checks for orphaned chunks. Storage-media deletion should also be reviewed against NIST SP 800-88 Rev. 1.
+
+**Q. Is sensitive information entered into a session not used for training?**
+
+Some public documentation supports a default non-training setting with explicit opt-in. OpenAI documentation says API data has not been used for training by default since March 1, 2023. However, log retention and exception options still need separate review.
+
+**Q. Why should legal privilege and general confidentiality be reviewed separately?**
+
+The concepts can overlap, but they are not the same. Security controls can appear sufficient while privilege issues remain. Those issues can include third-party involvement, retention, access scope, and supervision. That is why legal, security, and platform teams should review the same data flow together.
+
+## Conclusion
+
+Confidentiality governance for generative AI is closer to a path question than a tool approval question. The main issue is what remains, and where it remains. If session context, RAG storage, and model parameters are not controlled separately, deletion, audit, and legal defensibility can drift apart.
+
+## Further Reading
+- [AI Conversation and Gaming Compete for User Time](/en/posts/ai-conversation-gaming-user-time)
+- [AI Resource Roundup (24h) - 2026-07-08](/en/posts/ai-resources-roundup-2026-07-08)
+- [Can Model Merging Beat Averaging in DiLoCo Aggregation](/en/posts/can-model-merging-beat-averaging-in-diloco-aggregation)
+- [Interpreting Individual Parameters In Sparse Transformer Models](/en/posts/interpreting-individual-parameters-in-sparse-transformers)
+- [How Paid and Free AI Shape Learning Gaps](/en/posts/paid-vs-free-ai-learning-gaps)
+---
+
+## References
+
+- [SP 800-88 Rev. 1, Guidelines for Media Sanitization | CSRC - csrc.nist.gov](https://csrc.nist.gov/pubs/sp/800/88/r1/final)
+- [Appendix A List of Acronyms and Abbreviations — NIST SP 1800-16 documentation - nccoe.nist.gov](https://nccoe.nist.gov/publication/1800-16/VolB/vol-b-appendix.html)
+- [Enterprise privacy at OpenAI | OpenAI - openai.com](https://openai.com/enterprise-privacy/)
+- [Data controls in the OpenAI platform - OpenAI API - platform.openai.com](https://platform.openai.com/docs/models/default-usage-policies-by-endpoint)
+- [Business data privacy, security, and compliance | OpenAI - openai.com](https://openai.com/business-data/)
+- [Health Information Privacy | HHS.gov - hhs.gov](https://www.hhs.gov/hipaa/index.html)
+- [OCR HIPAA Privacy - hhs.gov](https://www.hhs.gov/sites/default/files/ocr/privacy/hipaa/understanding/coveredentities/incidentalu%26d.pdf)
+- [AI Risk Management Framework | NIST - nist.gov](https://www.nist.gov/itl/ai-risk-management-framework)
+- [AI research | NIST - nist.gov](https://www.nist.gov/ai-research)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.05479)
