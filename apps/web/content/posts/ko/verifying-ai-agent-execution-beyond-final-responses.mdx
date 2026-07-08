@@ -1,0 +1,86 @@
+---
+title: 에이전트 실행 검증의 기준
+slug: verifying-ai-agent-execution-beyond-final-responses
+date: '2026-07-08'
+lastReviewedAt: '2026-07-08'
+locale: ko
+description: '에이전트의 답변이 아닌 실행을 검증하는 PoE의 의미와 감사 추적, 재현 가능성의 핵심을 짚는다.'
+tags:
+  - agi
+  - llm
+  - k-ai-pulse
+  - governance
+author: AI온다
+sourceId: arxiv-cs-ai-4771e9fcfe674034
+sourceUrl: 'https://arxiv.org/abs/2607.05397'
+verificationScore: 0.87
+alternateLocale: /en/posts/verifying-ai-agent-execution-beyond-final-responses
+coverImage: /images/posts/verifying-ai-agent-execution-beyond-final-responses.png
+---
+
+에이전트가 고객 데이터베이스를 조회하고, 외부 툴을 호출하고, 영속 상태까지 바꾸는데 마지막 답변만 멀쩡하면 충분할까? 이 글의 출발점은 그 질문이다. arXiv에 공개된 *Proof of Execution: Runtime Verification for Governed AI Agent Actions*는 에이전트의 “대답”이 아니라 “실행”을 검증 대상으로 다룬다. 규제 데이터 접근, 결과를 일으키는 툴 호출, 상태 변경이 섞이면 안전성의 기준도 프롬프트 품질만으로는 부족해진다. 이때 기준은 런타임 검증으로 옮겨간다.
+
+## 세 줄 요약
+
+- 핵심 쟁점은 최종 응답 품질만이 아니다. 에이전트의 각 실행 단계가 계약과 권한에 맞게 승인됐는지, 기록이 조작 방지 형태인지, 실행 경로를 다시 구성할 수 있는지가 중요하다.
+- 이런 요소는 규제 데이터 접근과 상태 변경이 있는 운영형 에이전트에서 감사 추적, 사고 조사, 책임성 입증의 기반이 된다. 로그가 있어도 조작 가능하면 한계가 있다.
+- 독자는 지금 에이전트 스택에 “출력 평가”만 있는지, 아니면 툴 호출 전 검증, 실행 기록, 재현 가능한 리플레이까지 있는지 점검해야 한다.
+
+## 현황
+
+에이전트 시스템은 이제 조언만 하지 않는다. 원문 발췌에 따르면 이 논문은 AI 에이전트가 regulated data를 조회하고, effectful tools를 호출하고, persistent state를 바꾸는 상황을 전제로 삼는다. 여기서 핵심 질문은 답변이 그럴듯한지가 아니다. 각 단계가 계약상 승인됐는지, 기록이 tamper-evident인지, 실행 궤적을 결정론적으로 복원할 수 있는지가 더 중요하다.
+
+조사 결과를 보면 이 프레임워크는 기존 오케스트레이션 스택을 갈아엎는 접근과는 거리가 있다. 논문 설명 기준으로 PoE는 consensus, TEEs, zkVMs를 대체하지 않고 authorization, effect, history, replay를 하나의 런타임 검증 객체로 묶는다. 쉽게 말해 새 에이전트 프레임워크를 하나 더 내놓는 방식이 아니다. 기존 프레임워크 위나 사이에 들어가는 검증 계층에 가깝다. 이 해석은 AEGIS가 자신을 pre-execution firewall and audit layer로 설명하는 대목과도 맞물린다.
+
+통합 가능성은 숫자로도 일부 드러난다. AEGIS는 Python, JavaScript, Go에 걸쳐 14개 agent framework를 지원한다고 밝혔다. PoE 쪽 성능 수치도 함께 언급된다. 단일 노드 TypeScript 프로토타입에서 minimal flow 기준으로 약 2.7 ms 추가 지연, concurrent batch workloads에서 4.4% overhead, 그리고 표준 8-event trace가 약 1.1 KB로 압축된다고 조사 결과는 전한다.
+
+## 분석
+
+이 논문의 핵심 메시지는 비교적 단순하다. 에이전트 시대의 검증 단위는 “문장”이 아니라 “행동”이라는 점이다. 기존 LLM 평가는 정답률, 선호도, 환각 비율 같은 출력 중심 지표에 기대는 경우가 많았다. 하지만 에이전트가 데이터 접근 권한을 잘못 쓰거나, 승인되지 않은 툴을 호출하거나, 상태를 잘못 덮어쓰면 사고는 문장 밖에서 발생한다. 이때 필요한 것은 더 나은 답변 모델만이 아니다. 어떤 권한으로 어떤 액션을 실행했고, 그 흔적을 누가 어떻게 검증할 수 있는지에 대한 운영 증빙도 필요하다.
+
+그렇다고 런타임 검증이 규제 준수를 자동으로 완성하는 것은 아니다. 조사 결과에 따르면 NIST는 배포 후 모니터링, 문서화, 로그, 추적성, 감사 가능성을 강조하지만 프레임워크 자체는 voluntary다. OECD의 AI incident reporting 논의도 사고 이해와 고위험 시스템 식별에 도움을 주는 방향이다. 로그만으로 법적 책임이 끝난다고 말하지는 않는다. 즉 PoE 같은 접근은 규제 준수의 대체재라기보다 기반 시설에 가깝다. 감사 추적을 더 단단하게 만들 수는 있어도, 법적 판단과 조직 거버넌스까지 대신하지는 못한다.
+
+또 다른 한계도 있다. 이번 조사에서 확인된 성능 수치는 단일 노드 TypeScript 프로토타입 기준이다. 2.7 ms와 4.4%는 참고할 만한 수치지만, 분산 환경이나 고빈도 툴 호출, 대규모 상태 변경에서도 같은 수준이 유지된다고 단정할 근거는 아직 없다. 지원 프레임워크 수가 14개라는 AEGIS 사례도 통합 난도를 낮출 수 있다는 신호로는 볼 수 있다. 다만 특정 오케스트레이터와의 공식 커넥터 범위까지 확인된 것은 아니다.
+
+## 실전 적용
+
+개발팀이 지금 바꿔야 할 질문은 “이 에이전트가 뭘 답했나?”가 아니다. “이 에이전트가 무엇을 실행했고, 그 실행을 사후에 증명할 수 있나?”다. 특히 고객 데이터, 재무 데이터, 의료 데이터처럼 접근 자체가 민감한 워크플로라면 출력 평가 체계만으로는 빈틈이 남는다. 툴 호출 직전 승인 검증, 실행 후 tamper-evident 로그, 그리고 재현 가능한 리플레이를 한 세트로 묶어야 한다.
+
+예: 사내 에이전트가 CRM 레코드를 수정하고 외부 티켓 시스템에 요청을 보낸다고 하자. 이때 필요한 건 “수정 성공”이라는 응답이 아니다. 누가 어떤 계약과 권한으로 CRM 쓰기 권한을 얻었는지, 외부 티켓 생성이 승인된 액션이었는지, 나중에 같은 입력과 같은 정책으로 동일 경로를 복원할 수 있는지가 운영 기준이 된다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 에이전트가 호출하는 모든 툴을 목록화하고, 각 툴에 대해 읽기, 쓰기, 상태 변경 여부를 구분하라.
+- 툴 호출 전 승인 검사와 호출 후 실행 로그가 분리돼 있다면, 둘을 같은 감사 객체로 묶을 수 있는지 검토하라.
+- 사고 대응 문서에 “최종 출력 캡처”만 넣지 말고, 실행 경로 재구성과 로그 무결성 검증 절차를 추가하라.
+
+## FAQ
+
+**Q. 이 논문은 기존 에이전트 프레임워크를 대체하나요?**  
+아닙니다. 조사 결과 기준으로는 기존 오케스트레이션·툴 호출 스택을 대체하기보다 그 위나 사이에 검증·감사 계층으로 통합되는 접근에 가깝습니다.
+
+**Q. tamper-evident 로그를 붙이면 성능 비용이 너무 크지 않나요?**  
+현재 확인된 수치만 보면 꼭 그렇지는 않습니다. PoE는 단일 노드 TypeScript 프로토타입에서 minimal flow 기준 약 2.7 ms 추가 지연과 concurrent batch workloads 기준 4.4% overhead를 보고했습니다. 다만 분산 환경에서 같은 수준이 유지되는지는 이번 조사만으로 확인되지 않습니다.
+
+**Q. 런타임 검증만 도입하면 규제 준수를 입증할 수 있나요?**  
+그렇게 보기는 어렵습니다. NIST와 OECD 관련 자료를 보면 런타임 검증은 모니터링, 추적성, 감사, 사고 조사에 기여하지만, 최종 규제 판단이나 법적 책임 입증에는 별도 거버넌스와 적합성 체계가 함께 필요합니다.
+
+## 결론
+
+에이전트가 실행하는 시대에는 “좋은 답변”보다 “검증 가능한 행동”이 더 중요해진다. PoE가 던지는 메시지도 여기에 있다. 다음 경쟁력은 더 똑똑한 액션만이 아니다. 그 액션을 승인하고, 기록하고, 재현할 수 있는 운영 신뢰도 함께 중요하다.
+
+## 다음으로 읽기
+- [AI 대화와 게임의 경계](/ko/posts/ai-conversation-gaming-user-time)
+- [AI 자료 모음 (24h) - 2026-07-08](/ko/posts/ai-resources-roundup-2026-07-08)
+- [DiLoCo 집계, 평균이 최선일까](/ko/posts/can-model-merging-beat-averaging-in-diloco-aggregation)
+- [에이전트가 빠를수록 배움은 줄까](/ko/posts/coding-agents-speed-up-learning-slows)
+- [AI 데이터 경로별 통제](/ko/posts/control-ai-data-risks-by-storage-path)
+---
+
+## 참고 자료
+
+- [AI RMF Playbook - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+- [Artificial Intelligence Risk Management Framework (AI RMF 1.0) | NIST - nist.gov](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10)
+- [Towards a common reporting framework for AI incidents - oecd.org](https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/02/towards-a-common-reporting-framework-for-ai-incidents_8c488fdb/f326d4ac-en.pdf)
+- [Artificial Intelligence in Software as a Medical Device | FDA - fda.gov](https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-software-medical-device)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.05397)
+- [AEGIS: No Tool Call Left Unchecked -- A Pre-Execution Firewall and Audit Layer for AI Agents - arxiv.org](https://arxiv.org/abs/2603.12621)

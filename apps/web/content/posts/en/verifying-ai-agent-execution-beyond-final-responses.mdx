@@ -1,0 +1,90 @@
+---
+title: Verifying AI Agent Execution Beyond Final Responses
+slug: verifying-ai-agent-execution-beyond-final-responses
+date: '2026-07-08'
+lastReviewedAt: '2026-07-08'
+locale: en
+description: >-
+  Why agent safety must verify execution, tool use, and state changes, not just
+  final responses.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - k-ai-pulse
+  - governance
+author: AI온다
+sourceId: arxiv-cs-ai-4771e9fcfe674034
+sourceUrl: 'https://arxiv.org/abs/2607.05397'
+verificationScore: 0.87
+alternateLocale: /ko/posts/verifying-ai-agent-execution-beyond-final-responses
+coverImage: /images/posts/verifying-ai-agent-execution-beyond-final-responses.png
+---
+
+## TL;DR
+
+- This article examines runtime verification for AI agents that access data, call tools, and change persistent state.
+- It matters because output quality alone may not explain whether actions were authorized, recorded, and later reconstructed.
+- Review your agent stack for pre-call checks, tamper-evident records, and reproducible replay beyond output evaluation.
+
+A customer record changes after an agent tool call, and the final reply still looks correct. This article starts from that situation. *Proof of Execution: Runtime Verification for Governed AI Agent Actions*, published on arXiv, treats execution, not only answers, as the verification target. When regulated data access, effectful tool calls, and state changes are involved, prompt quality alone is not a sufficient safety standard. In those cases, the focus shifts toward runtime verification.
+
+Example: An internal agent updates customer records and contacts an outside support system. The reply appears normal. The important question is whether each action was authorized, recorded, and later replayed.
+
+## Current state
+
+Agent systems no longer only provide advice. The cited excerpt assumes agents that query regulated data, call effectful tools, and modify persistent state. The key question is not whether the answer sounds plausible. A more important question is whether each step was authorized, whether the record is tamper-evident, and whether the execution path can be reconstructed.
+
+Based on the findings, this framework does not replace the existing orchestration stack. The paper says PoE does not replace consensus, TEEs, or zkVMs. Instead, it combines authorization, effect, history, and replay into one runtime verification object. Put simply, it is not another agent framework. It is closer to a verification layer above or between existing frameworks. This reading also matches AEGIS, which describes itself as a pre-execution firewall and audit layer.
+
+Some integration potential appears in the reported numbers. AEGIS said it supports 14 agent frameworks across Python, JavaScript, and Go. The PoE findings also report performance figures. In a single-node TypeScript prototype, added latency was about 2.7 ms for a minimal flow. Overhead was 4.4% for concurrent batch workloads. A standard 8-event trace compressed to about 1.1 KB.
+
+## Analysis
+
+The paper’s main point is fairly simple. In agent systems, the unit of verification is the action, not the sentence. Existing LLM evaluation often uses output-centered metrics like accuracy, preference, and hallucination rate. But some failures happen outside the sentence. Examples include unauthorized data access, unauthorized tool use, or incorrect state changes. In those cases, a better answer model is not enough. Teams also need operational evidence about executed actions, applied permissions, and trace verification.
+
+That said, runtime verification does not by itself complete regulatory compliance. According to the findings, NIST emphasizes post-deployment monitoring, documentation, logging, traceability, and auditability. The framework itself is voluntary. OECD discussions on AI incident reporting also focus on incident understanding and identifying high-risk systems. They do not suggest that logs alone settle legal responsibility. In that sense, PoE is closer to infrastructure than a compliance substitute. It can strengthen audit trails. It cannot replace legal judgment or organizational governance.
+
+There is another limitation. The reported performance figures come from a single-node TypeScript prototype. The 2.7 ms and 4.4% figures are useful reference points. However, this review does not confirm the same results in distributed environments. It also does not confirm them for high-frequency tool calls or large-scale state changes. The AEGIS example, with support for 14 frameworks, may suggest lower integration difficulty. However, this review did not confirm the exact scope of official connectors for specific orchestrators.
+
+## Practical application
+
+Development teams may need a different question. Instead of asking, “What did this agent answer?” they can ask, “What did this agent execute, and can we prove it later?” In workflows involving sensitive access, output evaluation alone can leave gaps. That includes customer data, financial data, and medical data. Pre-execution approval checks, tamper-evident logs, and reproducible replay should be considered together.
+
+**Checklist for Today:**
+- Inventory each agent tool, and classify whether it reads data, writes data, or changes state.
+- Review whether pre-call authorization checks and post-call logs can become one audit object.
+- Add execution-path reconstruction and log-integrity verification to incident response documentation.
+
+## FAQ
+
+**Q. Does this paper replace existing agent frameworks?**  
+No. Based on the findings, it is closer to a verification and audit layer above or between existing orchestration and tool-calling stacks.
+
+**Q. Doesn’t adding tamper-evident logs make the performance cost too high?**  
+Based on the confirmed figures alone, that is not clear. PoE reported about 2.7 ms of added latency for a minimal flow. It also reported 4.4% overhead for concurrent batch workloads in a single-node TypeScript prototype. This review did not confirm whether similar results hold in distributed environments.
+
+**Q. If we adopt runtime verification alone, can we demonstrate regulatory compliance?**  
+That would be difficult to claim. Based on the cited NIST and OECD materials, runtime verification can support monitoring, traceability, auditing, and incident investigation. Separate governance and compliance frameworks are still needed for final regulatory determinations and legal responsibility.
+
+## Conclusion
+
+When agents execute actions, verifiable behavior can matter more than a polished answer. That is the central message attributed to PoE. Smarter actions matter. So does the operational trust needed to authorize, record, and reproduce those actions.
+
+## Further Reading
+- [AI Conversation and Gaming Compete for User Time](/en/posts/ai-conversation-gaming-user-time)
+- [AI Resource Roundup (24h) - 2026-07-08](/en/posts/ai-resources-roundup-2026-07-08)
+- [Can Model Merging Beat Averaging in DiLoCo Aggregation](/en/posts/can-model-merging-beat-averaging-in-diloco-aggregation)
+- [When Coding Agents Speed Up but Learning Slows](/en/posts/coding-agents-speed-up-learning-slows)
+- [Control AI Data Risks by Storage Path](/en/posts/control-ai-data-risks-by-storage-path)
+---
+
+## References
+
+- [AI RMF Playbook - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf)
+- [Artificial Intelligence Risk Management Framework (AI RMF 1.0) | NIST - nist.gov](https://www.nist.gov/publications/artificial-intelligence-risk-management-framework-ai-rmf-10)
+- [Towards a common reporting framework for AI incidents - oecd.org](https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/02/towards-a-common-reporting-framework-for-ai-incidents_8c488fdb/f326d4ac-en.pdf)
+- [Artificial Intelligence in Software as a Medical Device | FDA - fda.gov](https://www.fda.gov/medical-devices/software-medical-device-samd/artificial-intelligence-software-medical-device)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.05397)
+- [AEGIS: No Tool Call Left Unchecked -- A Pre-Execution Firewall and Audit Layer for AI Agents - arxiv.org](https://arxiv.org/abs/2603.12621)
