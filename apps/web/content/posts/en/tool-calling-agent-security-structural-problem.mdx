@@ -1,0 +1,88 @@
+---
+title: Why Tool-Calling Agent Security Is a Structural Problem
+slug: tool-calling-agent-security-structural-problem
+date: '2026-07-08'
+lastReviewedAt: '2026-07-08'
+locale: en
+description: >-
+  Why text-driven tool calls make AI agent delegation a structural security
+  issue, backed by refusal-rate evidence.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+  - mcp
+  - prompt-injection
+author: AI온다
+sourceId: arxiv-cs-ai-392ee2bc1f46417e
+sourceUrl: 'https://arxiv.org/abs/2607.05518'
+verificationScore: 0.88
+alternateLocale: /ko/posts/tool-calling-agent-security-structural-problem
+coverImage: /images/posts/tool-calling-agent-security-structural-problem.png
+---
+
+
+## TL;DR
+
+- This is about tool-using AI agents making authorization decisions from unverifiable text, across 15 models and 8 attacks.
+- It matters because refusal rates ranged from 100% to 38%, and a 20-times cost increase still blocked only half.
+- Readers should add a separate authorization layer, verify identities and delegation scope, and keep structured audit logs.
+
+Example: A work assistant reads a message claiming approval and tries to use a sensitive tool. A separate authorization check reviews identity and scope before execution. The tool action pauses when the evidence does not match the claim.
+
+## Current state
+
+The discussion starts with the arXiv paper `aiAuthZ: Off-Host, Identity-Bound Authorization for AI Agents`. According to the provided excerpt, the study centers on agents invoking tools from “unverifiable text.” If someone controls part of the context, they can insert language that appears authorized. That can let them manipulate the agent. This suggests the weakness is not only one branch of prompt injection. It also affects how authorization decisions are made.
+
+The numbers are also specific. Based on the cited excerpt, the evaluation covered **15** language models and **8** attack scenarios. Refusal rates of the fully evaluated models ranged from **100%** to **38%**. The defense-to-cost ratio is also notable. The excerpt states that the most expensive model rejected only **half** of the attacks, while costing **20 times** more. That weakens the assumption that a more expensive model leads to safer delegation.
+
+This research meets operational practice without abandoning MCP or existing tool-use patterns. According to the findings, a more direct approach is to place a separate authorization layer outside the MCP server. This layer verifies user identity, agent identity, the delegation chain, and invocation context for each tool call. The related research says identity, attenuated authorization, and provenance binding are required. Put simply, the goal is to judge who invoked what, on whose behalf, to what extent, and through what path. That judgment should rely on evidence rather than text.
+
+## Analysis
+
+This shift matters because agents are moving beyond the chat window. They can modify calendars, read files, and invoke external systems. In a search-style chatbot, a wrong answer may remain an inconvenience. In a tool-calling agent, a mistaken authorization decision can lead to execution. If delegation remains tied to natural language, attackers may target context poisoning instead of authentication. In that setting, whether the model can refuse is a secondary safeguard. It does not appear reliable enough to be the final control point.
+
+That is why off-host authorization is drawing attention. According to the findings, designs aiming for stronger help ensure place an authorization validation layer before tool execution and intercept every call. This layer returns outcomes such as **ALLOW**, **DENY**, and **REQUIRE_CONFIRM**. Permissions are expressed in an explicit, auditable, and revocable form, not as text sentences. There are valid counterarguments. This structure increases system complexity. It can also make the user experience heavier. The more tightly the delegation chain is verified, the greater the integration cost becomes. Also, based on the current findings alone, it is too early to say any single implementation is an industry standard. The design principles appear relatively clear. Implementation patterns still depend heavily on each stack’s limits.
+
+## Practical application
+
+For production teams, the priority order should change. Before asking, “Does the model reliably refuse dangerous requests?” teams should ask, “If the model fails to refuse, can execution still be blocked?” The findings place greater weight on using LLM guardrails as a secondary layer. A separate Policy Decision Point should verify consistency between user intent and permitted actions. Structured logging is also important. For post-incident audits, agent action, tool invocation, context snapshot, and schema version should be recorded in a tamper-resistant form.
+
+**Checklist for Today:**
+- Place a central authorization gate before every tool call, and return outcomes such as ALLOW, DENY, or REQUIRE_CONFIRM.
+- Keep permissions out of prompt text, and use separate credentials or policy objects for identity and delegation scope.
+- Record context snapshot, invoked tool, input parameters, decision outcome, and policy version in structured, tamper-resistant logs.
+
+## FAQ
+
+**Q. If model performance improves, will this problem naturally be resolved?**  
+Not necessarily. Based on the provided excerpt, refusal performance varies widely by model. Even high-cost models rejected only **half** of the attacks. Performance improvements may help. If authorization relies only on model judgment, meaningful residual risk remains.
+
+**Q. Do we need to largely replace existing MCP-based tool systems?**  
+That does not appear necessary. Based on the findings, the more direct approach is to attach a separate authorization layer outside MCP. That layer verifies identity, delegation chain, and context for each tool call.
+
+**Q. How much logging should be retained?**  
+Based on the search findings, a reasonable approach is to preserve execution context such as agent action, tool invocation, context snapshot, and schema version in structured, tamper-resistant logs. However, prompt fragment retention should be decided separately. Privacy and security requirements should guide that decision.
+
+## Conclusion
+
+The core of agent security is not making sure the model cannot be fooled. It is making sure execution does not occur even if the model is fooled. A key differentiator may be how far teams move beyond text-based authorization decisions. Another may be whether they can deploy identity-bound authorization and an independent policy enforcement layer at a realistic cost.
+
+## Further Reading
+- [AI Conversation and Gaming Compete for User Time](/en/posts/ai-conversation-gaming-user-time)
+- [AI Resource Roundup (24h) - 2026-07-08](/en/posts/ai-resources-roundup-2026-07-08)
+- [Can Model Merging Beat Averaging in DiLoCo Aggregation](/en/posts/can-model-merging-beat-averaging-in-diloco-aggregation)
+- [When Coding Agents Speed Up but Learning Slows](/en/posts/coding-agents-speed-up-learning-slows)
+- [Control AI Data Risks by Storage Path](/en/posts/control-ai-data-risks-by-storage-path)
+---
+
+## References
+
+- [A practical guide to building agents | OpenAI - openai.com](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/)
+- [Running Codex safely at OpenAI | OpenAI - openai.com](https://openai.com/index/running-codex-safely/)
+- [NIST SP 800-171 Rev. 3 - nvlpubs.nist.gov](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-171r3.pdf)
+- [AIP: Agent Identity Protocol for Verifiable Delegation Across MCP and A2A - arxiv.org](https://arxiv.org/abs/2603.24775)
+- [AgentBound: Verifiable Behavioral Governance for Autonomous AI Agents - arxiv.org](https://arxiv.org/abs/2606.30970)
+- [Digital Identity for Agentic Systems: Toward a Portable Authorization Standard for Autonomous Agents - arxiv.org](https://arxiv.org/abs/2605.11487)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.05518)
