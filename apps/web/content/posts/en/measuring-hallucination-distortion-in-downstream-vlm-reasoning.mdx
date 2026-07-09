@@ -1,0 +1,101 @@
+---
+title: Measuring How Hallucinations Distort Downstream Vision-Language Reasoning
+slug: measuring-hallucination-distortion-in-downstream-vlm-reasoning
+date: '2026-07-09'
+lastReviewedAt: '2026-07-09'
+locale: en
+description: >-
+  HIVE evaluates how vision-language hallucinations propagate into later
+  reasoning and distort downstream predictions.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-6fddf457a3a546ac
+sourceUrl: 'https://arxiv.org/abs/2607.07507'
+verificationScore: 0.83
+alternateLocale: /ko/posts/measuring-hallucination-distortion-in-downstream-vlm-reasoning
+coverImage: >-
+  /images/posts/measuring-hallucination-distortion-in-downstream-vlm-reasoning.png
+---
+
+## TL;DR
+
+- HIVE evaluates VLM hallucination beyond generation errors and tests post-hallucination reasoning with controlled caption pairs.
+- This matters because one wrong caption can shift later prediction, planning, or tool selection in multi-step systems.
+- Compare faithful and hallucinated context for the same input, then track judgment changes before deployment.
+
+A single incorrect image caption can alter later reasoning across several steps. HIVE examines that risk directly. It does not treat hallucination as only a generation-time error. It studies what happens after incorrect meaning enters later context.
+
+Example: A support agent reads an image, adopts a mistaken caption, and then follows that mistake through later decisions.
+
+The core idea is simple. The question is not only whether hallucination was caught. The question is how much an uncaught hallucination affects later judgments. As multimodal agents and tool use increase, this issue reaches beyond quality evaluation. It also relates to operational risk management.
+
+## TL;DR
+
+- HIVE treats VLM hallucination as a problem that can continue into later reasoning stages. It evaluates Post Hallucination Reasoning through controlled comparisons between faithful and hallucinated captions.
+- This perspective matters because hallucination may not end when it appears. It can alter downstream prediction. In agent, tool-use, and long-context settings, the reliability cost may increase.
+- Hallucination evaluation should not stop at one final accuracy metric. It should also test how much judgment shifts when only the explanatory context changes for the same input. Decision rules can then be reconsidered on that basis.
+
+## Current status
+
+VLM hallucination evaluation has mainly focused on the point of generation. Typical checks ask whether the model mentioned a missing object. They also ask whether image and text were misaligned. Another check is whether the final answer was correct.
+
+HIVE extends that frame by one step. According to the paper abstract and searchable full text, it creates controlled pairs of faithful and hallucinated captions. It then compares downstream prediction changes under the same conditions.
+
+
+This concern also connects with other work. According to the investigation results, related studies discuss multimodal hallucination snowballing, hallucination propagation, and tool hallucination. However, this investigation does not support a broad conclusion. It does not show that existing mitigation methods also reduce later error propagation.
+
+## Analysis
+
+The paper shifts the unit of evaluation. A common question was, "Did the model say something wrong?" PHR asks, "How does that wrong statement affect later judgment?" That difference is meaningful.
+
+Multimodal agents often reuse one description as input for the next step. Tool-using models can work the same way. A small hallucination in the first step can influence later planning. It can also affect tool selection and verification order. The final failure may appear well after the first sentence.
+
+There is also a counterargument. Controlled pairwise comparison helps isolate causes. However, it may not capture the full complexity of operating environments. Real systems do not rely on captions alone. Past dialogue, tool outputs, intermediate notes, and user instructions can all shape context.
+
+For that reason, HIVE is an important starting point. Still, it would be excessive to read these results as direct risk figures for all multimodal systems. Based on the search results, not all dataset-specific formulas and metric names were fully confirmed. Reproduction experiments within each organization should come before adoption.
+
+## Practical application
+
+One practical change is to add another column to the model selection table. Put post-hallucination reasoning sensitivity beside accuracy, latency, and cost. The method can stay simple. For the same image or scene, provide both faithful context and partially hallucinated context. Then compare the results for question answering, classification, or tool selection.
+
+If the gap is large, that model can be a warning sign in an agent pipeline. That can be true even if its first output looks plausible. This test focuses on downstream sensitivity, not only first-pass quality.
+
+**Checklist for Today:**
+- For the same visual input, compare faithful context and hallucinated context, then record any change in final judgment.
+- Identify which reused text enters the next stage, including captions, notes, and tool outputs.
+- Add a warning rule for conflicts between intermediate reasoning context and visual evidence.
+
+## FAQ
+
+**Q. Is the core of this study to look beyond hallucination detection and focus on reasoning after hallucination?**  
+Yes. Based on the investigation results, HIVE does not stop at finding hallucination itself. It measures how hallucinated meaning changes downstream prediction after entering later reasoning context.
+
+**Q. If we use existing hallucination mitigation techniques, does that solve this problem as well?**  
+A definitive conclusion is difficult. The search results indicate that existing techniques mainly target hallucination at generation time. No comprehensive conclusion was confirmed that they also reduce later error propagation consistently.
+
+**Q. Where is this problem more likely to become severe?**  
+It may accumulate more in multimodal agents, tool use, and long-context settings. However, this investigation did not confirm direct comparative evidence across all environments.
+
+## Conclusion
+
+Hallucination is not only a quality issue in one output line. It can also become a state-management issue across later reasoning. That is the question HIVE raises. VLM evaluation should examine not only what the model saw. It should also examine how later reasoning changes after one mistaken description.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-09](/en/posts/ai-resources-roundup-2026-07-09)
+- [Continual Learning for Adaptive Modular Soft Robot Control](/en/posts/continual-learning-adaptive-modular-soft-robot-control)
+- [How Deployment Rules Shift Multi-Agent AI Safety](/en/posts/deployment-rules-multi-agent-ai-safety)
+- [Gimitest Framework for Testing RL Policy Failures](/en/posts/gimitest-framework-testing-rl-policy-failures)
+- [Injecting Process Semantics Into Time Series Forecasting](/en/posts/injecting-process-semantics-into-time-series-forecasting)
+---
+
+## References
+
+- [Investigating and Mitigating the Multimodal Hallucination Snowballing in Large Vision-Language Models - huggingface.co](https://huggingface.co/papers/2407.00569)
+- [Generate, but Verify: Reducing Hallucination in Vision-Language Models with Retrospective Resampling - huggingface.co](https://huggingface.co/papers/2504.13169)
+- [Mitigating Multimodal Hallucination via Phase-wise Self-reward - huggingface.co](https://huggingface.co/papers/2604.17982)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.07507)
+- [Reducing Tool Hallucination via Reliability Alignment - arxiv.org](https://arxiv.org/abs/2412.04141)
