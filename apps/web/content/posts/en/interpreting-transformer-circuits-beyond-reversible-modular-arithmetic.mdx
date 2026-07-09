@@ -1,0 +1,96 @@
+---
+title: Interpreting Transformer Circuits Beyond Reversible Modular Arithmetic
+slug: interpreting-transformer-circuits-beyond-reversible-modular-arithmetic
+date: '2026-07-09'
+lastReviewedAt: '2026-07-09'
+locale: en
+description: >-
+  A look at transformer circuit analysis for composite modular multiplication,
+  extending interpretation beyond reversible operations.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-004e6aab24685516
+sourceUrl: 'https://arxiv.org/abs/2607.07066'
+verificationScore: 0.75
+alternateLocale: >-
+  /ko/posts/interpreting-transformer-circuits-beyond-reversible-modular-arithmetic
+coverImage: >-
+  /images/posts/interpreting-transformer-circuits-beyond-reversible-modular-arithmetic.png
+---
+
+In composite modular multiplication, zero-divisors break global invertibility. This paper studies that setting. It extends analysis beyond reversible tasks like cyclic addition and group operations.
+
+## TL;DR
+
+- This paper examines transformer multiplication circuits in composite modular settings, where zero-divisors make the operation irreversible.
+- This matters because accuracy and internal mechanism can differ, and basis choice can change what the circuit reveals.
+- Readers should evaluate accuracy alongside circuit structure, choose a basis that fits the task, and inspect OOD behavior carefully.
+
+Example: A team sees strong validation accuracy on a symbolic task. They then inspect internal representations in a different basis. The model no longer looks noisy. A compact circuit becomes easier to analyze.
+
+A transformer getting the right answer and using a specific internal circuit are different questions. Accuracy alone is not enough for algorithm learning, generalization, and safety evaluation. A representation that looks noisy in one basis can look compact in another.
+
+## Current status
+
+What is clear from the excerpt is this: the paper studies small transformers learning modular integer multiplication over composite moduli. The authors contrast this with globally invertible operations from earlier mechanistic interpretability work. Multiplication modulo a composite is not globally invertible because of zero-divisors.
+
+The next question is whether this mechanism extends beyond composite modular multiplication. Based on the available findings, that is not yet well established. Related papers say the methodology generalizes. They also say the right basis principle extends naturally. They mention preliminary follow-up results on modular exponentiation. At the same time, they describe the mechanism as under active investigation.
+
+Its link to nearby research is similarly limited. The available results suggest a conditional answer, not a categorical one. One arithmetic study says small transformers trained from scratch can approach near-perfect accuracy on multi-digit arithmetic. It also says their implementation differs from large language models. A connection may exist. The evidence does not yet show the same circuit.
+
+## Analysis
+
+
+These details matter for interpretation. The same model can look like pattern memorization in one basis. In another basis, it can look like a structural circuit. That does not settle the mechanism fully. It does show why analytical method can change the conclusion.
+
+This also affects generalization and OOD evaluation. Related grokking work notes that implicit reasoning does not emerge automatically. Models can still fail on some compositional OOD problems. So evaluation should not stop at one accuracy table. A correct answer inside the training distribution does not identify the circuit used. We still need to ask whether the model formed a sparse circuit aligned with the task structure.
+
+The current limits are also clear. The available evidence centers on small transformers. It centers on composite modular multiplication. It also covers only a limited set of follow-up tasks. The connection to larger models remains open. The connection to a wider range of irreversible operations also remains open.
+
+## Practical application
+
+Developers and researchers can read this paper as more than performance news. A practical reading starts with the task structure. Then it selects an analysis basis that fits that structure. Then it inspects sparsity, decomposability, and circuit stability in internal representations. Tools designed for cyclic addition may miss important features of irreversible operations.
+
+If a team trains a model on rule-based computation, state transitions, or compositional operations, high validation accuracy should not end the review. The team should ask whether the model learned superficial patterns or decomposed the task structure. Related cases with 0.58 vs. 0.07 suggest that this distinction can depend on method, not only interpretation.
+
+**Checklist for Today:**
+
+- Separate current tasks into reversible and irreversible operations, and record a matching analysis basis for each.
+- Add interpretability fields beside validation accuracy, including sparsity, key components, and circuit consistency.
+- In OOD tests, log activation stability along with answer accuracy for comparable input groups.
+
+## FAQ
+
+**Q. Can we already assume that this paper applies to other irreversible operations as well?**
+
+Not yet. The available findings do not validate the same mechanism across irreversible algorithmic tasks beyond composite modular multiplication. Related work mentions extension and preliminary modular exponentiation results. It also says the mechanism remains under investigation.
+
+**Q. Can we say that the multiplication circuit in small transformers also exists unchanged in large language models?**
+
+It is still hard to say that. The available results suggest possible links between small-model arithmetic circuits and larger-model interpretation. No direct evidence here shows an identical multiplication circuit in large models.
+
+**Q. How should this research be used in practice?**
+
+Accuracy metrics should be paired with interpretability metrics. After choosing a basis that fits the task structure, teams can check for sparse circuits and stable internal representations. This is especially useful when OOD performance matters.
+
+## Conclusion
+
+The significance of this paper lies less in multiplication alone. It lies in extending interpretability toward irreversible operations. If circuit analysis moves beyond reversible toy problems, then performance numbers may be only part of the story. The internal structure learned by the model may matter just as much.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-09](/en/posts/ai-resources-roundup-2026-07-09)
+- [PCBWorld Redefines Evaluation for Engine-Grounded PCB Routing AI](/en/posts/pcbworld-engine-grounded-pcb-routing-ai-evaluation)
+- [VASP Agent for Reliable Scientific Computation Workflows](/en/posts/vasp-agent-reliable-scientific-computation-workflows)
+- [AI Conversation and Gaming Compete for User Time](/en/posts/ai-conversation-gaming-user-time)
+- [AI Resource Roundup (24h) - 2026-07-08](/en/posts/ai-resources-roundup-2026-07-08)
+---
+
+## References
+
+- [Understanding Addition and Subtraction in Transformers - huggingface.co](https://huggingface.co/papers/2402.02619)
+- [The Discrete-Log Clock: How a Transformer Learns Modular Multiplication - arxiv.org](https://arxiv.org/abs/2606.17399)
+- [Grokked Transformers are Implicit Reasoners: A Mechanistic Journey to the Edge of Generalization - arxiv.org](https://arxiv.org/pdf/2405.15071)
+- [Unlocking Out-of-Distribution Generalization in Transformers via Recursive Latent Space Reasoning - arxiv.org](https://arxiv.org/abs/2510.14095)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.07066)
