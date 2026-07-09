@@ -1,0 +1,150 @@
+---
+title: What Really Matters in Backend Code Evaluation
+slug: what-really-matters-in-backend-code-evaluation
+date: '2026-07-09'
+lastReviewedAt: '2026-07-09'
+locale: en
+description: >-
+  Why backend evaluation should prioritize SSOT consistency and catching
+  critical PR-stage defects over raw code generation.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: '1300925'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1300925'
+verificationScore: 0.9
+alternateLocale: /ko/posts/what-really-matters-in-backend-code-evaluation
+coverImage: /images/posts/what-really-matters-in-backend-code-evaluation.png
+---
+
+A pull request can pass tests and still ship a backend design defect. Public documentation suggests coding tools now cover more than code generation.
+
+## TL;DR
+
+- Coding tools now combine code writing, review, test execution, PR preparation, and tool use in one workflow.
+- This matters because test-passing code can still break SSOT, permissions, or data consistency in production.
+- Separate backend evaluation from coding benchmarks, and add PR intent, design, and defect checks.
+
+Example: A team merges a clean pull request after tests pass. Later, two services disagree about order status because state moved into two places.
+
+## Current State
+
+According to public documentation, coding model roles have expanded. OpenAI help documentation describes Codex as helping “write, review, and ship code.”
+
+Business documentation describes a broader engineering workflow. The agent plans changes, writes code, runs tests, and prepares PRs.
+
+Agent documentation describes custom workflows with attached tools. These include the Responses API, Agents SDK, file search, web search, and computer use.
+
+Context and tool design appear to be moving together. OpenAI's Models documentation lists context windows of 1M for GPT-5.5 and the GPT series.
+
+The same documentation lists 400K for the GPT series mini. All three models support Functions, Web search, File search, and Computer use.
+
+Responses API documentation says reasoning models can call tools and functions during reasoning. Codex upgrade documentation says it compares PR intent with the actual diff.
+
+The same Codex material says it reviews the codebase with dependencies. It also runs code and tests.
+
+
+
+
+On bug detection, EVMbench evaluates detection, patching, and exploitation capability. NIST's SATE VI ran security-focused bug detection evaluations from 2018 through 2023.
+
+## Analysis
+
+Practitioners can miss an important trap. HumanEval-style benchmarks measure whether a function passes tests.
+
+Backend teams often face larger system problems. Permission systems, data models, cache policy, event schema, and audit logs should express the same facts.
+
+Once SSOT breaks, local success can hide system conflict. Each function can pass while the overall system disagrees with itself.
+
+This helps explain the focus on long context and tools. File search, code execution, and PR comparison support project-level consistency.
+
+Maintaining project context is often harder than generating one function. That difference matters for backend evaluation.
+
+That said, splitting generation and review does not solve everything. Public materials do not directly report practical metrics for PR-stage P0 or P1 defect reduction.
+
+This gap matters. Vendors describe writing, planning, testing, and review, but backend teams often need narrower answers.
+
+The key questions are more operational. Can the system catch design violations after tests pass?
+
+Can it catch mismatches between PR description and diff? Can it avoid creating duplicate state during refactoring?
+
+Public benchmark scores can help as a starting point. Teams should still create and measure their own backend task sets.
+
+## Practical Application
+
+The operational strategy starts with failure definition. Before choosing one agent or separate models, define what failure means.
+
+In backend systems, design violations often cost more than syntax errors. Evaluation can focus less on CRUD tasks and more on system defects.
+
+Useful targets include duplicated state and missing authorization. They also include transaction boundary errors, schema-API mismatches, and omitted event publication.
+
+For a restructuring task, the scorecard framing matters. “Feature implementation complete” can distort the result.
+
+Check whether order status SSOT stays in one place. Check whether the PR description matches the actual migration.
+
+Check whether an authorization bypass remains after tests pass. These criteria can divide responsibilities more usefully.
+
+A generation model can draft quickly. A review model or rule-based checker can still help reduce architectural cracks.
+
+**Checklist for Today:**
+- Separate backend evaluation from functional coding problems, and include SSOT, authorization, and data consistency cases.
+- Add PR intent versus implementation alignment to review criteria, and inspect description, diff, and test results together.
+- Compare HumanEval-style scores with SWE-bench family results, bug detection tasks, and internal defect reproduction tasks.
+
+## FAQ
+
+**Q. If a model has a high code generation score, can we assume it is equally strong at backend implementation?**
+
+Not necessarily. Test-based generation benchmarks show function-level capability.
+
+Backend systems depend more on state management and authorization. Data consistency and service boundaries also matter.
+
+That is why a separate backend evaluation set helps.
+
+**Q. Is it safer to separate a generation model and a review model?**
+
+It may be safer in some cases. Safety does not improve automatically.
+
+Public documentation says coding agents already combine planning, writing, testing, and PR preparation. The main question is which defects the review stage catches.
+
+The next question is whether those review results are measured.
+
+**Q. Is it sufficient to choose a model based only on official benchmarks?**
+
+Not usually. HumanEval, SWE-bench, SWE-Lancer, and EVMbench can provide a starting point.
+
+They do not directly represent your internal backend rules. They also do not capture your incident patterns.
+
+Validation on your own codebase should run in parallel.
+
+## Conclusion
+
+Evaluation should move from “how well they write” toward “how little they break.” This shift is especially relevant for backend systems.
+
+Public documentation shows expanding context, tool calling, test execution, and PR review features. That makes design consistency and defect suppression more important than raw generation speed.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-09](/en/posts/ai-resources-roundup-2026-07-09)
+- [Interpreting Transformer Circuits Beyond Reversible Modular Arithmetic](/en/posts/interpreting-transformer-circuits-beyond-reversible-modular-arithmetic)
+- [PCBWorld Redefines Evaluation for Engine-Grounded PCB Routing AI](/en/posts/pcbworld-engine-grounded-pcb-routing-ai-evaluation)
+- [Reusable Skills for Better AI Data Science Workflows](/en/posts/reusable-skills-ai-data-science-workflows)
+- [VASP Agent for Reliable Scientific Computation Workflows](/en/posts/vasp-agent-reliable-scientific-computation-workflows)
+---
+
+## References
+
+- [Using Codex with your ChatGPT plan | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/11369540-using-codex-with-chatgpt)
+- [OpenAI for Software Engineering | OpenAI - openai.com](https://openai.com/business/solutions/engineering/)
+- [Solutions for agentic workflows | OpenAI - openai.com](https://openai.com/solutions/use-case/agents/)
+- [Models | OpenAI API - developers.openai.com](https://developers.openai.com/api/docs/models)
+- [New tools and features in the Responses API | OpenAI - openai.com](https://openai.com/index/new-tools-and-features-in-the-responses-api/)
+- [Introducing upgrades to Codex | OpenAI - openai.com](https://openai.com/index/introducing-upgrades-to-codex/)
+- [Addendum to GPT-5.2 System Card: GPT-5.2-Codex - cdn.openai.com](https://cdn.openai.com/pdf/ac7c37ae-7f4c-4442-b741-2eabdeaf77e0/oai_5_2_Codex.pdf)
+- [How OpenAI uses Codex | OpenAI - openai.com](https://openai.com/business/guides-and-resources/how-openai-uses-codex/)
+- [Industry Benchmarks — NVIDIA NeMo Platform Documentation - docs.nvidia.com](https://docs.nvidia.com/nemo/microservices/latest/evaluator/benchmarks/industry.html)
+- [Introducing SWE-bench Verified | OpenAI - openai.com](https://openai.com/index/introducing-swe-bench-verified/)
+- [Introducing the SWE-Lancer benchmark | OpenAI - openai.com](https://openai.com/index/introducing-swe-lancer/)
+- [Introducing EVMbench | OpenAI - openai.com](https://openai.com/index/introducing-evmbench/)
+- [SATE VI Report: Bug Injection and Collection | NIST - nist.gov](https://www.nist.gov/publications/sate-vi-report-bug-injection-and-collection)
