@@ -1,0 +1,100 @@
+---
+title: Three Axes for Comparing Korean LLM Performance
+slug: three-axes-korean-llm-performance
+date: '2026-07-10'
+lastReviewedAt: '2026-07-10'
+locale: en
+description: >-
+  Korean LLMs are better judged by naturalness, pragmatic understanding, and
+  instruction following than by one rank.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: '1309032'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1309032'
+verificationScore: 0.87
+alternateLocale: /ko/posts/three-axes-korean-llm-performance
+coverImage: /images/posts/three-axes-korean-llm-performance.png
+---
+
+In Korean AI use, users often debate naturalness, implicit intent, and task completion. Official documents do not offer one ranking for these questions. Korean LLM evaluation should separate naturalness, pragmatics, and instruction-following.
+
+## TL;DR
+
+- This article reframes Korean LLM evaluation across naturalness, pragmatic understanding, and instruction-following, not one rank.
+- This matters because evidence spans supported languages, instruction priority, and benchmarks like **8** KLUE tasks and **43 languages** in Flores 200.
+- Next, compare the same Korean task across those dimensions, then set prompt rules and default models by use case.
+
+Example: A support team compares several models for replies, planning notes, and long documents. One sounds smoother, another reads indirect requests better, and another keeps the required format.
+
+## Current landscape
+
+Starting with official documents, none of the three companies gives a long Korean-specific discussion. OpenAI says its models are optimized for English. It also says they are trained on multilingual data. It says they can understand and generate many languages.
+
+Anthropic says Claude performs best in English. It also says Claude knows **more than 12 languages** and can translate. Google Gemini lists Korean as a supported language. For non-English prompts, it recommends a system instruction for replying in the same language.
+
+
+Benchmarks are more complex. KLUE is divided into **8** Korean NLU tasks. These tasks include inference, similarity, named entities, reading comprehension, and dialogue state tracking. KMMLU measures accuracy on Korean multi-subject questions. Its paper abstract says even strong proprietary models do not exceed **60%**. Claude evaluation documents report BLEU scores for **43 languages** on Flores 200. Korean performance is difficult to reduce to one number from the start.
+
+Community impressions and official evaluations can diverge here. Public materials do not appear to offer one shared official benchmark. That benchmark would need to compare ChatGPT, Gemini, and Claude under the same Korean criteria. Standard public metrics are limited for style adaptation and colloquial Korean. They are also limited for honorific distance and indirect requests. Users often judge Korean quality by friction in these areas. That can matter as much as answer accuracy.
+
+## Analysis
+
+Perceived Korean-language performance should be split into at least three layers. First is linguistic naturalness. This asks whether particles, phrasing, and honorifics feel less awkward. Second is pragmatic understanding. This asks whether the model reads situation and intent, not only sentence meaning.
+
+This includes tone-shift requests such as “Please make it a bit softer.” It also includes requests like “in a community style.” The issue is whether the model adjusts tone without becoming rude. Third is instruction-following ability. This asks whether the model keeps context and completes constraints to the end.
+
+One model can produce a more natural opening sentence. Another can preserve long structure better. Another can need less clarification in ambiguous requests. These differences can exist within Korean use.
+
+The limits are also clear. Community reputation is vivid, but it is not a controlled experiment. Impressions can shift with prompt habits and conversation length. They can also shift with settings like temperature. They can shift when system instructions are present. OpenAI documentation says lower temperature produces more concise responses. Claims about Korean quality can mix model differences with configuration differences.
+
+Benchmarks are more comparable. However, they can miss tone, context, and practical completion quality. Real users are often sensitive to those gaps. Looking at only one side can weaken judgment.
+
+## Practical application
+
+In practice, it is better to ask a narrower question. Ask which model makes fewer mistakes for your work. Ask which one sounds less awkward for your work. A simple method is to test the same work in three bundles. Use a tone-sensitive task, a planning task, and a long-document task. Compare naturalness, intent interpretation, and format compliance separately. The strongest model in each area may differ.
+
+Prompts should also fit Korean context. State the desired tone explicitly. Use labels like formal, casual, professional, or friendly. Put length and format requirements near the beginning. Gemini guidance recommends specifying tone directly. It also advises giving the full long context first. OpenAI documentation says lower temperature can produce shorter, more concise answers. Korean output quality is influenced by model choice. It is also influenced by instruction order and density.
+
+**Checklist for Today:**
+- Select **3** Korean tasks, test the same prompt, and score naturalness, intent interpretation, and format compliance separately.
+- In the system prompt or top-level instruction, write tone, prohibited expressions, answer length, and output format in Korean.
+- Define a default model and a backup model by task type instead of using one broad judgment.
+
+## FAQ
+
+**Q. Can the single best model for Korean be identified?**  
+It does not appear easy from verifiable official materials alone. A single shared score does not directly compare perceived Korean quality across ChatGPT, Gemini, and Claude. Korean understanding, translation, instruction compliance, and style naturalness are better treated as separate dimensions.
+
+**Q. If a benchmark score is high, will Korean conversation also sound natural?**  
+Not necessarily. KLUE and KMMLU are useful for understanding, knowledge, and reasoning. However, colloquial naturalness and honorific distance may not appear separately. Implicit intent recognition may also be underrepresented. Benchmark results and real-use testing should be considered together.
+
+**Q. What should I write first in a prompt to improve Korean output quality?**  
+It is generally better to specify tone, format, length, audience, and prohibitions first. You can state whether the style should be formal or colloquial. You can also state paragraph count, bullet use, and avoided expressions. This often makes results more stable. If needed, you can adjust settings such as temperature.
+
+## Conclusion
+
+Evaluating Korean LLMs is closer to a task-fit question than a single ranking. Separate naturalness, pragmatic understanding, and instruction-following. That split helps interpret both user impressions and benchmark limits together.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-10](/en/posts/ai-resources-roundup-2026-07-10)
+- [Meta’s September AI Chip Push Signals Infrastructure Control](/en/posts/meta-september-ai-chip-infrastructure-control)
+- [MiniMax's 2.7 Trillion Model Rumor and Open Weights](/en/posts/minimax-2-7-trillion-model-rumor-open-weights)
+- [RAID Finds Six Goalie AI Exploits in NHL 26](/en/posts/raid-finds-six-goalie-ai-exploits-in-nhl-26)
+- [SPEAR Brings Python Control to Photorealistic UE Simulation](/en/posts/spear-python-control-photorealistic-ue-simulation)
+---
+
+## References
+
+- [다양한 언어의 텍스트에 OpenAI API를 어떻게 사용할 수 있나요? | OpenAI Help Center - help.openai.com](https://help.openai.com/ko-kr/articles/6742369-how-can-i-use-the-openai-api-with-text-in-different-languages)
+- [gpt-oss-120b & gpt-oss-20b Model Card - cdn.openai.com](https://cdn.openai.com/pdf/419b6906-9da6-406c-a19d-1bb078ac7637/oai_gpt-oss_model_card.pdf)
+- [OpenAI o3-mini System Card - cdn.openai.com](https://cdn.openai.com/o3-mini-system-card-feb10.pdf)
+- [Claude를 어떤 용도로 사용할 수 있나요? | Anthropic 지원 센터 - support.anthropic.com](https://support.anthropic.com/ko/articles/7996845-claude%EB%A5%BC-%EC%96%B4%EB%96%A4-%EC%9A%A9%EB%8F%84%EB%A1%9C-%EC%82%AC%EC%9A%A9%ED%95%A0-%EC%88%98-%EC%9E%88%EB%82%98%EC%9A%94)
+- [Introduction to Prompt Design | Anthropic Help Center - support.anthropic.com](https://support.anthropic.com/en/articles/7996853-introduction-to-prompt-design)
+- [Model Card and Evaluations for Claude Models - www-cdn.anthropic.com](https://www-cdn.anthropic.com/files/4zrzovbb/website/bd2a28d2535bfb0494cc8e2a3bf135d2e7523226.pdf)
+- [Chat Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/chat/completions/create%23.pdf)
+- [KLUE: Korean Language Understanding Evaluation - arxiv.org](https://arxiv.org/abs/2105.09680)
+- [KMMLU: Measuring Massive Multitask Language Understanding in Korean - arxiv.org](https://arxiv.org/abs/2402.11548)

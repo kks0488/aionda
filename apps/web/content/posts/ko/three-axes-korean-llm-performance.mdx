@@ -1,0 +1,88 @@
+---
+title: 한국어 LLM 비교의 세 기준
+slug: three-axes-korean-llm-performance
+date: '2026-07-10'
+lastReviewedAt: '2026-07-10'
+locale: ko
+description: 한국어 LLM은 한 줄 순위보다 자연스러움·화용론·지시 이행으로 나눠 비교해야 한다.
+tags:
+  - hardware
+  - llm
+  - explainer
+  - benchmark
+author: AI온다
+sourceId: '1309032'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1309032'
+verificationScore: 0.87
+alternateLocale: /en/posts/three-axes-korean-llm-performance
+coverImage: /images/posts/three-axes-korean-llm-performance.png
+---
+
+한국어로 AI를 써본 사람끼리 이야기하면 자주 갈리는 질문이 있다. “누가 더 자연스럽게 말하나?”, “누가 숨은 의도를 잘 읽나?”, “누가 끝까지 일을 마치나?”다. 문제는 공식 문서가 이런 질문에 단일한 순위를 주지 않는다는 점이다. 그래서 한국어 LLM 평가는 한 점수로 묶기보다, 자연스러움·화용론적 이해·지시 이행 능력으로 나눠 보는 편이 낫다.
+
+## 세 줄 요약
+
+- 이 글의 핵심은 ChatGPT, Gemini, Claude의 한국어 체감 성능을 한 줄 순위로 보지 말고, 자연스러움, 말투 적응, 숨은 의도 파악, 장문 완수력 같은 축으로 나눠 봐야 한다는 점이다.
+- 이 구분이 중요한 이유는 공개 벤치마크만으로는 한국어 실사용 품질 전체를 설명하기 어렵고, 제품 선택과 프롬프트 설계가 업무 결과를 바꿀 수 있기 때문이다.
+- 독자는 한 모델만 오래 쓰며 감으로 판단하지 말고, 같은 한국어 업무를 3개 축으로 나눠 비교 테스트한 뒤 용도별 기본 모델과 프롬프트 규칙을 따로 정해야 한다.
+
+## 현황
+
+공식 문서부터 보면, 세 회사 모두 한국어를 길게 설명하지는 않는다. OpenAI는 모델이 영어에 최적화되어 있지만, 다국어 데이터로 학습되어 여러 언어의 텍스트를 이해하고 생성할 수 있다고 설명한다. Anthropic도 Claude가 영어를 가장 잘하지만 **12개 이상의 언어**를 알고 있고 번역도 가능하다고 적는다. Google Gemini 쪽은 한국어를 지원 언어로 명시한다. 또 비영어 프롬프트에서는 질의와 같은 언어로 답하게 시스템 지침을 두라고 권고하는 점이 확인된다.
+
+
+벤치마크는 더 복잡하다. 한국어 이해 성능은 KLUE처럼 **8개** 한국어 NLU 과제로 나눠 평가한다. 여기에는 자연어 추론, 의미 유사도, 개체명 인식, 기계독해, 대화 상태 추적 같은 서로 다른 능력이 들어간다. 한국어 지식·추론은 KMMLU처럼 한국어 다과목 문제 정답률로 측정한다. 논문 초록에는 유력한 비공개 모델도 **60%**를 넘지 못한다고 적혀 있다. 번역 생성 쪽에서는 Claude 평가 문서가 Flores 200에서 **43개 언어**의 BLEU 점수를 제시한다. 즉, 한국어 성능은 처음부터 하나의 숫자로 정리하기 어려운 구조다.
+
+바로 이 지점에서 커뮤니티 후기와 공식 평가가 엇갈린다. 공개 자료만 보면 ChatGPT, Gemini, Claude의 한국어 자연스러움·화용론·지시 이행을 같은 기준으로 직접 비교한 공식 공통 벤치마크는 찾기 어렵다. 말투 적응, 커뮤니티식 구어체, 높임말의 미묘한 거리감, 돌려 말한 요청의 해석 같은 항목은 표준 공개 지표가 드물다. 사용자가 “이 모델은 한국어를 안다”라고 느끼는 순간은 정답률보다 이런 마찰이 적을 때인 경우가 많다.
+
+## 분석
+
+그래서 한국어 체감 성능은 최소한 세 층으로 나눠 봐야 한다. 첫째, 언어 자연스러움이다. 어색한 조사, 번역투 문장, 불필요하게 딱딱한 높임말이 적은가를 보는 축이다. 둘째, 화용론적 이해다. 화용론은 문장 뜻만이 아니라 상황과 의도를 읽는 능력이다. “좀 부드럽게 써줘”가 단순한 완곡 표현이 아니라 톤 조정 지시라는 점을 바로 파악하는지, “커뮤니티 말투로”라는 요청을 무례함 없이 구현하는지가 여기에 들어간다. 셋째, 지시 이행 능력이다. 긴 맥락을 끝까지 유지하면서 형식, 길이, 금지사항을 빠뜨리지 않고 수행하는 능력이다. 같은 한국어라도 어떤 모델은 첫 문장이 더 자연스럽고, 어떤 모델은 긴 문서 구조를 더 잘 지키며, 어떤 모델은 애매한 요청을 덜 되묻고도 맥락을 맞춘다.
+
+한계도 분명하다. 커뮤니티 평판은 빠르고 생생하지만 통제 실험은 아니다. 프롬프트 습관, 대화 길이, temperature 같은 생성 설정, 시스템 지침 유무만 달라도 인상은 크게 바뀐다. OpenAI 문서가 낮은 temperature에서 더 간결한 응답이 나온다고 설명하는 것도 같은 맥락이다. “이 모델이 한국어를 더 잘한다”는 말에는 모델 차이와 설정 차이가 함께 섞이는 경우가 많다. 반대로 벤치마크는 비교 가능성이 높지만, 실제 사용자가 민감하게 느끼는 말투·맥락·실무 완수력은 놓치기 쉽다. 둘 중 하나만 보면 판단이 흔들릴 수 있다.
+
+## 실전 적용
+
+실무에서는 “최고의 한국어 모델”을 찾기보다 “내 업무에서 덜 틀리고 덜 어색한 모델”을 찾는 편이 낫다. 방법은 단순하다. 같은 업무를 세 묶음으로 나눠 테스트하면 된다. 짧은 고객 응대 문구처럼 말투가 중요한 작업, 애매한 요청을 정리하는 기획 작업, 긴 형식과 제약을 지켜야 하는 문서 작업을 따로 비교하면 된다. 그러면 자연스러움이 강한 모델, 의도 해석이 좋은 모델, 구조 준수율이 높은 모델이 서로 다를 수 있다는 점을 확인할 수 있다.
+
+프롬프트도 한국어 맥락에 맞게 조정해야 한다. 원하는 어조를 “격식체/반말/전문적/친근함”처럼 명시하고, 길이와 형식을 앞부분에 구조화해 넣는 편이 낫다. Gemini 가이드는 톤을 직접 지정하라고 권한다. 긴 문맥은 먼저 모두 제공하라고도 안내한다. OpenAI 문서는 더 짧고 간결한 답을 원할 때 temperature를 낮추라고 적는다. 즉, 한국어 품질은 모델 자체뿐 아니라 지시를 어떤 순서와 밀도로 쓰는지에도 영향을 받는다.
+
+오늘 바로 할 일 체크리스트:
+- 자주 하는 한국어 작업 3개를 고른 뒤, 같은 프롬프트로 비교하고 자연스러움·의도 해석·형식 준수로 나눠 점수를 매겨라.
+- 시스템 또는 상단 지시에 원하는 말투, 금지 표현, 답변 길이, 출력 형식을 한국어로 명확히 적어라.
+- “한국어를 잘한다”는 한 줄 평 대신, 업무별 기본 모델과 예비 모델을 따로 정해라.
+
+## FAQ
+
+**Q. 한국어를 가장 잘하는 모델이 하나로 정리되나요?**  
+아닙니다. 현재 확인되는 공식 자료만으로는 ChatGPT, Gemini, Claude의 한국어 체감 품질을 하나의 공통 점수로 직접 비교하기 어렵습니다. 한국어 이해, 번역, 장문 지시 준수, 말투 자연스러움은 서로 다른 축으로 보는 편이 맞습니다.
+
+**Q. 벤치마크 점수가 높으면 한국어 대화도 자연스럽나요?**  
+꼭 그렇지는 않습니다. KLUE나 KMMLU 같은 평가는 이해·지식·추론을 재는 데 유용하지만, 구어체 자연스러움이나 높임말 거리감, 숨은 의도 파악 같은 요소는 따로 드러나지 않을 수 있습니다. 그래서 벤치마크와 실사용 테스트를 함께 봐야 합니다.
+
+**Q. 한국어 출력 품질을 높이려면 프롬프트에서 무엇을 먼저 써야 하나요?**  
+말투, 형식, 길이, 독자, 금지사항을 먼저 쓰는 편이 좋습니다. 예를 들어 격식체인지 구어체인지, 몇 문단인지, 불릿을 쓸지, 어떤 표현은 피할지를 앞부분에 명확히 적으면 결과가 더 안정적으로 나옵니다. 필요하면 temperature 같은 생성 설정도 함께 조정하면 됩니다.
+
+## 결론
+
+한국어 LLM 평가는 “누가 1등인가”보다 “누가 어떤 한국어 일을 덜 어색하게 끝내는가”에 가깝다. 자연스러움, 화용론적 이해, 지시 이행을 분리해서 보면 커뮤니티의 체감 차이와 공식 벤치마크의 한계를 함께 읽을 수 있다.
+
+## 다음으로 읽기
+- [AI 자료 모음 (24h) - 2026-07-10](/ko/posts/ai-resources-roundup-2026-07-10)
+- [메타 AI 칩, 9월 생산의 의미](/ko/posts/meta-september-ai-chip-infrastructure-control)
+- [미니맥스 2조7000억설 핵심](/ko/posts/minimax-2-7-trillion-model-rumor-open-weights)
+- [NHL 26 골리 AI 허점 탐색](/ko/posts/raid-finds-six-goalie-ai-exploits-in-nhl-26)
+- [SPEAR, 파이썬 제어형 포토리얼 시뮬레이터](/ko/posts/spear-python-control-photorealistic-ue-simulation)
+---
+
+## 참고 자료
+
+- [다양한 언어의 텍스트에 OpenAI API를 어떻게 사용할 수 있나요? | OpenAI Help Center - help.openai.com](https://help.openai.com/ko-kr/articles/6742369-how-can-i-use-the-openai-api-with-text-in-different-languages)
+- [gpt-oss-120b & gpt-oss-20b Model Card - cdn.openai.com](https://cdn.openai.com/pdf/419b6906-9da6-406c-a19d-1bb078ac7637/oai_gpt-oss_model_card.pdf)
+- [OpenAI o3-mini System Card - cdn.openai.com](https://cdn.openai.com/o3-mini-system-card-feb10.pdf)
+- [Claude를 어떤 용도로 사용할 수 있나요? | Anthropic 지원 센터 - support.anthropic.com](https://support.anthropic.com/ko/articles/7996845-claude%EB%A5%BC-%EC%96%B4%EB%96%A4-%EC%9A%A9%EB%8F%84%EB%A1%9C-%EC%82%AC%EC%9A%A9%ED%95%A0-%EC%88%98-%EC%9E%88%EB%82%98%EC%9A%94)
+- [Introduction to Prompt Design | Anthropic Help Center - support.anthropic.com](https://support.anthropic.com/en/articles/7996853-introduction-to-prompt-design)
+- [Model Card and Evaluations for Claude Models - www-cdn.anthropic.com](https://www-cdn.anthropic.com/files/4zrzovbb/website/bd2a28d2535bfb0494cc8e2a3bf135d2e7523226.pdf)
+- [Chat Completions | OpenAI API Reference - platform.openai.com](https://platform.openai.com/docs/api-reference/chat/completions/create%23.pdf)
+- [KLUE: Korean Language Understanding Evaluation - arxiv.org](https://arxiv.org/abs/2105.09680)
+- [KMMLU: Measuring Massive Multitask Language Understanding in Korean - arxiv.org](https://arxiv.org/abs/2402.11548)
