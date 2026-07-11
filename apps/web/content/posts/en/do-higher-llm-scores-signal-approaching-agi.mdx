@@ -1,0 +1,212 @@
+---
+title: Do Higher LLM Scores Really Signal Approaching AGI
+slug: do-higher-llm-scores-signal-approaching-agi
+date: '2026-07-11'
+lastReviewedAt: '2026-07-11'
+locale: en
+description: >-
+  Public research suggests rising LLM scores reflect tools, memory, and planning
+  systems, not a simple march toward AGI.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - benchmark
+  - rag
+author: AI온다
+sourceId: '1312056'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1312056'
+verificationScore: 0.88
+alternateLocale: /ko/posts/do-higher-llm-scores-signal-approaching-agi
+coverImage: /images/posts/do-higher-llm-scores-signal-approaching-agi.png
+---
+
+In public research and product documents, LLM systems often add external memory, tools, and planning layers.  
+That makes the AGI question less direct than benchmark trends suggest.
+
+## TL;DR
+
+- LLM progress appears to be shifting toward systems that combine models with memory, tools, and planning layers.
+- This matters because benchmark gains alone may not show reliable generalization, long-term planning, or environmental adaptation.
+- Readers should evaluate retrieval, memory, tool calls, and evaluation setup separately before making adoption decisions.
+
+Example: A support team adds a model to its workflow. The best results may come from separating memory, tools, and checks, rather than one prompt.
+
+## Current state
+
+Public research and product documentation suggest a common pattern.  
+LLMs often expand capability through external structures.  
+They do not appear to complete generality on their own.
+
+Long-term memory is one example.  
+Memory is often not embedded permanently in model weights.  
+It is often supplemented through external retrieval structures.  
+Examples include Retrieval-Augmented Generation, vector stores, and file search.
+
+OpenAI help documentation says Threads store conversation history.  
+It also says Threads trim history after context length is exceeded.  
+The same documentation describes `file_search` as implementing retrieval best practices.
+
+Planning shows a similar pattern.  
+An LLM is often placed inside an agent framework.  
+That framework can combine task decomposition, plan selection, reflection, memory, and external modules.  
+Related surveys describe this taxonomy explicitly.  
+They list Task Decomposition, Plan Selection, External Module, Reflection, and Memory.
+
+ReAct proposed a method that alternates reasoning and action.  
+That method updates plans and accesses external information.  
+Anthropic's MCP points in a similar direction.  
+It provides a standard interface for connecting models to data and tools.
+
+Tool use is more direct.  
+OpenAI introduced built-in tools in the Responses API.  
+Anthropic explains that an MCP client loads tool definitions into model context.  
+It then orchestrates a message loop for each tool call and result.
+
+The emphasis shifts in that setup.  
+It moves away from "the model knows everything."  
+It moves toward "the model knows when and what to call."  
+That difference appears important.
+
+The Toolformer paper reported gains on several tasks.  
+It reported improvements of 11.7, 5.2, and 18.6 points.  
+Those tasks included arithmetic, question answering, translation, and calculation.  
+In that case, some gains may reflect external integration.  
+They may not reflect only greater intrinsic intelligence.
+
+## Analysis
+
+This creates a first decision point.  
+Suppose AGI means one model internally integrates several capabilities.  
+Those capabilities include long-term memory, stable planning, environmental adaptation, and tool use.  
+If so, current public materials do not make that conclusion easy.
+
+The research points elsewhere.  
+Memory moves into external stores.  
+Planning moves into the agent layer.  
+Up-to-date information moves into retrieval.  
+Execution moves into tool interfaces.
+
+This structure appears practical.  
+It also weakens the claim that LLM scaling alone leads to AGI.
+
+A second issue is benchmark interpretation.  
+Reasoning scores may improve.  
+Even so, real-world generalization can remain hard to confirm.
+
+"The Illusion of Thinking" argues that current evaluations have limitations.  
+It highlights contamination and final-answer-centered scoring.  
+OpenAI also wrote about third-party evaluation principles.  
+It said harness selection can significantly change results.  
+It also noted that real-world task evaluation is currently one-shot.  
+That means it does not capture accumulated context.  
+It also does not capture iterative multi-draft improvement.
+
+Another system card statement raises a related concern.  
+Under higher reasoning effort, a model may optimize too narrowly to evaluation.  
+That can harm performance instead.
+
+A higher scorecard does not settle the broader question.  
+Long-duration work in unfamiliar environments is a separate test.
+
+A more realistic frame follows from this.  
+Standalone model capability still appears limited.  
+We should examine agent architectures alongside the model.  
+Those architectures separate memory, planning, execution, and verification into external systems.
+
+A different definition changes the picture.  
+Suppose a general-purpose system means "model plus tools plus memory plus evaluation loop."  
+Then current progress may look like infrastructure competition already.  
+That debate is adjacent to AGI.  
+It is not the same debate.
+
+This approach has tradeoffs.  
+Its advantages include scalability and maintainability.  
+Its disadvantages include complexity, more failure points, and harder evaluation.
+
+## Practical application
+
+A common misconception deserves caution.  
+Simply replacing the model may not turn a product into a general-purpose agent.
+
+Current documentation suggests performance depends on several factors.  
+Those factors include retrieval quality, memory policy, tool schema, call loop, and evaluation design.  
+The better question is often more specific.  
+It is less "Which model is smarter?"  
+It is more "Which tasks belong in which external structures?"
+
+In customer support automation, one prompt may be insufficient.  
+Answer generation and account lookup can be separated.  
+A retrieval-oriented knowledge base can support the first part.  
+An account lookup tool can support the second part.  
+Conversation history storage can support continuity.  
+A pre-response verification step can support quality.
+
+Coding assistance shows a similar pattern.  
+Code generation, execution checks, file search, and test invocation can be designed as a loop.  
+They may work better than one monolithic block.
+
+This approach is not especially glamorous.  
+It can make failure causes easier to trace.  
+It can also make improvement work faster.
+
+**Checklist for Today:**
+- Break the workflow into reasoning, retrieval, memory, and tool-calling stages, then record failures separately.
+- Evaluate real business tasks in one-shot and multi-step settings, not with benchmark scores alone.
+- Add a standard tool interface and a loop that re-validates tool call results.
+
+## FAQ
+
+**Q. If LLM performance keeps improving, should we assume it will lead to AGI?**  
+It is difficult to say that definitively.  
+Public research shows memory, planning, and tool use are often supplemented externally.  
+They are often handled through modules and agent structures.  
+So it helps to separate internalized capabilities from externally dependent ones.
+
+**Q. Then is the key competitive advantage the agent structure rather than the model itself?**  
+In many cases, that seems plausible.  
+Retrieval, file access, code execution, memory storage, and verification loops can change real-world performance significantly.  
+The model still matters, though.  
+Focusing on only one side can distort judgment.
+
+**Q. Does that mean benchmark scores can no longer be trusted?**  
+Not exactly.  
+Benchmarks remain a useful signal.  
+On their own, they are usually not enough.  
+They do not establish real-world generalization or long-term planning by themselves.  
+The evaluation harness, tool use, and one-shot setup also matter.
+
+## Conclusion
+
+The question is shifting.  
+It is moving away from "Does a bigger model become AGI?"  
+It is moving toward "Within what system does a model gain generality?"  
+The key issue is not scaling alone.  
+It is how memory, planning, tools, and evaluation are combined.  
+That combination can produce more verifiable forms of generality.
+
+## Further Reading
+- [EgoWAM Tests World Models for Robot Learning](/en/posts/egowam-world-models-robot-learning)
+- [IG-Bench Evaluates Scientific Lineage Reasoning Beyond Surface Similarity](/en/posts/ig-bench-scientific-lineage-reasoning)
+- [Validating LLM Safety Analysers Beyond STPA Outputs](/en/posts/validating-llm-safety-analysers-beyond-stpa-outputs)
+- [When LLM Agreement Fails as a Reliability Signal](/en/posts/when-llm-agreement-fails-as-a-reliability-signal)
+- [AI Resource Roundup (24h) - 2026-07-10](/en/posts/ai-resources-roundup-2026-07-10)
+---
+
+## References
+
+- [New tools for building agents | OpenAI - openai.com](https://openai.com/index/new-tools-for-building-agents/)
+- [Assistants API (v2) FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8550641)
+- [Introducing the Model Context Protocol | Anthropic - anthropic.com](https://www.anthropic.com/news/model-context-protocol?curius=1051)
+- [Code execution with MCP: building more efficient AI agents - anthropic.com](https://www.anthropic.com/engineering/code-execution-with-mcp?s=35)
+- [A shared playbook for trustworthy third party evaluations | OpenAI - openai.com](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
+- [Measuring the performance of our models on real-world tasks | OpenAI - openai.com](https://openai.com/index/gdpval/)
+- [GPT-5.6 Preview System Card - deploymentsafety.openai.com](https://deploymentsafety.openai.com/gpt-5-6-preview/gpt-5-6-preview.pdf)
+- [ReAct: Synergizing Reasoning and Acting in Language Models - arxiv.org](https://arxiv.org/abs/2210.03629)
+- [Understanding the planning of LLM agents: A survey - arxiv.org](https://arxiv.org/abs/2402.02716)
+- [A Survey on the Memory Mechanism of Large Language Model based Agents - arxiv.org](https://arxiv.org/abs/2404.13501)
+- [Retrieval-Augmented Generation for Large Language Models: A Survey - arxiv.org](https://arxiv.org/abs/2312.10997)
+- [The Illusion of Thinking: Understanding the Strengths and Limitations of Reasoning Models via the Lens of Problem Complexity - arxiv.org](https://arxiv.org/abs/2506.06941)
+- [Toolformer: Language Models Can Teach Themselves to Use Tools - arxiv.org](https://arxiv.org/abs/2302.04761)

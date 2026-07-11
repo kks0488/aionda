@@ -1,0 +1,95 @@
+---
+title: LLM 점수와 AGI의 거리
+slug: do-higher-llm-scores-signal-approaching-agi
+date: '2026-07-11'
+lastReviewedAt: '2026-07-11'
+locale: ko
+description: 'LLM 성능 향상이 AGI 전조인지, 외부 도구·기억·계획 결합의 결과인지 공개 자료로 짚는다.'
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - deep-dive
+  - benchmark
+  - rag
+author: AI온다
+sourceId: '1312056'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1312056'
+verificationScore: 0.88
+alternateLocale: /en/posts/do-higher-llm-scores-signal-approaching-agi
+coverImage: /images/posts/do-higher-llm-scores-signal-approaching-agi.png
+---
+
+LLM이 벤치마크 점수를 더 올리면 AGI에 가까워지는가. 지금 공개된 기술 문서와 연구만 보면 답은 단순하지 않다. 핵심은 점수 상승 자체보다, 추론·계획·기억·환경 상호작용이 서로 다른 문제로 나뉜다는 점이다. 그래서 지금의 질문은 “LLM이 곧 AGI인가”보다 “LLM이 어떤 범용 시스템의 중심 부품이 되고 있는가”에 더 가깝다.
+
+## 세 줄 요약
+
+- 핵심 이슈는 LLM의 성능 향상을 AGI의 전조로 볼지, 아니면 계획·기억·도구 사용을 외부 구조로 보완하는 시스템 진화로 볼지 구분하는 일이다.
+- 이 구분이 중요한 이유는 벤치마크 점수 상승만으로 실제 일반화 능력, 장기 계획, 환경 대응력을 보장하기 어렵기 때문이다.
+- 독자는 모델 단독 성능만 보지 말고, 검색, 메모리, 도구 호출, 평가 하네스를 분리해 검증하는 기준으로 실험과 도입 결정을 내려야 한다.
+
+## 현황
+
+지금 공개된 연구와 제품 문서를 함께 보면, LLM은 혼자서 범용성을 완성하기보다 외부 구조를 붙이며 능력을 확장하는 흐름에 있다. 장기 기억이 먼저 그렇다. 메모리는 대개 모델 가중치 안에 영구적으로 들어가기보다, 검색증강생성(RAG), 벡터 스토어, 파일 검색 같은 외부 검색 구조로 보완된다. OpenAI 도움말은 Threads가 대화 이력을 저장하고, 컨텍스트 길이를 넘으면 잘라낸다고 설명한다. 같은 문서에서 `file_search`는 검색 모범 사례를 구현한다고 적었다.
+
+계획도 비슷하다. LLM은 내부적으로 완결된 플래너라기보다, 에이전트 프레임워크 안에서 작업 분해, 계획 선택, 반성, 메모리, 외부 모듈이 결합되는 방식으로 정리된다. 관련 서베이는 이 분류를 Task Decomposition, Plan Selection, External Module, Reflection, Memory로 제시한다. ReAct는 reasoning과 action을 교차시키며 계획을 갱신하고 외부 정보에 접근하는 방식을 제안했다. Anthropic의 MCP도 같은 흐름에 있다. 이 프로토콜은 모델이 데이터와 도구가 있는 시스템에 연결되도록 표준 인터페이스를 제공한다.
+
+
+## 분석
+
+여기서 첫 번째 판단 포인트가 나온다. 만약 AGI를 “하나의 모델이 내부적으로 장기 기억, 안정적 계획, 환경 적응, 도구 사용까지 통합한 상태”로 정의한다면, 현재 공개 자료만으로는 그 결론에 이르기 어렵다. 연구 자료는 오히려 다른 방향을 가리킨다. 기억은 외부 저장소로, 계획은 에이전트 레이어로, 최신 정보는 검색으로, 실행은 도구 인터페이스로 빠져나간다. 이 구조는 실용적이다. 동시에 “LLM 스케일링만으로 AGI”라는 주장에는 제동을 건다.
+
+두 번째 포인트는 벤치마크 해석이다. 추론 성능이 오른 것처럼 보이더라도, 그것이 실제 일반화 능력의 상승인지 확인하는 일은 아직 까다롭다. “The Illusion of Thinking”은 기존 평가가 오염과 최종 정답 중심 채점의 한계를 가진다고 짚는다. OpenAI도 제3자 평가 원칙에서 하네스 선택이 결과를 크게 바꿀 수 있다고 적었고, 실사용 과제 평가는 현재 one-shot이라 문맥 축적이나 다중 초안 개선을 반영하지 못한다고 밝혔다. 또 다른 시스템 카드 문구는 higher reasoning efforts에서 모델이 평가에 너무 좁게 최적화되어 오히려 성능을 해칠 수 있다고 경고한다. 점수표가 올라가더라도, 그 모델이 낯선 환경에서 오래 일관되게 일할지는 별도 문제다.
+
+그래서 “LLM 이후의 진화”를 보는 현실적인 프레임은 이것이다. 모델 단독 능력을 묻는다면 답은 아직 제한적이다. 장기 기억, 계획, 실행, 검증을 외부 시스템으로 분리한 에이전트 구조를 함께 봐야 한다. 반대로 범용 시스템을 “모델+도구+메모리+평가 루프”의 조합으로 정의한다면, 지금의 진화는 AGI 논쟁과 별개로 이미 핵심 인프라 경쟁에 들어간 것으로 볼 수 있다. 장점은 확장성과 유지보수다. 단점은 복잡성, 장애 지점 증가, 평가 난이도 상승이다.
+
+## 실전 적용
+
+개발자와 제품팀이 지금 당장 버려야 할 착각은 하나다. 모델 하나만 바꾸면 제품이 갑자기 범용 에이전트가 되리라는 기대다. 현재 문서들을 종합하면 성능은 모델 본체뿐 아니라 검색 품질, 메모리 정책, 도구 스키마, 호출 루프, 평가 설계에 크게 좌우된다. 즉, 질문은 “어느 모델이 더 똑똑한가”보다 “어느 작업을 어떤 외부 구조로 분해할 것인가”다.
+
+예: 고객지원 자동화라면 답변 생성과 계정 조회를 한 모델 프롬프트에 몰아넣기보다, 검색용 지식베이스, 계정 조회 도구, 대화 이력 저장, 응답 전 검증 단계를 나눠 붙이는 편이 낫다. 코딩 보조도 같다. 코드 생성, 실행 결과 확인, 파일 검색, 테스트 호출을 한 덩어리로 보지 말고 루프로 설계해야 한다. 이 방식은 화려하지 않다. 대신 실패 원인을 추적하기 쉽고, 성능 개선도 빠르다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 현재 워크플로를 모델 추론, 검색, 메모리, 도구 호출 단계로 나눠 어디서 실패하는지 따로 기록하라.
+- 벤치마크 점수 대신 실제 업무 과제를 one-shot과 다중 단계 실행으로 각각 평가하라.
+- 도구 호출이 필요한 작업에는 표준 인터페이스를 두고, 호출 결과를 다시 검증하는 루프를 추가하라.
+
+## FAQ
+
+**Q. LLM 성능이 계속 오르면 AGI로 이어진다고 봐야 하나요?**  
+그렇게 단정하기는 어렵습니다. 공개 연구를 보면 기억, 계획, 도구 사용은 모델 내부 능력만으로 해결되기보다 외부 모듈과 에이전트 구조로 보완되는 경우가 많습니다. 따라서 성능 향상과 AGI 도달을 같은 선으로 놓고 보기보다, 어떤 능력이 내부화됐고 어떤 능력이 외부 의존인지 구분해서 봐야 합니다.
+
+**Q. 그렇다면 지금의 핵심 경쟁력은 모델 자체보다 에이전트 구조인가요?**  
+많은 경우 그렇습니다. 검색, 파일 접근, 코드 실행, 메모리 저장, 검증 루프를 어떻게 엮느냐가 실제 성능을 크게 바꿉니다. 다만 모델 자체의 품질도 여전히 중요하므로, 둘 중 하나만 보면 판단이 틀어질 수 있습니다.
+
+**Q. 벤치마크 점수는 이제 믿을 수 없나요?**  
+그렇지는 않습니다. 벤치마크는 여전히 유용한 신호입니다. 다만 그것만으로 실제 일반화 능력이나 장기 계획 능력을 확정할 수는 없습니다. 평가 하네스, 도구 사용 여부, one-shot 설정 같은 조건을 함께 봐야 합니다.
+
+## 결론
+
+LLM 이후의 진화는 “더 큰 모델이 곧 AGI가 되는가”보다 “모델이 어떤 시스템 안에서 범용성을 획득하는가”의 문제로 옮겨가고 있다. 지금 봐야 할 지점은 스케일링 자체가 아니라, 기억·계획·도구·평가를 어떻게 결합해 검증 가능한 범용성을 만드는가다.
+
+## 다음으로 읽기
+- [EgoWAM, 인간 비디오로 로봇 학습](/ko/posts/egowam-world-models-robot-learning)
+- [IG-Bench와 연구 계보 추론](/ko/posts/ig-bench-scientific-lineage-reasoning)
+- [LLM 안전분석기도 검증하라](/ko/posts/validating-llm-safety-analysers-beyond-stpa-outputs)
+- [LLM 합의는 정확한가](/ko/posts/when-llm-agreement-fails-as-a-reliability-signal)
+- [AI 자료 모음 (24h) - 2026-07-10](/ko/posts/ai-resources-roundup-2026-07-10)
+---
+
+## 참고 자료
+
+- [New tools for building agents | OpenAI - openai.com](https://openai.com/index/new-tools-for-building-agents/)
+- [Assistants API (v2) FAQ | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8550641)
+- [Introducing the Model Context Protocol | Anthropic - anthropic.com](https://www.anthropic.com/news/model-context-protocol?curius=1051)
+- [Code execution with MCP: building more efficient AI agents - anthropic.com](https://www.anthropic.com/engineering/code-execution-with-mcp?s=35)
+- [A shared playbook for trustworthy third party evaluations | OpenAI - openai.com](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
+- [Measuring the performance of our models on real-world tasks | OpenAI - openai.com](https://openai.com/index/gdpval/)
+- [GPT-5.6 Preview System Card - deploymentsafety.openai.com](https://deploymentsafety.openai.com/gpt-5-6-preview/gpt-5-6-preview.pdf)
+- [ReAct: Synergizing Reasoning and Acting in Language Models - arxiv.org](https://arxiv.org/abs/2210.03629)
+- [Understanding the planning of LLM agents: A survey - arxiv.org](https://arxiv.org/abs/2402.02716)
+- [A Survey on the Memory Mechanism of Large Language Model based Agents - arxiv.org](https://arxiv.org/abs/2404.13501)
+- [Retrieval-Augmented Generation for Large Language Models: A Survey - arxiv.org](https://arxiv.org/abs/2312.10997)
+- [The Illusion of Thinking: Understanding the Strengths and Limitations of Reasoning Models via the Lens of Problem Complexity - arxiv.org](https://arxiv.org/abs/2506.06941)
+- [Toolformer: Language Models Can Teach Themselves to Use Tools - arxiv.org](https://arxiv.org/abs/2302.04761)
