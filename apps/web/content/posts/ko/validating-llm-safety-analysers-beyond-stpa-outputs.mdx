@@ -1,0 +1,90 @@
+---
+title: LLM 안전분석기도 검증하라
+slug: validating-llm-safety-analysers-beyond-stpa-outputs
+date: '2026-07-11'
+lastReviewedAt: '2026-07-11'
+locale: ko
+description: STPA 산출물보다 LLM 분석기 자체 검증이 왜 필요한지와 meta-STPA의 의미를 짚는다.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-33c492563b15496c
+sourceUrl: 'https://arxiv.org/abs/2607.08054'
+verificationScore: 0.81
+alternateLocale: /en/posts/validating-llm-safety-analysers-beyond-stpa-outputs
+coverImage: /images/posts/validating-llm-safety-analysers-beyond-stpa-outputs.png
+---
+
+LLM이 hazard와 UCA를 작성했다면, 이제 그 LLM을 누가 분석할지 묻는 단계가 남는다. 이 질문이 이번 논문의 핵심이다. arXiv에 올라온 *Who Analyses the Analyser? Self-Validating LLM Hazard Analysis with Constitutional Meta-STPA*는 STPA 산출물만 검토하는 데서 그치지 않는다. 그 산출물을 만든 LLM 보조 분석기 자체를 안전 관련 시스템으로 다뤄야 한다고 제안한다. 안전 문서 자동화가 늘어날수록, 이 문제는 연구를 넘어 감사와 인증 실무와도 연결된다.
+
+## 세 줄 요약
+
+- 핵심 이슈는 STPA 같은 안전분석에서 LLM이 만든 loss·hazard·UCA·constraint를 신뢰하기 전에, 그 LLM 분석기 자체를 별도 대상으로 검증해야 한다는 점이다.
+- 이 문제가 중요한 이유는 안전분석 자동화의 실패가 문서 오류에 그치지 않고, 누락·환각·과신이 안전 케이스와 인증 증적에 들어갈 수 있기 때문이다.
+- 독자는 지금 LLM 안전분석 도구를 “생산성 도구”가 아니라 “검증 대상 도구”로 다시 분류하고, 산출물 검토와 도구 검증을 나눈 체크리스트를 만들어 실험해볼 필요가 있다.
+
+## 현황
+
+이번 arXiv 초록의 메시지는 분명하다. 모든 시스템은 분석하면서, 분석하는 LLM 보조 도구는 분석하지 않는 맹점을 짚는다. 조사 결과에 따르면 이 접근은 인간 분석 결과를 사후 검토하는 수준에 머물지 않는다. AI 보조 안전분석 도구의 클래스 자체를 대상으로 별도의 meta-STPA를 수행한다. 그리고 loss→hazard→UCA→constraint 사슬에서 거버넌스 원칙을 도출한 뒤, 이를 각 코드 enforcement point에 연결하는 자기검증 절차를 제시한다.
+
+여기서 중요한 점은 성과를 단정하기 어렵다는 사실이다. 검색 결과로 확인되는 정량 정보는 제한적이다. 논문 요약 수준에서는 약한 모델 조합보다 더 강한 조합이 더 많은 원칙을 재현했다고 알려져 있다. 하지만 기존 STPA 실무와 비교해 hazard 오검출률, UCA 누락률, 실무 오류율이 얼마나 줄었는지에 대한 직접 비교 수치는 확인되지 않았다. 다시 말해, 이 논문은 “무엇을 검증해야 하는가”에는 초점을 맞추지만, “얼마나 나아졌는가”를 산업 현장에서 입증한 자료는 아직 많지 않다.
+
+그래도 배경 자료는 쌓이고 있다. Nature에 실린 LabSafety Bench는 765개의 객관식 문항과 404개의 현실적 실험실 시나리오로 hazard identification, risk assessment, consequence prediction을 평가한다. 또 다른 Nature 계열 연구는 임상 요약에서 hallucination과 omission을 평가하는 프레임워크를 제시했고, 반복 실험이 오류를 낮출 수 있다고 적었다. Sciencedirect의 관련 논문은 LLM 벤치마크를 안전-중요 hazard analysis 관점에서 다시 읽으면서 inaccurate UCAs 같은 실패 유형을 짚는다. 개별 안전 작업의 정량 평가는 늘고 있다. 하지만 STPA 기반 분석기 자체의 환각·누락·과신을 한 번에 측정하는 표준 셋은 아직 뚜렷하지 않다.
+
+## 분석
+
+이 논문의 가치는 “LLM을 안전분석에 쓸 수 있나”라는 질문을 “LLM 안전분석기를 안전 케이스 안에 어떻게 넣을 것인가”라는 운영 질문으로 바꾼 데 있다. 이 전환은 실무적으로 의미가 크다. 지금까지 많은 팀은 LLM을 초안 작성기나 보조 검토자로 다뤘다. 하지만 safety artifact를 작성하는 순간, 그 도구는 문서 편집기를 넘어 안전 판단 체인에 개입한 구성요소가 된다. 그렇다면 인간 검토 1회로 끝낼 일은 아니다. 도구의 실패 모드, 거버넌스 원칙, enforcement point, 변경 이력까지 증적으로 묶어야 한다.
+
+고위험 도메인에서는 이 문제가 더 민감하다. FAA는 AI를 시스템이나 문서 개발에 사용할 계획이 있으면 초기 개발 단계에서 사용 사실을 공개하고 인증 경로를 협의하라고 안내한다. NIST는 AI의 TEVV, 즉 testing, evaluation, verification, and validation 운영화를 지원하는 자료를 제공한다. FDA는 AI 기능 변경을 위험기반, 증거기반, 투명성, 총수명주기 관점에서 관리하는 PCCP 원칙을 제시한다. 메타-STPA는 이런 틀과 연결해 읽을 수 있다. 다만 범위를 넓혀 해석할 근거는 아직 제한적이다. 조사 결과 기준으로, 이 접근이 특정 산업 표준의 정식 요구사항에 직접 매핑된 조항이나, LLM 자기검증 분석기를 별도 tool qualification 대상으로 명시한 규정은 확인되지 않았다. 제도 편입 가능성은 논의할 수 있지만, 곧바로 인정된 절차로 보기는 어렵다.
+
+## 실전 적용
+
+실무자는 이 논문을 “새로운 안전 프레임워크”보다 “새로운 책임 분리 방식”으로 읽는 편이 낫다. 첫째, STPA 산출물의 품질과 LLM 도구의 품질을 분리해야 한다. 둘째, hazard/UCA가 그럴듯해 보여도, 그 결과를 낸 도구가 어떤 거버넌스 원칙을 따르는지 따져야 한다. 셋째, 모델 교체나 프롬프트 수정 같은 작은 변경도 안전분석 결과에 영향을 줄 수 있으니 변경관리 안에 넣어야 한다.
+
+예: 자율시스템 팀이 LLM으로 UCA 초안을 만들고 인간 분석가가 이를 정리한다면, 검토 회의 안건을 둘로 나눠야 한다. 하나는 “이 UCA가 맞는가”다. 다른 하나는 “이 도구가 왜 이 UCA를 냈는가”다. 전자는 산출물 검토다. 후자는 도구 검증이다. 둘을 섞으면 책임소재가 흐려지고, 감사 때도 설명이 어려워진다.
+
+오늘 바로 할 일 체크리스트 3개:
+- 현재 쓰는 LLM 보조 안전분석 도구를 목록화하고, 각 도구가 loss·hazard·UCA·constraint 중 어디에 개입하는지 표시하라.
+- 산출물 리뷰 체크리스트와 도구 검증 체크리스트를 분리해 작성하고, 환각·누락·과신 징후를 각각 따로 기록하라.
+- 모델·프롬프트·후처리 로직이 바뀔 때 재검토가 필요한 안전 산출물을 변경관리 표에 연결하라.
+
+## FAQ
+
+**Q. 이 논문은 LLM이 기존 STPA보다 더 정확하다고 입증했나?**
+
+아닙니다. 조사 결과 기준으로는, 더 강한 모델 조합이 더 많은 원칙을 재현했다는 정량 정보는 확인됩니다. 하지만 기존 STPA 실무 대비 오검출률이나 누락률이 얼마나 줄었는지에 대한 직접 비교 수치는 확인되지 않았습니다.
+
+**Q. 지금 바로 인증이나 감사 문서에 메타-STPA를 넣을 수 있나?**
+
+부분적으로는 가능합니다. FAA의 초기 공개 및 인증 경로 협의, NIST의 TEVV, FDA의 위험기반·증거기반·총수명주기 변경관리 같은 틀에 맞춰 증적 묶음으로 제출하는 방식은 생각할 수 있습니다. 다만 특정 산업 표준의 정식 요구사항으로 바로 인정된다는 근거는 이번 조사 결과에서 확인되지 않았습니다.
+
+**Q. 환각과 누락을 재는 표준 벤치마크가 이미 있나?**
+
+일부는 있습니다. LabSafety Bench처럼 hazard identification 등을 평가하는 벤치마크가 있고, 의료 요약에서는 hallucination과 omission을 평가하는 프레임워크도 확인됩니다. 하지만 STPA 기반 LLM 안전분석기의 환각·누락·과신을 통합해 직접 측정하는 표준 평가셋은 이번 조사 결과만으로는 확인되지 않았습니다.
+
+## 결론
+
+이 논문이 던진 질문은 단순하다. 안전을 분석하는 AI를 누가, 어떤 절차로 분석할 것인가. STPA에 LLM을 붙일 생각이라면 다음 단계는 더 좋은 프롬프트가 아니다. 그 도구 자체를 안전 관련 시스템으로 취급하는 검증 체계를 마련하는 일이다.
+
+## 다음으로 읽기
+- [IG-Bench와 연구 계보 추론](/ko/posts/ig-bench-scientific-lineage-reasoning)
+- [AI 자료 모음 (24h) - 2026-07-10](/ko/posts/ai-resources-roundup-2026-07-10)
+- [코딩 에이전트의 드리프트 통제](/ko/posts/controlling-drift-in-long-running-coding-agents)
+- [음성감정, 오디오와 전사 결합](/ko/posts/crossmodal-speech-emotion-analysis-audio-generated-transcripts)
+- [메타 AI 칩, 9월 생산의 의미](/ko/posts/meta-september-ai-chip-infrastructure-control)
+---
+
+## 참고 자료
+
+- [FAA Roadmap for Artificial Intelligence Safety Assurance, Version I - faa.gov](https://www.faa.gov/aircraft/air_cert/step/roadmap_for_AI_safety_assurance)
+- [NIST AI Resource Center - AIRC - airc.nist.gov](https://airc.nist.gov/)
+- [Predetermined Change Control Plans for Machine Learning-Enabled Medical Devices: Guiding Principles | FDA - fda.gov](https://www.fda.gov/medical-devices/software-medical-device-samd/predetermined-change-control-plans-machine-learning-enabled-medical-devices-guiding-principles?trk=public_post_comment-text)
+- [Marketing Submission Recommendations for a Predetermined Change Control Plan for Artificial Intelligence-Enabled Device Software Functions | FDA - fda.gov](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/marketing-submission-recommendations-predetermined-change-control-plan-artificial-intelligence)
+- [Aircraft Certification Software and Airborne Electronic Hardware | Federal Aviation Administration - faa.gov](https://www.faa.gov/aircraft/air_cert/design_approvals/air_software)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.08054)
+- [Hazard analysis in the era of AI: Assessing the usefulness of ChatGPT4 in STPA hazard analysis - sciencedirect.com](https://www.sciencedirect.com/science/article/abs/pii/S092575352400198X)
+- [Benchmarking large language models on safety risks in scientific laboratories - nature.com](https://www.nature.com/articles/s42256-025-01152-1)
+- [A framework to assess clinical safety and hallucination rates of LLMs for medical text summarisation - nature.com](https://www.nature.com/articles/s41746-025-01670-7)
+- [From hallucinations to hazards: benchmarking LLMs for hazard analysis in safety-critical systems - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0925753525002814)
