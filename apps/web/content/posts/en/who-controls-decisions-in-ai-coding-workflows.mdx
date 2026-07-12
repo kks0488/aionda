@@ -1,0 +1,87 @@
+---
+title: Who Controls Decisions in AI Coding Workflows
+slug: who-controls-decisions-in-ai-coding-workflows
+date: '2026-07-12'
+lastReviewedAt: '2026-07-12'
+locale: en
+description: >-
+  AI coding quality depends not only on output, but on who made key decisions
+  and how requirements, tests, and traceability were controlled.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+  - governance
+author: AI온다
+sourceId: '1314012'
+sourceUrl: 'https://gall.dcinside.com/mgallery/board/view/?id=thesingularity&no=1314012'
+verificationScore: 0.8
+alternateLocale: /ko/posts/who-controls-decisions-in-ai-coding-workflows
+coverImage: /images/posts/who-controls-decisions-in-ai-coding-workflows.png
+---
+
+## TL;DR
+
+- AI coding review now extends beyond code output to process control, traceability, and human decision points.
+- This matters because weak control can raise debugging, security review, and accountability costs later.
+- Review your workflow next. Preserve links between requirements, design, code, tests, and human approvals.
+
+218, 25010, and 1.0 frame a practical question about AI coding. The key issue is not only output quality. It is also decision ownership and traceability.
+
+Example: A team accepts code that appears correct after review. Later, a defect appears. No one can explain which requirement shaped the logic, or why the test existed.
+
+Even when two codebases produce the same output, downstream cost can differ. Accountability can also differ. The difference depends on process control. It depends on requirement breakdown, design definition, and validation loops. It also depends on whether AI produced most code before a final human check. The question is shifting. It is becoming less about reading AI-written code. It is becoming more about critical decisions and traceable records.
+
+## Current status
+
+Official guidance and research literature describe software evaluation in two layers. NIST's Secure Software Development Framework is organized as SP 800-218. This document covers a development framework for reducing software vulnerability risk. Its focus is not limited to the final artifact. It also includes review, validation, and management across development. In other words, "Does the code run?" and "What procedure produced that code?" are different questions.
+
+This distinction also appears in quality measurement research. The PMC literature in the findings separates process quality from product quality. In this context, ISO/IEC 25010 can be read as an artifact-quality axis. Process measurement is treated as a separate axis. Applied to AI coding, this suggests one limit. "The final code looks fine" is not a sufficient assessment.
+
+Traceability follows the same logic. Research on test-to-code traceability in UCL Discovery reports a practical benefit. Linking test code to target code during development can reduce test failures and undetected defects. This point may matter more in AI coding. AI can produce revisions quickly. Teams can lose context just as quickly. Clear links can help show which tests came from which requirements. They can also show which code changes satisfy those tests.
+
+## Analysis
+
+The decision points are fairly clear. If a team uses AI like autocomplete, humans can still retain control. That control can cover requirement decomposition, core logic design, and approval criteria. In that setup, AI coding can act as a productivity aid. A different pattern carries different trade-offs. Teams may delegate module implementation and structural choices to AI. Humans may only read the final result. That can improve short-term speed. It can also weaken maintainability and accountability. Code review means reading the artifact. Process control means preserving why it was built that way, which assumptions were made, and which tests guarded it.
+
+There are trade-offs. Stronger process control can slow work. Preserving prompts, design notes, test links, and approval records adds cost. Those costs can later decline in incident analysis, security audits, personnel turnover, and feature expansion. A practical issue appears when AI-written code fails. Accountability becomes harder when no one can explain who chose the logic. At the same time, heavy control does not fit every case. Treating an experimental script and production code the same way can increase inefficiency.
+
+## Practical application
+
+In practice, the first decision should be delegation scope. The key question is not simply whether to use AI. A simple criterion is impact. Higher incident cost supports tighter limits on delegation. In those areas, AI can stay closer to implementation support. Humans can directly design core policies and exception handling. Lower-risk work can be different. Repetitive boilerplate, test drafts, and documentation help can be delegated more broadly.
+
+The validation loop also needs redesign. The minimum unit has four parts. Write the requirements in clear sentences. Record the reasons for design choices briefly. Tie AI-produced code and revisions to commits or review comments. Connect each test to the requirement it verifies. These four elements can make later review easier. They can also make original intent easier to recover during changes.
+
+**Checklist for Today:**
+- Write a short document with requirements and prohibited conditions before delegating implementation to AI.
+- Add an "AI proposal, human approval" rule for core logic, exception handling, and security-related branches.
+- Add requirement identifiers to test names or review comments to preserve links between code and verification.
+
+## FAQ
+
+**Q. Is it enough if a human reads AI-generated code all the way through?**  
+Reading the final code is important. By itself, it may not preserve design intent or revision context. Requirements, design decisions, and test rationale should also be recorded. That can make debugging and accountability tracing easier later.
+
+**Q. Should every AI coding task have a heavy process attached to it?**  
+Probably not. Low-impact scripts and core production services can be handled differently. As failure cost rises, stronger control and traceability may become more reasonable.
+
+**Q. Do official standards directly score the level of developer control over AI code?**  
+Based on the findings alone, that claim is not established. The available support is narrower. It supports separating artifact quality from process review and traceability.
+
+## Conclusion
+
+The inflection point in AI coding is not only whether code looks plausible. It is also who created it and through which procedure. If speed is the goal, define delegation boundaries first. If accountability is the goal, design traceability first.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-12](/en/posts/ai-resources-roundup-2026-07-12)
+- [Clinical-Reasoning LLM Advances HCC Risk And Treatment Guidance](/en/posts/clinical-reasoning-llm-hcc-risk-treatment-guidance)
+- [MetaNCA Learns Rules Beyond Fixed Network Architectures](/en/posts/metanca-rules-beyond-fixed-network-architectures)
+- [Rethinking Structured Pruning Scores for Efficient LLM Deployment](/en/posts/rethinking-structured-pruning-scores-for-efficient-llm-deployment)
+- [Tracing Jailbreaks Through Internal Attribution Graph Path Rerouting](/en/posts/tracing-jailbreaks-internal-attribution-graph-path-rerouting)
+---
+
+## References
+
+- [Secure Software Development Framework | CSRC - csrc.nist.gov](https://csrc.nist.gov/projects/ssdf)
+- [Applicability of Metrology to Information Technology - PMC - pmc.ncbi.nlm.nih.gov](https://pmc.ncbi.nlm.nih.gov/articles/PMC4882148/)
+- [Establishing Multilevel Test-to-Code Traceability Links - UCL Discovery - discovery.ucl.ac.uk](https://discovery.ucl.ac.uk/id/eprint/10091100/)
