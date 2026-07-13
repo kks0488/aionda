@@ -1,0 +1,90 @@
+---
+title: Latent Confounding Can Bias Bayesian Causal Discovery Posterior
+slug: latent-confounding-bias-bayesian-causal-discovery-posterior
+date: '2026-07-13'
+lastReviewedAt: '2026-07-13'
+locale: en
+description: >-
+  Shows how latent confounding can skew Bayesian causal discovery posterior
+  toward spurious edges, not just uncertainty.
+tags:
+  - agi
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-03f6f44b5ef54a0c
+sourceUrl: 'https://arxiv.org/abs/2607.09449'
+verificationScore: 0.85
+alternateLocale: /ko/posts/latent-confounding-bias-bayesian-causal-discovery-posterior
+coverImage: /images/posts/latent-confounding-bias-bayesian-causal-discovery-posterior.png
+---
+
+
+## TL;DR
+
+- This paper examines Bayesian causal discovery under latent confounding, where posterior scores can favor spurious edges between confounded variables.
+- This matters because more data does not necessarily reduce this risk, and posterior uncertainty can look misleadingly reassuring.
+- Readers should compare top posterior DAGs with latent-confounding-aware alternatives and add sensitivity checks for key edges.
+
+Example: A team inspects recurring edges in posterior graphs from observational logs. They then treat one edge as intervention-ready. If a hidden common cause exists, the chosen edge can reflect confounding rather than direct causation.
+
+## Current landscape
+
+Bayesian causal discovery places a posterior over DAGs. DAGs are directed acyclic graphs. This is meant to represent structural uncertainty. It does not return only one structure. The advantage can weaken under latent confounding.
+
+
+This matters because it conflicts with a familiar intuition. Many readers expect more data to reduce structural error. Here, more data may not weaken preference for the wrong structure. It may make the wrong structure easier to select. The search results did not confirm broader quantitative comparisons. At minimum, the paper suggests structural bias, not only greater diffuseness.
+
+Prior literature has discussed RFCI-family approaches for latent confounding. The findings mention RFCI and bootstrap RFCI, or BRFCI. These methods focus on ancestral graph recovery and edge-probability calibration. They do not force selection of a single DAG under latent variables. Based on the search results alone, it is unclear whether this paper directly compares those alternatives. It is also unclear whether it recommends a specific procedure.
+
+## Analysis
+
+The paper raises a sharper question than simple uncertainty growth. The issue may be misplaced confidence. Users often read a posterior in two ways. They may see uncertainty, or they may see strong support. Under a hidden common cause, that support can point toward direct causation by mistake. Quantified uncertainty alone may not justify trust.
+
+This has implications for AI applications. Representation learning, reinforcement learning, and scientific ML often use scores or posteriors to infer structure. The paper’s results should not be generalized directly. Still, the connection is clear at a high level. Latent variables can create spurious relationships. They can also shift the posterior mode away from the truth. In applied systems, the label “uncertainty-aware” may not be enough. Separate checks for latent confounding can matter in policy selection and hypothesis ranking.
+
+There are also limits. Based on the title and excerpt, the paper studies linear Gaussian networks. The available evidence does not show whether the same pattern holds in nonlinear settings. It also does not show whether it holds in non-Gaussian data, time-series data, or interventional data. The findings also do not report implementation-specific degradation magnitudes. They do not report differences across samplers or score functions. They also do not provide detailed correction procedures. For that reason, the paper reads more like a warning about interpretation habits. It reads less like a full replacement guide.
+
+## Practical application
+
+A practical risk appears when someone inspects a few top posterior DAGs. They then treat a repeated edge as an intervention candidate. Under latent confounding, that repeatability can be deceptive. This is especially relevant with observational data. It is also relevant when domain knowledge is weak on hidden common causes.
+
+**Checklist for Today:**
+
+- For each key edge in top posterior DAGs, add a sensitivity review for a possible hidden common cause.
+- If your pipeline returns one DAG, compare it once with a latent-confounding-aware alternative, such as an RFCI-family method.
+- Do not treat larger sample size as sufficient reassurance; keep diagnostic logs for concentration on candidate confounded pairs.
+
+## FAQ
+
+**Q. Bayesian causal discovery provides uncertainty, so is it not safer?**
+
+Not necessarily. The paper’s core point is narrower. Under latent confounding, the posterior can favor spurious edges. The issue is not only broader uncertainty. Uncertainty estimates alone do not settle the safety question.
+
+**Q. Can this problem be reduced simply by collecting more data?**
+
+The cited excerpt suggests caution. It says the correlation threshold for preferring a spurious edge decreases as sample size increases. That means more data can coincide with stronger preference for the wrong structure.
+
+**Q. Then should we abandon DAG-based Bayesian methods?**
+
+That conclusion would go beyond the evidence here. A more careful response is to reconsider how results are used. Top posterior structures can be compared with methods that allow latent confounding. Domain review and sensitivity analysis can be added as separate steps.
+
+## Conclusion
+
+The paper points to a deeper concern than difficult identification under hidden variables. The posterior itself can tilt in the wrong direction. If so, uncertainty language needs more careful interpretation. A reasonable next step is practical and limited. Inspect the assumptions behind the current posterior before relying on more data.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-13](/en/posts/ai-resources-roundup-2026-07-13)
+- [Digital Twin Coordination for Heterogeneous LLM Robot Teams](/en/posts/digital-twin-coordination-heterogeneous-llm-robot-teams)
+- [Enterprise AI Deployment Priorities Beyond Model Response Quality](/en/posts/enterprise-ai-deployment-priorities-beyond-model-quality)
+- [Human Oversight Rules for High-Risk AI Systems](/en/posts/human-oversight-rules-for-high-risk-ai-systems)
+- [Long-Context LLMs Need More Than Bigger Windows](/en/posts/long-context-llms-need-more-than-bigger-windows)
+---
+
+## References
+
+- [An assessment of the calibration of causal relationships learned using RFCI and bootstrapping - dbmi.pitt.edu](https://www.dbmi.pitt.edu/wp-content/uploads/2022/09/An-assessment-of-the-calibration-of-causal-relationships-learned-using-RFCI-and-bootstrapping.pdf)
+- [Bayesian Estimation of Causal Direction in Acyclic Structural Equation Models with Individual-specific Confounder Variables and Non-Gaussian Distributions - jmlr.csail.mit.edu](https://jmlr.csail.mit.edu/papers/volume15/shimizu14a/shimizu14a.pdf)
+- [CMU-CLeaR Group - cmu.edu](https://www.cmu.edu/dietrich/causality/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.09449)

@@ -1,0 +1,99 @@
+---
+title: ConceptSMILE Audits Concept Explanations Under Input Perturbations
+slug: conceptsmile-audits-concept-explanations-under-input-perturbations
+date: '2026-07-13'
+lastReviewedAt: '2026-07-13'
+locale: en
+description: >-
+  ConceptSMILE audits concept-based explanations for stability, faithfulness,
+  and consistency under input perturbations.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-2ccdcf0a50bea0cd
+sourceUrl: 'https://arxiv.org/abs/2607.09649'
+verificationScore: 0.83
+alternateLocale: /ko/posts/conceptsmile-audits-concept-explanations-under-input-perturbations
+coverImage: >-
+  /images/posts/conceptsmile-audits-concept-explanations-under-input-perturbations.png
+---
+
+
+## TL;DR
+
+- ConceptSMILE is a perturbation-based audit framework for concept-based explanations, not just a new explanation method.
+- This matters because human-friendly explanations can look plausible without being reliable, especially in high-risk settings.
+- If you use concept explanations, you should audit stability, faithfulness, and consistency separately from accuracy.
+
+Example: A clinical team reviews an image model with a clear concept label. The label sounds reasonable. The team then perturbs irrelevant visual cues and checks whether the explanation still tracks the model's behavior.
+
+This is a practical issue. In healthcare, a single explanation line can affect trust. It helps to separate explanations that look good from explanations that hold up. ConceptSMILE makes that distinction explicit. An explanation is not only an output artifact. It can also be treated as an object of verification.
+
+## TL;DR
+
+- The key point of ConceptSMILE is an audit framework for checking whether concept-based explanations are trustworthy under perturbation.
+- This matters because concept explanations that feel intuitive are not automatically correct or reliable.
+- When using concept explanations, readers should verify stability, faithfulness, and consistency under perturbation, alongside accuracy.
+
+## Current status
+
+The starting point is clear. The original abstract describes a model-agnostic, perturbation-based auditing system. It evaluates the reliability of concept-based explainable AI. It does not replace SMILE. It extends perturbation logic from feature-level or region-level attribution to concept-level auditing.
+
+The reported experimental setting is retinal fundus images. The datasets named in the search results are HRF, APTOS 2019, ODIR5K, and IDRiD. Two concept extraction pathways are described. One category is MedSAM-derived visual concepts. The other is VLM-based semantic concepts.
+
+Another point needs caution. The paper presents these results as a proof-of-concept for retinal imaging. The available search results do not support broad generalization to other model families or non-retinal datasets. A model-agnostic design goal is different from broad validation.
+
+
+## Analysis
+
+This approach shifts the focus of XAI discussion. Many explainable AI efforts focus on presentation. Heatmaps, keywords, prototypes, and concept labels are common examples. ConceptSMILE changes the question. It asks whether an explanation keeps the same reason under perturbation. That moves attention from interpretability toward auditability.
+
+Concept-based explanations can help because they use familiar units. Examples include hemorrhage, lesion, and vessel thickness. Familiarity, however, is not the same as reliability. Human-like wording can invite trust too easily. The search results also note a limit. They do not establish a strong direct link between concept-reliability auditing and better real-world decisions. That link may exist. It still needs separate validation in healthcare, finance, and law.
+
+The limitations are also clear. First, the confirmed setting is retinal fundus imaging. Second, the confirmed setup includes 2 concept extraction pathways. Third, no benchmark figures in the search results show universal superiority across XAI metrics. Fourth, a high audit score does not directly imply better user judgment. This framework looks useful for assessing explanation reliability. It should not be treated as a universal certificate against operational risk.
+
+## Practical application
+
+Teams can take a practical lesson from this. If a product includes concept-based explanations, audit questions should come before interface polish. Teams should test how explanations change under small input changes. They should also check whether explanation changes track model-output changes. They should also test whether a concept captures a background shortcut instead of the intended concept.
+
+Example: If a team builds a medical image classifier, it can avoid stopping at the label "lesion concept." It can perturb image regions unrelated to the lesion and observe the concept response. It can also perturb lesion-related regions and compare explanation instability with prediction instability. This procedure helps separate decoration from evidence.
+
+**Checklist for Today:**
+
+- Create a one-page audit sheet for each model that uses concept-based explanations, separate from accuracy evaluation.
+- Design perturbation scenarios that match your operational data, and record stability, faithfulness, and consistency together.
+- In user testing, measure trust effects and users' ability to reject incorrect explanations as separate outcomes.
+
+## FAQ
+
+**Q. Is ConceptSMILE a model that generates explanations, or a framework that evaluates them?**  
+It is closer to an evaluation framework. The abstract and search findings describe an independent audit layer. That layer evaluates concept-based explanations through perturbation-based analysis.
+
+**Q. If we already use concept-based explanations, why add auditing?**  
+Because familiarity does not ensure trustworthiness. Small input changes can destabilize an explanation. An explanation can also diverge from the model's actual basis for judgment. Separate validation therefore helps.
+
+**Q. Can we assume this method applies immediately to every other domain?**  
+That claim would be too strong. The confirmed experiments in the search results focus on retinal fundus images. They also focus on 2 pathways, MedSAM-based and VLM-based. Broader validation is still needed.
+
+## Conclusion
+
+The main point is not a new explanation output. The contribution is treating the explanation itself as an audit target. That is where attention can go next. The central question is not only whether a concept explanation seems plausible. The stronger question is whether it stays consistent and verifiable under perturbation.
+
+## Further Reading
+- [AI Resource Roundup (24h) - 2026-07-13](/en/posts/ai-resources-roundup-2026-07-13)
+- [Digital Twin Coordination for Heterogeneous LLM Robot Teams](/en/posts/digital-twin-coordination-heterogeneous-llm-robot-teams)
+- [Enterprise AI Deployment Priorities Beyond Model Response Quality](/en/posts/enterprise-ai-deployment-priorities-beyond-model-quality)
+- [Human Oversight Rules for High-Risk AI Systems](/en/posts/human-oversight-rules-for-high-risk-ai-systems)
+- [Long-Context LLMs Need More Than Bigger Windows](/en/posts/long-context-llms-need-more-than-bigger-windows)
+---
+
+## References
+
+- [ConceptSMILE: Auditing the Trustworthiness of Concept-Based Explainable AI - arxiv.org](https://arxiv.org/pdf/2607.09649.pdf)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.09649)
+- [In search of verifiability: Explanations rarely enable complementary performance in AI‐advised decision making - onlinelibrary.wiley.com](https://onlinelibrary.wiley.com/doi/abs/10.1002/aaai.12182)
+- [Understanding the (Extra-)Ordinary: Validating Deep Model Decisions with Prototypical Concept-based Explanations - arxiv.org](https://arxiv.org/abs/2311.16681)
