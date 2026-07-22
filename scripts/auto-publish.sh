@@ -411,6 +411,30 @@ if [ -f "$REPO_ROOT/.env.local" ]; then
   set -u
 fi
 
+# CLIProxyAPI can rotate its local client key when its config is regenerated.
+# For the localhost proxy only, read the active key directly so unattended
+# publishing does not keep using a stale copied value. Never print this value.
+CLIPROXY_CONFIG="${CLIPROXY_CONFIG:-/home/kkaemo/projects/CLIProxyAPI/config.yaml}"
+if [[ "${OPENAI_BASE_URL:-}" =~ ^http://(localhost|127\.0\.0\.1):8317(/|$) ]] && [ -f "$CLIPROXY_CONFIG" ]; then
+  active_proxy_key="$(
+    awk '
+      /^api-keys:/ { in_keys=1; next }
+      in_keys && /^[^[:space:]]/ { exit }
+      in_keys && /^[[:space:]]*-[[:space:]]*/ {
+        line=$0
+        sub(/^[[:space:]]*-[[:space:]]*/, "", line)
+        gsub(/^"|"$/, "", line)
+        print line
+        exit
+      }
+    ' "$CLIPROXY_CONFIG"
+  )"
+  if [ -n "$active_proxy_key" ]; then
+    export OPENAI_API_KEY="$active_proxy_key"
+  fi
+  unset active_proxy_key
+fi
+
 REQUIRED_VARS=(OPENAI_BASE_URL OPENAI_API_KEY OPENAI_MODEL)
 for var in "${REQUIRED_VARS[@]}"; do
   if [ -z "${!var}" ]; then
