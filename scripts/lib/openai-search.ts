@@ -16,7 +16,7 @@ const AI_API_DISABLED = ['true', '1'].includes(
 );
 const API_KEY = process.env.OPENAI_API_KEY || '';
 const BASE_URL = process.env.OPENAI_BASE_URL || '';
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const MODEL = process.env.OPENAI_RESEARCH_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
 
 if (!AI_API_DISABLED && !API_KEY) {
   console.warn('⚠️ OPENAI_API_KEY not found in .env.local');

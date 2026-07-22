@@ -131,6 +131,7 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.description,
+    robots: post.indexable ? { index: true, follow: true } : { index: false, follow: true },
     alternates: {
       canonical: url,
       languages: languageAlternates,

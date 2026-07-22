@@ -505,9 +505,9 @@ function main() {
     if (!TLDR_HEADING.test(content)) {
       issues.push({
         file: rel,
-        severity: 'warning',
+        severity: 'suggestion',
         rule: 'missing_tldr',
-        message: 'Add a TL;DR section near the top (e.g., "## TL;DR" or "## 세 줄 요약") with 3 bullet points.',
+        message: 'Consider a TL;DR only when it materially helps this article; do not add one as a fixed template.',
       });
     } else {
       const bullets = countBulletsInSection(content, TLDR_HEADING);

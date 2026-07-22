@@ -25,7 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // Home pages for each locale
   for (const locale of locales) {
-    const localePosts = getPostSummaries(locale as Locale);
+    const localePosts = getPostSummaries(locale as Locale).filter((post) => post.indexable);
     const localeLastModified =
       localePosts.length > 0
         ? new Date(

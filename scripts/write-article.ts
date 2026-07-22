@@ -15,7 +15,7 @@ import {
   WRITE_PRACTICAL_GUIDE_PROMPT,
   WRITE_PERSPECTIVE_PROMPT,
   GENERATE_METADATA_PROMPT,
-} from './prompts/topics';
+} from './prompts/editorial-v2';
 import { checkBeforePublish, saveAfterPublish } from './lib/memu-client';
 import { classifySource, createVerifiedSource, SourceTier } from './lib/search-mode.js';
 import { canonicalizeTags } from './lib/tags.js';
@@ -32,7 +32,7 @@ const POSTS_DIR = './apps/web/content/posts';
 const VC_DIR = './.vc';
 const LAST_WRITTEN_PATH = join(VC_DIR, 'last-written.json');
 const LAST_EXTRACTED_TOPICS_PATH = join(VC_DIR, 'last-extracted-topics.json');
-const MIN_CONFIDENCE = 0.6;
+const MIN_CONFIDENCE = 0.8;
 const SERIES_TAGS = [
   'k-ai-pulse',
   'explainer',
@@ -253,10 +253,7 @@ async function writeArticle(topic: ResearchedTopic, series: EditorialSeries, int
   const primaryExcerpt = loadPrimarySourceExcerpt(String(topic.sourceId || ''));
   const primaryTitle = primaryExcerpt?.title || '';
   const primaryText = primaryExcerpt?.excerpt || 'N/A';
-  const introDirective = introType
-    ? `\n\n도입부 유형: ${introType} (위 6가지 중 해당 유형을 반드시 사용할 것)\n`
-    : '';
-  const articlePromptTemplate = `${getWritePrompt(series)}${introDirective}
+  const articlePromptTemplate = `${getWritePrompt(series)}
 
 ## 참고 자료 포맷 규칙 (중요):
 - 참고 자료를 작성해야 할 때는 모든 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 작성한다.`;
@@ -271,6 +268,10 @@ async function writeArticle(topic: ResearchedTopic, series: EditorialSeries, int
 
   try {
     const response = await generateContent(prompt);
+
+    if (response.trim() === 'INSUFFICIENT_EVIDENCE') {
+      throw new Error('Insufficient evidence for an original article');
+    }
 
     // Clean up markdown wrapper
     let article = response
@@ -320,32 +321,24 @@ async function generateMetadata(content: string): Promise<ArticleMetadata> {
 async function polishArticleMarkdown(locale: 'ko' | 'en', markdown: string): Promise<string> {
   const rules = locale === 'en'
     ? [
-        'Ensure every sentence is ≤ 20 words (split aggressively if needed).',
-        'Do not use absolute or overconfident language (avoid: proven, guarantee, always, never, must).',
-        'Replace "must" with "should" or "can" where possible.',
-        'Avoid hype words (e.g., revolutionary, groundbreaking, massive).',
-        'Ensure the first sentence of the introduction starts with a concrete situation, event, or metric.',
-        'Ensure the body includes at least 3 verifiable concrete numeric details (benchmark score, date, ratio, token count, etc.) from existing evidence.',
-        'Do not fill the status/analysis sections with number-free claims only.',
-        'Ensure a "## TL;DR" section exists near the top with exactly 3 bullet points summarizing existing content.',
-        'Ensure TL;DR bullets answer: (1) what changed / what this is, (2) why it matters, (3) what the reader should do next.',
-        'Include exactly one clearly labeled hypothetical scene paragraph near the top starting with "Example:" (do not present it as real).',
-        'The "Example:" paragraph must not contain any numeric digits (0-9) or specific counts.',
-        'Avoid relative date words like "today/yesterday/tomorrow" outside the checklist; keep explicit dates as dates.',
-        'Under "## Practical Application", include "**Checklist for Today:**" with exactly 3 bullet points (one sentence each). Merge or rewrite if needed.',
+        'Prefer clear, varied sentence lengths; split only when readability improves.',
+        'Remove hype, generic transitions, unsupported certainty, and repeated conclusions.',
+        'Preserve the article-specific structure. Do not add TL;DR, FAQ, examples, or checklists unless the article genuinely needs them.',
+        'Make the distinction between sourced fact, analysis, and uncertainty explicit.',
         'If a "## References"/"## 참고 자료" section exists, each entry must follow: "- [Article Title - Source Name](URL)". Do not use bare domains.',
-        'Avoid starting the first narrative sentence after TL;DR with "X announced/released/updated". Start with the user-visible change or implication instead.',
-        'Do NOT introduce new factual claims, numbers, dates, names, or sources. You may add/adjust the labeled hypothetical example and checklist items.',
+        'Do NOT introduce new factual claims, numbers, dates, names, or sources.',
       ].join('\n- ')
     : [
         '문장을 너무 길게 늘이지 말고, 필요하면 쪼개서 명확하게 쓴다.',
         '근거 없는 단정/과장 표현을 제거한다.',
         '금지 표현을 피한다: "매우", "다양한", "탁월한", "혁신적", "획기적", "완벽", "절대", "일반적으로", "효과적으로".',
         '금지 문장 패턴을 제거한다: "장밋빛 전망만 있는 것은 아니다", "~임을 시사한다/보여준다/반영한다", "~라고 할 수 있다", "주목할 만한 점은".',
-        '본문은 해체(-다) 문체를 유지한다. FAQ 답변만 합쇼체(-ㅂ니다/-습니다)로 변환한다. 예: "지원된다" → "지원됩니다", "가능하다" → "가능합니다".',
+        '본문은 자연스러운 해체(-다) 문체를 유지한다.',
         '"추가 확인 필요"가 글 전체에서 3회 이상 나오면 2회 이하로 줄인다. 해당 문장을 삭제하거나 일반론으로 대체한다.',
+        '글의 고유한 구조를 유지한다. 세 줄 요약, FAQ, 가상 예시, 체크리스트를 일괄 추가하지 마라.',
+        '출처로 확인된 사실, 편집자의 분석, 불확실성을 구분한다.',
         '"## 참고 자료" 섹션이 있다면 각 항목을 반드시 "- [글 제목 - 출처명](URL)" 형식으로 맞추고, 도메인만 쓰지 않는다.',
-        '새로운 사실 주장(수치/날짜/출처/고유명사)을 절대 추가하지 않는다. 다만 예시/체크리스트는 일반론으로만 보완할 수 있다.',
+        '새로운 사실 주장(수치/날짜/출처/고유명사)을 절대 추가하지 않는다.',
       ].join('\n- ');
 
   const prompt = `You are a careful technical editor.

@@ -17,6 +17,10 @@ const OPENAI_MAX_OUTPUT_TOKENS = (() => {
   const parsed = parseIntEnv('OPENAI_MAX_OUTPUT_TOKENS', 0, 1);
   return parsed > 0 ? parsed : undefined;
 })();
+const OPENAI_REASONING_EFFORT = (() => {
+  const value = String(process.env.OPENAI_REASONING_EFFORT || 'none').trim().toLowerCase();
+  return ['none', 'low', 'medium', 'high', 'xhigh', 'max'].includes(value) ? value : 'none';
+})();
 
 const TODAY = new Date().toISOString().split('T')[0];
 const CONTEXT_INJECTION = `
@@ -61,7 +65,8 @@ export async function generateContent(prompt: string): Promise<string> {
     model: OPENAI_MODEL as any,
     instructions: CONTEXT_INJECTION,
     input: prompt,
-    temperature: pickTemperature(),
+    reasoning: { effort: OPENAI_REASONING_EFFORT as any },
+    ...(OPENAI_REASONING_EFFORT === 'none' ? { temperature: pickTemperature() } : {}),
     max_output_tokens: OPENAI_MAX_OUTPUT_TOKENS,
     store: false,
   });

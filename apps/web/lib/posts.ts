@@ -4,6 +4,7 @@ import matter from 'gray-matter';
 import { locales, type Locale } from '@/i18n';
 import { PostFrontmatterSchema, type PostFrontmatter } from '@/lib/post-schema';
 import { deriveCoreTagsFromContent, estimateReadingTime } from '@singularity-blog/content-utils';
+import { assessPostIndexability } from '@/lib/indexing-policy';
 
 export interface Post {
   slug: string;
@@ -26,6 +27,8 @@ export interface Post {
   sourceId?: string;
   alternateLocale?: string;
   coverImage?: string;
+  indexable: boolean;
+  indexabilityReasons: string[];
 }
 
 export type PostSummary = Omit<Post, 'content'>;
@@ -309,6 +312,14 @@ function parsePostFile(
   const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
   const schema = data.schema;
 
+  const indexability = assessPostIndexability({
+    date: data.date,
+    lastReviewedAt,
+    verificationScore: data.verificationScore,
+    sourceUrl: data.sourceUrl,
+    content,
+  });
+
   return {
     slug,
     title: data.title || slug,
@@ -330,6 +341,8 @@ function parsePostFile(
     sourceId: deriveSourceId(data.sourceId, tags),
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
     coverImage: normalizeCoverImage(data.coverImage, slug),
+    indexable: indexability.indexable,
+    indexabilityReasons: indexability.reasons,
   };
 }
 
@@ -355,6 +368,14 @@ function parsePostFileSummary(
   const topic = typeof data.topic === 'string' ? data.topic.trim() : '';
   const schema = data.schema;
 
+  const indexability = assessPostIndexability({
+    date: data.date,
+    lastReviewedAt,
+    verificationScore: data.verificationScore,
+    sourceUrl: data.sourceUrl,
+    content,
+  });
+
   return {
     slug,
     title: data.title || slug,
@@ -375,6 +396,8 @@ function parsePostFileSummary(
     sourceId: deriveSourceId(data.sourceId, tags),
     alternateLocale: normalizeAlternateLocale(data.alternateLocale, existingPaths),
     coverImage: normalizeCoverImage(data.coverImage, slug),
+    indexable: indexability.indexable,
+    indexabilityReasons: indexability.reasons,
   };
 }
 

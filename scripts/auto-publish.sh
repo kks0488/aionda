@@ -513,9 +513,10 @@ if ! [[ "$evergreen_every" =~ ^[0-9]+$ ]] || [ "$evergreen_every" -le 0 ]; then
   evergreen_every=0
 fi
 EVERGREEN_ENABLED="${AUTO_PUBLISH_EVERGREEN_ENABLED:-true}"
+TREND_ENABLED="${AUTO_PUBLISH_TREND_ENABLED:-false}"
 
 publish_mode="standard"
-if [ $((slot % trend_every)) -eq 0 ]; then
+if [ "${TREND_ENABLED}" = "true" ] && [ $((slot % trend_every)) -eq 0 ]; then
   publish_mode="trend"
 elif [ "${EVERGREEN_ENABLED}" = "true" ] && [ "${evergreen_every:-0}" -gt 0 ] && [ $((slot % evergreen_every)) -eq 0 ]; then
   publish_mode="evergreen"
@@ -524,17 +525,17 @@ fi
 log "Publish mode: ${publish_mode} (slot=${slot}, trend_every=${trend_every}, evergreen_every=${evergreen_every})"
 
 # Throughput controls (to avoid “spam burst” while still allowing more runs)
-DAILY_MAX="${AUTO_PUBLISH_DAILY_MAX:-12}"
-MIN_INTERVAL_MIN="${AUTO_PUBLISH_MIN_INTERVAL_MINUTES:-30}"
+DAILY_MAX="${AUTO_PUBLISH_DAILY_MAX:-1}"
+MIN_INTERVAL_MIN="${AUTO_PUBLISH_MIN_INTERVAL_MINUTES:-1440}"
 JITTER_SECONDS="${AUTO_PUBLISH_JITTER_SECONDS:-180}"
 
-ROUNDUP_ENABLED="${AUTO_PUBLISH_ROUNDUP_ENABLED:-true}"
+ROUNDUP_ENABLED="${AUTO_PUBLISH_ROUNDUP_ENABLED:-false}"
 ROUNDUP_AFTER_HOUR="${AUTO_PUBLISH_ROUNDUP_AFTER_HOUR:-9}"
 ROUNDUP_SINCE="${AUTO_PUBLISH_ROUNDUP_SINCE:-24h}"
 ROUNDUP_LIMIT="${AUTO_PUBLISH_ROUNDUP_LIMIT:-12}"
 
-if ! [[ "$DAILY_MAX" =~ ^[0-9]+$ ]]; then DAILY_MAX=12; fi
-if ! [[ "$MIN_INTERVAL_MIN" =~ ^[0-9]+$ ]]; then MIN_INTERVAL_MIN=30; fi
+if ! [[ "$DAILY_MAX" =~ ^[0-9]+$ ]]; then DAILY_MAX=1; fi
+if ! [[ "$MIN_INTERVAL_MIN" =~ ^[0-9]+$ ]]; then MIN_INTERVAL_MIN=1440; fi
 if ! [[ "$JITTER_SECONDS" =~ ^[0-9]+$ ]]; then JITTER_SECONDS=180; fi
 if ! [[ "$ROUNDUP_AFTER_HOUR" =~ ^[0-9]+$ ]]; then ROUNDUP_AFTER_HOUR=9; fi
 if ! [[ "$ROUNDUP_LIMIT" =~ ^[0-9]+$ ]]; then ROUNDUP_LIMIT=12; fi
@@ -603,7 +604,7 @@ if [ "$publish_mode" = "roundup" ]; then
 else
   set_status "running: extract topics"
   log "Step 2: Extracting topics..."
-  EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-6}"
+  EXTRACT_LIMIT="${AUTO_PUBLISH_EXTRACT_LIMIT:-3}"
   # Keep the default "standard" lane fresh. If no topics are found, the pipeline
   # falls back to evergreen (search queue).
   STANDARD_SINCE="${AUTO_PUBLISH_STANDARD_SINCE:-48h}"
@@ -651,7 +652,7 @@ else
     # Order is configurable via env:
     #   AUTO_PUBLISH_STANDARD_SOURCES="official,news,raw"
     #   AUTO_PUBLISH_STANDARD_SOURCES="official,news"  (disable raw unless no topics are extracted)
-    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news,raw}"
+    STANDARD_SOURCES="${AUTO_PUBLISH_STANDARD_SOURCES:-official,news}"
     IFS=',' read -ra SOURCES <<< "${STANDARD_SOURCES}"
 
     for src in "${SOURCES[@]}"; do
@@ -685,13 +686,13 @@ else
   # 3. 리서치 (publishable 토픽 확보를 위해 여러 개를 시도)
   set_status "running: research topics"
   log "Step 3: Researching topics..."
-  RESEARCH_LIMIT="${AUTO_PUBLISH_RESEARCH_LIMIT:-6}"
+  RESEARCH_LIMIT="${AUTO_PUBLISH_RESEARCH_LIMIT:-3}"
   pnpm research-topic --from-last-extract --limit="${RESEARCH_LIMIT}" || echo "Research warning"
 
   # 4. 글 작성 (memU 중복체크 포함)
   set_status "running: write article"
   log "Step 4: Writing article..."
-  WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-2}"
+  WRITE_LIMIT="${AUTO_PUBLISH_WRITE_LIMIT:-1}"
   pnpm write-article --from-last-extract --limit="${WRITE_LIMIT}" || echo "Write warning"
 fi
 

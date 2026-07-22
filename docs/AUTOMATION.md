@@ -18,8 +18,8 @@
 
 자동화는 “많이”보다 “지속 가능한 품질 + 안정적인 리듬”이 더 중요합니다. 아래 환경변수로 과도한 발행/스팸 패턴을 방지합니다.
 
-- `AUTO_PUBLISH_DAILY_MAX` (기본 12): 하루 최대 발행 글 수(슬러그 기준)
-- `AUTO_PUBLISH_MIN_INTERVAL_MINUTES` (기본 30): 최근 발행 이후 최소 간격(분)
+- `AUTO_PUBLISH_DAILY_MAX` (기본 1): 하루 최대 발행 글 수(슬러그 기준)
+- `AUTO_PUBLISH_MIN_INTERVAL_MINUTES` (기본 1440): 최근 발행 이후 최소 간격(분)
 - `AUTO_PUBLISH_JITTER_SECONDS` (기본 180): 실행 시작 시 랜덤 지연(초) — 고정된 봇 패턴 완화
 
 ## 텍스트 생성 Provider (LLM)
@@ -37,7 +37,7 @@
 
 “우리가 수집한 자료를 따로 올리기” 위한 경량 포맷입니다(요약 기사 X, 링크 아카이브 O).
 
-- `AUTO_PUBLISH_ROUNDUP_ENABLED` (기본 true): 라운드업 발행 활성화
+- `AUTO_PUBLISH_ROUNDUP_ENABLED` (기본 false): 라운드업 발행 활성화
 - `AUTO_PUBLISH_ROUNDUP_AFTER_HOUR` (기본 9): 해당 시각 이후(로컬 타임) 하루 1회 라운드업 시도
 - `AUTO_PUBLISH_ROUNDUP_SINCE` (기본 24h): 라운드업에 포함할 수집 범위
 - `AUTO_PUBLISH_ROUNDUP_LIMIT` (기본 12): 라운드업 링크 수(대략 공식/뉴스 반반)
