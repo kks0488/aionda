@@ -1,0 +1,78 @@
+---
+title: Deployment criteria for nuclear LLMs
+slug: nuclear-llm-deployment-evidence-auditability
+date: '2026-07-28'
+lastReviewedAt: '2026-07-28'
+locale: en
+description: >-
+  A practical guide to interpreting nuclear LLM benchmark results, focusing on
+  why deployment decisions should require evidence traceability, hallucination
+  checks, and auditability beyond test score gains.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+  - fine-tuning
+  - rag
+author: AI온다
+sourceId: arxiv-cs-ai-0efb3cc7e1294e6a
+sourceUrl: 'https://arxiv.org/abs/2607.22067'
+verificationScore: 0.89
+alternateLocale: /ko/posts/nuclear-llm-deployment-evidence-auditability
+coverImage: /images/posts/nuclear-llm-deployment-evidence-auditability.png
+---
+
+# What Nuclear Power LLM Benchmarks Tell Us About Deployment Criteria: Look at the “Evidence Path” Before the Score
+
+Teams evaluating LLMs for nuclear power should not treat this study only as an answer to “which configuration performed better on the test.” The more useful conclusion is narrower. In a reactor-operator-licensing-exam-style benchmark, fine-tuning and retrieval integration showed potential. But the study’s results do not, by themselves, verify several requirements that would matter for deployment as a field support tool. In particular, they do not confirm response-level evidence presentation, hallucination rates, or operational auditability.
+
+The decision rule should therefore be explicit. In domains such as nuclear power, where regulatory and safety requirements are high, improved test scores should be used as an initial filter, not as deployment evidence. Deployment decisions require separate evaluations of groundedness and auditability. The main issue is not whether to choose fine-tuning or RAG. It is whether teams can verify which errors were reduced, what evidence supports each response, and what records can be retained.
+
+## What the Study Actually Showed
+
+The subject is Gemma 4 31B-IT, a 31B-parameter open-weight multimodal model. The study evaluated this model against U.S. NRC reactor operator licensing exams and compared eight model-retrieval configurations. The comparison axes included the base model, supervised fine-tuning, and BM25-based retrieval-augmented generation using the U.S. Department of Energy Fundamentals Handbook.
+
+The study’s relevant contribution is that it compared, within the same exam-style benchmark, a method that puts nuclear power knowledge into model weights and a method that retrieves and references external documents. In evaluations of industry-specific LLMs, this comparison is sometimes absent. Scores from general reasoning benchmarks are not enough to judge whether a model can apply nuclear power operations knowledge. This study shifted the evaluation target to NRC licensing exams, which are closer to domain usage conditions.
+
+The study did not confirm performance differences at the level of detailed subject areas. Subject-level analyses such as Components, Reactor Theory, and Thermodynamics, or comparisons between questions containing images/diagrams and text-only questions, were not identified. The reported differences appeared mainly by reactor type: PWR questions and BWR questions.
+
+The effect of adding retrieval was larger for BWR questions. The study compared fixed-size sliding-window chunking with structure-aware chunking in its retrieval pipeline, but the available abstract preview does not substantiate specific gains of 7.2 points for PWR or 13.5 points for BWR. Structure-aware chunking showed results in the same direction. In the SFT model, both chunking methods also produced a larger retrieval effect for BWR. After SFT, however, the gap became smaller.
+
+This pattern is useful for product decisions, but it should be interpreted carefully. Retrieval may provide greater gains in knowledge areas where the model is relatively weak. Conversely, when fine-tuning improves the model’s ability to apply domain knowledge, the additional relative benefit of retrieval may decrease. The question should not be “does adding RAG make it safer?” It should be “in which subdomains does retrieval have a compensatory effect, and can that effect be verified?”
+
+## Fine-Tuning and Retrieval Play Different Roles
+
+Fine-tuning changes the model’s response habits and domain-specific problem-solving behavior. For licensing-exam-style questions, where format and knowledge scope are relatively fixed, SFT may help stabilize answer selection and explanation structure. However, fine-tuned knowledge is difficult to trace after deployment to a specific document version. Fine-tuning alone does not help ensure response-level records showing why the model answered in a particular way or whether the answer was based on a specific provision or handbook passage.
+
+Retrieval has a different role. If the DOE Fundamentals Handbook is retrieved using BM25, the system has a path for accessing nuclear power knowledge outside the model weights. In principle, this can be easier to connect with document updates, evidence verification, and audit records. However, the study does not confirm whether retrieval improved currency, whether sources were presented for each response, or how much hallucination was reduced.
+
+This distinction is central to deployment decisions. Improved test performance is evidence that the model solved benchmark problems better. Claims that it gave evidence-based answers, provided responses operators could review, or left reproducible judgments for audits are separate claims. A nuclear power support tool needs evidence closer to the latter.
+
+## Practical Decision Rules
+
+Teams considering LLMs for nuclear power should make decisions in the following order.
+
+First, use licensing-exam-style benchmarks as a gate. Evaluations that require application of domain knowledge, such as NRC operator exams, are closer to the target use case than general benchmark scores. However, evaluation should not stop at a single pass rate or average score. Results should be broken down by facility type, such as PWR/BWR. In this study, the retrieval effect appeared larger for one reactor type.
+
+Second, do not treat fine-tuning and retrieval as competitors. SFT alone, retrieval alone, and SFT+retrieval should all be compared. Areas where retrieval provides weak benefits should be separated from areas where it provides large benefits. The larger improvement from retrieval on BWR questions supports considering RAG as a way to compensate for weak areas. At the same time, the narrowed gap after SFT also matters. Fine-tuning may have absorbed part of the gap in knowledge application.
+
+Third, establish a separate auditability evaluation before deployment. The NIST AI RMF states that AI systems should be tested before deployment and periodically during operation, and that independent review can improve testing quality and reduce internal bias and conflicts of interest. The NRC’s description of quality assurance for new reactors also presents procedures, record retention, inspections, corrective actions, and audits as elements of a QA program. Applied to LLM support tools, these principles mean that, at minimum, test data, metrics, failure types, model configurations, retrieval documents, operational logs, and corrective action procedures should be retained.
+
+Fourth, design human approval authority as stop authority, not as a formality. In high-risk field environments, it is not enough to state that “there is a final reviewer.” If model behavior deviates from operational criteria, deployment should be restrictable or suspendable. The responsible person and authority to act should be documented.
+
+This study can be viewed as a starting point for evaluating LLMs in nuclear power. The practical conclusion should remain conservative. Even if an SFT+RAG configuration performed better on the test, that is not deployment approval evidence. It is closer to evidence for moving to the next stage of validation. Product teams now need to decide not only which model configuration to test, but what evaluation framework should be passed. Only configurations that meet domain exam performance requirements, provide traceable evidence for responses, and have operational audit and suspension procedures should be considered as limited support tools. If this criterion is not met, even pilots in nuclear power sites should remain confined to a knowledge review environment.
+
+## Further Reading
+- [Why Legal Structure Chunking Matters for EU AI Act](/en/posts/why-legal-structure-chunking-matters-eu-ai-act)
+- [Why LLM Refusal Behavior Differs Across Safety Boundaries](/en/posts/why-llm-refusal-behavior-differs-across-safety-boundaries)
+- [AI Resource Roundup (24h) - 2026-07-13](/en/posts/ai-resources-roundup-2026-07-13)
+- [ConceptSMILE Audits Concept Explanations Under Input Perturbations](/en/posts/conceptsmile-audits-concept-explanations-under-input-perturbations)
+- [Digital Twin Coordination for Heterogeneous LLM Robot Teams](/en/posts/digital-twin-coordination-heterogeneous-llm-robot-teams)
+---
+
+## References
+
+- [5 AI RMF Core - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [Quality Assurance for New Reactors - nrc.gov](https://www.nrc.gov/reactors/new-reactors/how-we-regulate/oversight/quality-assurance)
+- [Benchmarking Fine-tuning and Retrieval Strategies for a Multimodal Language Model on the NRC Reactor Operator Licensing Examination - arxiv.org](https://arxiv.org/pdf/2607.22067)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2607.22067)
