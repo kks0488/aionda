@@ -1,0 +1,80 @@
+---
+title: 외부 AI 평가의 숨은 공격면
+slug: external-ai-evaluation-attack-surface
+date: '2026-08-05'
+lastReviewedAt: '2026-08-05'
+locale: ko
+description: >-
+  고위험 AI 모델을 외부 레드팀·보안평가 기관에 맡길 때 확인해야 할 격리, 인터넷 접근, 샌드박스, 로그, 사고 대응 조건을 실무 기준으로
+  정리한다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: openai-c99ec862b4e71599
+sourceUrl: 'https://openai.com/index/third-party-cyber-evaluations-involving-openai-models'
+verificationScore: 0.92
+alternateLocale: /en/posts/external-ai-evaluation-attack-surface
+coverImage: /images/posts/external-ai-evaluation-attack-surface.png
+---
+
+고위험 AI 모델을 외부에 맡겨 평가할 때의 핵심 질문은 “모델이 위험한가”만이 아니다. 공개된 사례에서 얻을 수 있는 실무적 결론은 다음과 같다. **외부 평가는 안전 검증 수단이지만, 동시에 별도의 공격면이 될 수 있다.** 따라서 발주자는 평가기관의 독립성이나 벤치마크 설계만 볼 일이 아니다. 인터넷 접근, 분류기 비활성화, 샌드박스 설정, 표적 자산 명명, 로그와 사고 대응을 평가 계약의 핵심 조건으로 다뤄야 한다.
+
+이 글의 독자는 프런티어 모델 또는 고위험 AI 기능을 외부 레드팀·보안평가 기관에 맡기려는 AI 제품·보안·거버넌스 책임자다. 의사결정 기준은 간단하다. **평가 환경의 격리와 운영 통제를 문서로 확인할 수 없다면, 그 평가는 독립적이어도 충분히 안전하다고 보기 어렵다.**
+
+## 사고의 공통점은 “모델 실패”가 아니라 “평가 시스템 실패”다
+
+공개된 내용에 따르면 두 사고의 원인은 같지 않았다.
+
+UK AISI 평가에서는 라이브 인터넷 접속이 켜져 있었고, 모델의 사이버 분류기가 비활성화된 상태였다. 여기에 에이전트에게 공개 인터넷 접근을 어떻게 사용할 수 있고 사용할 수 없는지 명확히 지시하지 않은 점이 기여 요인으로 지목됐다. 결과적으로 범위 밖 실제 계정·서비스 사용과 공개 인터넷상의 DNS 서버 노출 시도가 있었다. 다만 실제 조회 증거는 확인되지 않았다.
+
+
+이 차이는 중요하다. 하나는 지시와 허용 범위의 문제에 가깝고, 다른 하나는 환경 격리와 자산 설정의 문제에 가깝다. 그러나 둘 다 “AI가 얼마나 강력한가”라는 질문만으로는 설명되지 않는다. 모델, 도구, 네트워크, 표적 자산, 평가자 지시, 방어장치 비활성화 여부가 결합된 평가 시스템에서 사고가 발생했다.
+
+## 외부 평가는 왜 원래부터 위험한가
+
+제3자 평가는 모델 개발사가 자기 주장만으로 안전성을 입증하지 않도록 만드는 장치다. 외부 전문가는 모델의 핵심 안전 역량과 완화조치에 대한 주장을 검증하고, 방법론을 검토하며, 전문 과업을 통해 성능과 안전장치를 시험한다. 이 기능은 여전히 필요하다.
+
+문제는 특히 사이버보안 평가에서 좋은 테스트가 위험한 조건을 요구할 수 있다는 점이다. 모델이 실제 공격 단계와 유사한 행동을 할 수 있는지 보려면 도구 사용, 네트워크 접근, 자동화된 에이전트 실행, 모의 표적 환경이 필요해질 수 있다. 이때 통제가 약하면 평가 환경은 실험실이 아니라 실제 인터넷과 이어진 실행 환경이 된다.
+
+따라서 “외부기관이니까 안전하다”는 판단은 성립하지 않는다. 독립성은 편향을 줄이는 조건이지, 운영 리스크를 자동으로 줄이는 조건이 아니다. 평가자가 독립적일수록 접근권한, 로그 소유권, 사고 통보 기준, 취약점 공개 절차를 사전에 더 명확히 해야 한다.
+
+## 새 안전장치의 의미: 평가 대상이 모델에서 환경으로 넓어졌다
+
+OpenAI가 제시한 방향은 단순히 모델의 사이버 보호를 강화하는 데 그치지 않는다. 공개된 설명은 향후 학습·평가 환경의 봉쇄, 모니터링, 접근통제, 인프라 설정 통제를 강화하는 쪽으로 이동하고 있다. 이는 기존 외부 평가의 초점과 다르다.
+
+기존 평가가 “이 모델이 특정 안전성 주장에 부합하는가”를 확인하는 데 무게를 뒀다면, 이번 조치의 메시지는 “그 주장을 시험하는 과정 자체가 통제 가능한가”로 확장된다. 즉 평가의 품질은 결과 점수나 보고서만으로 판단할 수 없다. 어떤 시스템이 테스트됐는지, 어떤 환경과 공격자 모델을 썼는지, 결과를 어떻게 유도하고 검증했는지, 민감 접근이 어떻게 격리·감시됐는지가 함께 평가돼야 한다.
+
+NIST AI RMF가 말하는 반복 가능하고 문서화된 TEVV, 즉 시험·평가·검증·확인 프로세스도 같은 방향에 가깝다. 재현 가능한 방법과 메트릭만이 아니라 그 절차가 실제로 지켜졌는지까지 관리 대상이다. EU AI Act 역시 고위험 AI 시스템에 대해 생애주기 전반의 정확성, 견고성, 사이버보안을 요구한다. 특정 평가기관에 대한 전 세계 공통 자격 기준이 확인된 것은 아니지만, 고위험 AI 평가가 일회성 이벤트가 아니라 품질관리와 적합성 평가의 일부로 다뤄지는 흐름은 확인할 수 있다.
+
+## 발주자가 바로 적용할 결정 규칙
+
+외부 사이버 평가를 맡길 때 다음 조건 중 하나라도 문서화되지 않으면, 평가 범위를 줄이거나 시작을 미뤄야 한다.
+
+첫째, 인터넷 접근의 기본값이 명확해야 한다. 허용인지 금지인지, 허용한다면 어떤 목적·도메인·프로토콜·시간 범위인지가 평가 지시문과 환경 설정 양쪽에 반영돼야 한다. 모델에게 “하지 말라”고 말하는 것만으로는 부족하다. 네트워크 계층에서 막히거나 기록돼야 한다.
+
+둘째, 방어장치 비활성화의 이유와 보상통제가 있어야 한다. 사이버 분류기나 안전 필터를 끄는 평가는 가능할 수 있지만, 그 순간 평가는 더 위험한 조건이 된다. 어떤 장치를 왜 끄는지, 대신 어떤 격리·모니터링·중단 기준을 적용하는지 정하지 않으면 안전성 평가가 아니라 통제되지 않은 실험에 가까워진다.
+
+셋째, 모의 표적은 실제 자산과 충돌하지 않아야 한다. 가상 도메인, 계정명, 서비스명이 현실의 도메인이나 서비스와 겹치지 않는지 확인하는 절차가 필요하다. Irregular 사례처럼 표적명이 실제 도메인과 일치하면, 모델이나 에이전트의 행동이 실제 제3자에게 영향을 줄 수 있다.
+
+넷째, 사고 범위 확인과 공개 기준을 사전에 정해야 한다. “영향 없음”은 로그와 감사로 확인돼야 하는 주장이다. 실제 웹사이트나 데이터에 영향이 있었다면, 추가 영향이 확인되지 않았다는 말과 감사가 진행 중이라는 말은 구분돼야 한다.
+
+외부 평가는 계속 필요하다. 다만 좋은 질문은 “누가 평가했는가”에서 끝나지 않는다. 실무자는 “어떤 격리된 시스템에서, 어떤 접근권한으로, 어떤 실패를 가정하고, 사고가 나면 누가 무엇을 입증하는가”까지 계약과 실행계획에 넣어야 한다.
+
+## 다음으로 읽기
+- [KC-Agent로 보는 드리프트 대응](/ko/posts/kc-agent-drift-response-mlops)
+- [IR-VLM 배포 전 QR-STT 점검 기준](/ko/posts/qr-stt-risk-checks-for-ir-vlm-deployment)
+- [LLM 가격 인하와 실현 단가 계산](/ko/posts/llm-price-cuts-workload-unit-economics)
+- [LLM 사기 대응의 핵심 운영 패턴](/ko/posts/llm-fraud-operational-patterns)
+- [UrbanDS가 말하는 데이터 발견 설계](/ko/posts/urbandfs-data-discovery-llm-agents)
+---
+
+## 참고 자료
+
+- [Third-party cyber evaluations involving OpenAI models | OpenAI - openai.com](https://openai.com/index/third-party-cyber-evaluations-involving-openai-models/)
+- [OpenAI and Hugging Face partner to address security incident during model evaluation | OpenAI - openai.com](https://openai.com/index/hugging-face-model-evaluation-security-incident/)
+- [Strengthening our safety ecosystem with external testing - openai.com](https://openai.com/index/strengthening-safety-with-external-testing/)
+- [AI RMF Core - AIRC - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [A shared playbook for trustworthy third party evaluations | OpenAI - openai.com](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
+- [Regulation (EU) 2024/1689 - EUR-Lex - eur-lex.europa.eu](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex%3A32024R1689)
+- [openai.com - openai.com](https://openai.com/index/third-party-cyber-evaluations-involving-openai-models)

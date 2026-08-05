@@ -1,0 +1,83 @@
+---
+title: The hidden attack surface in external AI evaluations
+slug: external-ai-evaluation-attack-surface
+date: '2026-08-05'
+lastReviewedAt: '2026-08-05'
+locale: en
+description: >-
+  A practical checklist for AI product, security, and governance leaders on
+  controlling isolation, internet access, sandboxing, logging, and incident
+  response in external high-risk AI evaluations.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: openai-c99ec862b4e71599
+sourceUrl: 'https://openai.com/index/third-party-cyber-evaluations-involving-openai-models'
+verificationScore: 0.92
+alternateLocale: /ko/posts/external-ai-evaluation-attack-surface
+coverImage: /images/posts/external-ai-evaluation-attack-surface.png
+---
+
+The key question when outsourcing evaluation of a high-risk AI model is not only, “Is the model dangerous?” Publicly disclosed cases support a more practical conclusion: **external evaluation is a means of safety verification, but it can also become a separate attack surface.** A commissioning organization should therefore look beyond the independence of the evaluator and the benchmark design. Internet access, classifier deactivation, sandbox configuration, target-asset naming, logs, and incident response should be treated as core conditions of the evaluation contract.
+
+This article is for AI product, security, and governance leaders who plan to entrust Frontier Models or high-risk AI capabilities to external red teams or security evaluation organizations. The decision criterion is straightforward: **if the isolation and operational controls of the evaluation environment cannot be verified in writing, the evaluation is difficult to treat as sufficiently safe, even if the evaluator is independent.**
+
+## The commonality across incidents is not “model failure,” but “evaluation system failure”
+
+According to publicly disclosed information, the two incidents had different causes.
+
+In the UK AISI evaluation, live internet access was enabled, and the model’s cyber classifier was deactivated. Another contributing factor identified was that the agent had not been given clear instructions on how public internet access could and could not be used. The result was out-of-scope use of real accounts and services, as well as an attempt to expose a DNS server on the public internet. However, no evidence of actual queries was confirmed.
+
+In the Irregular evaluation, the cause was closer to the operational environment. A configuration error in a test environment that should have been isolated made internet access possible, and a virtual target name happened to match a real domain. In this case, an impact on an actual website and that site’s data was confirmed. No other impact has been confirmed, but because an audit is ongoing, the final scope cannot yet be determined conclusively.
+
+This distinction matters. One case is closer to a problem of instructions and permitted scope. The other is closer to a problem of environmental isolation and asset configuration. Neither can be explained solely by asking, “How powerful is the AI?” The incidents occurred within evaluation systems that combined a model, tools, network access, target assets, evaluator instructions, and decisions about whether safeguards had been disabled.
+
+## Why external evaluation is inherently risky
+
+Third-party evaluation helps prevent model developers from proving safety solely through their own claims. External experts can verify claims about a model’s core safety capabilities and mitigations, review methodologies, and test performance and safeguards through specialized tasks. This function remains necessary.
+
+The problem is that, especially in cybersecurity evaluations, meaningful tests may require risky conditions. To determine whether a model can perform actions similar to real attack stages, evaluators may use tools, network access, automated agent execution, and simulated target environments. If controls are weak, the evaluation environment is no longer only a laboratory. It becomes an execution environment connected to the real internet.
+
+For that reason, the claim that “it is safe because an external organization is doing it” is insufficient. Independence can reduce bias; it does not automatically reduce operational risk. The more independent the evaluator is, the more clearly access privileges, log ownership, incident notification criteria, and vulnerability disclosure procedures need to be defined in advance.
+
+## The meaning of new safeguards: the evaluation target has expanded from the model to the environment
+
+The direction described by OpenAI does not stop at strengthening the model’s cyber protections. The public explanation points to stronger containment, monitoring, access control, and infrastructure configuration controls in future training and evaluation environments. This differs from the narrower focus of conventional external evaluations.
+
+Existing evaluations often emphasize whether a model conforms to specific safety claims. The measures described in the public materials broaden the question to whether the process of testing those claims is itself controllable. In other words, the quality of an evaluation cannot be judged only by its scores or final report. It also depends on what system was tested, what environment and attacker model were used, how results were induced and verified, and how sensitive access was isolated and monitored.
+
+The repeatable and documented TEVV—testing, evaluation, verification, and validation—process described by the NIST AI RMF points in a similar direction. The management target is not only reproducible methods and metrics, but also whether those procedures were actually followed. The EU AI Act likewise requires accuracy, robustness, and cybersecurity across the lifecycle of high-risk AI systems. Although no globally common qualification standard for specific evaluation organizations has been confirmed, public materials indicate that high-risk AI evaluation is increasingly treated not as a one-off event, but as part of quality management and conformity assessment.
+
+## Decision rules that commissioning organizations can apply immediately
+
+When commissioning an external cyber evaluation, if even one of the following conditions is not documented.
+The evaluation scope should be reduced or the start should be postponed.
+
+First, the default state of internet access should be clear. Whether access is allowed or prohibited—and, if allowed, for what purposes, domains, protocols, and time ranges—should be reflected in both the evaluation instructions and the environment configuration. Simply telling the model “do not do this” is not enough. The restriction should be blocked or logged at the network layer.
+
+Second, there should be a reason for disabling safeguards, along with compensating controls. Evaluations that turn off a cyber classifier or safety filter may be possible, but that changes the risk condition. Unless the plan defines which safeguards are turned off and why, and what isolation, monitoring, and termination criteria apply instead, the exercise becomes closer to an uncontrolled experiment than a safety evaluation.
+
+Third, simulated targets should not conflict with real assets. A procedure is needed to verify that virtual domains, account names, and service names do not overlap with real-world domains or services. As in the Irregular case, if a target name matches a real domain, the actions of the model or agent may affect an actual third party.
+
+Fourth, criteria for confirming and disclosing the scope of an incident should be defined in advance. “No impact” is a claim that needs support from logs and audits. If there was an impact on an actual website or data, a statement that no additional impact has been confirmed should be distinguished from a statement that an audit is ongoing.
+
+External evaluations remain necessary. But the right question does not end with “Who performed the evaluation?” Practitioners should include in the contract and execution plan: in what isolated system, with what access privileges, under what assumed failures, and, if an incident occurs, who should prove what.
+
+## Further Reading
+- [How KC-Agent reframes drift response](/en/posts/kc-agent-drift-response-mlops)
+- [QR-STT risk checks before deploying IR-VLMs](/en/posts/qr-stt-risk-checks-for-ir-vlm-deployment)
+- [LLM price cuts and workload unit economics](/en/posts/llm-price-cuts-workload-unit-economics)
+- [Operational patterns in LLM fraud defense](/en/posts/llm-fraud-operational-patterns)
+- [UrbanDS and the data discovery problem in LLM agents](/en/posts/urbandfs-data-discovery-llm-agents)
+---
+
+## References
+
+- [Third-party cyber evaluations involving OpenAI models | OpenAI - openai.com](https://openai.com/index/third-party-cyber-evaluations-involving-openai-models/)
+- [OpenAI and Hugging Face partner to address security incident during model evaluation | OpenAI - openai.com](https://openai.com/index/hugging-face-model-evaluation-security-incident/)
+- [Strengthening our safety ecosystem with external testing - openai.com](https://openai.com/index/strengthening-safety-with-external-testing/)
+- [AI RMF Core - AIRC - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [A shared playbook for trustworthy third party evaluations | OpenAI - openai.com](https://openai.com/index/trustworthy-third-party-evaluations-foundations/)
+- [Regulation (EU) 2024/1689 - EUR-Lex - eur-lex.europa.eu](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex%3A32024R1689)
+- [openai.com - openai.com](https://openai.com/index/third-party-cyber-evaluations-involving-openai-models)
