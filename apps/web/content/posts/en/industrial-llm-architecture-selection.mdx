@@ -1,0 +1,80 @@
+---
+title: How to choose an industrial LLM architecture
+slug: industrial-llm-architecture-selection
+date: '2026-08-08'
+lastReviewedAt: '2026-08-08'
+locale: en
+description: >-
+  Uses a wastewater treatment simulator comparison to clarify when to choose a
+  live simulator oracle, structured parameter injection, or retrieval-based
+  grounding for industrial LLM systems, focusing on accuracy, latency, and
+  portability.
+tags:
+  - agi
+  - hardware
+  - llm
+  - robotics
+  - k-ai-pulse
+author: AI온다
+sourceId: arxiv-cs-ai-2c1d549ca4116368
+sourceUrl: 'https://arxiv.org/abs/2608.05151'
+verificationScore: 0.88
+alternateLocale: /ko/posts/industrial-llm-architecture-selection
+coverImage: /images/posts/industrial-llm-architecture-selection.png
+---
+
+When selecting an LLM for industrial processes, the first question is not “which model is smarter,” but “where does the model obtain the process state when it answers?” The practical conclusion from this study is limited but useful. In domains such as wastewater treatment, where lag effects between variables and operating regimes matter, explaining domain knowledge to a general-purpose LLM may not be enough. Performance and portability depend on how the model is connected to a simulator or to plant-specific structural information.
+
+This conclusion should be read within a limited scope. The evidence comes from results reported in an arXiv preprint. The provided materials alone do not verify whether peer review has been completed or whether the approach is reliable in long-term real-world operation. These results are therefore better understood not as evidence of “a technology ready for immediate deployment in field automatic control,” but as “a comparative experiment that may inform the selection of an industrial LLM architecture.”
+
+## The Difference Among the Three Approaches Is Not the ‘Amount of Knowledge Injected,’ but the ‘Method of State Access’
+
+The study compared three ways of grounding a fixed Qwen2.5-32B-Instruct in the wastewater treatment simulator CCSS-IX.
+
+First, the live simulator oracle calls the running simulator when a question is submitted. It can directly query current variable relationships and intervention outcomes. In the reported results, this approach performed strongly on causal questions, scoring 99.5% on 198 causal benchmarks.
+
+Second, structured parameter injection inserts static parameters extracted from a simulator or domain model into the LLM input. It scored 79% on the same causal benchmark. Its advantages are simplicity and low latency. However, because it uses a static table, transfer to other plants is difficult, and its ability to compute new post-intervention states is limited.
+
+Third, the DRR retriever searches plant-related structured information and uses it in the answer. Its causal question accuracy was 75.8%, lower than structured injection. The results differed for counterfactual questions. According to the provided results, Method 3 was the only approach that handled post-intervention outcomes, and it was 16.3 percentage points higher than Method 2. In particular, it recorded 100% in the time-scale and operating-regime categories. After transfer to a biologically different plant, it still reached 88%, whereas Method 2’s static table could not be transferred.
+
+In short, the live simulator oracle had the highest reported causal accuracy. If cross-plant portability and counterfactual queries are part of the requirement, however, the retrieval-based approach has separate value.
+
+## Latency Changes the Operational Placement
+
+Looking only at performance, Method 1 may appear sufficient. In operational design, however, latency and dependencies also matter. In the study, the live oracle took an average of 9.0 seconds and involved an average of 1.2 tool calls per query. By contrast, the static retrieval-based configurations of Method 2 and Method 3 took about 3 seconds and had no tool calls.
+
+From a cost perspective, the paper reported that GPU host overhead dominated per-query cost for all three approaches. It therefore argued that unit execution cost itself is not the key selection criterion. Still, the live approach depends on a running simulator, and DRR adds the cost of training plant-specific retrievers. The practical choice is closer to “what infrastructure should remain continuously connected during operation” than to “how much a single answer costs.”
+
+This difference affects deployment. If an operator asks for candidate causes in the current plant, such as “why is N2O increasing,” and answer quality matters more than latency, the live oracle can be considered. Conversely, if the system should be deployed across multiple plants, response time should be short, and keeping a simulator continuously attached is difficult, a static retrieval-based configuration may be more realistic. However, an approach that uses only a static repository has limitations when explaining post-intervention states.
+
+## Decision Rule: Divide the Architecture by Question Type
+
+The decision rules that can be drawn directly from this study are as follows.
+
+If causal diagnostic accuracy for the current plant is the top priority, first consider the live simulator oracle. Within the scope reported by the study, this approach had the highest causal question accuracy at 99.5%. The trade-offs are an average latency of 9.0 seconds and dependency on a running simulator.
+
+If the objective is static knowledge explanation, fast response, and simple deployment, structured parameter injection can be used. This approach has weaknesses in plant transfer and counterfactual queries. In particular, if the product should be moved to other plants, a static table is difficult to use as the core architecture.
+
+If intervention questions and plant portability are important, retrieval-based approaches such as DRR should remain separate candidates. Their causal-question accuracy was lower than Method 1. However, DRR was 16.3 percentage points higher than Method 2 on counterfactual queries and reached 88% after transfer to a biologically different plant. For industrial products, this is a meaningful distinction. DRR also requires the cost of training plant-specific retrievers. In configurations for counterfactual queries, simulator-call overhead may occur.
+
+## Remaining Conditions When Transferring to Other Industries
+
+This approach is not limited in concept to wastewater treatment. According to separate studies and institutional materials, digital twins in process plants can be used as plant-specific engineering knowledge repositories and as simulation verification environments for generated actions. In the energy domain, dynamic testbeds have been proposed for evaluating LLMs and agents in power systems and operational technology environments. In manufacturing robotics, digital twins are discussed as a way to replicate the behavior of complex systems in virtual environments for analysis and operational optimization.
+
+This does not mean the same accuracy would be achieved in chemical plants, energy systems, or manufacturing robotics. The premise for scalability is the existence of a simulator or digital twin that represents the relevant facility sufficiently well. Verification of generated actions and uncertainty management are also necessary. Based on the argument in this article, the competitiveness of an industrial LLM depends more on these underlying modeling assets than on the model name.
+
+## Further Reading
+- [Why personalization should not start with per-user LLMs](/en/posts/personalized-llm-context-steering)
+- [Practical limits of IRT safety evaluation](/en/posts/irt-safety-evaluation-practical-limits)
+- [The hidden attack surface in external AI evaluations](/en/posts/external-ai-evaluation-attack-surface)
+- [How KC-Agent reframes drift response](/en/posts/kc-agent-drift-response-mlops)
+- [QR-STT risk checks before deploying IR-VLMs](/en/posts/qr-stt-risk-checks-for-ir-vlm-deployment)
+---
+
+## References
+
+- [CESER Releases New Testbed to Advance LLM and Agentic AI Evaluation for Critical Infrastructure - energy.gov](https://www.energy.gov/ceser/articles/ceser-releases-new-testbed-advance-llm-and-agentic-ai-evaluation-critical)
+- [Digital Twins for Robot Systems in Manufacturing - nist.gov](https://www.nist.gov/publications/digital-twins-robot-systems-manufacturing)
+- [Digital Twins for Advanced Manufacturing - nist.gov](https://www.nist.gov/programs-projects/digital-twins-advanced-manufacturing)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.05151)
+- [Leveraging LLM Agents and Digital Twins for Fault Handling in Process Plants - arxiv.org](https://arxiv.org/abs/2505.02076)
