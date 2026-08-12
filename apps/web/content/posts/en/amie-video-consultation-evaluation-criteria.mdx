@@ -1,0 +1,84 @@
+---
+title: Evaluation criteria for AMIE video consultations
+slug: amie-video-consultation-evaluation-criteria
+date: '2026-08-12'
+lastReviewedAt: '2026-08-12'
+locale: en
+description: >-
+  A practical reading of the AMIE video consultation study for healthcare
+  leaders: why real-time medical AI should be assessed for audio, video,
+  latency, nonverbal cues, clinical reasoning, and supervised use before
+  deployment.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: google-ai-blog-012e30e2c241e587
+sourceUrl: >-
+  https://blog.google/innovation-and-ai/models-and-research/google-research/amie-video-consultations/
+verificationScore: 0.91
+alternateLocale: /ko/posts/amie-video-consultation-evaluation-criteria
+coverImage: /images/posts/amie-video-consultation-evaluation-criteria.png
+---
+
+# What the AMIE Video Consultation Study Tells Us: Evaluation Criteria Should Change Before Medical AI Is Adopted
+
+It is too early to read AMIE’s reported video consultation results as evidence for product adoption. The more practical conclusion is about evaluation. Medical AI that resembles a telemedicine consultation cannot be assessed only with methods designed for text-based history-taking chatbots. Organizations reviewing this type of system need to evaluate voice, video, conversational latency, nonverbal cues, and clinical reasoning together.
+
+This article is for healthcare institutions, digital health product teams, and decision-makers considering clinical AI adoption. The current decision is not whether systems like AMIE should be used in care delivery. It is closer to this: under what conditions should real-time, consultation-based medical AI enter a validation pipeline?
+
+## What the Evidence Actually Supports
+
+According to the publicly available research summary, AMIE’s video consultation configuration is a Gemini-based multi-agent system. It combines low-latency conversation, clinical reasoning, and real-time audio and video perception. Its evaluation method also differs from the earlier text-centered AMIE work. Earlier evaluations focused on synchronous text chats with standardized patients. This study compared video consultations in an OSCE-style format using simulated patients. The comparators included AMIE’s video version, AMIE’s text version, and primary care physicians conducting consultations over video.
+
+That distinction matters. Text-based medical AI handles only the information that patients provide in writing. Video consultation AI can use the patient’s speech, facial expressions, movements, visible external cues, changes in voice, and remote physical observation as inputs. For that reason, performance evaluation cannot stop at medical knowledge question-answering or the accuracy of history-taking summaries. It also needs to examine response latency, whether follow-up questions are appropriate, how visual information is interpreted, and whether warning signs are missed.
+
+Reports that clinical evaluators rated the AMIE video version as equal to or better than primary care physicians on some items are meaningful within the study setting. They do not show that safety and effectiveness have been demonstrated in real patient care. The evidence comes from a simulated OSCE. The available materials do not establish performance across real healthcare institution patient populations, unpredictable network conditions, care accountability structures, electronic health record integration, or changes in the patient-physician relationship.
+
+## Why Simulation Performance Alone Is Not Enough
+
+The risks of real-time medical consultation AI cannot be reduced to a single accuracy score. Even when a model provides medically plausible explanations, three issues overlap in actual consultations.
+
+First, the inputs are unstable. Video angle, lighting, audio quality, the patient’s ability to express symptoms, interpretation or accent, and device performance can all affect judgment. FDA materials also note that static benchmarks or retrospective tests alone may be insufficient for predicting behavior in dynamic environments.
+
+Second, the output can change patient behavior. If medical AI gives the impression that it is safe to wait and watch, patients may delay seeking care. If it overemphasizes risk, unnecessary healthcare utilization may increase. For this reason, clinical validation should examine not only patient outcomes, but also clinician behavior and changes in the patient-clinician relationship.
+
+Third, responsibility changes depending on how the product function is defined. The U.S. FDA’s explanation of clinical decision support identifies whether a healthcare professional can independently review the basis for a recommendation as an important factor. From regulatory and safety perspectives, an AI system that independently delivers individualized diagnosis and treatment decisions should not be treated the same as a system in which a licensed healthcare professional reviews, revises, and approves the rationale and uncertainty.
+
+## Decision Rule: Review It Only as a “Supervisable Clinical Tool,” Not as “Consultation AI”
+
+The decision rule supported by the current evidence is conservative.
+
+Real-time video-based medical AI such as AMIE should not be treated as ready for direct deployment in actual care. It should first be treated as a candidate for supervisable clinical evaluation. To use it with real patients, at minimum, the following conditions should be met.
+
+1. Safety and effectiveness should be evaluated through a prospective observational study or an interventional clinical trial in an actual healthcare institution environment. Results from a simulated OSCE should not, by themselves, be generalized to the broader patient population.
+
+2. The AI should not independently notify patients of diagnosis or treatment decisions. The workflow should allow a licensed healthcare professional to review the AI’s rationale, uncertainty, and possible omissions, and to make the final judgment.
+
+3. If emergency signs or high-risk signals appear, there should be a procedure for immediate transition to human care. This procedure should not remain only a documented principle; it should be embedded in the actual workflow.
+
+4. If video, audio, and medical history information are handled in an environment where they constitute electronic protected health information, the administrative, physical, and technical safeguards required by the HIPAA Security Rule should be applied. Whether HIPAA applies may vary depending on the operating entity and the relationships involved.
+
+5. Even after deployment, performance drift and differences in impact by user type should be monitored, and independent audits and impact assessments should be designed. WHO’s governance recommendations for large multimodal models also emphasize post-deployment audits and impact assessments.
+
+If these conditions cannot be satisfied, product teams should not frame the work as care automation. A more defensible next step is expanded simulation evaluation. For example, teams can increase the number of standardized patient cases and collect failure modes under different audio and video quality conditions. It is also reasonable to test explanation structures that allow physicians to independently review AI recommendations.
+
+Releasing a patient-facing consultation function without satisfying these conditions would go beyond what the current evidence supports. The AMIE study is significant because it shows that medical AI evaluation has moved beyond the text box. It also raises the threshold for clinical adoption. To evaluate video consultation AI, organizations need to validate not only the model’s answers, but the full consultation context.
+
+## Further Reading
+- [Decision criteria for multi-time EEG emotion recognition models](/en/posts/multi-time-eeg-emotion-recognition-criteria)
+- [AI agent evaluation is an operational security problem](/en/posts/ai-agent-evaluation-operational-security)
+- [How to choose an industrial LLM architecture](/en/posts/industrial-llm-architecture-selection)
+- [Why personalization should not start with per-user LLMs](/en/posts/personalized-llm-context-steering)
+- [Practical limits of IRT safety evaluation](/en/posts/irt-safety-evaluation-practical-limits)
+---
+
+## References
+
+- [Call for Case studies: Ethics of artificial intelligence in global health research meeting - who.int](https://www.who.int/news-room/articles-detail/ethics-of-artificial-intelligence-in-global-health-research-meetings-case-studies)
+- [Request For Public Comment: Measuring and Evaluating Artificial Intelligence-enabled Medical Device Performance in the Real-World - fda.gov](https://www.fda.gov/medical-devices/digital-health-center-excellence/request-public-comment-measuring-and-evaluating-artificial-intelligence-enabled-medical-device)
+- [WHO releases AI ethics and governance guidance for large multi-modal models - who.int](https://www.who.int/news/item/18-01-2024-who-releases-ai-ethics-and-governance-guidance-for-large-multi-modal-models)
+- [The Security Rule | HHS.gov - hhs.gov](https://www.hhs.gov/hipaa/for-professionals/security/index.html)
+- [Step 6: Is the Software Function Intended to Provide Clinical Decision Support? | FDA - fda.gov](https://www.fda.gov/medical-devices/digital-health-center-excellence/step-6-software-function-intended-provide-clinical-decision-support)
+- [Towards Expert-level Medical AI for Real-time Video Consultations - arxiv.org](https://arxiv.org/abs/2608.09861)
