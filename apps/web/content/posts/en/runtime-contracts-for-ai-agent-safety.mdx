@@ -1,0 +1,76 @@
+---
+title: Runtime contracts for safer AI agents
+slug: runtime-contracts-for-ai-agent-safety
+date: '2026-08-13'
+lastReviewedAt: '2026-08-13'
+locale: en
+description: >-
+  Shows why model alignment alone is not enough for agents that change external
+  state, and gives product teams concrete criteria such as tool allowlists,
+  permission separation, pre-execution checks, human approval, and audit logs.
+tags:
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-1be11a53bf34a240
+sourceUrl: 'https://arxiv.org/abs/2608.11274'
+verificationScore: 0.84
+alternateLocale: /ko/posts/runtime-contracts-for-ai-agent-safety
+coverImage: /images/posts/runtime-contracts-for-ai-agent-safety.png
+---
+
+The decision facing teams that put agents into products is not only “which model is safer.” A more important question is: “which actions should be hard outside the model?” For agents that change external state—by executing code, modifying files, sending messages, or updating databases—it is hard to treat learning-based alignment methods such as RLHF, DPO, or Constitutional AI as the final safety layer. A model can propose an action. Whether that action is executed should be enforced by the harness and sandbox as a contract.
+
+This does not mean model alignment is useless. Alignment can reduce dangerous proposals, improve interpretation of user intent, and lower operational costs. But the risks of autonomous agents do not end with “bad answers.” Agents can overwrite files, send messages externally, modify databases, and execute code. Once an action has been executed, a post hoc explanation often cannot undo it. For that reason, an approach that relies only on injecting safety properties into the model is insufficient for agents that can act on the world.
+
+## A Runtime Contract Is Not a Safety Prompt
+
+A runtime contract is not an instruction that says “do not do this.” It is an enforcement rule at the execution layer. Related research on Agent Behavioral Contracts divides contracts into four elements: preconditions, invariants, governance policies, and recovery mechanisms. The same research describes AgentAssert as a runtime enforcement library for these contracts. In that framing, the system detects violations during execution and controls behavioral drift through hard constraints and recovery procedures.
+
+This structure is useful because it separates execution safety from natural-language intent interpretation. The model may interpret a goal such as “send the necessary guidance to the customer.” The execution harness can separately enforce rules such as “do not send externally without approval,” “block delete queries on specific tables,” “do not write files outside the working directory,” and “do not call tools that are not on the allowlist.” Even if the model produces a plausible justification, the action is not executed if it violates the contract.
+
+The key point is that prevention and recovery are both needed. Preventive rules block risky actions before execution. Recovery mechanisms roll back state, halt execution, or escalate to human review after a violation or failure has been detected. In workflows involving code execution and data modification, either one alone is weak. If blocking rules are too narrow, incidents can occur. If they are too broad, the agent becomes less useful. Without recovery paths, even small exceptions can interrupt the entire workflow.
+
+## Product Decision Criteria: Divide by “Action Radius,” Not “Model Reliability”
+
+The practical decision rule is relatively simple.
+
+If an agent does not change external state—such as in read-only retrieval, drafting, or classification—it may be reasonable to start with learning-based alignment, system prompts, logging, and post hoc review. Even then, separate risks remain, including exposure of personal information or security-sensitive information.
+
+If an agent modifies files, executes code, sends external messages, or updates databases, runtime contracts should be treated as a launch requirement. At minimum, this means tool allowlists, separation of privileges, pre-execution validation, human approval for high-risk actions, and audit logs. Anthropic’s practical guidance argues that agent autonomy can make systems more useful, but that reduced human supervision also creates more room for misunderstandings of user intent and unintended outcomes. That risk cannot be addressed only by making model responses more helpful.
+
+Database updates and external message sending should be treated as separate tiers. Database updates can damage internal state. Message sending extends impact outside the organization. Both require approval, validation, and a possible rollback path, regardless of whether the model says it is “confident.”
+
+## The Costs Are Real. That Is Why Contracts Should Start Small
+
+Runtime contracts are not free. Tool allowlists and deterministic validation reduce the agent’s range of action. Least privilege and human approval reduce the scope of independent execution. Human review for high-risk workflows creates delays. Layered controls, auditing, and observability require additional engineering and operational investment. Based only on the evidence cited here, it is not possible to say how much these costs reduce performance on specific benchmarks.
+
+For that reason, the better principle is not “turn everything into a contract.” It is “start by contracting actions that are difficult to reverse.” The first version of a contract should consist of executable prohibition and approval rules, not broad or abstract ethical principles. Examples include:
+
+- Only approved tools may be called.
+- Files may not be written outside designated paths.
+- Deletion, bulk modification, and external sending require prior approval.
+- Retry limits and termination conditions are defined for failures.
+- Violations are logged and routed to recovery or human review.
+
+These rules are not meant to reduce the model’s capabilities for their own sake. They are meant to prevent the model from justifying risky actions with plausible-sounding reasons. That distinction matters in the safety design of agent products.
+
+## What This Argument Does Not Yet Prove
+
+The cited evidence supports the need for runtime contracts and describes components they can include. It does not show that any specific contract design is optimal for every agent task. Metrics such as performance degradation, changes in user satisfaction, and reductions in incident rates require separate experiments.
+
+The reasonable conclusion is therefore conservative. Continue using learning-based safety alignment, but do not treat it as the final control mechanism for agents that change external state. Launch decisions should not rely only on model evaluation scores. They should also consider whether risky actions are blocked before execution, whether recovery paths exist after a violation, and whether approval and audit trails are preserved.
+
+## Further Reading
+- [Evaluation criteria for AMIE video consultations](/en/posts/amie-video-consultation-evaluation-criteria)
+- [Decision criteria for multi-time EEG emotion recognition models](/en/posts/multi-time-eeg-emotion-recognition-criteria)
+- [AI agent evaluation is an operational security problem](/en/posts/ai-agent-evaluation-operational-security)
+- [How to choose an industrial LLM architecture](/en/posts/industrial-llm-architecture-selection)
+- [Why personalization should not start with per-user LLMs](/en/posts/personalized-llm-context-steering)
+---
+
+## References
+
+- [Trustworthy agents in practice | Anthropic - anthropic.com](https://www.anthropic.com/research/trustworthy-agents)
+- [Agent Behavioral Contracts: Formal Specification and Runtime Enforcement for Reliable Autonomous AI Agents - arxiv.org](https://arxiv.org/abs/2602.22302)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.11274)
