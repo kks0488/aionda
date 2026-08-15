@@ -1,0 +1,81 @@
+---
+title: CAS 도입 전 확인할 인과 식별 조건
+slug: cas-causal-attribution-identification
+date: '2026-08-15'
+lastReviewedAt: '2026-08-15'
+locale: ko
+description: >-
+  CAS를 SHAP 대체재가 아니라 개입 효과를 귀속하는 감사 도구로 판단하는 기준을 정리하고, 적용 전 필요한 그래프·데이터·식별 가정을
+  확인할 수 있게 한다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-012c8d6b139458f0
+sourceUrl: 'https://arxiv.org/abs/2608.12555'
+verificationScore: 0.81
+alternateLocale: /en/posts/cas-causal-attribution-identification
+coverImage: /images/posts/cas-causal-attribution-identification.png
+---
+
+CAS는 “왜 모델이 이렇게 예측했나”보다 “어떤 변수에 개입하면 실제 결과가 얼마나 달라진다고 말할 수 있나”를 묻는 팀에 맞는 설명 프레임워크다. 따라서 도입 판단의 핵심은 설명 UI가 아니라 인과 식별 가능성이다. 개입 효과를 식별할 그래프와 데이터 조건이 없다면 CAS 점수는 기존 XAI에 더 그럴듯한 이름을 붙인 숫자가 될 위험이 있다.
+
+## CAS가 바꾸는 질문
+
+예측 설명 기법은 모델 출력에 대한 기여도를 배분한다. 예를 들어 어떤 의료 위험 예측 모델이 나이, 검사값, 병력 때문에 높은 점수를 냈다고 설명할 수 있다. 그러나 그 설명은 “검사값을 바꾸면 실제 건강 결과가 얼마나 달라지는가”를 곧바로 말하지 않는다. 모델이 배운 상관관계와 현실의 개입 효과는 다르기 때문이다.
+
+CAS 논문의 초록이 제기하는 긴장도 여기에 있다. 예측 설명 방법은 모델 출력을 귀속하지만, 그 자체로 현실 결과에 대한 개입 효과를 귀속하지 않는다. CAS는 이 간극을 다루기 위해 식별된 개입 coalition game에서 출발한다. 그런 다음 joint intervention contrast를 causal Shapley contribution으로 배분하고, outcome-scale effect를 설명 점수로 바꾸는 구조를 제안한다.
+
+실무적으로 번역하면 이렇다. CAS는 “모델 내부에서 어떤 피처가 점수에 기여했나”보다 “정의한 개입 묶음이 결과 Y에 만든 차이를 각 변수에 어떻게 나눠 귀속할 것인가”에 가깝다. 그래서 CAS의 가치는 모델 해석보다 의사결정 감사, 정책 효과 설명, 고위험 시스템의 사후 모니터링 보조 지표에서 더 분명해진다.
+
+## 점수보다 먼저 필요한 것: do-개입이 식별되는가
+
+CAS를 causal Shapley 계열로 이해하면, 가장 중요한 전제는 각 변수 부분집합에 대한 E[Y | do(vS)]가 인과 그래프에서 식별되어야 한다는 점이다. 관련 연구는 do-Shapley 값이 식별 가능하려면 모든 부분집합 S에 대해 E[Y | do(vS)]가 식별 가능해야 한다고 설명한다. 관측 데이터의 조건부 평균 E[Y | vS]를 그대로 가져와서는 부족하다. 그것은 연관성일 수 있고, 개입 효과가 아닐 수 있다.
+
+따라서 CAS 적용의 최소 입력은 세 가지다.
+
+첫째, 결과 Y를 포함한 관측 표본이 있어야 한다. 둘째, 관측분포와 양립하는 인과 그래프 또는 적어도 부분 인과순서가 있어야 한다. 셋째, 교란과 상호작용을 구분할 정보가 있어야 한다. 완전한 그래프가 없어도 causal Shapley 계산을 위한 실용 구현은 제안되어 있다. 그러나 “부분 정보에서도 계산 가능하다”는 말은 “인과 가정 없이 계산 가능하다”는 뜻이 아니다.
+
+이 지점이 CAS의 장점이자 비용이다. 장점은 설명 대상이 모델 점수에서 현실 결과로 이동한다는 것이다. 비용은 설명을 만들기 전에 인과 질의를 명시하고, 그래프와 식별 가정을 방어해야 한다는 것이다.
+
+## SHAP 대체재가 아니라 다른 감사 도구다
+
+CAS를 기존 SHAP류 설명의 상위 호환으로 보면 오판하기 쉽다. 둘은 답하는 질문이 다르다.
+
+예측 설명은 배포 전후 모델 디버깅에 유용하다. 특정 입력에서 모델이 어떤 피처에 민감한지, 데이터 누수나 비정상적 패턴을 학습했는지 확인할 수 있다. 반면 CAS는 “이 변수에 개입했을 때 결과가 바뀐다는 주장을 할 수 있는가”를 다룬다. 그러므로 제품 팀이 고객에게 예측 사유를 보여주려는 목적이라면 CAS는 과한 도구일 수 있다.
+
+반대로 의료 AI, 정책 의사결정 모델, 신용·복지·채용처럼 결과 책임이 큰 영역에서는 모델 출력 설명만으로 부족한 경우가 있다. 어떤 요인이 실제 결과 개선 또는 악화에 기여했다고 말하려면 인과적 귀속이 필요하다. 다만 근거상 CAS가 LLM, 의료 AI, 정책 모델의 운영 환경에서 널리 검증됐다고 말할 수는 없다. 고위험 AI 시스템에서는 지속적 테스트와 모니터링으로 시스템이 의도대로 작동하는지 확인해야 한다는 신뢰성 요구가 별도로 존재한다. 건강·안전·기본권에 심각한 위험을 줄 수 있는 AI 사용 사례가 고위험으로 분류된다는 규제 맥락도 있다. CAS는 이런 감사 체계의 한 구성요소가 될 수는 있지만, 단독으로 신뢰성이나 규제 충족을 보장하지 않는다.
+
+## 도입 판단 규칙
+
+CAS를 검토하는 팀은 먼저 다음 질문에 답해야 한다.
+
+“우리가 설명하려는 것은 모델 출력인가, 현실 결과에 대한 개입 효과인가?”
+
+모델 출력이면 기존 예측 설명과 민감도 분석이 우선이다. CAS를 쓰려면 추가 인과 가정의 비용을 정당화해야 한다.
+
+현실 결과라면 두 번째 질문으로 넘어간다.
+
+“관심 변수 묶음에 대해 E[Y | do(vS)]를 식별할 수 있는 그래프와 데이터가 있는가?”
+
+이 질문에 답하지 못하면 CAS 점수를 의사결정 근거로 쓰면 안 된다. 연구용 탐색이나 가정 비교는 가능하지만, 책임 있는 설명 점수라고 부르기는 어렵다.
+
+식별 가능성이 있고, 변수·개입·결과가 명확하며, 지속적 검증·모니터링·인간 감독·문서화와 결합할 계획이 있다면 CAS는 검토할 수 있다. 특히 “이 모델이 왜 이런 점수를 냈나”보다 “우리가 개입 가능한 요인이 결과에 어떤 몫을 가졌다고 설명할 수 있나”가 의사결정의 핵심인 조직에 적합하다.
+
+실무에서 CAS의 첫 산출물은 점수판이 아니라 인과 명세서여야 한다. 결과 Y, 개입 변수, 허용할 개입의 의미, 그래프 가정, 식별 가능한 항, 식별 불가능한 항을 먼저 적어야 한다. 그 문서를 만들 수 없다면 CAS 프로젝트는 아직 시작할 준비가 되지 않은 것이다.
+
+## 다음으로 읽기
+- [HyperANFIS 도입 전 확인할 점](/ko/posts/hyperanfis-decision-use-explainability)
+- [에이전트 안전을 위한 런타임 계약](/ko/posts/runtime-contracts-for-ai-agent-safety)
+- [AMIE 화상상담 평가 기준](/ko/posts/amie-video-consultation-evaluation-criteria)
+- [EEG 감정인식 다중시간 모델 기준](/ko/posts/multi-time-eeg-emotion-recognition-criteria)
+- [AI 에이전트 평가는 운영 보안 문제다](/ko/posts/ai-agent-evaluation-operational-security)
+---
+
+## 참고 자료
+
+- [On Measuring Causal Contributions via do-interventions - faculty.sites.iastate.edu](https://faculty.sites.iastate.edu/jtian/files/inline-files/icml-2022-final_1.pdf)
+- [AI Risks and Trustworthiness - AIRC - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/3-sec-characteristics/)
+- [AI Act | Shaping Europe’s digital future - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [Causal Shapley Values: Exploiting Causal Knowledge to Explain Individual Predictions of Complex Models - arxiv.org](https://arxiv.org/abs/2011.01625)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.12555)

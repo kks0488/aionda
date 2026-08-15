@@ -1,0 +1,84 @@
+---
+title: When CAS is useful for causal attribution
+slug: cas-causal-attribution-identification
+date: '2026-08-15'
+lastReviewedAt: '2026-08-15'
+locale: en
+description: >-
+  Clarifies when CAS is appropriate as a causal attribution and audit tool, and
+  helps readers check the graph, data, and identification assumptions needed
+  before using its scores.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-012c8d6b139458f0
+sourceUrl: 'https://arxiv.org/abs/2608.12555'
+verificationScore: 0.81
+alternateLocale: /ko/posts/cas-causal-attribution-identification
+coverImage: /images/posts/cas-causal-attribution-identification.png
+---
+
+CAS is an explanation framework for teams asking not “why did the model make this prediction?” but “how much can we say the actual outcome would change if we intervened on certain variables?” On that reading, the core adoption criterion is not the explanation interface. It is causal identifiability. If the graph and data conditions needed to identify intervention effects are absent, a CAS score may become only a number that gives existing XAI a more causal-sounding label.
+
+## The Question CAS Changes
+
+Predictive explanation methods allocate contributions to a model output. For example, a medical risk prediction model can indicate that age, test values, and medical history contributed to a high score. That does not directly answer a different question: “how much would the actual health outcome change if the test values were changed?” The reason is that correlations learned by a model are not the same as intervention effects in the real world.
+
+This is also the tension raised in the abstract of the CAS paper. Predictive explanation methods attribute model outputs. By themselves, they do not attribute intervention effects on real-world outcomes. CAS addresses this gap by starting from an identified interventional coalition game. It then allocates a joint intervention contrast as a causal Shapley contribution and proposes a structure for turning an outcome-scale effect into an explanation score.
+
+In practice, CAS is closer to asking, “how should we attribute the difference that a defined bundle of interventions made to outcome Y across variables?” than to asking, “which features contributed to the score inside the model?” For that reason, CAS appears more relevant to decision audits, explanations of policy effects.
+Auxiliary indicators for post-deployment monitoring of high-risk systems than to model interpretation alone.
+
+## What Is Needed Before the Score: Is the do-Intervention Identifiable?
+
+If CAS is understood as part of the causal Shapley family, the key premise is that E[Y | do(vS)] for each subset of variables should be identifiable from the causal graph. Related research states that, for do-Shapley values to be identifiable, E[Y | do(vS)] should be identifiable for every subset S. Simply using the observational conditional mean, E[Y | vS], is not enough. It may capture an association rather than an intervention effect.
+
+The minimum inputs for applying CAS are therefore threefold.
+
+First, there should be observed samples that include outcome Y. Second, there should be a causal graph, or at least a partial causal order, compatible with the observed distribution. Third, there should be information that distinguishes confounding from interaction. Practical implementations for calculating causal Shapley values have been proposed even without a complete graph. However, the claim that “calculation is possible with partial information” does not mean that “calculation is possible without causal assumptions.”
+
+This point is both the strength and the cost of CAS. The strength is that the explanation target moves from the model score to the real-world outcome. The cost is that the causal query should be specified before the explanation is produced, and the graph and identification assumptions should be defensible.
+
+## It Is Not a Replacement for SHAP, but a Different Audit Tool
+
+CAS is easy to misjudge if it is treated as a backward-compatible upgrade to existing SHAP-style explanations. The two answer different questions.
+
+Predictive explanations are useful for model debugging before and after deployment. They can help check which features a model is sensitive to for a particular input and whether it has learned data leakage or abnormal patterns. CAS, by contrast, concerns whether one can support the claim that “the outcome changes when we intervene on this variable.” If a product team’s goal is to show customers the reasons for a prediction, CAS may be more machinery than the task requires.
+
+Conversely, in areas with high outcome accountability, such as medical AI, policy decision-making models, credit, welfare, and hiring, explanations of model outputs alone may be insufficient. To say that a factor contributed to an actual improvement or worsening of an outcome, causal attribution is required. Based on the cited evidence, however, it would be too strong to say that CAS has been widely validated in the operating environments of LLMs, medical AI, or policy models. High-risk AI systems also have a separate reliability requirement: teams should verify through continuous testing and monitoring that the system operates as intended. There is also a regulatory context in which AI use cases that can pose serious risks to health, safety, or fundamental rights are classified as high-risk. CAS can be one component of such an audit system, but it does not by itself establish reliability or regulatory compliance.
+
+## Decision Rules for Adoption
+
+Teams considering CAS should first answer this question.
+
+“Are we trying to explain the model output, or the intervention effect on a real-world outcome?”
+
+If the target is the model output, existing predictive explanations and sensitivity analysis should come first. Using CAS would require justifying the cost of additional causal assumptions.
+
+If the target is the real-world outcome, the next question is this.
+
+“Do we have a graph and data that can identify E[Y | do(vS)] for the bundles of variables of interest?”
+
+If this question cannot be answered, CAS scores should not be used as a basis for decision-making. Research exploration or comparison of assumptions may still be possible, but it is difficult to describe such scores as responsible explanation scores.
+
+If identifiability holds, the variables, interventions, and outcomes are clear, and there is a plan to combine CAS with continuous validation, monitoring, human oversight, and documentation, CAS can be considered. It is especially suitable for organizations whose core decision question is not “why did this model produce this score?” but “what share can we say intervention-capable factors had in the outcome?”
+
+In practice, the first deliverable of a CAS project should not be a scoreboard. It should be a causal specification. Outcome Y, intervention variables, the meaning of permitted interventions, graph assumptions, identifiable terms, and non-identifiable terms should be written down first. If that document cannot be produced, the CAS project is not yet ready to begin.
+
+## Further Reading
+- [How to assess HyperANFIS for decision use](/en/posts/hyperanfis-decision-use-explainability)
+- [Runtime contracts for safer AI agents](/en/posts/runtime-contracts-for-ai-agent-safety)
+- [Evaluation criteria for AMIE video consultations](/en/posts/amie-video-consultation-evaluation-criteria)
+- [Decision criteria for multi-time EEG emotion recognition models](/en/posts/multi-time-eeg-emotion-recognition-criteria)
+- [AI agent evaluation is an operational security problem](/en/posts/ai-agent-evaluation-operational-security)
+---
+
+## References
+
+- [On Measuring Causal Contributions via do-interventions - faculty.sites.iastate.edu](https://faculty.sites.iastate.edu/jtian/files/inline-files/icml-2022-final_1.pdf)
+- [AI Risks and Trustworthiness - AIRC - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/3-sec-characteristics/)
+- [AI Act | Shaping Europe’s digital future - digital-strategy.ec.europa.eu](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai)
+- [Causal Shapley Values: Exploiting Causal Knowledge to Explain Individual Predictions of Complex Models - arxiv.org](https://arxiv.org/abs/2011.01625)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.12555)
