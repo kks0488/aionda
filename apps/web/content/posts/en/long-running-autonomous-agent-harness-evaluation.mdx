@@ -1,0 +1,78 @@
+---
+title: How to evaluate harnesses for long-running autonomous agents
+slug: long-running-autonomous-agent-harness-evaluation
+date: '2026-08-23'
+lastReviewedAt: '2026-08-23'
+locale: en
+description: >-
+  Uses the AVO case to show why teams evaluating long-running autonomous agents
+  should prioritize state persistence, failure recovery, execution loops, and
+  supervision over single-call model performance.
+tags:
+  - agi
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: aitimes-kr-a6fd72be360134fb
+sourceUrl: 'https://www.aitimes.com/news/articleView.html?idxno=214256'
+verificationScore: 0.86
+alternateLocale: /ko/posts/long-running-autonomous-agent-harness-evaluation
+coverImage: /images/posts/long-running-autonomous-agent-harness-evaluation.png
+---
+
+For teams deciding whether to adopt long-horizon autonomous agents, the first thing to examine is not the model list, but the harness design. NVIDIA’s AVO case does not show, by itself, that one LLM is better than another. The clearer signal is that the execution structure around the model—the system that supports repeated planning, execution, verification, correction, and state preservation—has become a central variable in performance evaluation.
+
+This conclusion should be read narrowly. The available evidence does not show that AVO is superior to all agent frameworks. Performance on ARC-AGI-3 also does not directly establish safety or cost efficiency for enterprise workflow automation. The decision-useful point is more limited: when evaluating an agent for long-horizon tasks, the first thing to verify is not single-call performance, but whether the system can continue productively after failure.
+
+## What changed in AVO is not the model, but the role assignment
+
+AVO, or Agentic Variation Operators, is described as an approach that replaces fixed mutation, crossover, and hand-crafted heuristics in evolutionary search with autonomous coding agents. Earlier LLM-augmented evolutionary search mainly used the LLM during candidate generation. AVO instead places LLM-based agents in the role of the mutation operator, repeatedly exploring, modifying, testing, and evaluating candidates.
+
+This difference matters from a product design perspective. For a model that produces a single answer, the relationship between input and output is central. For a long-horizon agent, intermediate state also matters. If the system cannot preserve what it has tried, what failed, which hypotheses were discarded, and what strategy it will use next, it may repeat the same mistakes.
+
+The AVO structure described by NVIDIA is consistent with this point. The main agent runs a loop in which it checks context, creates a plan, implements changes, and evaluates results. Persistent memory and tool use are part of that structure. NVIDIA also describes a supervisor that monitors the overall search trajectory and can intervene when progress stalls.
+
+For that reason, summarizing AVO as “it used a strong model” is not very useful for decision-making. The more relevant question is: when the model fails, does the system turn that failure into input for the next action, or does it simply issue another call?
+
+## What ARC-AGI-3 measures is not question answering
+
+According to reports and NVIDIA materials, AVO was presented as reaching 100% on the public ARC-AGI-3 benchmark, which involves exploring unfamiliar environments where rules or goals are not given and solving problems. The reported score is notable. More important for this discussion is the type of capability being evaluated.
+
+Many LLM evaluations test whether a model produces an output close to the correct answer for a given question. Tasks such as ARC-AGI-3, where the system should infer rules and discover goals in an unfamiliar environment, expose different failure modes. There are no clear instructions at the start, trial and error is required, and the exploration strategy may need to change. In such environments, the quality of the loop may matter more than the amount of knowledge in the model.
+
+This benchmark should still be interpreted cautiously. Performance on ARC-AGI-3 does not automatically imply strong performance in general-purpose workflow automation. Based only on the publicly available evidence, it is not possible to verify a causal relationship between AVO’s score and permission management, cost management, or failure recovery in real enterprise environments. The sourced facts are the reported benchmark performance and the proposed architecture. As editorial analysis, the case is better read as a signal that long-horizon exploratory agent architectures deserve evaluation. It is not proof that operational readiness has been achieved.
+
+## Adoption criteria: four questions that require the harness to change
+
+The decision rule practitioner teams can draw from this case is simple. When evaluating candidates for long-horizon autonomous agents, if the following four items cannot be confirmed in documents and demos, the pilot scope should be narrowed, even if model performance appears strong.
+
+First, the method of state preservation. NVIDIA’s agentic AI factory document explains that files store state, skills define reusable actions, and sandboxes enforce safety and predictability. For long-horizon tasks, the label “memory” is not enough. Work products, failure logs, tools used, search paths, and model call histories need to remain in a reproducible form.
+
+Second, the execution feedback loop. AVO’s main agent repeats planning, implementation, and evaluation. Without this structure, the agent is closer to an answer generator. In real adoption validation, failure cases should receive more scrutiny than success cases. Teams need to confirm whether, when a test fails, the agent narrows down the cause, avoids repeating the same change, and whether a supervisor or higher-level control can induce a strategy shift.
+
+Third, the security boundary. NVIDIA’s security article argues that the harness is an inappropriate place to put security help ensure because it is a modifiable layer. This is an important operational principle. If final controls are placed inside code or prompts that the agent can modify, those controls can be bypassed. Least privilege, isolation, policy enforcement, approval for sensitive operations, and access revocation need to be applied in the runtime and control plane that the agent cannot bypass.
+
+Fourth, cost and resource limits. Long-horizon loops can be designed to keep running until they succeed. Sandbox time limits, resource caps, and network rules are both security mechanisms and cost mechanisms. If a long-horizon agent is left open-ended without defining how much execution time, how many calls, and how much tool use are allowed per task, performance evaluation and cost evaluation become disconnected.
+
+## A decision statement instead of a conclusion
+
+Seeing the AVO case and immediately deciding to adopt agents across the board would overstate the evidence. Dismissing it as just a benchmark may also miss the signal that the design axis of long-horizon autonomous systems is changing.
+
+A safer practical decision is this: if the goal is single-turn question answering, summarization, or classification, model comparison should come first. If the goal is exploration, modification, and verification over multiple hours or multiple steps, harness comparison should come before model comparison. An agent without persistent state, execution feedback, a supervisor, an isolated runtime, and resource limits is closer to repeated-call automation than to a long-horizon autonomous agent.
+
+## Further Reading
+- [Aviation diagnostic AI as workflow bottleneck relief](/en/posts/aviation-diagnostic-ai-workflow-bottleneck)
+- [When MLREF is worth testing for LLM-generated rewards](/en/posts/mlref-llm-reward-module-reuse)
+- [Low-resource language safety with LSR anchoring](/en/posts/low-resource-language-safety-lsr-anchoring)
+- [When CAS is useful for causal attribution](/en/posts/cas-causal-attribution-identification)
+- [How to assess HyperANFIS for decision use](/en/posts/hyperanfis-decision-use-explainability)
+---
+
+## References
+
+- [NVIDIA AVO Reaches 100% on ARC-AGI-3, Demonstrating a Frontier-Level General-Purpose Architecture for Long-Horizon Autonomous Agents - developer.nvidia.com](https://developer.nvidia.com/blog/nvidia-avo-reaches-100-on-arc-agi-3-demonstrating-a-frontier-level-general-purpose-architecture-for-long-horizon-autonomous-agents/)
+- [Agentic AI in the Factory — NVIDIA Enterprise AI Factory Design Guide White Paper - docs.nvidia.com](https://docs.nvidia.com/ai-enterprise/planning-resource/ai-factory-white-paper/latest/agentic-ai-in-the-factory.html)
+- [Where Security Fits in an AI Agent Stack | NVIDIA Technical Blog - developer.nvidia.com](https://developer.nvidia.com/blog/where-security-fits-in-an-ai-agent-stack/)
+- [Managing the Risk of Autonomous AI Agents During Mid-Workflow Failures - perspectives.nvidia.com](https://perspectives.nvidia.com/solutions-ai-factories/task/faq/enterprises-manage-risk-autonomous-ai-agents/)
+- [AVO: Agentic Variation Operators for Autonomous Evolutionary Search - arxiv.org](https://arxiv.org/abs/2603.24517)
