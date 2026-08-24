@@ -1,0 +1,85 @@
+---
+title: Evaluating code agents for both functionality and security
+slug: code-agent-functional-security-evaluation
+date: '2026-08-24'
+lastReviewedAt: '2026-08-24'
+locale: en
+description: >-
+  Learn how to assess repository-level code agents by separating functional
+  success, exploit-based validation, and newly introduced vulnerabilities before
+  using them in security-sensitive workflows.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-186c64c00246587f
+sourceUrl: 'https://arxiv.org/abs/2608.21107'
+verificationScore: 0.85
+alternateLocale: /ko/posts/code-agent-functional-security-evaluation
+coverImage: /images/posts/code-agent-functional-security-evaluation.png
+---
+
+# Code Agent Evaluation Is Incomplete if It Separates “Did It Work?” from “Was It Safe?”
+
+Teams adopting repository-scale code agents need clear decision criteria. An agent that has passed only functional tests should not be placed into security-sensitive workflows. Conversely, a strong vulnerability-detection score does not show that the agent is reliable at real modification tasks. For the same task, teams need to examine functional success, verification of existing vulnerabilities, and whether the agent introduced new vulnerabilities.
+
+This judgment reflects the changing role of code LLMs. The cited survey abstract describes LLMs as moving from code completion toward repository-context retrieval, file modification, tool execution, and participation in security-sensitive workflows. Evaluation, however, remains divided. Software engineering evaluation usually asks whether a task was completed. Software security evaluation focuses on vulnerability detection, secure code generation, and exploit-oriented validation.
+
+That separation was more manageable for code completion tools. If a model suggests a single function or a short snippet, a reviewer can inspect it in a narrow context. Repository agents are different. They retrieve context, modify multiple files, and run tools such as tests or builds. Sometimes they also participate in workflows that directly affect security. In that setting, “the tests passed” does not mean “there are no vulnerabilities.”
+
+## Why Functional Scores Alone Are Risky
+
+Functional evaluation usually checks whether the behavior requested by the user has been implemented. When the tests are sufficient, this can help reduce regressions. But security flaws can coexist with functional success. Authentication bypass, missing input validation, path manipulation, and exposure of sensitive information can remain even when normal-scenario tests pass.
+
+Product decisions are also hard to make from security evaluation alone. A model may perform well at vulnerability detection but still be unsuitable as a developer productivity tool if it cannot implement requirements in a real repository. A strong secure-code-generation benchmark result also does not show that the model will respect dependencies, tests, build scripts, and inter-file contracts in an existing repository.
+
+So code agent evaluation should not ask “functionality or security?” It should ask whether the agent satisfies the functional requirement without worsening the security state.
+
+## Integrated Evaluation Is Already a Feasible Direction
+
+The cited research suggests that integrated evaluation is feasible, not just aspirational. SecureAgentBench evaluates functional tests, vulnerability verification through PoC exploits, and detection of newly introduced vulnerabilities through static analysis. SecRepoBench is also described as moving toward evaluation of functional correctness and PoC-based security in a repository context.
+
+The design principle is not to collapse these results into a single number. Functional test pass rate, PoC exploit success, and newly introduced vulnerabilities detected by static analysis represent different failure modes. If they are averaged into one score, a critical security failure can be hidden behind functional success.
+
+A practical evaluation is better structured as follows.
+
+- Functional tests: Verify whether the requested modification actually works.
+- Exploit-based verification: Check whether a known vulnerable scenario is still reproducible or has been blocked.
+- Detection of new vulnerabilities: Use static analysis and similar methods to determine whether new security flaws were introduced during the modification process.
+- Pass conditions: If there is a security failure, exclude the candidate from deployment regardless of its functional score.
+
+This makes decisions clearer. If an agent satisfies the functional requirement but the PoC exploit still succeeds, that is not a partial success. It means the agent is not eligible for use in a security workflow. Conversely, if it blocks the vulnerability but breaks functional tests, it is still insufficient as an automated modification tool.
+
+## Repository Agents Also Require Operational Controls Beyond Evaluation
+
+Benchmarks are necessary for model selection, but they do not eliminate operational risk. Repository agents execute tools and modify files. The cited materials describe guardrails such as filesystem and network isolation through sandboxes, least privilege per tool, managed credentials, and human approval for high-impact actions such as command execution or file changes.
+
+Audit systems also need to be broader than simple logs. The agent’s plan, verification results, tool-call parameters and results, human approval decisions, errors, and state changes should be recorded in structured form with trace IDs. The cited materials also support including log integrity, access control, security evaluation during operation, incident response, and change management.
+
+The provided evidence does not determine the specific commands that require approval, the scope of permissions, log retention periods, or alert thresholds. Organizations should not copy these controls as if they were a fixed standard. They should define them as policy, based on repository sensitivity, deployment permissions, and possible access to secrets.
+
+## Adoption Decision Rules
+
+Teams evaluating repository-scale code agents can apply the following criteria.
+
+An agent intended for a security-sensitive codebase should not be approved based only on functional tests. At minimum, the same task should jointly assess functional success, PoC-based vulnerability verification, and detection of newly introduced vulnerabilities. A candidate that fails security verification on any of these axes should not be allowed automatic merging or autonomous execution scope, regardless of its functional performance.
+
+Before granting permission to modify files and execute tools, teams should also have sandboxes, tool-specific permissions, managed credentials, human approval, and audit logs in place. If these conditions are not met, it is safer to keep the agent at the level of code suggestions or limited local experiments.
+
+The current evidence does not show that a single evaluation framework has become a common standard. A more careful conclusion is that methods for combining functional and security evaluation within a single task are feasible, and that repository agents make such evaluation necessary. Practitioners should therefore start by changing the evaluation gate.
+
+## Further Reading
+- [How to evaluate harnesses for long-running autonomous agents](/en/posts/long-running-autonomous-agent-harness-evaluation)
+- [Aviation diagnostic AI as workflow bottleneck relief](/en/posts/aviation-diagnostic-ai-workflow-bottleneck)
+- [When MLREF is worth testing for LLM-generated rewards](/en/posts/mlref-llm-reward-module-reuse)
+- [Low-resource language safety with LSR anchoring](/en/posts/low-resource-language-safety-lsr-anchoring)
+- [When CAS is useful for causal attribution](/en/posts/cas-causal-attribution-identification)
+---
+
+## References
+
+- [Beyond permission prompts: making Claude Code more secure and autonomous - anthropic.com](https://www.anthropic.com/engineering/claude-code-sandboxing)
+- [Agents for financial services - anthropic.com](https://www.anthropic.com/news/finance-agents?invite=1)
+- [AI RMF Core - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [SecureAgentBench: Benchmarking Secure Code Generation under Realistic Vulnerability Scenarios - arxiv.org](https://arxiv.org/abs/2509.22097)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.21107)
