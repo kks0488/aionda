@@ -1,0 +1,86 @@
+---
+title: When Agent-G² is useful for guidance depth
+slug: agent-g2-guidance-depth
+date: '2026-08-25'
+lastReviewedAt: '2026-08-25'
+locale: en
+description: >-
+  A practical guide for deciding whether Agent-G² is a better fit than scheduled
+  guidance when tuning expert trajectory prefix depth in long-horizon,
+  sparse-reward agent RL.
+tags:
+  - llm
+  - robotics
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-0571060de9bb4faf
+sourceUrl: 'https://arxiv.org/abs/2608.23318'
+verificationScore: 0.92
+alternateLocale: /ko/posts/agent-g2-guidance-depth
+coverImage: /images/posts/agent-g2-guidance-depth.png
+---
+
+# Whether to Use Agent-G² Is a Question of “Who Determines the Hint Depth”
+
+The practical signal for Agent-G² is relatively clear, but limited in scope. In long-horizon agent reinforcement learning, expert-trajectory prefixes are often used to reduce reward sparsity. If guidance depth is treated as one fixed value, or as a schedule shared across all samples, the method may fail to reflect differences in task difficulty. Agent-G² instead treats guidance depth as a task-specific probability distribution. It has also been reported to adjust that depth using existing rollout statistics, without additional probe rollouts.
+
+For that reason, the decision is not only: “Can we afford separate probing costs to obtain slightly better performance?” A more basic question is.
+“Is the current method failing because it does not reflect sample-level heterogeneity?”
+
+This article is for researchers and engineers operating LLM-based agents or long-horizon task RL pipelines who need to decide how much of an expert trajectory prefix to retain. The main conclusion is that, in long-horizon, sparse-reward agent learning of the ALFWorld and WebShop type, Agent-G² has evidence as an alternative to scheduled guidance. It should not be treated as a replacement for the broader class of per-sample probing methods. In the reported WebShop 7B setting, it did not outperform Enumeration, the strongest probe-based baseline.
+
+## Why Guidance Depth Becomes a Bottleneck
+
+The basic idea of hint-based reinforcement learning is simple. Before each rollout, a prefix of the expert trajectory is retained so that the policy can explore from a state closer to success. In long-horizon tasks, starting exploration from the beginning often produces rare rewards and weak learning signals. Using part of an expert trajectory reduces the exploration space and lets the policy learn later decisions first.
+
+The problem is how much of the trajectory to retain. If the prefix is too long, the agent mostly acts in states that have already been made easy. The ability to solve the task from the actual initial state may emerge late. If the prefix is too short, the original sparse-reward problem returns. Guidance depth is therefore a control variable between two goals: providing a state close to success, and leaving enough of the task for the agent to solve on its own.
+
+Existing scheduled guidance treats this value as a deterministic scalar shared across all samples. But even within the same batch, easy and difficult tasks can be mixed together. Easy tasks may need hints reduced quickly; difficult tasks may need hints retained longer. A single schedule cannot express that difference.
+
+## The Core of Agent-G²: Treating Depth as a Distribution, Not a Value
+
+Agent-G² models guidance depth as a Gaussian distribution of task-specific guidance ratios. Each task independently samples a ratio from the distribution corresponding to its cluster, and that ratio is converted into the prefix length of the expert trajectory.
+
+The mean is determined by two layers of signals. One is a global reference updated according to the overall batch success rate. The other is a correction that reflects the success level of each cluster. In effect, the method accounts for both overall training progress and how well a specific task group is being solved.
+
+The standard deviation widens as the variance of success rates within a cluster increases. If success patterns are uneven within a cluster, guidance depth is sampled from a wider range to broaden exploration. If the cluster is relatively homogeneous, depth selection becomes narrower.
+
+A reported implementation advantage is that Agent-G² does not require separate probe rollouts. It estimates the center and spread online using rollouts already collected for policy optimization. It adjusts guidance on a per-sample basis, but unlike probing methods, it does not assume extra rollout costs for testing candidate depths.
+
+## How Far Does the Performance Evidence Go?
+
+In the reported comparisons, Agent-G² improved over scheduled guidance on ALFWorld and WebShop. On ALFWorld, it reached 95.3% in the 1.5B setting and 98.4% in the 7B setting. It was also reported to improve over Enumeration, the strongest probe-based baseline, by +9.3 and +2.3, respectively.
+
+On WebShop, it was reported as the strongest non-probing method at both model scales. Its comparison with per-sample probing methods needs more caution. Improvement over Enumeration is confirmed in the WebShop 1.5B setting, but in the WebShop 7B setting, Agent-G² did not outperform Enumeration. The supported claim is therefore narrower: Agent-G² is a non-probing guidance method that better reflects task-level heterogeneity than scheduled guidance. The stronger claim that it is often better than probe-based methods is not supported by the reported evidence.
+
+This distinction matters for product and research decisions. If rollout costs are high or experimental budgets are limited, avoiding probe rollouts can be valuable. If the goal is only the best performance on a specific benchmark and large-scale setting, and the cost of probe rollouts is acceptable, per-sample probing baselines such as Enumeration should also be compared.
+
+## Rules for Deciding Whether to Apply It
+
+There are three conditions under which Agent-G² should be considered first.
+
+First, the task should have a long horizon and sparse rewards. Agent-G² addresses a setting where exploration is mitigated using an expert trajectory prefix. If learning is already stable with dense rewards or short horizons, there is less reason to treat guidance-depth optimization as the main bottleneck.
+
+Second, it should be possible to retain an expert trajectory prefix before rollout. In agent environments such as ALFWorld and WebShop, this assumption is relatively natural. It is not available in every domain.
+
+Third, there should be signs that the current scheduled guidance ignores sample-level differences in difficulty. For example, if some task groups still succeed after hints are reduced while other task groups continue to fail at the same depth, distribution-based adjustment may be more appropriate than a single depth schedule.
+
+By contrast, direct application to a real robotic environment should be approached cautiously. Separate prior work suggests that expert demonstrations can help exploration in long-horizon, sparse-reward robotics tasks. However, the provided evidence does not confirm that Agent-G²’s Gaussian guidance depth has been validated on real robots or robotics benchmarks. Whether a physical robot can be accurately reset to an expert-trajectory prefix state is also a separate question.
+
+The practical decision is therefore as follows. If you are already using hint-based RL in an LLM-based long-horizon agent, and scheduled depth cannot explain failures by task group, Agent-G² is worth testing as a non-probing alternative. The comparison group should not stop at a simple schedule; where possible, probe-based methods such as Enumeration should also be included. Based on the reported evidence, Agent-G² is best understood as a method for approximating per-sample guidance without additional probing, not as a strict upgrade over all per-sample selection strategies.
+
+## Further Reading
+- [Evaluating code agents for both functionality and security](/en/posts/code-agent-functional-security-evaluation)
+- [How to evaluate harnesses for long-running autonomous agents](/en/posts/long-running-autonomous-agent-harness-evaluation)
+- [Aviation diagnostic AI as workflow bottleneck relief](/en/posts/aviation-diagnostic-ai-workflow-bottleneck)
+- [When MLREF is worth testing for LLM-generated rewards](/en/posts/mlref-llm-reward-module-reuse)
+- [Low-resource language safety with LSR anchoring](/en/posts/low-resource-language-safety-lsr-anchoring)
+---
+
+## References
+
+- [Paper page - Agent-G²: Gaussian Guidance for Agentic Reinforcement Learning - huggingface.co](https://huggingface.co/papers/2608.23318)
+- [Agent-G²: Gaussian Guidance for Agentic Reinforcement Learning - arxiv.org](https://arxiv.org/pdf/2608.23318)
+- [Agent-G²: Gaussian Guidance for Agentic Reinforcement Learning - arxiv.org](https://arxiv.org/html/2608.23318v1)
+- [Overcoming Exploration in Reinforcement Learning with Demonstrations - arxiv.org](https://arxiv.org/abs/1709.10089)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.23318)
