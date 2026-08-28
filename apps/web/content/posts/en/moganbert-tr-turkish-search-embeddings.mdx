@@ -1,0 +1,70 @@
+---
+title: What MoganBert-TR signals for Turkish search
+slug: moganbert-tr-turkish-search-embeddings
+date: '2026-08-28'
+lastReviewedAt: '2026-08-28'
+locale: en
+description: >-
+  Clarifies what MoganBert-TR’s CLM-to-MLM pretraining result means for Turkish
+  search and embedding products, and where the evidence should not be
+  overextended.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-02e2ae1618ddadc3
+sourceUrl: 'https://arxiv.org/abs/2608.25768'
+verificationScore: 0.89
+alternateLocale: /ko/posts/moganbert-tr-turkish-search-embeddings
+coverImage: /images/posts/moganbert-tr-turkish-search-embeddings.png
+---
+
+If you are building a Turkish search or embedding product, the main point to examine in MoganBert-TR is not simply that a 149M-parameter Turkish encoder was released. The more practical signal is narrower: under the same data, architecture, and training-step budget, a CLM-to-MLM pretraining curriculum reportedly achieved 2.7–3.7× higher performance than pure MLM on Turkish MS MARCO search.
+
+That conclusion should be applied carefully. The result does not support the broader claim that CLM-to-MLM is superior across all Turkish downstream tasks. Final results for TrGLUE and TabiBench were presented, but based on the provided evidence, the direct performance gap against pure MLM cannot be confirmed for those benchmarks. The paper’s decision-making value is therefore not a general declaration of superiority. It is evidence that, for Turkish search and embeddings, switching pretraining objectives deserves higher experimental priority.
+
+## What Can Be Trusted
+
+Three facts can be verified from the sources. MoganBert-TR is a 149M-parameter encoder foundation model for Turkish. It was trained from scratch on a 237.3B-token corpus filtered by language. Training used two stages: first causal language modeling, or CLM, followed by masked language modeling, or MLM. MoganBert-Embed, derived from this model, is a 149M-parameter Turkish embedding model. The model card says it provides single-vector embeddings for semantic search, clustering, classification, and STS, and that it does not require separate prompts or task instructions.
+
+The strongest evidence is the controlled ablation. Under the same architecture, corpus, and step budget, the CLM-to-MLM design was reported to outperform pure MLM by 2.7–3.7× on Turkish MS MARCO search. For a product team, this comparison is meaningful because it is not about collecting more data or increasing model size. It isolates the reported effect of changing the order of training objectives.
+
+By contrast, the contribution of the 237.3B-token language-filtered corpus cannot be separated from this evidence alone. The paper used that corpus as the training foundation, but no direct comparison between a filtered and an unfiltered corpus can be confirmed from the provided material. Attributing the performance improvement to language-specific filtering would therefore be an overinterpretation.
+
+## Why the Signal May Have Been Large in Search
+
+MLM masks some tokens in a sentence and predicts them. It is a standard pretraining method for encoder models, but it is oriented toward token-level reconstruction. CLM predicts the next token from previous context. Applying CLM first to an encoder model and then switching to MLM can be interpreted as a compromise: first learning broader contextual structure through sequential language prediction, then adapting that structure to encoder-style bidirectional representation learning.
+
+This is a mechanistic hypothesis, not a fact established by the evidence. Still, it is consistent with the reported large gap in search performance. Search embeddings need to place semantic correspondence between queries and documents stably in vector space, rather than only reconstruct tokens. If the CLM stage affected contextual flow and representation initialization, and the MLM stage then readjusted those representations for encoder use, retrieval gains could plausibly be large even under the same training budget.
+
+The product conclusion is not that everything improves with CLM-to-MLM. The narrower conclusion is that, for Turkish search, the pretraining objective may be as important a variable as the architecture. If your comparisons among Turkish encoders have focused mainly on MLM-based models, this paper suggests an additional axis to test.
+
+## Whether to Use MoganBert-Embed Directly or Keep It as a Comparison Candidate
+
+The reported results for MoganBert-Embed are useful, but they need careful interpretation. The paper reports that the model ranks first among student models with an overall MTEB Turkish average of 68.30, reaches 99.5% of the score of a 7.57B-parameter teacher model, and uses a backbone that is 51× smaller. This may matter for teams that want Turkish-focused embeddings with a small backbone. The model card’s claim that one single-vector embedding model can be used across semantic search, clustering, classification, and STS without prompts may also reduce integration complexity.
+
+However, retrieval was reported as a relative weakness. According to the provided evidence, MoganBert-Embed was below mE5 and BGE-M3 in the retrieval average. It should therefore not be treated as the top search candidate solely because its overall Turkish embedding average is high. If the operational goal is search quality, retrieval category scores should matter more than the overall MTEB average.
+
+Cross-lingual search and non-Turkish performance advantages were not confirmed. MoganBert-Embed can be considered when the main input and output language is Turkish, such as Turkish customer inquiries, Turkish documents, or Turkish classification. For Turkish-English mixed search, multilingual document routing, or products that require several languages in a shared embedding space, the provided evidence is not enough to make it the default choice.
+
+## Decision Rules
+
+If you have the budget to train a Turkish-only search or embedding model from scratch, it is reasonable to include CLM-to-MLM as an ablation candidate instead of relying only on a pure MLM baseline. In the provided evidence, this comparison produced the clearest improvement signal.
+
+If your team needs to choose an embedding model now, separate the criteria. For Turkish-centered classification, clustering, STS, or general-purpose semantic embeddings with a small model, MoganBert-Embed is worth including as an evaluation candidate. If search quality is the highest priority, it should be reevaluated directly on retrieval sets against candidates such as mE5 and BGE-M3. The reported results themselves indicate a retrieval weakness for MoganBert-Embed.
+
+Finally, research teams trying to verify the effect of corpus filtering should not use this paper’s results as that evidence. What can be confirmed is that a 237.3B-token language-filtered corpus was used, and that on the same corpus, CLM-to-MLM was stronger than pure MLM in search. To measure the independent effect of filtering, a separate experiment would need to change only whether filtering is applied.
+
+## Further Reading
+- [ICVD as a benchmark for NICU video AI](/en/posts/icvd-nicu-video-ai-benchmark)
+- [When Agent-G² is useful for guidance depth](/en/posts/agent-g2-guidance-depth)
+- [Evaluating code agents for both functionality and security](/en/posts/code-agent-functional-security-evaluation)
+- [How to evaluate harnesses for long-running autonomous agents](/en/posts/long-running-autonomous-agent-harness-evaluation)
+- [Aviation diagnostic AI as workflow bottleneck relief](/en/posts/aviation-diagnostic-ai-workflow-bottleneck)
+---
+
+## References
+
+- [moganai/MoganBERT-Embed - huggingface.co](https://huggingface.co/moganai/MoganBERT-Embed)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.25768)
