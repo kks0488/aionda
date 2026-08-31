@@ -1,0 +1,79 @@
+---
+title: 'Evaluate document extraction agents by trace, not just answers'
+slug: document-extraction-agent-trace-evaluation
+date: '2026-08-31'
+lastReviewedAt: '2026-08-31'
+locale: en
+description: >-
+  This article explains why teams running document extraction agents should
+  verify tool traces, document access, arguments, and execution order instead of
+  relying only on final extraction fidelity.
+tags:
+  - hardware
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-066ae18f20f007dc
+sourceUrl: 'https://arxiv.org/abs/2608.28439'
+verificationScore: 0.9
+alternateLocale: /ko/posts/document-extraction-agent-trace-evaluation
+coverImage: /images/posts/document-extraction-agent-trace-evaluation.png
+---
+
+# For Datasheet Extraction Agents, the First Question Is Not “Did It Get It Right?” but “Did It Open the Document?”
+
+Teams putting document extraction agents into production should broaden their evaluation criteria. Checking only the fidelity of the final extracted value—whether the value matches the source text—is not enough. A minimum passing condition should include whether the agent inspected the required evidence document, and whether it did so with the correct tool and arguments.
+
+This is not just a quality-management preference. According to the provided paper abstract, validation of an internal extraction service model found a case where a model passed the fidelity check without opening the datasheet. Structured output constraints silently disabled tool use, and the model answered with fabricated source text. The failure appeared in the per-tool trace, not in the final value comparison.
+
+The point is not that one model was simply “bad.” In agentic extraction pipelines, a correct answer and a trustworthy execution path can diverge. A value may be correct by chance, carried over from training or context, or supported by plausible but generated source text. Any of these can look successful under a fidelity-only score. An internal document extraction service needs more than an accidental match for a single value; it needs reproducible use of evidence.
+
+## The Evaluation Unit Should Move from Output to Execution Trajectory
+
+Evaluation of document extraction agents should be divided into two layers.
+
+First, final-output evaluation remains necessary. Teams still need to verify whether the extracted value matches the source text and whether the output follows the schema. But this is only a final checkpoint, not a sufficient condition for approval.
+
+Second, execution-trajectory evaluation should be assessed separately. Research related to TRAJECT-Bench describes trajectory-level diagnostics in addition to final accuracy, including tool-selection accuracy, argument accuracy, and whether dependencies and ordering are satisfied. In document extraction, these diagnostics become more concrete.
+
+Did the model call the datasheet inspection tool? Did it provide the correct arguments, such as the intended document, page, or query? Did it follow the required order and dependencies, such as search before inspection, inspection before parsing, and parsing before structured output? If a tool call failed, did the trace show a retry or another path?
+
+Based only on the provided evidence, there is not enough basis to define a standard formula or passing threshold for metrics such as document-inspection tool call rate or incorrect-document call rate. These should not be presented as industry-standard thresholds. Internal rules, however, can still support operational decisions. If an execution trace does not show access to the required evidence document, the result should not be automatically approved, even when fidelity is high. It should go to human review or be treated as a failure.
+
+## Structured Output Is a Safeguard, but Not Evidence of Evidence Use
+
+Structured output is useful for extraction services. It enforces a JSON format that downstream systems can process and can reduce missing fields and type errors. But structured output does not, by itself, prove that the model used the source document.
+
+According to the provided API documentation evidence, if a combination of tools and response format is incompatible, the request may be rejected, or JSON-constrained sampling may not be applied. When parallel function calls are generated, they may not match the provided schema. A schema also may not be followed to completion because of a safety refusal or token limit.
+
+There is no basis, however, for claiming that structured output constraints often disable tool use. The case in the paper abstract supports a narrower conclusion: this failure mode can occur, and final-value checks can miss it. The practical response is not to abandon structured output. Teams should treat structured output validation and tool-execution trace validation as separate controls.
+
+In practice, fields such as `source_text` or `page` in the final JSON are not enough. The model can generate those fields. Reliable evidence is not a claim inside the model output; it is the record of tool calls in the execution log.
+
+## Passing Rules for Internal Services
+
+For teams connecting document extraction agents to products or internal workflows, the following decision rules are conservative but practical.
+
+Group each extraction request into a single trace. Record each tool call—such as datasheet search, document inspection, parsing, and structured output validation—as a child span or event. Connect logs and results using `trace_id` and `span_id`. Do not store only the final extracted value. Include which tool was called, with which arguments, and whether it succeeded or failed as part of the quality judgment.
+
+Automatic approval conditions can be divided into three parts. First, the required document-inspection tool should have been called. Second, the call arguments should match the target document for the task. Third, the extracted value afterward should match the source text. If any of these is missing, the output may look correct, but it is not an auditable extraction.
+
+The evidence related to the NIST AI RMF points in the same direction. It calls for approaches and documentation to monitor the functions and behaviors of AI systems and components during operation, and to regularly identify and track risks. The Playbook mentions auditability mechanisms such as logging AI system processes and outcomes, as well as traceability in the development process. Based only on the provided evidence, however, it is not possible to define required fields for tool-call logs, retention periods, access rights, or sensitive-information masking policies. What can be said is narrower: logging needs separate design so that it does not unnecessarily duplicate original internal documents or sensitive information.
+
+The editorial conclusion is straightforward. Do not use fidelity alone as the approval criterion for datasheet extraction agents. A pipeline that cannot retain per-tool traces should not be classified as a high-trust extraction service. Even when a trace exists, results should not count as automation successes unless required document inspection, correct arguments, and execution order have been confirmed. Otherwise, they are cases for investigation.
+
+## Further Reading
+- [Check cluster bottlenecks before buying more GPUs](/en/posts/check-cluster-bottlenecks-before-buying-more-gpus)
+- [ANTShapes is a benchmark for difficulty control, not performance claims](/en/posts/antshapes-difficulty-control-benchmark)
+- [What MoganBert-TR signals for Turkish search](/en/posts/moganbert-tr-turkish-search-embeddings)
+- [ICVD as a benchmark for NICU video AI](/en/posts/icvd-nicu-video-ai-benchmark)
+- [When Agent-G² is useful for guidance depth](/en/posts/agent-g2-guidance-depth)
+---
+
+## References
+
+- [Function Calling in the OpenAI API | OpenAI Help Center - help.openai.com](https://help.openai.com/en/articles/8555517-function-calling-updates)
+- [Introducing Structured Outputs in the API | OpenAI - openai.com](https://openai.com/index/introducing-structured-outputs-in-the-api/)
+- [AI RMF Core | NIST AI Resource Center - airc.nist.gov](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
+- [AI RMF Playbook | NIST AI Resource Center - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf?trk=public_post_comment-text)
+- [TRAJECT-Bench:A Trajectory-Aware Benchmark for Evaluating Agentic Tool Use - arxiv.org](https://arxiv.org/abs/2510.04550)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.28439)
