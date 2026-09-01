@@ -1,0 +1,76 @@
+---
+title: 인과 리코스 XAI의 제품 설계 기준
+slug: causal-recourse-xai-product-design
+date: '2026-09-01'
+lastReviewedAt: '2026-09-01'
+locale: ko
+description: >-
+  A-CBFI 논문의 결과를 바탕으로 SHAP류 기여도 설명과 반사실 리코스를 구분하고, 인과 구조·실행 가능성·탐색 비용을 고려한 XAI
+  제품 설계 포인트를 정리한다.
+tags:
+  - hardware
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-0a83dff05a72036b
+sourceUrl: 'https://arxiv.org/abs/2608.27821'
+verificationScore: 0.89
+alternateLocale: /en/posts/causal-recourse-xai-product-design
+coverImage: /images/posts/causal-recourse-xai-product-design.png
+---
+
+# 인과 리코스 XAI는 “설명”보다 “개입 설계” 문제다
+
+A-CBFI 논문에서 실무자가 읽을 수 있는 신호는 비교적 분명하다. 표형 머신러닝에 반사실 설명을 도입하려는 팀은 두 기능을 구분해야 한다. 하나는 “어떤 feature가 점수에 기여했는가”를 보여주는 기능이다. 다른 하나는 “사용자가 무엇을 바꾸면 결과가 달라지는가”를 제안하는 기능이다. 후자는 단순한 해석 문제가 아니다. 인과 구조, 실행 가능성, 탐색 비용이 함께 걸린 문제다.
+
+
+## SHAP류 설명과 리코스 설명은 같은 제품 기능이 아니다
+
+SHAP 같은 가산적 기여도 기반 설명은 모델 출력에 대한 feature별 기여를 나눠 보여주는 데 유용하다. 그러나 논문 초록은 이런 방식이 고차원 feature 시너지를 충분히 반영하지 못할 수 있다고 지적한다. 실무에서는 이 차이가 제품 설계에 영향을 준다.
+
+예를 들어 어떤 feature 하나가 단독으로는 큰 기여를 하지 않지만, 다른 feature 조합과 함께 결과를 바꿀 수 있다. 이때 가산적 설명은 그 조합의 실행 의미를 놓칠 수 있다. 사용자는 “소득을 올리라”거나 “부채비율을 낮추라”는 설명을 받더라도, 실제로 어떤 조합의 변화가 승인 확률을 바꾸는지 알기 어렵다. 반대로 반사실 리코스는 “현재 상태에서 결과를 바꾸려면 어떤 개입이 필요한가”를 묻는다.
+
+문제는 리코스가 항상 좋은 설명이 되지는 않는다는 점이다. 인과적으로 불가능한 변경을 제안할 수 있다. 너무 많은 속성 수정을 요구해 사용자의 인지 부담을 키울 수도 있다. 제안된 변경 후에도 예측이 원하는 방향으로 바뀌지 않는 실패가 생길 수 있다. A-CBFI가 겨냥하는 지점은 이 세 가지다.
+
+## A-CBFI의 핵심: 원인 개입과 다운스트림 효과를 분리한다
+
+이 접근은 구조적 인과모형, 즉 SCM에 기반한다. 논문 설명에 따르면 A-CBFI는 고차 feature 시너지에서 생기는 ‘상호작용 병목’을 식별하고, 예측 변화를 억제하는 ‘구조적 잠금’을 분리한다. 제품 관점에서는 “바꿀 수 있는 항목”과 “그 결과로 따라 변하는 항목”을 구분하는 설계로 볼 수 있다.
+
+기존 리코스가 여러 속성을 동시에 바꾸라고 제안하면, 사용자는 그것이 실제 행동 목록인지 모델 내부 상태를 맞추기 위한 수학적 조정인지 구분하기 어렵다. 인과 리코스는 원인 feature에만 개입하고, 인과 그래프가 허용하는 연쇄 효과는 구조적으로 반영하려 한다. 즉 “체중, 보험료, 진단값을 모두 바꾸라”는 식의 제안이 아니다. 사용자가 직접 바꿀 수 있는 원인 변수와 그 이후 시스템이 예상하는 결과 변화를 분리하는 설계에 가깝다.
+
+다만 제공된 근거만으로는 상호작용 병목과 구조적 잠금을 계산하는 구체적 수식이나 알고리즘 세부를 검증할 수 없다. 구현 검토 단계에서는 논문의 방법론 본문과 코드 공개 여부를 별도로 확인해야 한다.
+
+## 무엇이 개선됐고, 무엇은 아직 아니다
+
+평가는 Financial Loan, German Credit, Adult Income, Medical Insurance, Pima Diabetes, Breast Cancer의 여섯 데이터셋에서 이뤄진 것으로 확인된다. 금융과 의료 도메인을 모두 포함했다는 점은 실무 관심과 맞닿아 있다. 하지만 비교 결과는 개별 데이터셋별 개선으로 제시된 것이 아니라, 도메인 집계 및 모델 아키텍처별로 제시된 것으로 보고된다. “German Credit에서 항상 더 낫다” 같은 결론은 이 근거로 말할 수 없다.
+
+실무 의사결정은 다음처럼 좁혀야 한다.
+
+탐색 비용이 병목이고, 리코스 후보가 너무 넓게 퍼져 사용자에게 설명하기 어려운 상황이라면 A-CBFI류 접근을 검토할 이유가 있다. 특히 승인·거절, 위험 분류, 보험·의료 보조 판단처럼 표형 데이터 기반 의사결정에서 “몇 개의 실행 가능한 원인 개입”을 제시해야 하는 경우에 맞다.
+
+반대로 리코스 비용 최소화가 최우선이거나, 기존 인과 베이스라인보다 성공률 자체를 크게 올리는 방법을 찾는 상황이라면 이 논문만으로 도입 결정을 내리기 어렵다. 근거상 A-CBFI의 개선은 주로 탐색 효율과 개입 집중도에 있다. 비용은 소폭 높고, 성공률과 RSCM은 대체로 동등하다.
+
+## 규제 대응 기능으로 팔기 전에 확인할 것
+
+금융 영역에서는 복잡한 알고리즘을 쓰더라도 불리한 조치에 대해 구체적 사유를 제공해야 한다는 요구가 있다. 또 고위험 AI 시스템에서는 로그 기록, 기술문서, 출력 해석을 위한 투명성, 인간 감독 같은 요건이 중요하다. NIST AI RMF Playbook은 설명 가능한 시스템이 디버깅, 모니터링, 문서화, 감사, 거버넌스에 더 적합하다고 본다.
+
+하지만 인과 리코스 XAI를 붙였다고 규제 준수가 자동으로 해결되지는 않는다. 리코스가 실제 결정 사유와 일치하는지 확인해야 한다. 인과 그래프의 가정이 타당한지도 검토해야 한다. 사용자가 제안된 조치를 실제로 수행할 수 있는지, 추천과 예측 결과가 감사 가능하게 기록되는지도 확인해야 한다. 설명 UI만 있으면 되는 문제가 아니다.
+
+도입 판단은 이렇게 하면 된다. 이미 표형 모델을 운영하고 있고, 반사실 설명을 사용자 행동 안내나 내부 심사 보조에 쓰려 한다면 A-CBFI를 후보로 넣을 만하다. 단, 평가 지표는 정확도 하나로 충분하지 않다. 최소한 성공률, 리코스 비용, 탐색 평가 횟수 또는 실행 시간, 개입 집중도를 함께 봐야 한다. 여기에 도메인 전문가가 검토한 인과 그래프와 실행 가능성 검증을 붙여야 한다.
+
+A-CBFI의 가치는 “모델이 왜 그랬는지”를 설명하는 데서 끝나지 않는다. 사용자가 실제로 무엇을 바꿀 수 있고, 그 변화가 인과적으로 어떤 결과를 낳는지까지 설명하려는 데 있다. 그만큼 도입 난도도 높다. 인과 구조를 검증할 준비가 없다면, 이 방법은 더 나은 설명 기능이 아니라 더 그럴듯한 권고를 만드는 위험이 될 수 있다.
+
+## 다음으로 읽기
+- [문서 추출 에이전트 평가는 실행 로그부터](/ko/posts/document-extraction-agent-trace-evaluation)
+- [GPU 증설 전 확인할 클러스터 병목](/ko/posts/check-cluster-bottlenecks-before-buying-more-gpus)
+- [ANTShapes는 난이도 통제 벤치마크다](/ko/posts/antshapes-difficulty-control-benchmark)
+- [MoganBert-TR가 주는 검색 신호](/ko/posts/moganbert-tr-turkish-search-embeddings)
+- [ICVD로 보는 NICU 비디오 AI 검증](/ko/posts/icvd-nicu-video-ai-benchmark)
+---
+
+## 참고 자료
+
+- [Consumer Financial Protection Circular 2022-03: Adverse action notification requirements in connection with credit decisions based on complex algorithms - consumerfinance.gov](https://www.consumerfinance.gov/compliance/circulars/circular-2022-03-adverse-action-notification-requirements-in-connection-with-credit-decisions-based-on-complex-algorithms/)
+- [Regulation (EU) 2024/1689 (AI Act) - eur-lex.europa.eu](https://eur-lex.europa.eu/eli/reg/2024/1689/2026-07-27/eng)
+- [NIST AI RMF Playbook - airc.nist.gov](https://airc.nist.gov/docs/AI_RMF_Playbook.pdf?trk=public_post_comment-text)
+- [Actionable CBFI: Integrating Structural Decomposition and Causal Counterfactual Recourse for Tabular Machine Learning - arxiv.org](https://arxiv.org/pdf/2608.27821)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2608.27821)
