@@ -14,7 +14,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SOURCE_REPO_ROOT="$REPO_ROOT"
 
 AUTO_PUBLISH_ISOLATED_REPO_ENABLED="${AUTO_PUBLISH_ISOLATED_REPO_ENABLED:-true}"
-AUTO_PUBLISH_ISOLATED_REPO="${AUTO_PUBLISH_ISOLATED_REPO:-/home/kkaemo/aionda-publisher-automation}"
+AUTO_PUBLISH_ISOLATED_REPO="${AUTO_PUBLISH_ISOLATED_REPO:-/home/kkaemo/workspace/automation/aionda-publisher}"
 AUTO_PUBLISH_ISOLATED_CONTEXT="${AUTO_PUBLISH_ISOLATED_CONTEXT:-0}"
 AUTO_PUBLISH_LOG_DIR="${AUTO_PUBLISH_LOG_DIR:-$SOURCE_REPO_ROOT/logs}"
 
@@ -226,7 +226,7 @@ push_with_rebase() {
 
 # Candidate pool: leftover untracked outputs from failed runs are preserved here.
 # (Keeps the repo clean so cron can continue.)
-CANDIDATE_POOL_ROOT="/home/kkaemo/aionda-candidate-pool"
+CANDIDATE_POOL_ROOT="/home/kkaemo/data/aionda/candidate-pool"
 LEGACY_QUARANTINE_ROOT="/home/kkaemo/aionda-quarantine"
 
 echo ""

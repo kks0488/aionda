@@ -33,8 +33,8 @@ For operational troubleshooting (status/logs/candidate pool), see `docs/AUTOMATI
 
 ```bash
 crontab -l
-# Recommended: run from a dedicated clean clone (e.g., /home/kkaemo/aionda-publisher-automation)
-# 0 * * * * /home/kkaemo/aionda-publisher-automation/scripts/auto-publish.sh
+# Recommended: run from a dedicated clean clone (e.g., /home/kkaemo/workspace/automation/aionda-publisher)
+# 0 * * * * /home/kkaemo/workspace/automation/aionda-publisher/scripts/auto-publish.sh
 ```
 
 ### Trend slot (라이브 토픽 1/3)
