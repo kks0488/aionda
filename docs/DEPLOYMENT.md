@@ -70,8 +70,12 @@ Admin 기능을 쓰는 경우에만 설정하세요.
 
 | 변수 | 설명 |
 |------|------|
-| `ADMIN_API_KEY` | Admin API 인증 키 (요청 헤더 `x-api-key`) |
-| `ADMIN_LOCAL_ONLY` | 기본 `true`(로컬/사설망만). 외부에서 쓰려면 `false` + 보안 강화 필요 |
+| `ADMIN_ENABLED` | 관리자 UI/API 전체 활성화 여부. production 기본값은 `false` 권장 |
+| `NEXTAUTH_SECRET` | NextAuth 세션 서명용 비밀키 |
+| `ADMIN_GITHUB_CLIENT_ID` / `ADMIN_GITHUB_CLIENT_SECRET` | GitHub OAuth 앱 자격증명 |
+| `ADMIN_GITHUB_USERS` | 관리자 허용 GitHub 로그인 목록 (쉼표 구분) |
+| `ADMIN_ALLOWED_HOSTS` | 쉼표 구분 허용 호스트 목록 (`localhost,127.0.0.1,::1` 등) |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | production 관리자 rate limit 저장소 |
 | `ADMIN_PUBLISH_ENABLED` | `true`일 때만 publish 엔드포인트 활성 |
 | `GITHUB_OWNER` / `GITHUB_REPO` / `GITHUB_TOKEN` | GitHub 콘텐츠 수정/PR/머지 자동화용 |
 | `GITHUB_AUTO_MERGE` | `false`면 자동 머지 비활성 |

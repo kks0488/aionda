@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import matter from 'gray-matter';
-import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
+import { adminJson, getAdminConfigError, getAdminRateLimitResponse, isAdminPublishEnabled, requireAdminSession } from '@/lib/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,47 +8,8 @@ const GITHUB_API = 'https://api.github.com';
 const GITHUB_GRAPHQL = 'https://api.github.com/graphql';
 const AUTO_MERGE_ENABLED = process.env.GITHUB_AUTO_MERGE !== 'false';
 const MERGE_METHOD = String(process.env.GITHUB_MERGE_METHOD || 'SQUASH').toUpperCase();
-const PUBLISH_ENABLED = process.env.ADMIN_PUBLISH_ENABLED === 'true';
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ALLOWED_LOCALES = new Set(['ko', 'en']);
-
-const ADMIN_HEADERS = {
-  'Cache-Control': 'no-store',
-  'X-Robots-Tag': 'noindex, nofollow, noarchive',
-};
-
-function adminJson(data: unknown, init: ResponseInit = {}) {
-  return Response.json(data, { ...init, headers: ADMIN_HEADERS });
-}
-
-function requireLocal(request: NextRequest): Response | null {
-  if (!isLocalOnlyEnabled()) return null;
-
-  const host =
-    request.headers.get('x-forwarded-host') ??
-    request.headers.get('host') ??
-    request.nextUrl.hostname;
-
-  if (!isLocalHost(host)) {
-    return adminJson({ error: 'Not found' }, { status: 404 });
-  }
-
-  return null;
-}
-
-function requireAdmin(request: NextRequest): Response | null {
-  const expected = process.env.ADMIN_API_KEY;
-  if (!expected) {
-    return adminJson({ error: 'Admin API key not configured' }, { status: 500 });
-  }
-
-  const provided = request.headers.get('x-api-key');
-  if (provided !== expected) {
-    return adminJson({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  return null;
-}
 
 function requireGithubEnv(): { owner: string; repo: string; base: string; token: string } | Response {
   const owner = process.env.GITHUB_OWNER;
@@ -150,15 +111,21 @@ async function findPostPath(owner: string, repo: string, base: string, token: st
 }
 
 export async function POST(request: NextRequest) {
-  const local = requireLocal(request);
-  if (local) return local;
-
-  const auth = requireAdmin(request);
+  const auth = await requireAdminSession(request);
   if (auth) return auth;
 
-  if (!PUBLISH_ENABLED) {
+  if (!isAdminPublishEnabled()) {
     return adminJson({ error: 'Publish disabled' }, { status: 403 });
   }
+
+  const configError = getAdminConfigError({
+    requireGitHubAuth: true,
+    requireRateLimitStore: true,
+  });
+  if (configError) return adminJson({ error: configError }, { status: 500 });
+
+  const limited = await getAdminRateLimitResponse('write', request);
+  if (limited) return limited;
 
   const githubEnv = requireGithubEnv();
   if (githubEnv instanceof Response) return githubEnv;

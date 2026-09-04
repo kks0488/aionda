@@ -6,7 +6,7 @@ import { trackPageView } from '@/lib/analytics';
 
 const GA_TRACKING_ID = process.env.NEXT_PUBLIC_GA_ID;
 
-export default function GoogleAnalytics() {
+export default function GoogleAnalytics({ nonce }: { nonce?: string }) {
   useEffect(() => {
     if (!GA_TRACKING_ID) return;
 
@@ -51,10 +51,11 @@ export default function GoogleAnalytics() {
   return (
     <>
       <Script
+        nonce={nonce}
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_TRACKING_ID}`}
         strategy="afterInteractive"
       />
-      <Script id="google-analytics" strategy="afterInteractive">
+      <Script id="google-analytics" nonce={nonce} strategy="afterInteractive">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

@@ -42,5 +42,14 @@ jobs:
       - name: Web lint
         run: pnpm --filter web lint
 
+      - name: Typecheck
+        run: pnpm -s typecheck
+
       - name: Build
-        run: pnpm -s build
+        run: pnpm -s build:clean
+
+      - name: Build Docker image
+        run: docker build -t aionda:test .
+
+      - name: Smoke test Docker image
+        run: pnpm docker:smoke -- aionda:test

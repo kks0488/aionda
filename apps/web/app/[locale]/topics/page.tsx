@@ -5,7 +5,7 @@ import { buildTopicStats, getTopics } from '@/lib/topics';
 import type { Locale } from '@/i18n';
 import { BASE_URL } from '@/lib/site';
 import { buildBreadcrumbJsonLd } from '@/lib/breadcrumbs';
-import { safeJsonLd } from '@/lib/json-ld';
+import JsonLdScript from '@/components/JsonLdScript';
 
 export async function generateMetadata({
   params: { locale },
@@ -49,10 +49,7 @@ export default function TopicsIndexPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
-      />
+      <JsonLdScript id="breadcrumb-jsonld" data={breadcrumbJsonLd} />
       <div className="bg-white dark:bg-[#101922] min-h-screen">
         {/* Header */}
         <section className="w-full py-12 px-6 border-b border-gray-100 dark:border-gray-800">

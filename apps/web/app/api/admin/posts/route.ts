@@ -1,51 +1,13 @@
-import { NextRequest } from 'next/server';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
+import { adminJson, canAdminWriteLocally, isAdminPublishEnabled, requireAdminSession } from '@/lib/admin';
+import type { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 const LOCALES = new Set(['en', 'ko']);
-
-const ADMIN_HEADERS = {
-  'Cache-Control': 'no-store',
-  'X-Robots-Tag': 'noindex, nofollow, noarchive',
-};
-
-function adminJson(data: unknown, init: ResponseInit = {}) {
-  return Response.json(data, { ...init, headers: ADMIN_HEADERS });
-}
-
-function requireLocal(request: NextRequest): Response | null {
-  if (!isLocalOnlyEnabled()) return null;
-
-  const host =
-    request.headers.get('x-forwarded-host') ??
-    request.headers.get('host') ??
-    request.nextUrl.hostname;
-
-  if (!isLocalHost(host)) {
-    return adminJson({ error: 'Not found' }, { status: 404 });
-  }
-
-  return null;
-}
-
-function requireAdmin(request: NextRequest): Response | null {
-  const expected = process.env.ADMIN_API_KEY;
-  if (!expected) {
-    return adminJson({ error: 'Admin API key not configured' }, { status: 500 });
-  }
-
-  const provided = request.headers.get('x-api-key');
-  if (provided !== expected) {
-    return adminJson({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  return null;
-}
 
 function normalizeTags(rawTags: unknown): string[] {
   if (!rawTags) return [];
@@ -54,10 +16,7 @@ function normalizeTags(rawTags: unknown): string[] {
 }
 
 export async function GET(request: NextRequest) {
-  const local = requireLocal(request);
-  if (local) return local;
-
-  const auth = requireAdmin(request);
+  const auth = await requireAdminSession(request);
   if (auth) return auth;
 
   const locale = request.nextUrl.searchParams.get('locale') || 'ko';
@@ -67,7 +26,13 @@ export async function GET(request: NextRequest) {
 
   const localeDir = path.join(POSTS_DIR, locale);
   if (!existsSync(localeDir)) {
-    return adminJson({ posts: [] });
+    return adminJson({
+      posts: [],
+      capabilities: {
+        canLocalWrite: canAdminWriteLocally(),
+        canPublish: isAdminPublishEnabled(),
+      },
+    });
   }
 
   const files = readdirSync(localeDir).filter((file) => file.endsWith('.mdx') || file.endsWith('.md'));
@@ -92,5 +57,11 @@ export async function GET(request: NextRequest) {
 
   posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  return adminJson({ posts });
+  return adminJson({
+    posts,
+    capabilities: {
+      canLocalWrite: canAdminWriteLocally(),
+      canPublish: isAdminPublishEnabled(),
+    },
+  });
 }

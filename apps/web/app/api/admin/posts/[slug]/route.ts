@@ -1,51 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import { isLocalHost, isLocalOnlyEnabled } from '@/lib/admin';
+import type { NextRequest } from 'next/server';
+import { adminJson, canAdminWriteLocally, getAdminRateLimitResponse, requireAdminSession } from '@/lib/admin';
 
 export const dynamic = 'force-dynamic';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 const LOCALES = new Set(['en', 'ko']);
-
-const ADMIN_HEADERS = {
-  'Cache-Control': 'no-store',
-  'X-Robots-Tag': 'noindex, nofollow, noarchive',
-};
-
-function adminJson(data: unknown, init: ResponseInit = {}) {
-  return Response.json(data, { ...init, headers: ADMIN_HEADERS });
-}
-
-function requireLocal(request: NextRequest): Response | null {
-  if (!isLocalOnlyEnabled()) return null;
-
-  const host =
-    request.headers.get('x-forwarded-host') ??
-    request.headers.get('host') ??
-    request.nextUrl.hostname;
-
-  if (!isLocalHost(host)) {
-    return adminJson({ error: 'Not found' }, { status: 404 });
-  }
-
-  return null;
-}
-
-function requireAdmin(request: NextRequest): Response | null {
-  const expected = process.env.ADMIN_API_KEY;
-  if (!expected) {
-    return adminJson({ error: 'Admin API key not configured' }, { status: 500 });
-  }
-
-  const provided = request.headers.get('x-api-key');
-  if (provided !== expected) {
-    return adminJson({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  return null;
-}
 
 function resolvePostPath(locale: string, slug: string): string | null {
   if (!slug || slug.includes('/') || slug.includes('\\') || slug.includes('..')) {
@@ -74,10 +36,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
-  const local = requireLocal(request);
-  if (local) return local;
-
-  const auth = requireAdmin(request);
+  const auth = await requireAdminSession(request);
   if (auth) return auth;
 
   const locale = request.nextUrl.searchParams.get('locale') || 'ko';
@@ -112,18 +71,18 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
-  const local = requireLocal(request);
-  if (local) return local;
+  const auth = await requireAdminSession(request);
+  if (auth) return auth;
 
-  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development') {
-    return NextResponse.json(
+  const limited = await getAdminRateLimitResponse('write', request);
+  if (limited) return limited;
+
+  if (!canAdminWriteLocally()) {
+    return adminJson(
       { error: 'File write is disabled in production. Use PR-based publish.' },
       { status: 403 }
     );
   }
-
-  const auth = requireAdmin(request);
-  if (auth) return auth;
 
   const locale = request.nextUrl.searchParams.get('locale') || 'ko';
   if (!LOCALES.has(locale)) {
@@ -174,18 +133,18 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
-  const local = requireLocal(request);
-  if (local) return local;
+  const auth = await requireAdminSession(request);
+  if (auth) return auth;
 
-  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development') {
-    return NextResponse.json(
+  const limited = await getAdminRateLimitResponse('write', request);
+  if (limited) return limited;
+
+  if (!canAdminWriteLocally()) {
+    return adminJson(
       { error: 'File write is disabled in production. Use PR-based publish.' },
       { status: 403 }
     );
   }
-
-  const auth = requireAdmin(request);
-  if (auth) return auth;
 
   const locale = request.nextUrl.searchParams.get('locale') || 'ko';
   if (!LOCALES.has(locale)) {

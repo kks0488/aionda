@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { signIn, signOut } from 'next-auth/react';
 import { locales, type Locale } from '@/i18n';
 
 type PostSummary = {
@@ -20,52 +21,33 @@ type PostDetail = PostSummary & {
   content: string;
 };
 
-const STORAGE_KEY = 'aionda-admin-api-key';
+type Capabilities = {
+  canLocalWrite: boolean;
+  canPublish: boolean;
+};
+
 const LOCALES: Locale[] = [...locales];
-const PUBLISH_ENABLED = process.env.NEXT_PUBLIC_ADMIN_PUBLISH === 'true';
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
 
-function parseIpv4(host: string): number[] | null {
-  const parts = host.split('.');
-  if (parts.length !== 4) return null;
-  const nums = parts.map((part) => Number(part));
-  if (nums.some((value) => Number.isNaN(value) || value < 0 || value > 255)) {
-    return null;
-  }
-  return nums;
+function normalizeErrorStatus(status: number, fallback: string): string {
+  if (status === 401) return 'Session expired. Log in again.';
+  if (status === 403) return 'Action not allowed here';
+  if (status === 429) return 'Too many attempts. Wait a bit and retry.';
+  return fallback;
 }
 
-function isPrivateIpv4(host: string): boolean {
-  const nums = parseIpv4(host);
-  if (!nums) return false;
-  const [a, b] = nums;
-
-  if (a === 10) return true;
-  if (a === 127) return true;
-  if (a === 169 && b === 254) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;
-
-  return false;
-}
-
-function isPrivateIpv6(host: string): boolean {
-  if (host === '::1') return true;
-  if (host.startsWith('fc') || host.startsWith('fd')) return true;
-  if (host.startsWith('fe80')) return true;
-  return false;
-}
-
-function isLocalAddress(hostname: string): boolean {
-  const normalized = hostname.trim().toLowerCase();
-  if (!normalized) return false;
-  if (LOCAL_HOSTNAMES.has(normalized) || normalized.endsWith('.local')) return true;
-  return isPrivateIpv4(normalized) || isPrivateIpv6(normalized);
-}
-
-export default function AdminPanel({ locale }: { locale: Locale }) {
-  const [apiKey, setApiKey] = useState('');
+export default function AdminPanel({
+  locale,
+  initialAuthenticated = false,
+  initialUserLogin = null,
+  initialCapabilities = { canLocalWrite: false, canPublish: false },
+}: {
+  locale: Locale;
+  initialAuthenticated?: boolean;
+  initialUserLogin?: string | null;
+  initialCapabilities?: Capabilities;
+}) {
+  const [authenticated, setAuthenticated] = useState(initialAuthenticated);
+  const [userLogin, setUserLogin] = useState(initialUserLogin);
   const [activeLocale, setActiveLocale] = useState<Locale>(locale);
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string>('');
@@ -83,39 +65,52 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deletingLocal, setDeletingLocal] = useState(false);
-  const [canLocalWrite, setCanLocalWrite] = useState(false);
+  const [capabilities, setCapabilities] = useState<Capabilities>(initialCapabilities);
+  const authLabel = authenticated ? `Signed in as @${userLogin || 'admin'}` : 'Not authenticated';
 
-  useEffect(() => {
-    const savedKey = window.sessionStorage.getItem(STORAGE_KEY);
-    if (savedKey) setApiKey(savedKey);
-  }, []);
+  const loadPosts = useCallback(async () => {
+    setLoadingList(true);
+    setStatus('');
 
-  useEffect(() => {
-    if (apiKey) {
-      window.sessionStorage.setItem(STORAGE_KEY, apiKey);
-      return;
+    try {
+      const response = await fetch(`/api/admin/posts?locale=${activeLocale}`, {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+
+      if (!response.ok) {
+        setAuthenticated(false);
+        setUserLogin(null);
+        setPosts([]);
+        setEditor(null);
+        setSelectedSlug('');
+        setCapabilities({ canLocalWrite: false, canPublish: false });
+        setPublishStatus('');
+        setPrUrl('');
+        setStatus(normalizeErrorStatus(response.status, 'Failed to load posts'));
+        return false;
+      }
+
+      const data = await response.json();
+      setAuthenticated(true);
+      setPosts(data.posts || []);
+      setCapabilities({
+        canLocalWrite: Boolean(data.capabilities?.canLocalWrite),
+        canPublish: Boolean(data.capabilities?.canPublish),
+      });
+      return true;
+    } catch {
+      setStatus('Failed to load posts');
+      return false;
+    } finally {
+      setLoadingList(false);
     }
-    window.sessionStorage.removeItem(STORAGE_KEY);
-  }, [apiKey]);
+  }, [activeLocale]);
 
   useEffect(() => {
-    const hostname = window.location.hostname;
-    setCanLocalWrite(isLocalAddress(hostname));
-  }, []);
-
-  useEffect(() => {
-    if (!apiKey) return;
+    if (!authenticated) return;
     void loadPosts();
-  }, [apiKey, activeLocale]);
-
-  useEffect(() => {
-    if (editor) {
-      setTagsInput(editor.tags.join(', '));
-      setPrTitle(`Admin update: ${editor.slug} (${activeLocale})`);
-      setPrBody('Edited via Aionda admin panel.');
-      setPrUrl('');
-    }
-  }, [editor?.slug, activeLocale]);
+  }, [authenticated, loadPosts]);
 
   const filteredPosts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -130,55 +125,59 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     });
   }, [posts, search]);
 
-  const loadPosts = async () => {
-    setLoadingList(true);
-    setStatus('');
-    try {
-      const response = await fetch(`/api/admin/posts?locale=${activeLocale}`, {
-        headers: { 'x-api-key': apiKey },
-        cache: 'no-store',
-      });
-      if (!response.ok) {
-        setStatus(response.status === 401 ? 'Unauthorized' : 'Failed to load posts');
-        setPosts([]);
-        return;
-      }
-      const data = await response.json();
-      setPosts(data.posts || []);
-    } catch (error) {
-      setStatus('Failed to load posts');
-    } finally {
-      setLoadingList(false);
-    }
-  };
-
   const loadPost = async (slug: string) => {
     setLoadingDetail(true);
     setStatus('');
     setSelectedSlug(slug);
     try {
       const response = await fetch(`/api/admin/posts/${slug}?locale=${activeLocale}`, {
-        headers: { 'x-api-key': apiKey },
         cache: 'no-store',
+        credentials: 'same-origin',
       });
       if (!response.ok) {
-        setStatus(response.status === 401 ? 'Unauthorized' : 'Failed to load post');
+        setStatus(normalizeErrorStatus(response.status, 'Failed to load post'));
+        if (response.status === 401) setAuthenticated(false);
         setEditor(null);
         return;
       }
       const data = await response.json();
+      setAuthenticated(true);
       setEditor(data);
-    } catch (error) {
+      setTagsInput(Array.isArray(data.tags) ? data.tags.join(', ') : '');
+      setPrTitle(`Admin update: ${data.slug} (${activeLocale})`);
+      setPrBody('Edited via Aionda admin panel.');
+      setPrUrl('');
+    } catch {
       setStatus('Failed to load post');
     } finally {
       setLoadingDetail(false);
     }
   };
 
+  const handleLogin = () => {
+    setStatus('');
+    void signIn('github', { callbackUrl: `/${activeLocale}/admin` });
+  };
+
+  const handleLogout = () => {
+    setStatus('');
+    setPublishStatus('');
+    setPrUrl('');
+    setAuthenticated(false);
+    setUserLogin(null);
+    setPosts([]);
+    setEditor(null);
+    setSelectedSlug('');
+    setPublishStatus('');
+    setPrUrl('');
+    setCapabilities({ canLocalWrite: false, canPublish: false });
+    void signOut({ callbackUrl: `/${activeLocale}/admin` });
+  };
+
   const handleSave = async () => {
     if (!editor) return;
-    if (!canLocalWrite) {
-      setStatus('Local save is disabled here. Open this page on localhost.');
+    if (!capabilities.canLocalWrite) {
+      setStatus('Local save is disabled in this environment.');
       return;
     }
     setSaving(true);
@@ -200,14 +199,15 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       };
       const response = await fetch(`/api/admin/posts/${editor.slug}?locale=${activeLocale}`, {
         method: 'PUT',
+        credentials: 'same-origin',
         headers: {
-          'x-api-key': apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        setStatus(response.status === 401 ? 'Unauthorized' : 'Failed to save post');
+        setStatus(normalizeErrorStatus(response.status, 'Failed to save post'));
+        if (response.status === 401) setAuthenticated(false);
         return;
       }
 
@@ -215,18 +215,18 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
         prev.map((post) =>
           post.slug === editor.slug
             ? {
-              ...post,
-              title: editor.title,
-              description: editor.description,
-              date: editor.date,
-              tags: nextTags,
-              coverImage: editor.coverImage || '',
-            }
+                ...post,
+                title: editor.title,
+                description: editor.description,
+                date: editor.date,
+                tags: nextTags,
+                coverImage: editor.coverImage || '',
+              }
             : post
         )
       );
       setStatus('Saved');
-    } catch (error) {
+    } catch {
       setStatus('Failed to save post');
     } finally {
       setSaving(false);
@@ -261,15 +261,16 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
 
       const response = await fetch('/api/admin/publish', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
-          'x-api-key': apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        setPublishStatus(response.status === 401 ? 'Unauthorized' : 'Failed to create PR');
+        setPublishStatus(normalizeErrorStatus(response.status, 'Failed to create PR'));
+        if (response.status === 401) setAuthenticated(false);
         return;
       }
 
@@ -282,7 +283,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       }
       setPublishStatus(message);
       if (data.prUrl) setPrUrl(data.prUrl);
-    } catch (error) {
+    } catch {
       setPublishStatus('Failed to create PR');
     } finally {
       setPublishing(false);
@@ -311,15 +312,16 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
 
       const response = await fetch('/api/admin/publish', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
-          'x-api-key': apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        setPublishStatus(response.status === 401 ? 'Unauthorized' : 'Failed to create delete PR');
+        setPublishStatus(normalizeErrorStatus(response.status, 'Failed to create delete PR'));
+        if (response.status === 401) setAuthenticated(false);
         return;
       }
 
@@ -332,7 +334,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       }
       setPublishStatus(message);
       if (data.prUrl) setPrUrl(data.prUrl);
-    } catch (error) {
+    } catch {
       setPublishStatus('Failed to create delete PR');
     } finally {
       setDeleting(false);
@@ -341,8 +343,8 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
 
   const handleDeleteLocal = async () => {
     if (!editor) return;
-    if (!canLocalWrite) {
-      setStatus('Local delete is disabled here. Open this page on localhost.');
+    if (!capabilities.canLocalWrite) {
+      setStatus('Local delete is disabled in this environment.');
       return;
     }
     const confirmed = window.confirm(`Delete ${editor.slug}? This removes the local file.`);
@@ -356,11 +358,12 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
     try {
       const response = await fetch(`/api/admin/posts/${editor.slug}?locale=${activeLocale}`, {
         method: 'DELETE',
-        headers: { 'x-api-key': apiKey },
+        credentials: 'same-origin',
       });
 
       if (!response.ok) {
-        setStatus(response.status === 401 ? 'Unauthorized' : 'Failed to delete post');
+        setStatus(normalizeErrorStatus(response.status, 'Failed to delete post'));
+        if (response.status === 401) setAuthenticated(false);
         return;
       }
 
@@ -368,7 +371,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
       setSelectedSlug('');
       setEditor(null);
       setStatus('Deleted');
-    } catch (error) {
+    } catch {
       setStatus('Failed to delete post');
     } finally {
       setDeletingLocal(false);
@@ -387,30 +390,45 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
           <div>
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Admin Editor</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Edit published posts directly. Changes apply to markdown files.
-              {!PUBLISH_ENABLED && ' PR publishing is disabled.'}
+              Sign in once to manage post files. Protected actions use a server session cookie.
             </p>
           </div>
-          <Link
-            href={`/${activeLocale}`}
-            className="text-sm font-semibold text-primary hover:underline"
-          >
-            View site
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/${activeLocale}`}
+              className="text-sm font-semibold text-primary hover:underline"
+            >
+              View site
+            </Link>
+            {authenticated && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+              >
+                Logout
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,320px)_1fr]">
           <aside className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-slate-900/50 p-4 shadow-sm">
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Admin API Key</label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
-                  placeholder="Enter key"
-                />
+                <label className="text-xs font-semibold uppercase text-slate-500">Admin Access</label>
+                <button
+                  type="button"
+                  onClick={handleLogin}
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+                >
+                  Sign in with GitHub
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-gray-200/80 dark:border-gray-700/80 px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span>{authLabel}</span>
+                <span>{capabilities.canLocalWrite ? 'Local write enabled' : 'Read-only mode'}</span>
               </div>
 
               <div className="flex gap-2">
@@ -427,9 +445,9 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                 </select>
                 <button
                   type="button"
-                  onClick={loadPosts}
-                  className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                  disabled={loadingList || !apiKey}
+                  onClick={() => void loadPosts()}
+                  className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-60"
+                  disabled={loadingList}
                 >
                   {loadingList ? 'Loading...' : 'Refresh'}
                 </button>
@@ -442,6 +460,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                   onChange={(event) => setSearch(event.target.value)}
                   className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
                   placeholder="Search by title, slug, tag"
+                  disabled={!authenticated}
                 />
               </div>
 
@@ -450,12 +469,12 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                   {status}
                 </div>
               )}
-              {PUBLISH_ENABLED && publishStatus && (
+              {publishStatus && (
                 <div className="text-xs font-semibold text-amber-600 dark:text-amber-300">
                   {publishStatus}
                 </div>
               )}
-              {PUBLISH_ENABLED && prUrl && (
+              {prUrl && (
                 <a
                   href={prUrl}
                   target="_blank"
@@ -468,14 +487,17 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
             </div>
 
             <div className="mt-4 space-y-2 max-h-[560px] overflow-y-auto pr-2">
-              {filteredPosts.length === 0 && (
+              {!authenticated && (
+                <div className="text-sm text-slate-500">Login to load posts.</div>
+              )}
+              {authenticated && filteredPosts.length === 0 && (
                 <div className="text-sm text-slate-500">No posts found.</div>
               )}
-              {filteredPosts.map((post) => (
+              {authenticated && filteredPosts.map((post) => (
                 <button
                   key={post.slug}
                   type="button"
-                  onClick={() => loadPost(post.slug)}
+                  onClick={() => void loadPost(post.slug)}
                   className={`w-full text-left rounded-lg border px-3 py-2 transition ${
                     post.slug === selectedSlug
                       ? 'border-primary bg-primary/10'
@@ -493,13 +515,17 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
           </aside>
 
           <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white/70 dark:bg-slate-900/50 p-6 shadow-sm">
-            {!editor && (
+            {!authenticated && (
+              <div className="text-sm text-slate-500">Authenticate to edit posts.</div>
+            )}
+
+            {authenticated && !editor && (
               <div className="text-sm text-slate-500">
                 {loadingDetail ? 'Loading...' : 'Select a post to edit.'}
               </div>
             )}
 
-            {editor && (
+            {authenticated && editor && (
               <div className="space-y-5">
                 <div className="flex flex-wrap gap-3 items-center justify-between">
                   <div>
@@ -520,18 +546,18 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                       type="button"
                       onClick={handleSave}
                       className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
-                      disabled={saving || !canLocalWrite}
-                      title={canLocalWrite ? 'Save local file' : 'Local save works only on localhost'}
+                      disabled={saving || !capabilities.canLocalWrite}
+                      title={capabilities.canLocalWrite ? 'Save local file' : 'Local save is disabled by the server'}
                     >
                       {saving ? 'Saving...' : 'Save Local'}
                     </button>
-                    {PUBLISH_ENABLED ? (
+                    {capabilities.canPublish ? (
                       <>
                         <button
                           type="button"
                           onClick={handlePublish}
                           className="rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/10 disabled:opacity-60"
-                          disabled={publishing || !apiKey}
+                          disabled={publishing}
                         >
                           {publishing ? 'Creating PR...' : 'Create PR'}
                         </button>
@@ -539,7 +565,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                           type="button"
                           onClick={handleDelete}
                           className="rounded-lg border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-60"
-                          disabled={deleting || !apiKey}
+                          disabled={deleting}
                         >
                           {deleting ? 'Creating PR...' : 'Delete PR'}
                         </button>
@@ -549,8 +575,8 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                         type="button"
                         onClick={handleDeleteLocal}
                         className="rounded-lg border border-rose-500 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-60"
-                        disabled={deletingLocal || !canLocalWrite}
-                        title={canLocalWrite ? 'Delete local file' : 'Local delete works only on localhost'}
+                        disabled={deletingLocal || !capabilities.canLocalWrite}
+                        title={capabilities.canLocalWrite ? 'Delete local file' : 'Local delete is disabled by the server'}
                       >
                         {deletingLocal ? 'Deleting...' : 'Delete Local'}
                       </button>
@@ -579,7 +605,7 @@ export default function AdminPanel({ locale }: { locale: Locale }) {
                   </div>
                 </div>
 
-                {PUBLISH_ENABLED && (
+                {capabilities.canPublish && (
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <label className="text-xs font-semibold uppercase text-slate-500">PR Title</label>

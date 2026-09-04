@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -12,7 +13,7 @@ import SearchProvider from '@/components/SearchProvider';
 import MobileNav from '@/components/MobileNav';
 import { BASE_URL } from '@/lib/site';
 import AnalyticsEvents from '@/components/AnalyticsEvents';
-import { safeJsonLd } from '@/lib/json-ld';
+import JsonLdScript from '@/components/JsonLdScript';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -44,6 +45,7 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   const messages = await getMessages();
+  const nonce = headers().get('x-nonce') || undefined;
   const orgJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -78,18 +80,10 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={fontVariables} suppressHydrationWarning>
       <head>
-        <GoogleAnalytics />
-        <GoogleAdSense />
-        <script
-          id="ld-org"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
-        />
-        <script
-          id="ld-website"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
-        />
+        <GoogleAnalytics nonce={nonce} />
+        <GoogleAdSense nonce={nonce} />
+        <JsonLdScript id="ld-org" data={orgJsonLd} />
+        <JsonLdScript id="ld-website" data={websiteJsonLd} />
       </head>
       <body className="min-h-screen flex flex-col bg-white dark:bg-[#101922] text-slate-900 dark:text-white antialiased overflow-x-hidden font-body">
         <ThemeProvider

@@ -6,7 +6,7 @@ import { getAllSlugs, getAvailableLocalesForSlug, getPostBySlug, getPostSummarie
 import { getTagColor } from '@/lib/tag-utils';
 import { getTopicConfig, normalizeTopicId } from '@/lib/topics';
 import { BASE_URL } from '@/lib/site';
-import { safeJsonLd } from '@/lib/json-ld';
+import JsonLdScript from '@/components/JsonLdScript';
 import { estimateReadingTime } from '@singularity-blog/content-utils';
 import { MDXContent } from '@/components/MDXContent';
 import { ReadingProgress } from '@/components/ReadingProgress';
@@ -497,28 +497,10 @@ export default async function PostPage({
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(articleJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
-      />
-      {faqJsonLd && (
-        <script
-          id="ld-faq"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
-        />
-      )}
-      {howToJsonLd && (
-        <script
-          id="ld-howto"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: safeJsonLd(howToJsonLd) }}
-        />
-      )}
+      <JsonLdScript id="article-jsonld" data={articleJsonLd} />
+      <JsonLdScript id="breadcrumb-jsonld" data={breadcrumbJsonLd} />
+      {faqJsonLd && <JsonLdScript id="ld-faq" data={faqJsonLd} />}
+      {howToJsonLd && <JsonLdScript id="ld-howto" data={howToJsonLd} />}
       <ReadingProgress />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12 lg:py-20">
