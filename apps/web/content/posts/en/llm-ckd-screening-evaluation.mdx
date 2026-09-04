@@ -1,0 +1,67 @@
+---
+title: What to verify before using LLMs for CKD screening
+slug: llm-ckd-screening-evaluation
+date: '2026-09-04'
+lastReviewedAt: '2026-09-04'
+locale: en
+description: >-
+  Helps hospital, screening, and healthcare product teams understand why
+  zero-shot or few-shot LLMs are not yet sufficient for CKD screening and what
+  performance evidence should be checked in local validation.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-08488130ed288a68
+sourceUrl: 'https://arxiv.org/abs/2609.04013'
+verificationScore: 0.92
+alternateLocale: /ko/posts/llm-ckd-screening-evaluation
+coverImage: /images/posts/llm-ckd-screening-evaluation.png
+---
+
+# Can an LLM Be Applied Directly to CKD Screening? The Answer Is Still “No”
+
+This article is for people in hospitals, screening institutions, and healthcare product teams who are evaluating early screening tools for chronic kidney disease (CKD). The practical question is narrow: can an LLM be used in a zero-shot or few-shot setting instead of collecting labeled data and training a separate model?
+
+The main value of LLM4CKD is better understood as an evaluation framework than as evidence of deployment readiness. The study shows what should be compared when LLMs are evaluated as candidates for CKD screening. The published results, however, are not enough to justify adopting an LLM as a real-world clinical screening tool. In screening, a tool should be assessed with both sensitivity and specificity. The confirmed results do not include predefined clinical acceptability criteria, and the core performance table alone does not make it easy to judge specificity alongside the other outcomes.
+
+## What This Study Actually Compared
+
+
+The evaluation is not limited to ordinary accuracy. The main metrics are balanced accuracy and Brier loss. The detailed comparison also includes AUROC, macro-F1, sensitivity, and expected calibration error. Differences between models were tested using a paired permutation test and mixed-effects analysis based on sample-level Brier loss from repeated evaluations.
+
+This setup matters for screening. In CKD screening, the costs of false positives and false negatives may differ. When data are imbalanced, ordinary accuracy alone can distort decision-making. Balanced accuracy is intended to examine performance on both positive and negative cases. Brier loss and calibration error address a different question: not only whether the model was correct, but whether its output can be interpreted as a probability. In clinical decision support, that matters. If a risk score does not correspond well to actual risk, it becomes difficult to set follow-up testing criteria in practice, even when two patients receive the same score.
+
+## The Advantage of LLMs Is Skipping Training, and Their Weakness Also Comes from That Point
+
+The product-level appeal of the LLM approach is that it avoids separate model training. Zero-shot use attempts immediate application without dataset-specific training. Few-shot use places a small number of examples in the context to guide the judgment. In environments where labeled data and model training pipelines are hard to obtain or maintain, this is an approach worth reviewing.
+
+The same advantage also creates risk. The study compared prompt styles, serialization templates, and configurations using either all features or selected features for the LLMs. This suggests that performance may depend not only on the model itself, but also on input representation and example composition. Supervised learning models can also be unstable when labeled data are scarce. Still, their training data and validation procedures are explicitly defined. For LLMs, operating performance may change with prompt design even when the same patient features are provided. Product teams should read this not as “no training is needed,” but as “prompting and input serialization become new management targets in place of training.”
+
+The confirmed performance signals should be interpreted cautiously. Few-shot Qwen-3 showed a balanced accuracy of 0.814 and sensitivity of 0.873 in the 4-shot setting. These numbers suggest that an LLM may be worth evaluating as a CKD screening candidate under low-data conditions. They do not show, by themselves, that it has met clinical screening criteria. Based only on the confirmed information, specificity cannot be assessed together with this result. Predefined clinical acceptability criteria are also not confirmed. In a screening tool, high sensitivity with low specificity can increase unnecessary follow-up tests and anxiety. Conversely, increasing specificity at the expense of sensitivity can weaken the goal of early detection.
+
+## The Decision Should Be Based on Reproducibility Evaluation, Not Adoption
+
+The decision after reading this study should be cautious.
+
+If an organization is selecting a tool for actual patient screening, it should not adopt a zero-shot or few-shot LLM as a standalone screening tool on this evidence alone. At a minimum, before deployment, the institution would need to confirm its sensitivity and specificity criteria, calibration performance, external validation or validation in a real clinical environment, and patient data processing methods. The WHO principles for AI in health require protection of privacy and confidentiality, valid informed consent, and appropriate legal frameworks for data protection. Whether LLM4CKD itself satisfies requirements for patient data storage, transmission, prevention of re-identification, explanation of results, and external validation cannot be determined from the confirmed evidence alone.
+
+For an internal technical review or pre-pilot stage, the comparison protocol used in LLM4CKD is worth referencing. LLMs and ML, DL, and tabular foundation models should be compared using the same selected features, the same holdout test samples, and the same low-label conditions. For LLMs, both zero-shot and few-shot settings should be examined, while prompt style and serialization templates should be fixed and change histories recorded. Supervised models should also be run with limited labeled data sizes such as 4, 8, 16, and 32. Evaluation should not stop at balanced accuracy; Brier loss, AUROC, macro-F1, sensitivity, and expected calibration error should be assessed together.
+
+The decision rule is straightforward. If the organization cannot specify in advance the sensitivity and specificity criteria it requires, cannot validate probability calibration of LLM outputs, or cannot explain the consent and protection framework for patient data input and processing, it should not move to productization. In that case, the LLM should be treated not as a “clinical screening tool,” but as a “candidate model to compare under low-label conditions.”
+
+## Further Reading
+- [Why hiring LLM audits need process logs](/en/posts/hiring-llm-process-log-audits)
+- [Product design criteria for causal recourse XAI](/en/posts/causal-recourse-xai-product-design)
+- [Evaluate document extraction agents by trace, not just answers](/en/posts/document-extraction-agent-trace-evaluation)
+- [Check cluster bottlenecks before buying more GPUs](/en/posts/check-cluster-bottlenecks-before-buying-more-gpus)
+- [ANTShapes is a benchmark for difficulty control, not performance claims](/en/posts/antshapes-difficulty-control-benchmark)
+---
+
+## References
+
+- [WHO issues first global report on Artificial Intelligence (AI) in health and six guiding principles for its design and use - who.int](https://www.who.int/news/item/28-06-2021-who-issues-first-global-report-on-ai-in-health-and-six-guiding-principles-for-its-design-and-use)
+- [LLM4CKD: Large Language Models for Early Stage Chronic Kidney Disease Screening - arxiv.org](https://arxiv.org/html/2609.04013v1)
+- [From Many to Meaningful: Feature-Guided Zero-Shot Chronic Kidney Disease Screening Using Large Language Models - arxiv.org](https://arxiv.org/abs/2607.12260)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2609.04013)
