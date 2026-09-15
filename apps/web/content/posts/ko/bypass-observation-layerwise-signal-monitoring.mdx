@@ -1,0 +1,71 @@
+---
+title: Bypass Observation의 올바른 용도
+slug: bypass-observation-layerwise-signal-monitoring
+date: '2026-09-15'
+lastReviewedAt: '2026-09-15'
+locale: ko
+description: >-
+  Bypass Observation을 인과적 추론 설명기가 아니라 층별 은닉상태의 신호를 읽는 계측 도구로 이해하고, 헤드 설계와 안전
+  모니터링 평가에서 주의할 기준을 정리한다.
+tags:
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-0f0b4ad1501ef1f3
+sourceUrl: 'https://arxiv.org/abs/2609.13807'
+verificationScore: 0.82
+alternateLocale: /en/posts/bypass-observation-layerwise-signal-monitoring
+coverImage: /images/posts/bypass-observation-layerwise-signal-monitoring.png
+---
+
+# Bypass Observation은 “추론 설명기”가 아니라 “층별 신호 계측기”로 봐야 한다
+
+Bypass Observation을 검토하는 팀은 먼저 적용 목적을 정해야 한다. 모델이 왜 그런 답을 냈는지 인과적으로 설명하려는 목적이라면, 현재 제시된 근거만으로는 부족하다. 반대로 최종 출력 전에 층별 은닉상태에서 의미·오류·안전 관련 신호가 읽히는지 계측하려는 목적이라면 검토할 여지가 있다. 이 차이를 혼동하면 해석 가능성 도구를 안전장치나 디버거로 과대평가하게 된다.
+
+논문 초록이 제안하는 핵심은 간단하다. Transformer의 선택된 층에 읽기 전용 관찰 헤드를 붙인다. 그 출력은 백본 모델로 되돌려 보내지 않는다. 사용자는 보통 최종 토큰 출력만 보지만, 이 구조는 최종 출력 이전의 층별 hidden state에서 언어적·의미적 신호를 읽으려 한다. 제안된 변형은 세 가지다. 여러 층에 공유 LM 헤드를 쓰는 방식, 층마다 별도 헤드를 두는 방식, 층이나 추론 스텝에 따라 적응하는 헤드를 쓰는 방식이다.
+
+여기서 “read-only” 설계는 중요하다. 관찰 헤드를 따로 학습하고 백본 파라미터를 동결하면, 헤드의 학습 손실이 원래 모델 표현을 바꾸지 않는다. 따라서 학습 과정에서는 “관찰하려다 모델을 다시 훈련해 버리는” 문제를 피할 수 있다. 기존 probing 연구의 기본 발상도 이와 가깝다. 모델이 만든 표현을 입력으로 받아 별도 분류기나 헤드가 특정 속성을 예측하게 한다. 이를 통해 그 속성이 표현에서 얼마나 복원 가능한지 측정한다.
+
+하지만 이 장점은 한계와 맞닿아 있다. 어떤 층의 관찰 헤드가 “이 답은 틀릴 가능성이 높다”는 신호를 잘 맞혔다고 해서, 그 층이 실제 오류의 원인이라고 말할 수는 없다. probing 연구는 표현 속 정보의 존재와 모델의 인과적 사용을 구분해야 한다고 지적해 왔다. Chain-of-Thought 오류 신호에 관한 연구도 오류 인식 신호가 “진단적”일 수는 있지만, 오류를 바로잡는 인과적 제어 신호는 아닐 수 있다고 보고한다. 즉 Bypass Observation이 읽어내는 것은 모델 내부 계산의 품질을 가리키는 계기판일 수 있다. 그러나 그 계기판이 엔진을 제어한다는 뜻은 아니다.
+
+## 세 가지 헤드 선택은 정확도 문제가 아니라 운영 가정의 문제다
+
+현재 제공된 근거로는 공유 LM 헤드, 층별 전용 헤드, 층·스텝 적응형 헤드 중 어느 쪽이 더 정확한지 판단하기 어렵다. 직접 비교 실험 결과가 확인되지 않았기 때문이다. 따라서 선택 기준은 “성능 우열”이 아니라 팀이 감당할 수 있는 해석 비용과 검증 비용이어야 한다.
+
+공유 LM 헤드는 단순한 기준선으로 적합하다. 여러 층을 같은 렌즈로 읽기 때문에 층간 비교가 비교적 쉽다. 다만 모든 층의 표현이 같은 방식으로 어휘 공간에 잘 투영된다고 가정하는 셈이다. 이 때문에 깊은 층과 얕은 층의 신호 차이를 과소평가하거나 왜곡할 수 있다.
+
+층별 전용 헤드는 각 층의 표현 형식이 다르다는 가정을 받아들인다. 특정 층에서만 복원되는 신호를 찾는 데 더 유연할 수 있다. 대신 헤드마다 학습된 기준이 달라진다. 이 경우 “7층의 위험 점수와 20층의 위험 점수는 같은 의미인가”라는 비교 문제가 생긴다. 해석 가능성을 높이려다 관찰기 자체의 자유도가 커지는 trade-off다.
+
+층·스텝 적응형 헤드는 더 복잡한 설계다. 같은 층이라도 생성 스텝에 따라 필요한 readout이 달라진다고 보는 접근이다. 추론 과정 모니터링에는 유용할 수 있다. 그러나 적응 메커니즘이 추가되는 만큼 관찰 결과를 설명하기가 더 어려워진다. 안전성 평가처럼 감사 가능성이 필요한 용도라면 이 복잡성은 비용이다.
+
+## 안전 모니터링으로 쓰려면 “최종 정답률”만 보면 안 된다
+
+Bypass Observation을 환각 탐지나 안전성 모니터링에 붙이려면 평가 설계를 따로 해야 한다. 단순히 최종 답이 맞았는지 보는 벤치마크만으로는 “출력 전에 경보할 수 있는가”를 알기 어렵다.
+
+환각 쪽에서는 HaluEval처럼 모델의 환각 인식 능력을 보는 평가와 TruthfulQA처럼 질문에 대해 사실성 있는 답을 생성하는지를 보는 평가가 필요하다. 여기에 HaDes처럼 참조 정답 없이 토큰 단위 오류 위치를 표지한 벤치마크가 중요해진다. 층별 관찰 헤드의 가치는 최종 문장이 완성된 뒤 채점하는 데만 있지 않다. 잘못된 내용이 생성되는 도중 또는 직전에 신호가 나타나는지도 봐야 한다.
+
+안전성 모니터링은 별도 축이다. 유해 요청과 거부 견고성을 보려면 HarmBench 같은 적대적 레드팀 프롬프트 기반 평가를 함께 써야 한다. 환각을 잘 잡는 헤드가 유해 응답도 잘 막는다는 근거는 여기서 주어지지 않았다. 두 문제를 하나의 “위험 점수”로 합치는 것은 검증 전에는 피해야 한다.
+
+## 의사결정 규칙
+
+연구·플랫폼 팀이라면 Bypass Observation을 “비침습적 내부 상태 로깅 레이어”로 프로토타입할 수 있다. 조건은 세 가지다. 첫째, 백본은 동결하고 관찰 헤드 출력은 추론 경로에 피드백하지 않는다. 둘째, 결과 보고에서 “정보가 읽힌다”와 “모델이 그 정보를 사용했다”를 분리한다. 셋째, 환각·사실성·토큰 단위 오류·유해 응답 평가를 나눠 측정한다.
+
+제품 안전장치로 바로 투입하려는 팀이라면 보류하는 편이 낫다. 현재 확인된 근거는 층별 readout이 의미 있는 진단 신호를 줄 가능성을 뒷받침한다. 그러나 특정 백본과 과제에서 오류 발생 층을 인과적으로 특정할 수 있다는 근거는 부족하다. 관찰 결과만으로 추론을 안정적으로 교정할 수 있다는 근거도 확인되지 않았다. Bypass Observation의 현실적인 첫 용도는 자동 브레이크가 아니라, 브레이크를 설계하기 전에 내부 압력과 진동을 재는 계측에 가깝다.
+
+## 다음으로 읽기
+- [GoAnt와 품질-다양성 팩터 탐색](/ko/posts/goant-quality-diversity-alpha-factor-search)
+- [BioSync 도입 판단의 핵심](/ko/posts/biosync-adoption-validation-design)
+- [REFINE로 보는 환자별 코드 표현](/ko/posts/refine-patient-specific-ehr-code-representations)
+- [LLM 추론 SWA의 역할과 한계](/ko/posts/llm-inference-swa-kv-cache-limits)
+- [샌더스·카사르 AI 금지 법안의 실무적 의미](/ko/posts/sanders-casar-ai-ban-proposal)
+---
+
+## 참고 자료
+
+- [Probing Classifiers: Promises, Shortcomings, and Advances - direct.mit.edu](https://direct.mit.edu/coli/article/48/1/207/107571/Probing-Classifiers-Promises-Shortcomings-and)
+- [Latent Causal Probing: A Formal Perspective on Probing with Causal Models of Data - arxiv.org](https://arxiv.org/abs/2407.13765)
+- [Hidden Error Awareness in Chain-of-Thought Reasoning: The Signal Is Diagnostic, Not Causal - arxiv.org](https://arxiv.org/abs/2605.09502)
+- [HaluEval: A Large-Scale Hallucination Evaluation Benchmark for Large Language Models - arxiv.org](https://arxiv.org/abs/2305.11747)
+- [TruthfulQA: Measuring How Models Mimic Human Falsehoods - arxiv.org](https://arxiv.org/abs/2109.07958)
+- [A Token-level Reference-free Hallucination Detection Benchmark for Free-form Text Generation - arxiv.org](https://arxiv.org/abs/2104.08704)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2609.13807)

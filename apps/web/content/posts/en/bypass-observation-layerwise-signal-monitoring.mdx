@@ -1,0 +1,73 @@
+---
+title: How to use Bypass Observation correctly
+slug: bypass-observation-layerwise-signal-monitoring
+date: '2026-09-15'
+lastReviewedAt: '2026-09-15'
+locale: en
+description: >-
+  Clarifies why Bypass Observation should be treated as a layerwise signal
+  measurement tool rather than a causal explanation method, and outlines
+  practical criteria for head design and safety monitoring evaluation.
+tags:
+  - hardware
+  - llm
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-0f0b4ad1501ef1f3
+sourceUrl: 'https://arxiv.org/abs/2609.13807'
+verificationScore: 0.82
+alternateLocale: /ko/posts/bypass-observation-layerwise-signal-monitoring
+coverImage: /images/posts/bypass-observation-layerwise-signal-monitoring.png
+---
+
+# Bypass Observation Should Be Viewed Not as an “Inference Explainer,” but as a “Layer-Wise Signal Instrument”
+
+Teams evaluating Bypass Observation should first define what they want it to do. If the goal is to causally explain why a model produced a particular answer, the evidence presented so far is insufficient. If the goal is to test whether semantic, error-related, or safety-related signals can be read from layer-wise hidden states before the final output, the approach is worth examining. Confusing these goals risks overstating an interpretability instrument as a safety mechanism or debugger.
+
+The paper’s abstract proposes a simple architecture: attach read-only observation heads to selected layers of a Transformer. Their outputs are not fed back into the backbone model. Users usually see only the final token output, but this architecture attempts to read linguistic and semantic signals from hidden states at intermediate layers. Three variants are proposed: a shared LM head across multiple layers, a separate head for each layer, and heads that adapt by layer or inference step.
+
+The “read-only” design matters. If the observation heads are trained separately while the backbone parameters remain frozen, the heads’ training loss does not alter the original model representations. During training, this avoids the problem of trying to observe the model and instead retraining it. Existing probing research uses a similar basic idea: a separate classifier or head takes model representations as input and predicts a specific property. This measures how recoverable that property is from the representations.
+
+This strength is also a limitation. If an observation head at a certain layer accurately detects a signal that an answer is likely to be wrong, that does not show that the layer caused the error. Probing research distinguishes between information being present in a representation and the model causally using that information. Research on error signals in Chain-of-Thought reasoning also reports that error awareness signals may be diagnostic without being causal control signals that correct the error. In this framing, Bypass Observation may function like a dashboard that indicates the quality of internal computation. That does not mean the dashboard controls the engine.
+
+## The Choice Among Three Heads Is Not a Matter of Accuracy, but of Operational Assumptions
+
+Based on the available evidence cited here, it is difficult to judge whether the shared LM head, the layer-specific dedicated head, or the layer- and step-adaptive head is more accurate. No direct comparative experimental results have been confirmed. The selection criterion should therefore not be “which performs better,” but which interpretation cost and validation cost the team can handle.
+
+A shared LM head is suitable as a simple baseline. Because multiple layers are read through the same lens, comparisons across layers are relatively straightforward. This also assumes that representations from different layers can be projected into the vocabulary space in the same way. That assumption may underestimate or distort signal differences between shallow and deep layers.
+
+A layer-specific dedicated head accepts that each layer may have a different representational format. It may be more flexible for finding signals that are recoverable only from specific layers. The cost is that each head has its own learned criterion. This creates a comparison problem: does a risk score at layer 7 mean the same thing as a risk score at layer 20? The design gives the observation mechanism more freedom, but that freedom can make interpretation harder.
+
+A layer- and step-adaptive head is a more complex design. It assumes that, even within the same layer, the required readout may change depending on the generation step. This may be useful for monitoring the inference process. However, the adaptive mechanism also makes the observation results harder to explain. For uses such as safety evaluation, where auditability matters, this complexity is a cost.
+
+## To Use It for Safety Monitoring, You Cannot Look Only at “Final Answer Accuracy”
+
+If Bypass Observation is used for hallucination detection or safety monitoring, it needs a separate evaluation design. Benchmarks that only check whether the final answer is correct are not enough to determine whether an alert can be raised before output.
+
+For hallucination, evaluations are needed that assess hallucination awareness, such as HaluEval, along with evaluations of factual answers to questions, such as TruthfulQA. Benchmarks such as HaDes, which annotate token-level error locations without reference answers, are also relevant. The value of layer-wise observation heads is not only in scoring after the final sentence is complete. The evaluation should also examine whether signals appear during, or immediately before, the generation of incorrect content.
+
+Safety monitoring is a separate axis. To evaluate harmful requests and refusal robustness, adversarial red-team prompt-based evaluations such as HarmBench should also be used. The evidence discussed here does not show that a head that detects hallucinations well will also prevent harmful responses well. These two problems should not be merged into a single “risk score” before validation.
+
+## Decision Rules
+
+Research and platform teams can prototype Bypass Observation as a non-intrusive internal-state logging layer under three conditions. First, the backbone should remain frozen, and the outputs of the observation heads should not be fed back into the inference path. Second, result reporting should separate “information can be read” from “the model used that information.” Third, hallucination, factuality, token-level errors, and harmful-response evaluations should be measured separately.
+
+Teams planning to deploy it immediately as a product safety mechanism should be cautious. The evidence confirmed here supports the possibility that layer-wise readouts can provide meaningful diagnostic signals. It does not establish that error-producing layers can be causally identified for a specific backbone and task. Nor does it confirm that inference can be reliably corrected based only on observation results. A realistic first use of Bypass Observation is closer to instrumentation for measuring internal pressure and vibration before designing the brakes, not to the automatic brake itself.
+
+## Further Reading
+- [GoAnt and quality-diversity search for alpha factors](/en/posts/goant-quality-diversity-alpha-factor-search)
+- [What should drive a BioSync adoption decision](/en/posts/biosync-adoption-validation-design)
+- [Patient-specific code representations in REFINE](/en/posts/refine-patient-specific-ehr-code-representations)
+- [What inference-time SWA is actually useful for in LLMs](/en/posts/llm-inference-swa-kv-cache-limits)
+- [Practical implications of the Sanders-Casar AI ban proposal](/en/posts/sanders-casar-ai-ban-proposal)
+---
+
+## References
+
+- [Probing Classifiers: Promises, Shortcomings, and Advances - direct.mit.edu](https://direct.mit.edu/coli/article/48/1/207/107571/Probing-Classifiers-Promises-Shortcomings-and)
+- [Latent Causal Probing: A Formal Perspective on Probing with Causal Models of Data - arxiv.org](https://arxiv.org/abs/2407.13765)
+- [Hidden Error Awareness in Chain-of-Thought Reasoning: The Signal Is Diagnostic, Not Causal - arxiv.org](https://arxiv.org/abs/2605.09502)
+- [HaluEval: A Large-Scale Hallucination Evaluation Benchmark for Large Language Models - arxiv.org](https://arxiv.org/abs/2305.11747)
+- [TruthfulQA: Measuring How Models Mimic Human Falsehoods - arxiv.org](https://arxiv.org/abs/2109.07958)
+- [A Token-level Reference-free Hallucination Detection Benchmark for Free-form Text Generation - arxiv.org](https://arxiv.org/abs/2104.08704)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2609.13807)
