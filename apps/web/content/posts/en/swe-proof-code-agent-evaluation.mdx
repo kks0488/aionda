@@ -1,0 +1,76 @@
+---
+title: Evaluating code agents with SWE-Proof
+slug: swe-proof-code-agent-evaluation
+date: '2026-09-21'
+lastReviewedAt: '2026-09-21'
+locale: en
+description: >-
+  A practical guide for teams evaluating code-generation agents on how to
+  separate test pass rates, formal verification results, and specification
+  fidelity in their decision criteria.
+tags:
+  - agi
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-13b262f67b1678e1
+sourceUrl: 'https://arxiv.org/abs/2609.21190'
+verificationScore: 0.9
+alternateLocale: /ko/posts/swe-proof-code-agent-evaluation
+coverImage: /images/posts/swe-proof-code-agent-evaluation.png
+---
+
+The practical conclusion from SWE-Proof is limited but important. When choosing a code generation agent, it is not enough to ask whether it passed the tests. At the same time, the available evidence does not show that adding formal verification, by itself, solves reliability. In this benchmark, the main bottleneck appears to be less about generating patches and more about converting natural-language issues into complete formal specifications.
+
+The intended readers of this article are teams evaluating code generation models or defining criteria for adopting internal development agents. A safer decision rule is this: if a change can be narrowed into a specification of functional requirements, add formal verification evaluation on top of test-based evaluation. If the product expects the model to write the specification as well, do not treat the verification pass rate as a direct reliability metric. Instead, evaluate “specification fidelity” as a separate item.
+
+## The Question SWE-Proof Changes
+
+The basic question of existing SWE-series benchmarks is close to.
+“Can the model fix real repository issues and pass hidden tests?” SWE-Proof pushes the question one step further: “Does that patch also come with a machine-checkable proof?”
+
+This difference matters. Tests are samples. Passing them does not mean the patch is correct for all relevant inputs and states. In addition, as a benchmark becomes more widely used, concern about possible data memorization increases. The abstract of the SWE-Proof paper takes these two limitations—the incompleteness of tests and vulnerability to memorization—as its starting point.
+
+
+In other words, the value of SWE-Proof is not just that it is a formal verification benchmark. Its contribution is that it places real issue resolution and machine verification inside the same evaluation.
+
+## Passing Tests Can Be Overestimated
+
+The practically important signal is this: according to the SWE-Proof results, between one-quarter and one-half of the patches that passed tests for two frontier models still admitted counterexamples. This is evidence that test-based scores can overestimate actual correctness.
+
+This number should not be read as a model leaderboard. Based only on the provided evidence, it is not possible to determine how the overall ranking of models changes in SWE-Proof compared with SWE-bench, SWE-bench Verified, or SWE-bench Pro. The evaluation risk is clearer than the ranking effect. A test pass rate is evidence that “no error was found,” not proof that “the entire specification is satisfied.”
+
+There is additional context. OpenAI’s article on SWE-bench Verified reported that, after auditing the 27.6% portion of the dataset where models frequently failed, at least 59.4% of the audited problems had flawed tests that rejected functionally correct submissions. On one side, tests can allow an incorrect answer to pass; on the other, they can reject a correct answer. The directions differ, but the implication is similar: it is difficult to judge a model’s coding ability reliably with a single test-based benchmark.
+
+## The Bottleneck Is More “What to Prove” Than “Proof”
+
+What deserves closer attention in SWE-Proof is that adding formal verification does not automatically improve performance. When a correct formal specification was provided, the solve rate of Opus 4.8 increased from 85% to 95%. However, when the model had to write the specification itself, there was no gain over the unaided baseline.
+
+This result matters for both evaluation and product design. A model’s failure may not mean only that it cannot write code. If it formalizes only part of the requirements, interprets the issue too narrowly, or omits specification conditions that interact with repository state, verification can create a false sense of assurance. The machine checks the given specification; it does not automatically help ensure that the specification captures the user’s intent.
+
+SWE-Proof therefore shifts attention from “failure to generate a patch” to “failure of the specification to faithfully capture the requirements.” This distinction is practically important. If the evaluation criteria for a code agent consist only of patch success rate, specification-writing failures and implementation failures cannot be separated. It also becomes harder to know what needs improvement.
+
+## Decision Rules
+
+Whether to include SWE-Proof in an evaluation framework should be judged by the following criteria.
+
+First, can the change request be expressed in terms of functional correctness? For aspects that can be specified, such as the behavior of a particular function, data structure invariants, or boundary conditions, formal verification can complement tests by catching counterexamples they miss. In this case, do not choose a model based only on test pass rate. For the verifiable subset, examine both the counterexample rate and the proof success rate.
+
+Second, who writes the specification? If the workflow provides a correct formal specification reviewed by a human, a SWE-Proof-style evaluation can more clearly reveal the model’s implementation and proof capabilities. If the product requires the model to read the issue and write the specification by itself, “verification passed” is not enough. Separate review or testing is needed to determine how well the specification captures the original requirement.
+
+Third, is the evaluation scope being overstated? SWE-Proof is closer to practice than standalone formal verification tasks because it targets issues from real large-scale repositories. However, based only on the provided evidence, it does not establish that a model is safe across operational-environment interactions, permission use, deployment procedures, or long-running tasks. Generalization to other languages, industry domains, or unstructured tasks also has not been confirmed here.
+
+For purchasing or adopting a code generation agent, SWE-Proof is better used not as a single score that replaces test pass rate, but as a secondary filter that reveals where tests may overestimate performance. Teams seeking to automate high-risk changes in internal codebases should first select types of changes that can be specified, create a small evaluation set, and measure the proportion of test-passing patches that produce counterexamples. If that proportion is high, treat it as a signal that the evaluation framework is insufficient before replacing the model.
+
+## Further Reading
+- [Power risks in AI infrastructure investment](/en/posts/ai-infrastructure-power-risk)
+- [STR-Agent and the boundary of LLM-based routing](/en/posts/str-agent-llm-routing-requirement-interpretation)
+- [How to use Bypass Observation correctly](/en/posts/bypass-observation-layerwise-signal-monitoring)
+- [GoAnt and quality-diversity search for alpha factors](/en/posts/goant-quality-diversity-alpha-factor-search)
+- [What should drive a BioSync adoption decision](/en/posts/biosync-adoption-validation-design)
+---
+
+## References
+
+- [Why SWE-bench Verified no longer measures frontier coding capabilities - openai.com](https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2609.21190)
