@@ -1,0 +1,82 @@
+---
+title: Security evaluation for structured decision models
+slug: structured-decision-model-security-evaluation
+date: '2026-09-28'
+lastReviewedAt: '2026-09-28'
+locale: en
+description: >-
+  Clarifies why structured decision models should be evaluated by decision
+  changes against clean decisions and natural variation, not only by harmful
+  generated text.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-0e309537f579968e
+sourceUrl: 'https://arxiv.org/abs/2609.31142'
+verificationScore: 0.89
+alternateLocale: /ko/posts/structured-decision-model-security-evaluation
+coverImage: /images/posts/structured-decision-model-security-evaluation.png
+---
+
+# Structured-Response Models Should Be Evaluated as “Manipulable Decision Values,” Not as “Safe Outputs”
+
+The practical question raised by JevAdvBench is straightforward: if a model returns only probabilities, choices, or scores instead of generated text, are existing jailbreak evaluations enough? Based on the provided research summary, they may not be.
+
+In architectures such as RLCD models, a model returns a structured value for a typed question, and software may use that value directly before any human reads it. In that setting, the risk is located in a different place. An attacker does not need to make the model produce harmful sentences. It may be enough to alter an untrusted state or part of a request field so that the decision value changes while still appearing normal. If downstream logic executes that value—for example, in automatic approval, routing, blocking, or score-based gates—the output can look clean while the system is still affected.
+
+The usefulness of this benchmark is therefore not limited to “another attack success rate.” Its value is in asking where the evaluation criterion should be placed. Security evaluation for generative models often focuses on what the model said or what it executed. A typed decision model, by contrast, can produce a well-formed answer even when manipulated. In that case, the relevant object of evaluation is not the harmfulness of a sentence, but the change in the decision.
+
+## What Should Be Measured: Difference from the Clean Decision Rather Than the Ground-Truth Label
+
+According to the provided research summary, the core idea of JevAdvBench is to compare the post-attack decision not against an external ground-truth label, but against the model’s own clean decision. It also accounts for natural variation that occurs when the same request is run again. In other words, attack success is not simply “the decision changed.” It is better understood as a flip rate that exceeds the noise floor observed when re-running the same request.
+
+This criterion has practical value. In many production pipelines, stable ground-truth labels are not available for every input. In scoring, prioritization, risk classification, and automatic routing, the operational standard is often not a ground truth but the decision that the existing policy consistently makes. In such cases, if an attacker can manipulate part of the input and produce a choice that differs from the clean decision, operational risk may arise regardless of debates about labels.
+
+This method does not, however, determine overall safety. The clean decision itself may be wrong, and a decision different from the clean decision is not often worse. A JevAdvBench-style evaluation is more accurately described as a way to measure how much the decision boundary shifts under attackable input changes, not as a test of whether the model got the truth right.
+
+## The Gap Between Jailbreaks and Adversarial Examples
+
+LLM jailbreaks are commonly described as attempts to elicit harmful responses through carefully crafted prompts. Traditional adversarial examples are usually described as attacks that change a classification result through small perturbations while preserving the ground-truth label. The RLCD threat model is not identical to either case.
+
+The difference from jailbreaks is that the successful output is not harmful text, but a decision value in a normal format. If a security filter is designed to look for prohibited sentences, it may miss this attack. The model has only returned a number or a choice.
+
+There is also a difference from traditional adversarial examples. In the classic setting of image or text classification, small perturbations and preservation of the ground-truth label are central. In an RLCD pipeline, the attacker changes an untrusted state or part of a request field. The result is then coupled with downstream software that executes automatically. The problem is not only misclassification by the model, but the path through which a decision value becomes system behavior.
+
+This distinction affects evaluation design. In an environment where a human reviews generated answers, harmfulness evaluation has some relevance. If the decision value is not read by a human, however, the review point is not the surface form of the output. The relevant targets are the decision boundary, confidence gates, and automatic execution conditions.
+
+## Decision Rule: Attach a Separate Adversarial Evaluation When Typed Output Is Automatically Executed
+
+Practitioners can use the following criteria.
+
+If the model output is structured as a probability, choice, or score, and that value is automatically used by software, ordinary jailbreak testing is not enough to justify deployment by itself. At minimum, the evaluation should separately examine flips relative to the clean decision, excess flip rate relative to variation from re-running the same request, target hits that move the output to an attacker-desired choice, and shifts that preserve the decision while crossing a threshold.
+
+Threshold-based systems are not sufficiently evaluated by flips alone. For example, even if an approve/reject decision remains unchanged, a score that falls below a confidence gate and triggers human review can create operational cost and latency. Conversely, if a score moves past a boundary into automatic approval, the system may permit an incorrect action without any human reading the output. JevAdvBench’s consideration of both shifts and gate effects is practically relevant in this context.
+
+Conversely, if the model output is a reference sentence that a human should read and judge, and it is not directly connected to automatic execution logic, this benchmark may not be the first-priority evaluation. In that case, evaluations of harmful generation, hallucination, policy violation, and evidence quality are more direct. JevAdvBench has higher priority in systems where structured output immediately becomes action.
+
+## Defense Does Not End with Model Tuning Alone
+
+NIST materials mention model-level approaches such as training that includes adversarial inputs and certifiable robustness. They also warn that developers do not have a complete defense. For this problem, control points should therefore be distributed before and after the model.
+
+Before deployment, teams should identify which fields are untrusted. They should then measure how changes in those fields affect decision values. After deployment, user input inspection, runtime system-state monitoring, and procedures for stopping automatic execution or recovering when anomalies are detected are necessary. This is not just security boilerplate. It follows from the structure of RLCD-type systems: values that humans do not read often become objects of explanation only after an incident occurs.
+
+With only the currently available public summary, it is not possible to verify all detailed attack procedures or every evaluation implementation of JevAdvBench. Even so, the central point is clear: teams operating typed decision models should not stop at “the model does not say strange things.” They should also evaluate whether automatically executed decision values remain stable under attackable input changes.
+
+## Further Reading
+- [LogicTrack adds a logic check to CoT evaluation](/en/posts/logictrack-cot-logic-audit)
+- [Evaluating code agents with SWE-Proof](/en/posts/swe-proof-code-agent-evaluation)
+- [Power risks in AI infrastructure investment](/en/posts/ai-infrastructure-power-risk)
+- [STR-Agent and the boundary of LLM-based routing](/en/posts/str-agent-llm-routing-requirement-interpretation)
+- [How to use Bypass Observation correctly](/en/posts/bypass-observation-layerwise-signal-monitoring)
+---
+
+## References
+
+- [AI Risk and Threat Taxonomy - csrc.nist.gov](https://csrc.nist.gov/csrc/media/Presentations/2024/ai-risk-and-threat-taxonomy/Vassilev-Day1-AI_Risk_and_Threat_Taxonomy.pdf)
+- [Adversarial Machine Learning: A Taxonomy and Terminology of Attacks and Mitigations - tsapps.nist.gov](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=957080)
+- [NIST Identifies Types of Cyberattacks That Manipulate Behavior of AI Systems - nist.gov](https://www.nist.gov/news-events/news/2024/01/nist-identifies-types-cyberattacks-manipulate-behavior-ai-systems)
+- [A Comprehensive Study of Jailbreak Attack versus Defense for Large Language Models - arxiv.org](https://arxiv.org/abs/2402.13457)
+- [OpenAttack: An Open-source Textual Adversarial Attack Toolkit - arxiv.org](https://arxiv.org/pdf/2009.09191)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2609.31142)

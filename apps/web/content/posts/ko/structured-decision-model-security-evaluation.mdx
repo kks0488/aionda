@@ -1,0 +1,81 @@
+---
+title: 정형 답변 모델의 결정값 보안 평가
+slug: structured-decision-model-security-evaluation
+date: '2026-09-28'
+lastReviewedAt: '2026-09-28'
+locale: ko
+description: >-
+  문장 유해성보다 clean decision 대비 결정 변화와 노이즈 바닥을 기준으로 정형 답변 모델의 공격 가능성을 평가하는 관점을
+  정리한다.
+tags:
+  - hardware
+  - llm
+  - deep-dive
+author: AI온다
+sourceId: arxiv-cs-ai-0e309537f579968e
+sourceUrl: 'https://arxiv.org/abs/2609.31142'
+verificationScore: 0.89
+alternateLocale: /en/posts/structured-decision-model-security-evaluation
+coverImage: /images/posts/structured-decision-model-security-evaluation.png
+---
+
+# 정형 답변 모델은 “안전한 출력”이 아니라 “조작 가능한 결정값”으로 평가해야 한다
+
+JevAdvBench가 던지는 실무적 질문은 단순하다. 모델이 문장을 생성하지 않고 확률, 선택지, 점수만 반환한다면 기존 jailbreak 평가로 충분한가. 제공된 연구 요약을 기준으로 보면, 답은 “충분하지 않을 수 있다”에 가깝다.
+
+RLCD 모델처럼 typed question에 대해 정형화된 값을 반환하고, 그 값을 소프트웨어가 사람이 읽기 전에 바로 사용하는 구조에서는 위험의 위치가 다르다. 공격자는 모델에게 유해 문장을 말하게 만들 필요가 없다. 신뢰할 수 없는 state나 요청 필드 일부를 바꿔서, 겉보기에는 정상 형식인 결정값을 바꾸면 된다. 자동 승인, 라우팅, 차단, 점수 기반 게이트처럼 후속 로직이 그 값을 실행한다면 출력은 깨끗해 보여도 시스템은 영향을 받을 수 있다.
+
+따라서 이 벤치마크의 유용성은 “또 하나의 공격 성공률”에만 있지 않다. 평가 기준을 어디에 둘지 묻는 데 있다. 생성형 모델의 보안 평가는 종종 모델이 무엇을 말했는지, 무엇을 실행했는지에 집중한다. 반면 typed decision 모델은 조작돼도 잘 형식화된 답을 낼 수 있다. 이 경우 봐야 할 것은 문장의 유해성이 아니라 결정의 변화다.
+
+## 무엇을 재야 하는가: 정답 라벨보다 clean decision과의 차이
+
+제공된 연구 요약에 따르면 JevAdvBench의 핵심 아이디어는 공격 후 결정을 외부 정답 라벨이 아니라 모델 자신의 clean decision과 비교하는 것이다. 같은 요청을 다시 실행했을 때 생기는 자연 변동도 함께 본다. 즉 공격 성공은 단순히 “결정이 바뀌었다”가 아니다. 동일 요청 재실행에서 나타나는 노이즈 바닥을 넘는 flip rate로 봐야 한다.
+
+이 기준은 실무적으로 타당한 면이 있다. 많은 운영 파이프라인에서 모든 입력에 대해 안정적인 정답 라벨을 갖고 있지 않다. 예컨대 점수화, 우선순위 산정, 리스크 분류, 자동 라우팅은 “정답”보다 “기존 정책이 일관되게 내리는 결정”이 운영 기준인 경우가 많다. 이때 공격자가 입력의 일부를 조작해 clean decision과 다른 선택을 만들 수 있다면, 라벨 논쟁과 별개로 운영 리스크가 생긴다.
+
+다만 이 방식은 안전성 전체를 판정하지 않는다. clean decision 자체가 잘못됐을 수 있고, clean decision과 다른 결정이 항상 나쁜 것도 아니다. JevAdvBench식 평가는 “모델이 진실을 맞혔는가”보다 “공격 가능한 입력 변화에 대해 결정 경계가 얼마나 흔들리는가”를 재는 도구로 보는 편이 정확하다.
+
+## jailbreak와 adversarial example 사이의 빈틈
+
+LLM jailbreak는 조심스럽게 만든 프롬프트로 유해 응답을 끌어내는 문제로 설명된다. 전통적 adversarial example은 정답 라벨은 유지되는 작은 교란으로 분류 결과를 바꾸는 공격 모델로 설명된다. RLCD 위협 모델은 둘 중 어느 한쪽과도 완전히 같지 않다.
+
+jailbreak와 다른 점은 성공 산출물이 유해한 텍스트가 아니라 정상 형식의 결정값이라는 점이다. 보안 필터가 “금지된 문장”을 찾도록 설계돼 있다면 이 공격을 놓칠 수 있다. 모델은 여전히 숫자나 선택지를 반환했을 뿐이다.
+
+전통적 adversarial example과도 차이가 있다. 이미지나 텍스트 분류의 고전적 설정에서는 작은 교란과 정답 라벨 유지가 중심이다. RLCD 파이프라인에서는 공격자가 바꾸는 대상이 신뢰할 수 없는 state나 요청 필드 일부다. 그 결과는 자동 실행되는 후속 소프트웨어와 결합된다. 문제는 모델 단독의 오분류가 아니라 결정값이 시스템 행위로 변환되는 경로다.
+
+이 차이는 평가 설계에 직접 영향을 준다. 생성된 답변을 사람이 리뷰하는 환경이라면 유해성 평가가 일정 부분 의미를 가진다. 그러나 사람이 읽지 않는 결정값이라면 리뷰 지점은 출력 문면이 아니다. 결정 경계, 신뢰도 게이트, 자동 실행 조건을 봐야 한다.
+
+## 의사결정 규칙: 자동 실행되는 typed output이면 별도 적대 평가를 붙여라
+
+실무자는 다음 기준으로 판단할 수 있다.
+
+모델 출력이 확률, 선택, 점수처럼 정형화돼 있고 그 값이 소프트웨어에서 자동 사용된다면, 일반 jailbreak 테스트만으로 배포를 승인하기는 어렵다. 최소한 clean decision 대비 flip, 동일 요청 재실행 변동 대비 초과 flip rate, 공격자가 원하는 선택지로 이동시키는 target hit, 결정은 유지하되 임계값을 넘기는 shift를 따로 봐야 한다.
+
+특히 임계값 기반 시스템은 flip만 보면 부족하다. 예를 들어 승인/거절 결정은 유지되더라도 점수가 신뢰도 게이트 아래로 내려가 사람 검토로 전환된다면 운영비와 지연이 공격면이 된다. 반대로 점수가 경계 너머로 이동해 자동 승인 쪽으로 들어가면, 사람은 아무것도 읽지 않은 채 잘못된 실행을 허용할 수 있다. JevAdvBench가 shift와 게이트 효과를 함께 본다는 점은 이 맥락에서 실무적 의미가 있다.
+
+반대로 모델 출력이 사람이 반드시 읽고 판단하는 참고 문장이고, 자동 실행 로직과 직접 연결돼 있지 않다면 이 벤치마크가 1순위 평가는 아닐 수 있다. 그 경우에는 유해 생성, 환각, 정책 위반, 근거 품질 평가가 더 직접적이다. JevAdvBench의 우선순위는 “정형 출력이 곧 액션이 되는 시스템”에서 높다.
+
+## 방어는 모델 튜닝 하나로 끝나지 않는다
+
+NIST 자료는 적대적 입력을 포함한 학습, 인증 가능한 강건성 같은 모델 수준 접근을 언급한다. 동시에 개발자가 사용할 수 있는 완전한 방어책은 없다고 경고한다. 따라서 이 문제의 통제 지점은 모델 앞뒤에 나눠 둬야 한다.
+
+배포 전에는 신뢰할 수 없는 필드가 무엇인지 먼저 분리해야 한다. 그리고 그 필드 변화가 결정값에 미치는 영향을 공격적으로 측정해야 한다. 배포 후에는 사용자 입력 검사, 실행 중 시스템 상태 모니터링, 이상 탐지 시 자동 실행 중단 또는 복구 절차가 필요하다. 이는 단순한 보안 문구가 아니다. RLCD류 시스템의 구조에서 나온 요구다. 사람이 읽지 않는 값은 사고가 난 뒤에야 설명 대상으로 떠오르기 쉽기 때문이다.
+
+현재 공개 요약만으로 JevAdvBench의 세부 공격 절차 전체나 모든 평가 구현을 검증할 수는 없다. 그래도 핵심 전환점은 분명하다. typed decision 모델을 운영하는 팀은 “모델이 이상한 말을 하지 않는다”에 그치지 말아야 한다. “공격 가능한 입력 변화에도 자동 실행될 결정값이 안정적인가”를 배포 기준에 넣어야 한다.
+
+## 다음으로 읽기
+- [LogicTrack과 CoT 논리 감사](/ko/posts/logictrack-cot-logic-audit)
+- [SWE-Proof로 본 코드 에이전트 평가](/ko/posts/swe-proof-code-agent-evaluation)
+- [AI 인프라 투자 전력 리스크](/ko/posts/ai-infrastructure-power-risk)
+- [STR-Agent와 LLM 라우팅의 경계](/ko/posts/str-agent-llm-routing-requirement-interpretation)
+- [Bypass Observation의 올바른 용도](/ko/posts/bypass-observation-layerwise-signal-monitoring)
+---
+
+## 참고 자료
+
+- [AI Risk and Threat Taxonomy - csrc.nist.gov](https://csrc.nist.gov/csrc/media/Presentations/2024/ai-risk-and-threat-taxonomy/Vassilev-Day1-AI_Risk_and_Threat_Taxonomy.pdf)
+- [Adversarial Machine Learning: A Taxonomy and Terminology of Attacks and Mitigations - tsapps.nist.gov](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=957080)
+- [NIST Identifies Types of Cyberattacks That Manipulate Behavior of AI Systems - nist.gov](https://www.nist.gov/news-events/news/2024/01/nist-identifies-types-cyberattacks-manipulate-behavior-ai-systems)
+- [A Comprehensive Study of Jailbreak Attack versus Defense for Large Language Models - arxiv.org](https://arxiv.org/abs/2402.13457)
+- [OpenAttack: An Open-source Textual Adversarial Attack Toolkit - arxiv.org](https://arxiv.org/pdf/2009.09191)
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2609.31142)
