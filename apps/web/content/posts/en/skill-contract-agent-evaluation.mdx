@@ -1,0 +1,74 @@
+---
+title: Evaluation criteria for skill contract agents
+slug: skill-contract-agent-evaluation
+date: '2026-10-07'
+lastReviewedAt: '2026-10-07'
+locale: en
+description: >-
+  Clarifies how to evaluate agents by separating final task accuracy from
+  protocol compliance, with practical implications of Grounded Skill-Following
+  and PCR.
+tags:
+  - hardware
+  - llm
+  - robotics
+  - explainer
+author: AI온다
+sourceId: arxiv-cs-ai-0ff339e20e694565
+sourceUrl: 'https://arxiv.org/abs/2610.05161'
+verificationScore: 0.92
+alternateLocale: /ko/posts/skill-contract-agent-evaluation
+coverImage: /images/posts/skill-contract-agent-evaluation.png
+---
+
+The core idea of a skill-contract-based agent is to separate two quality axes: whether the agent produced the correct answer, and whether it completed the prescribed procedure in an allowed way. Teams putting agents into products should treat this distinction seriously. For some tasks, final-answer correctness is enough. For others, violating an intermediate procedure is a failure even if the final answer is correct. Execution before approval, definitive claims made without search, omitted tool calls, and incorrect termination decisions may not be visible from the final text alone.
+
+Grounded Skill-Following, as proposed in the paper, frames this problem as a “skill contract.” In this context, a contract is not just a set of natural-language instructions. According to the confirmed description, each skill combines a user-visible skill instruction with an explicit contract runtime. This runtime specifies required steps, allowed actions, possible transitions, and accepted termination conditions. It also tracks state transitions during execution and provides Contract-State Feedback. The available description does not confirm whether the contract is represented as JSON, a DSL, or state-machine syntax. The important point is that it goes beyond natural-language guidance by adding verifiable execution constraints.
+
+## Why instruction following alone is insufficient
+
+Typical instruction-following evaluation focuses on requirements visible in the response. Constraints such as “answer briefly,” “organize it as a table,” or “include this condition” can often be checked in the final output. Agent tasks are different because they interact with an environment before producing an answer. They may search, call tools, incorporate observations, move to a next step, and decide whether to terminate.
+
+The procedure can be wrong even when the final answer looks plausible. A search agent may answer without searching and still happen to be correct. A math-solving agent may skip a required verification step and still produce the right answer. In an operational setting, this kind of success can be risky: it reduces reproducibility and auditability, and it makes failures harder to diagnose.
+
+Grounded Skill-Following makes this procedural question part of the evaluation. The paper uses Protocol Completion Rate, or PCR, to measure whether all required steps were passed through and an accepted termination condition was reached. PCR is separate from final task performance. This separation makes it possible to distinguish “high procedural compliance but low answer accuracy” from “high answer accuracy but low procedural compliance.”
+
+## What the performance numbers indicate: procedural compliance is not the same axis as answer accuracy
+
+The most practical signal in the paper is the joint training result for the Qwen-family-4B model. For Math and Search, PCR was reported as 99.27% and 99.96%, respectively. Final task performance was 82.95% for Math and 46.61% for Search. The Recipe baseline reported for comparison was 85.18% for Math and 40.70% for Search.
+
+These numbers support two narrower conclusions. First, contract-based learning can increase procedural compliance in the reported settings. Second, higher procedural compliance does not necessarily mean higher final-answer performance. In Math, final performance for contract-based joint training is lower than the Recipe baseline. In Search, it is higher. A broad claim such as “adding contracts makes the agent smarter” is therefore not supported by these results.
+
+A more careful interpretation is that a skill contract is primarily a way to control and evaluate the execution path, not a mechanism that automatically improves reasoning ability. From a product perspective, it is closer to operational risk management than to general performance optimization.
+
+## Adoption decision: use it first for procedural tasks, not answer-oriented tasks
+
+Teams considering a skill-contract-based approach should decide based on the nature of the task.
+
+If task quality can be judged well enough from the final output alone, a skill contract may be unnecessary. This applies to cases where intermediate actions are not directly tied to product risk, such as simple classification, summarization, or format conversion. In those cases, output evaluation, sampling-based review, and regression tests may be simpler and cheaper.
+
+By contrast, skill contracts are worth considering when procedural requirements matter. Relevant conditions include required steps, actions that should be allowed only in certain states, clear termination conditions, the need to audit which step was skipped after a failure, and tasks where tool calls or external-environment interactions are central.
+
+By these criteria, web agents, tool-using agents, and robotics may be candidate areas. However, the environments directly evaluated in the paper are Math and Search. The paper does not establish actual physical robot safety, prompt-injection defense for web agents, or auditability across a broad range of tool use. Related robotics research has reported an approach that converts contracts into executable monitors and uses them for runtime verification. That related work does not, by itself, expand the experimental validation scope of Grounded Skill-Following.
+
+## Product design trade-offs
+
+Skill contracts reduce freedom. That is both their benefit and their cost. When required steps, allowed actions, transitions, and termination conditions are specified, it becomes harder for an agent to bypass them arbitrarily. At the same time, a poorly written contract may block correct behavior. Exceptional situations missing from the contract may not be handled by the runtime. Contracts also require expert time to write, and the contracts themselves need version control and testing.
+
+For that reason, the adoption unit should not be the entire agent. It should be high-risk skills. Instead of contractizing every search task, a team might first contractize searches that require source verification, tool calls where changes before approval are prohibited, or incident response procedures where termination conditions matter. Evaluation should also avoid collapsing everything into a single final success rate. PCR and final task performance should be examined together, and teams should decide which metric is closer to product failure for each task.
+
+The practical decision rule is straightforward. If procedural violations can lead to user harm, regulatory violations, costs, or audit failures, a skill-contract-based agent is worth considering. If the goal is simply to improve answer quality, compare it first with other evaluation and learning methods. The strength of this approach is not that it help ensure a better answer. It is that it makes it easier to reveal and enforce whether the task was performed in an allowed manner.
+
+## Further Reading
+- [When to use HRL in LLM agents](/en/posts/llm-agent-hrl-switching-criteria)
+- [Security evaluation for structured decision models](/en/posts/structured-decision-model-security-evaluation)
+- [LogicTrack adds a logic check to CoT evaluation](/en/posts/logictrack-cot-logic-audit)
+- [Evaluating code agents with SWE-Proof](/en/posts/swe-proof-code-agent-evaluation)
+- [Power risks in AI infrastructure investment](/en/posts/ai-infrastructure-power-risk)
+---
+
+## References
+
+- [arxiv.org - arxiv.org](https://arxiv.org/abs/2610.05161)
+- [Beyond Instruction Following: Learning Grounded Skill-Following with Skill Contracts - arxiv.org](https://arxiv.org/html/2610.05161v1)
+- [A compositional approach to verifying modular robotic systems - sciencedirect.com](https://www.sciencedirect.com/science/article/pii/S0921889026003209)
